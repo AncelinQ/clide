@@ -19,6 +19,7 @@ sont apparus depuis.
 Cette parenté est une dette intellectuelle, et elle est citée comme telle.
 
 Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workflow.md).
+Pistes pour la suite : [`docs/pistes.md`](docs/pistes.md).
 
 ## État
 
