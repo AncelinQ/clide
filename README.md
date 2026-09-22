@@ -260,6 +260,24 @@ tous couverts par des tests :
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
 
+## L'état des serveurs MCP
+
+Les panneaux listent les serveurs depuis les fichiers de configuration, ce qui
+est immédiat mais ne dit pas s'ils répondent. Cet état-là n'existe nulle part sur
+le disque : il faut interroger chaque serveur, ce que fait `claude mcp list`.
+
+- **C'est une route à part, déclenchée par un bouton.** La commande prend une
+  quinzaine de secondes sur une vingtaine de serveurs. La liaison à la liste se
+  fait par nom, et l'état vient se poser sur des lignes déjà affichées.
+- **Seuls le nom et l'état sont retenus.** La cible que la commande rappelle est
+  déjà connue des panneaux, qui la tiennent de la configuration.
+- **La commande révèle les connecteurs claude.ai**, rattachés au compte et
+  absents de tout fichier local. Ils n'apparaissent donc qu'une fois l'état lu,
+  dans leur propre section.
+- **Une sortie en échec reste exploitable** : un serveur injoignable peut faire
+  sortir la commande en erreur, et ce qu'elle a écrit avant est l'état des
+  autres.
+
 ## Dossiers liés
 
 Le front dépend de l'API et du design system, qui vivent dans d'autres dépôts.

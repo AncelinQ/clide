@@ -103,6 +103,8 @@ export {
   type McpTransport,
 } from "./mcp/store.js";
 
+export { parseMcpStatus, type McpHealth, type McpStatus } from "./mcp/status.js";
+
 export {
   ScriptStore,
   parsePnpmWorkspace,

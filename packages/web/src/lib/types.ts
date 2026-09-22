@@ -76,6 +76,13 @@ export interface McpServer {
   redacted: boolean;
 }
 
+export interface McpStatus {
+  name: string;
+  health: "connected" | "needs-auth" | "failed";
+  detail?: string;
+  connector: boolean;
+}
+
 export interface ProjectScripts {
   manager: string;
   managerDetected: boolean;

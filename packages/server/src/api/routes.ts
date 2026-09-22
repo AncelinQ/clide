@@ -22,6 +22,7 @@ import {
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
+import { readMcpStatus } from "../platform/mcp.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
@@ -139,6 +140,15 @@ export const routes: Record<string, Handler> = {
   },
 
   "/api/mcp": async (params) => ({ servers: await new McpStore().listAll(requireParam(params, "root")) }),
+
+  /**
+   * État des serveurs, interrogés un à un par la CLI. Route à part de `/api/mcp`
+   * parce qu'elle coûte des secondes : la liste s'affiche sans l'attendre, et
+   * l'état ne part qu'à la demande.
+   */
+  "/api/mcp/status": async (params) => ({
+    status: await readMcpStatus(params.get("root") ?? undefined),
+  }),
 
   "/api/scripts": async (params) => new ScriptStore().read(requireParam(params, "root")),
 

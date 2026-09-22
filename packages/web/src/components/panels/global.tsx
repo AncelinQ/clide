@@ -2,6 +2,7 @@ import { Bell, Cpu, History, Plug, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
+import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { SkillEditor, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,7 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
 export function UserMcpPanel() {
   const root = getState().activeRoot ?? "";
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp", { root }), [root]);
+  const { byName, connectors, check } = useMcpStatus(root);
 
   return (
     <Async state={state}>
@@ -205,7 +207,12 @@ export function UserMcpPanel() {
                         <Row
                           key={server.name}
                           title={server.name}
-                          badges={<Badge variant="secondary">{server.transport}</Badge>}
+                          badges={
+                            <>
+                              <Badge variant="secondary">{server.transport}</Badge>
+                              <McpHealth status={byName?.get(server.name)} />
+                            </>
+                          }
                           sub={[
                             server.url ?? [server.command, ...(server.args ?? [])].join(" "),
                             keys.length ? `secrets masqués : ${keys.join(", ")}` : "",
@@ -220,9 +227,33 @@ export function UserMcpPanel() {
               </div>
             );
           })}
+          {/* Les connecteurs sont rattachés au compte, hors de toute
+              configuration locale : ils n'existent ici qu'une fois l'état lu. */}
+          {connectors && connectors.length > 0 && (
+            <div>
+              <Section>Connecteurs claude.ai</Section>
+              <Rows>
+                {connectors.map((connector) => (
+                  <Row
+                    key={connector.name}
+                    title={connector.name}
+                    badges={<McpHealth status={connector} />}
+                  />
+                ))}
+              </Rows>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 py-3">
+            <ActionButton onAction={check}>Vérifier l'état</ActionButton>
+            <span className="text-[11px] text-muted-foreground">
+              interroge chaque serveur, quelques secondes
+            </span>
+          </div>
+
           {/* Ces portées vivent dans ~/.claude.json, qui porte aussi l'état de
               chaque projet : elles se modifient par la CLI, pas d'ici. */}
-          <p className="py-3 text-[11px] text-muted-foreground">
+          <p className="pb-3 text-[11px] text-muted-foreground">
             Ces portées se modifient par <code>claude mcp add|remove</code>.
           </p>
         </>

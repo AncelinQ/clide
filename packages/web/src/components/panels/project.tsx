@@ -2,6 +2,7 @@ import { GitBranch, Link2, Package, Plug, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
+import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { SkillEditor, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -232,6 +233,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
 
 export function ProjectMcpPanel({ root }: { root: string }) {
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp", { root }), [root]);
+  const { byName, check } = useMcpStatus(root);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
@@ -251,7 +253,12 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                     key={server.name}
                     title={server.name}
                     sub={server.url ?? [server.command, ...(server.args ?? [])].join(" ")}
-                    badges={<Badge variant="secondary">{server.transport}</Badge>}
+                    badges={
+                      <>
+                        <Badge variant="secondary">{server.transport}</Badge>
+                        <McpHealth status={byName?.get(server.name)} />
+                      </>
+                    }
                     actions={
                       <DangerButton
                         label="retirer"
@@ -297,9 +304,12 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                 </div>
               </div>
             ) : (
-              <Button variant="outline" size="sm" className="mt-3 h-7" onClick={() => setOpen(true)}>
-                Ajouter un serveur
-              </Button>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" className="h-7" onClick={() => setOpen(true)}>
+                  Ajouter un serveur
+                </Button>
+                {own.length > 0 && <ActionButton onAction={check}>Vérifier l'état</ActionButton>}
+              </div>
             )}
           </>
         );
