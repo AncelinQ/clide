@@ -8,6 +8,8 @@ Inspiré de **ClaudeTerm** (macOS, Swift, de Jérôme Laval). Le code n'est pas 
 la couche de lecture est reconstruite, parce que le format des transcripts a divergé
 de celui que décrit l'original.
 
+Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workflow.md).
+
 ## État
 
 | Tâche | Contenu | État |
