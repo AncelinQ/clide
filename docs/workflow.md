@@ -127,7 +127,7 @@ Electron : l'emballage ultérieur ne demandera aucune recompilation.
 | B3 | Hôte xterm.js dans le navigateur, resize, thème | B1 | fait — shell utilisable au clavier |
 | B4 | Profil PowerShell chaînant le prompt existant + parseur OSC | B2, T0.3 | fait — prompt existant chaîné, jamais remplacé |
 | B5 | Onglets : état idle / running / failed, réutilisation du shell inactif | B4 | fait |
-| B6 | Emballage Electron | C8 | **optionnel, décidé à l'usage** |
+| B6 | Emballage Electron | C8 | fait — installateur NSIS, node-pty chargé sans recompilation |
 
 B4 porte le seul risque restant de la voie B : **ne pas casser le prompt de l'utilisateur.**
 Le profil capture `$function:prompt` et le rappelle, il ne le remplace pas.
@@ -204,7 +204,7 @@ de compresser : la seule urgence réelle est T0.1.
 | Diffusion à des collègues bloquée par PolyForm | **écartée** | accord de Jérôme obtenu ; l'analyse montrait de toute façon une implémentation indépendante |
 | Le panneau Plan reste sans source | moyenne | C7 isolé derrière une interface, coupable sans impact |
 | Injection du profil casse le prompt utilisateur | faible | B4 chaîne le prompt existant, testé avec oh-my-posh |
-| SmartScreen au premier lancement | **écartée** | plus de binaire à signer tant qu'Electron n'est pas là |
+| SmartScreen au premier lancement | **revenue** | l'installateur NSIS n'est pas signé ; acceptable en solo, à traiter avant toute diffusion |
 | Perf : rejeu complet du corpus à 17 s | **avérée** | A3b indexe et n'en relit que le delta ; un transcript isolé reste à ~116 ms |
 
 ## 9. Hors périmètre

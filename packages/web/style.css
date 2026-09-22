@@ -553,3 +553,10 @@ textarea {
   color: var(--fail);
   font-size: 11px;
 }
+
+/* Cible d'un fichier glissé, sous Electron seulement : ailleurs le navigateur
+   ne donne pas le chemin d'origine, et le dépôt n'est pas intercepté. */
+.term.dropping {
+  outline: 1px dashed var(--accent);
+  outline-offset: -3px;
+}

@@ -1,0 +1,34 @@
+appId: fr.claudeide.app
+productName: claude-ide
+copyright: Ancelin Quinton
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+
+# node-pty est livré en N-API : son binaire vaut pour Node comme pour Electron,
+# et le reconstruire exigerait une chaîne de compilation C++ dont on se passe.
+npmRebuild: false
+
+# Le reste du code est déjà regroupé dans `dist/main.cjs`. Ne restent en
+# dépendances que ce qui ne peut pas l'être : le binaire natif et les fichiers
+# de xterm, servis tels quels au client.
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: claude-ide

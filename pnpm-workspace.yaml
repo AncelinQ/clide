@@ -1,9 +1,15 @@
 packages:
   - "packages/*"
 
-# pnpm bloque par défaut les scripts d'installation.
-# esbuild pose le binaire de vitest ; node-pty pose son binaire ConPTY prebuild.
-# Ni l'un ni l'autre ne compile quoi que ce soit.
+# pnpm bloque par défaut les scripts d'installation. Ceux-ci posent des binaires
+# déjà compilés, aucun ne compile quoi que ce soit sur la machine.
+#   esbuild  : moteur de vitest et du build de l'application de bureau
+#   node-pty : binaire ConPTY prebuild, en N-API
+#   electron : téléchargement du binaire Electron
+# electron-winstaller sert aux installateurs Squirrel ; l'empaquetage passe par
+# NSIS, ses outils n'ont pas à être posés.
 allowBuilds:
   esbuild: true
   node-pty: true
+  electron: true
+  electron-winstaller: false

@@ -51,7 +51,7 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
 | C8 | Démarrage en un clic, `claude-ide.cmd` | fait |
 | — | Panneau Worktrees : état git, sessions rattachées, retrait gardé | fait |
-| B6 | Emballage Electron | **reporté, décidé à l'usage** |
+| B6 | Emballage Electron : fenêtre native, installateur NSIS | fait |
 
 Le plan est bouclé.
 
@@ -70,17 +70,35 @@ CLAUDE_IDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
 CLAUDE_IDE_PORT=7790 …      # port fixe plutôt qu'un port libre
 ```
 
-**Electron n'est pas là, et c'est délibéré.** Le critère n'était pas le poids du
-binaire mais l'endroit où tourne `core/` : 2000 lignes qui importent `node:fs`.
-Tauri ou Wails obligeraient à le réécrire en Rust ou en Go. Electron et un serveur
-local le font tourner tel quel — et le serveur local est ce qu'Electron
-encapsulerait de toute façon. L'emballer plus tard n'exigera pas de refaire l'app :
-node-pty est compilé en N-API, son binaire vaut pour Node comme pour Electron.
+## Deux façons de l'utiliser
 
-Ce qui manque sans fenêtre native : la pastille de barre des tâches, les raccourcis
-globaux, et le glisser-déposer **depuis l'Explorateur Windows** — un navigateur
-donne le contenu d'un fichier déposé, jamais son chemin. Le glisser interne et le
-dépôt d'images passent, eux, par le serveur.
+**En application de bureau.** `pnpm package` produit un installateur NSIS ; le
+raccourci lance une fenêtre native. Elle démarre le serveur local dans son propre
+processus et charge la même URL qu'un navigateur : **une seule implémentation du
+client**, et la page garde une origine `http://127.0.0.1` plutôt qu'un `file://`
+privilégié.
+
+Ce que la fenêtre native ajoute, et qui justifiait l'emballage :
+
+- **Le glisser-déposer depuis l'Explorateur Windows.** Un navigateur livre le
+  contenu d'un fichier déposé, jamais son chemin ; Electron le donne, et le chemin
+  s'écrit dans le terminal. C'était la seule fonction réellement perdue sans lui.
+- **Le clignotement du bouton de la barre des tâches** quand un onglet attend.
+
+Le pont passe par `contextBridge` : la page n'a pas accès à Node, exactement comme
+dans un navigateur, et n'expose que ces deux capacités.
+
+**Dans un navigateur.** `claude-ide.cmd` ou `pnpm start` : même application, sans
+fenêtre native ni glisser-déposer externe. Rien n'est dupliqué entre les deux.
+
+**node-pty n'est pas recompilé.** Il est livré en N-API, donc son binaire vaut
+pour Node comme pour Electron — vérifié en ouvrant un vrai terminal ConPTY depuis
+l'application empaquetée. C'est ce qui a permis de reporter l'emballage sans
+s'interdire d'y venir.
+
+L'installateur pèse ~111 Mo, dont l'essentiel est le runtime Electron ; l'application
+elle-même tient en 17 Mo. **Il n'est pas signé** : SmartScreen avertira au premier
+lancement. Aucune icône n'est fournie non plus — celle d'Electron est utilisée.
 
 Mesures sur le corpus local (77 transcripts, 240 Mo), cache système chaud :
 
@@ -129,6 +147,7 @@ packages/server/        Node : terminaux ConPTY, HTTP + WebSocket, API
   src/pty/manager.ts    cycle de vie des terminaux
   src/server.ts         jeton d'accès, fichiers statiques, WebSocket
 packages/web/           client sans outil de construction : HTML, CSS, un module
+packages/desktop/       fenêtre Electron, pont contextBridge, empaquetage NSIS
 tools/make-fixtures.mjs anonymisation des transcripts réels vers les fixtures
 ```
 

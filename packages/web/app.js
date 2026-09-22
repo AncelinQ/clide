@@ -147,6 +147,8 @@ function createTerminalView(info) {
   term.open(host);
   term.onData((data) => post({ t: "input", id: info.id, data }));
 
+  attachFileDrop(host, info.id);
+
   const tab = node("div", "tab");
   el.tabs.append(tab);
 
@@ -164,6 +166,38 @@ function createTerminalView(info) {
 
   renderTab(entry);
   activate(info.id);
+}
+
+/**
+ * Écrit le chemin d'un fichier déposé dans le terminal.
+ *
+ * Le chemin d'origine n'est connu que sous Electron : un navigateur livre le
+ * contenu d'un fichier déposé, jamais son emplacement. Hors application de
+ * bureau, le dépôt est donc laissé au navigateur plutôt que de coller un nom de
+ * fichier qui ne désigne rien.
+ *
+ * Le chemin est entouré de guillemets : les dossiers de projet portent des
+ * espaces, et un chemin nu se couperait en deux arguments.
+ */
+function attachFileDrop(host, terminalId) {
+  if (!desktop) return;
+
+  host.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    host.classList.add("dropping");
+  });
+  host.addEventListener("dragleave", () => host.classList.remove("dropping"));
+  host.addEventListener("drop", (event) => {
+    event.preventDefault();
+    host.classList.remove("dropping");
+
+    const chemins = [...(event.dataTransfer?.files ?? [])]
+      .map((file) => desktop.pathForFile(file))
+      .filter(Boolean)
+      .map((chemin) => (chemin.includes(" ") ? `"${chemin}"` : chemin));
+
+    if (chemins.length > 0) post({ t: "input", id: terminalId, data: `${chemins.join(" ")} ` });
+  });
 }
 
 function disposeTerminal(id) {
@@ -360,10 +394,15 @@ const NOTIFICATION_LABEL = {
 /** Historique côté client, pour que le panneau reste vivant sans requête. */
 const notifications = [];
 
+/** Pont vers l'application de bureau. Absent dans un navigateur ordinaire. */
+const desktop = window.claudeIde;
+
 function renderBadge() {
   // Le titre de l'onglet du navigateur est le seul endroit visible quand la
   // fenêtre est en arrière-plan.
   document.title = attention.size > 0 ? `(${attention.size}) claude-ide` : "claude-ide";
+  // Sous Electron, le bouton de la barre des tâches clignote en plus.
+  desktop?.setAttention(attention.size);
 }
 
 function onNotification(notification, terminalId) {

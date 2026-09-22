@@ -11,7 +11,9 @@
     "fixtures": "node tools/make-fixtures.mjs",
     "replay": "node tools/replay.mjs",
     "start": "tsx packages/server/src/main.ts",
-    "build": "pnpm -r typecheck"
+    "build": "pnpm -r typecheck",
+    "desktop": "pnpm --filter @claude-ide/desktop start",
+    "package": "pnpm --filter @claude-ide/desktop package"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",

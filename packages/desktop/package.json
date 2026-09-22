@@ -1,0 +1,27 @@
+{
+  "name": "@claude-ide/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "start": "electron .",
+    "package": "node build.mjs && electron-builder --win --config electron-builder.yml",
+    "package:dir": "node build.mjs && electron-builder --win --dir --config electron-builder.yml"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "@claude-ide/core": "workspace:*",
+    "@claude-ide/server": "workspace:*",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2"
+  },
+  "description": "Poste de travail Windows pour piloter Claude Code",
+  "author": "Ancelin Quinton"
+}
