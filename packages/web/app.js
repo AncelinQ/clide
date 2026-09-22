@@ -676,12 +676,35 @@ async function loadProcesses() {
 }
 
 async function loadPlan() {
-  // La source du plan n'a pas été retrouvée sur cette version de Claude Code :
-  // `~/.claude/plans` n'existe pas et aucun `tool_use` ExitPlanMode n'apparaît
-  // dans le corpus. Le panneau le dit plutôt que de rester vide sans raison.
-  return empty(
-    "Source introuvable sur cette version de Claude Code : ni ~/.claude/plans, ni marqueur de mode plan dans les transcripts. À trancher en passant une fois en mode plan.",
-  );
+  const { plan, mode, planModeEntries } = await api("/api/session/plan", {
+    id: selectedSession.sessionId,
+  });
+
+  if (!plan) {
+    const container = node("div");
+    container.append(
+      empty(
+        planModeEntries > 0
+          ? "Cette session est passée en mode plan mais n'a jamais soumis de plan."
+          : "Cette session n'est jamais passée en mode plan.",
+      ),
+    );
+    // Claude Code n'écrit plus de fichier de plan : le seul endroit où il
+    // apparaisse est l'appel qui le soumet. Le dire évite de chercher ailleurs.
+    container.append(
+      empty(`Mode courant : ${mode ?? "inconnu"}. Le plan est lu dans l'appel à ExitPlanMode.`),
+    );
+    return container;
+  }
+
+  const container = node("div");
+  if (plan.progress) {
+    const { done, total } = plan.progress;
+    container.append(empty(`${done} sur ${total} étapes cochées`));
+  }
+  if (plan.at) container.append(empty(new Date(plan.at).toLocaleString("fr-FR")));
+  container.append(node("pre", "diff", plan.text));
+  return container;
 }
 
 // ─── Démarrage ──────────────────────────────────────────────────────────────

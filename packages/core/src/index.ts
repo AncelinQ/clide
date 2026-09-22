@@ -42,6 +42,14 @@ export {
 } from "./session/projection.js";
 
 export {
+  extractPlan,
+  planProgress,
+  type PlanLookup,
+  type PlanProgress,
+  type SessionPlan,
+} from "./session/plan.js";
+
+export {
   buildActivity,
   summarizeTool,
   type ActivityEntry,

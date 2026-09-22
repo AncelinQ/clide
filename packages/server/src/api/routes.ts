@@ -9,6 +9,7 @@ import {
   TranscriptReader,
   buildActivity,
   discoverTranscripts,
+  extractPlan,
   settingsFile,
   type TranscriptRef,
 } from "@claude-ide/core";
@@ -79,6 +80,13 @@ export const routes: Record<string, Handler> = {
     const { events } = await TranscriptReader.fromRef(ref).poll();
     const limit = Number(params.get("limit") ?? 400);
     return buildActivity(events, { limit: Number.isFinite(limit) ? limit : 400 });
+  },
+
+  "/api/session/plan": async (params) => {
+    const id = requireParam(params, "id");
+    const ref = await findSession(id);
+    const { events } = await TranscriptReader.fromRef(ref).poll();
+    return extractPlan(events);
   },
 
   "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),

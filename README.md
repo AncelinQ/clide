@@ -1,12 +1,22 @@
 # claude-ide
 
-Poste de travail Windows pour piloter Claude Code sur plusieurs projets : terminal
-intégré, un onglet par projet, et des panneaux qui lisent ce que Claude Code écrit
-déjà sur disque.
+Un poste de travail Windows pour mener plusieurs chantiers Claude Code de front.
+Les terminaux sont dans l'application ; les panneaux, eux, ne demandent rien à
+Claude : ils relisent les fichiers qu'il laisse derrière lui.
 
-Inspiré de **ClaudeTerm** (macOS, Swift, de Jérôme Laval). Le code n'est pas traduit :
-la couche de lecture est reconstruite, parce que le format des transcripts a divergé
-de celui que décrit l'original.
+## Filiation
+
+L'idée vient de **ClaudeTerm**, l'application macOS de Jérôme Laval, publiée sous
+PolyForm Noncommercial 1.0.0.
+
+Rien n'en est repris. ClaudeTerm est écrit en Swift avec SwiftUI et SwiftTerm ;
+celui-ci est en TypeScript, sur Node et un navigateur. La couche de lecture est
+reconstruite à partir de ce que Claude Code écrit réellement sur cette machine, et
+non transposée : le format a divergé de celui que décrit l'original — ni
+`sessions-index.json` ni `~/.claude/plans` n'existent plus, et huit types d'events
+sont apparus depuis.
+
+Cette parenté est une dette intellectuelle, et elle est citée comme telle.
 
 Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workflow.md).
 
@@ -38,14 +48,24 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C4 | Panneaux Skills, MCP, Scripts, Liens, Réglages | fait |
 | C5 | Panneau Process, arbre Claude, arrêt gardé | fait |
 | C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
-| C7 | Panneau Plan | **sans source** — état vide explicite |
+| C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
 | B6 | Emballage Electron | **reporté, décidé à l'usage** |
+
+| C8 | Démarrage en un clic | fait — `claude-ide.cmd` |
 
 ## Lancer
 
+Double-cliquer **`claude-ide.cmd`** : il installe les dépendances au premier
+lancement, démarre le serveur et ouvre le navigateur sur la bonne URL. Fermer la
+fenêtre arrête le serveur et les terminaux qu'il a ouverts.
+
+En ligne de commande :
+
 ```
 pnpm install
-pnpm start        # affiche une URL 127.0.0.1 avec son jeton — à ouvrir au navigateur
+pnpm start                  # démarre et ouvre le navigateur
+CLAUDE_IDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
+CLAUDE_IDE_PORT=7790 …      # port fixe plutôt qu'un port libre
 ```
 
 **Electron n'est pas là, et c'est délibéré.** Le critère n'était pas le poids du
@@ -178,6 +198,19 @@ Trois décisions de conception :
 - **L'installation conserve les hooks existants.** `settings.json` porte souvent
   des hooks posés à la main sur les mêmes événements ; une réinstallation remplace
   les nôtres sans toucher aux autres, et la désinstallation les laisse en place.
+
+## Le plan d'une session
+
+`~/.claude/plans` n'existe pas sur cette version de Claude Code. Le plan n'est donc
+lu nulle part ailleurs que là où il est produit : l'appel à `ExitPlanMode`, dont
+l'entrée porte le texte soumis à validation. Le dernier l'emporte — une session peut
+repasser en mode plan et en proposer un autre.
+
+Le panneau distingue trois situations, parce qu'elles n'appellent pas la même
+réaction : un plan, une session passée en mode plan sans en soumettre, et une
+session qui n'y est jamais passée. Sur le corpus de référence, `mode` ne vaut
+`"normal"` que sur ses 5454 occurrences : le cas n'est pas rare, il est le seul
+observé.
 
 ## Ce que le corpus vivant impose aux tests
 

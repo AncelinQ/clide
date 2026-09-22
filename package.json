@@ -10,7 +10,8 @@
     "typecheck": "pnpm -r typecheck",
     "fixtures": "node tools/make-fixtures.mjs",
     "replay": "node tools/replay.mjs",
-    "start": "tsx packages/server/src/main.ts"
+    "start": "tsx packages/server/src/main.ts",
+    "build": "pnpm -r typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
