@@ -7,9 +7,11 @@ import {
   SettingsEditor,
   SkillStore,
   TranscriptReader,
+  breadcrumb,
   buildActivity,
   discoverTranscripts,
   extractPlan,
+  listDirectory,
   normalizePath,
   settingsFile,
   type Scope,
@@ -118,6 +120,13 @@ export const routes: Record<string, Handler> = {
     const ref = await findSession(id);
     const { events } = await TranscriptReader.fromRef(ref).poll();
     return extractPlan(events);
+  },
+
+  "/api/files": async (params) => {
+    const listing = await listDirectory(requireParam(params, "root"), params.get("path") ?? "", {
+      hidden: params.get("hidden") === "1",
+    });
+    return { ...listing, breadcrumb: breadcrumb(listing) };
   },
 
   "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),

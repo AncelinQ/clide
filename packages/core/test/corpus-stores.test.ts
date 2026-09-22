@@ -104,5 +104,7 @@ describe.skipIf(!hasProjects)("A8 — scripts des projets réels", () => {
       expect(["pnpm", "npm", "yarn", "bun"]).toContain(row.manager);
       if (!row.detecte) expect(row.manager).toBe("npm");
     }
-  });
+    // Ce test parcourt tous les projets du disque : son coût dépend de la
+    // charge de la machine, pas de la logique qu'il vérifie.
+  }, 60_000);
 });

@@ -68,6 +68,13 @@ export {
 export { FileHistoryResolver, type FileDiff } from "./files/history.js";
 
 export {
+  breadcrumb,
+  listDirectory,
+  type DirectoryEntry,
+  type DirectoryListing,
+} from "./files/browser.js";
+
+export {
   SettingsEditor,
   SettingsParseError,
   type SettingsDocument,

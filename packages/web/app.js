@@ -1,53 +1,66 @@
 // Client de claude-ide. Aucun outil de construction : le navigateur charge ce
 // module tel quel, xterm.js arrive par balise script depuis /vendor.
+//
+// Disposition reprise de ClaudeTerm : gauche = le projet, centre = la session,
+// droite = ce qui ne dépend d'aucun projet.
 
 const TOKEN = new URLSearchParams(location.search).get("token") ?? "";
+/** Pont vers l'application de bureau. Absent dans un navigateur ordinaire. */
+const desktop = window.claudeIde;
 
-const el = {
-  projectRoot: document.querySelector("#project-root"),
-  openShell: document.querySelector("#open-shell"),
-  openClaude: document.querySelector("#open-claude"),
-  connection: document.querySelector("#connection"),
-  sessions: document.querySelector("#sessions"),
-  sessionFilter: document.querySelector("#session-filter"),
-  refreshSessions: document.querySelector("#refresh-sessions"),
-  tabs: document.querySelector("#tabs"),
-  terminals: document.querySelector("#terminals"),
-  status: document.querySelector("#status"),
-  detail: document.querySelector("#detail"),
-  detailTitle: document.querySelector("#detail-title"),
-  detailTabs: document.querySelector("#detail-tabs"),
-  detailRefresh: document.querySelector("#detail-refresh"),
-};
+const el = {};
+for (const id of [
+  "toggle-left", "toggle-right", "project-tabs", "add-project", "connection",
+  "crumbs", "files", "left-modes", "left-panel",
+  "tabs", "open-shell", "open-claude", "terminals", "status",
+  "welcome", "welcome-title", "welcome-path", "welcome-claude", "welcome-shell",
+  "session-modes", "session-panel",
+  "global-tabs", "global-filter", "global-refresh", "global-panel",
+]) {
+  el[id.replace(/-(\w)/g, (_, c) => c.toUpperCase())] = document.querySelector(`#${id}`);
+}
 
-/** @type {Map<string, {info: object, term: any, fit: any, host: HTMLElement, tab: HTMLElement}>} */
+// ─── État ───────────────────────────────────────────────────────────────────
+
+/** @type {{root: string, name: string, browsePath: string, leftMode: string, sessionMode: string, selectedSession: object|null}[]} */
+let projects = [];
+let activeRoot = null;
+
+/** @type {Map<string, {info: object, term: any, fit: any, host: HTMLElement, tab: HTMLElement, owner: string}>} */
 const terminals = new Map();
-let activeId = null;
-let sessions = [];
-let selectedSession = null;
-let socket = null;
-/** Onglets en attente d'un regard, par identifiant de terminal. */
+let activeTerminalId = null;
 const attention = new Map();
+
+let sessions = [];
+/**
+ * La session regardée ne dépend pas du projet ouvert : elle vient de History,
+ * qui est global. La choisir ne doit donc pas déplacer le projet courant.
+ */
+let selectedSession = null;
+let globalTab = "history";
+const notifications = [];
+let socket = null;
+
+const project = () => projects.find((p) => p.root === activeRoot);
 
 // ─── API ────────────────────────────────────────────────────────────────────
 
-function apiUrl(path, params = {}) {
+async function api(path, params = {}, options = {}) {
   const url = new URL(path, location.origin);
   url.searchParams.set("token", TOKEN);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) url.searchParams.set(key, value);
   }
-  return url;
-}
-
-async function api(path, params = {}, options = {}) {
-  const response = await fetch(apiUrl(path, params), options);
+  const response = await fetch(url, options);
   const body = await response.json();
   if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
   return body;
 }
 
-// ─── Fabriques d'éléments ───────────────────────────────────────────────────
+/** Appel d'une route qui écrit. `send` est réservé au WebSocket. */
+const postJson = (path, body) => api(path, {}, { method: "POST", body: JSON.stringify(body) });
+
+// ─── Fabriques ──────────────────────────────────────────────────────────────
 
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -56,11 +69,15 @@ function node(tag, className, text) {
   return element;
 }
 
-function row(name, sub, tags = []) {
+function badge(label, tone) {
+  return node("span", `badge ${tone ?? ""}`, label);
+}
+
+function row(name, sub, badges = []) {
   const item = node("li");
   const line = node("span", "name");
-  for (const tag of tags) line.append(node("span", `tag ${tag.tone ?? ""}`, tag.label), " ");
-  line.append(name);
+  for (const entry of badges) line.append(badge(entry.label, entry.tone));
+  line.append(node("span", null, name));
   item.append(line);
   if (sub) item.append(node("span", "sub", sub));
   return item;
@@ -72,214 +89,23 @@ function list(items) {
   return ul;
 }
 
-function empty(text) {
-  return node("p", "empty", text);
+const empty = (text) => node("p", "empty", text);
+
+function centerEmpty(glyph, text) {
+  const box = node("div", "center-empty");
+  box.append(node("div", "glyph", glyph), node("div", null, text));
+  return box;
 }
 
-// ─── Terminaux ──────────────────────────────────────────────────────────────
-
-function setConnection(state, label) {
-  el.connection.textContent = label;
-  el.connection.className = `pill ${state}`;
+function section(label) {
+  return node("div", "section", label);
 }
 
-function connect() {
-  const url = new URL("/pty", location.origin);
-  url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  url.searchParams.set("token", TOKEN);
-
-  socket = new WebSocket(url);
-  socket.addEventListener("open", () => setConnection("on", "connecté"));
-  socket.addEventListener("close", () => {
-    setConnection("off", "déconnecté — reconnexion…");
-    setTimeout(connect, 1500);
-  });
-  socket.addEventListener("message", (event) => onServerMessage(JSON.parse(event.data)));
+function actions(...children) {
+  const box = node("div", "actions");
+  box.append(...children);
+  return box;
 }
-
-function post(message) {
-  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
-}
-
-function onServerMessage(message) {
-  switch (message.t) {
-    case "opened":
-      createTerminalView(message.terminal);
-      break;
-    case "data":
-      terminals.get(message.id)?.term.write(message.data);
-      break;
-    case "state": {
-      const entry = terminals.get(message.terminal.id);
-      if (entry) {
-        entry.info = message.terminal;
-        renderTab(entry);
-        if (message.terminal.id === activeId) renderStatus(message.terminal);
-      }
-      break;
-    }
-    case "exit": {
-      const entry = terminals.get(message.id);
-      if (entry) entry.term.write(`\r\n\u001b[90m— terminal fermé (${message.exitCode}) —\u001b[0m\r\n`);
-      break;
-    }
-    case "notification":
-      onNotification(message.notification, message.terminalId);
-      break;
-    case "error":
-      console.error("[claude-ide]", message.message);
-      break;
-  }
-}
-
-function createTerminalView(info) {
-  const host = node("div", "term");
-  el.terminals.append(host);
-
-  const term = new window.Terminal({
-    fontFamily: 'Consolas, "Cascadia Mono", monospace',
-    fontSize: 13,
-    cursorBlink: true,
-    theme: { background: "#101216", foreground: "#dfe3ea" },
-  });
-  const fit = new window.FitAddon.FitAddon();
-  term.loadAddon(fit);
-  term.open(host);
-  term.onData((data) => post({ t: "input", id: info.id, data }));
-
-  attachFileDrop(host, info.id);
-
-  const tab = node("div", "tab");
-  el.tabs.append(tab);
-
-  const entry = { info, term, fit, host, tab };
-  terminals.set(info.id, entry);
-
-  tab.addEventListener("click", (event) => {
-    if (event.target.dataset.action === "close") {
-      post({ t: "close", id: info.id });
-      disposeTerminal(info.id);
-      return;
-    }
-    activate(info.id);
-  });
-
-  renderTab(entry);
-  activate(info.id);
-}
-
-/**
- * Écrit le chemin d'un fichier déposé dans le terminal.
- *
- * Le chemin d'origine n'est connu que sous Electron : un navigateur livre le
- * contenu d'un fichier déposé, jamais son emplacement. Hors application de
- * bureau, le dépôt est donc laissé au navigateur plutôt que de coller un nom de
- * fichier qui ne désigne rien.
- *
- * Le chemin est entouré de guillemets : les dossiers de projet portent des
- * espaces, et un chemin nu se couperait en deux arguments.
- */
-function attachFileDrop(host, terminalId) {
-  if (!desktop) return;
-
-  host.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    host.classList.add("dropping");
-  });
-  host.addEventListener("dragleave", () => host.classList.remove("dropping"));
-  host.addEventListener("drop", (event) => {
-    event.preventDefault();
-    host.classList.remove("dropping");
-
-    const chemins = [...(event.dataTransfer?.files ?? [])]
-      .map((file) => desktop.pathForFile(file))
-      .filter(Boolean)
-      .map((chemin) => (chemin.includes(" ") ? `"${chemin}"` : chemin));
-
-    if (chemins.length > 0) post({ t: "input", id: terminalId, data: `${chemins.join(" ")} ` });
-  });
-}
-
-function disposeTerminal(id) {
-  const entry = terminals.get(id);
-  if (!entry) return;
-  entry.term.dispose();
-  entry.host.remove();
-  entry.tab.remove();
-  terminals.delete(id);
-  if (activeId === id) {
-    const next = terminals.keys().next();
-    activeId = null;
-    if (next.done) renderStatus(null);
-    else activate(next.value);
-  }
-}
-
-function renderTab({ info, tab }) {
-  tab.classList.toggle("active", info.id === activeId);
-  const close = node("span", "close", "×");
-  close.dataset.action = "close";
-
-  const waiting = attention.get(info.id);
-  const children = [node("span", `dot ${info.state}`), node("span", null, info.title)];
-  if (waiting) children.push(node("span", `bell ${waiting}`, "●"));
-  children.push(close);
-  tab.replaceChildren(...children);
-}
-
-function activate(id) {
-  activeId = id;
-  // Regarder l'onglet vaut acquittement : l'attente n'a plus lieu d'être.
-  attention.delete(id);
-  renderBadge();
-  for (const entry of terminals.values()) {
-    const isActive = entry.info.id === id;
-    entry.host.classList.toggle("active", isActive);
-    renderTab(entry);
-    if (isActive) {
-      requestAnimationFrame(() => {
-        entry.fit.fit();
-        post({ t: "resize", id, cols: entry.term.cols, rows: entry.term.rows });
-        entry.term.focus();
-      });
-      renderStatus(entry.info);
-    }
-  }
-}
-
-function renderStatus(info) {
-  if (!info) {
-    el.status.textContent = "";
-    return;
-  }
-  const bits = [info.cwd, info.kind, info.state];
-  if (info.lastExitCode !== undefined) bits.push(`sortie ${info.lastExitCode}`);
-  el.status.textContent = bits.join("   ·   ");
-}
-
-function projectRoot() {
-  return el.projectRoot.value.trim();
-}
-
-function openTerminal(kind, initialCommand) {
-  const root = projectRoot();
-  if (!root) {
-    el.projectRoot.focus();
-    return;
-  }
-  localStorage.setItem("claude-ide.projectRoot", root);
-  post({
-    t: "open",
-    projectRoot: root,
-    kind,
-    cols: 100,
-    rows: 30,
-    ...(initialCommand ? { initialCommand } : {}),
-  });
-}
-
-
-// ─── Formulaires ────────────────────────────────────────────────────────────
 
 function input(placeholder, value = "") {
   const control = node("input");
@@ -320,18 +146,14 @@ function form(...children) {
   return box;
 }
 
-/**
- * Enveloppe une action qui écrit : bouton désactivé le temps de l'aller-retour,
- * message d'erreur rendu à côté plutôt qu'avalé dans la console.
- */
+/** Bouton d'action : désactivé le temps de l'aller-retour, erreur rendue à côté. */
 function onAction(button, run) {
   button.type = "button";
   button.addEventListener("click", async () => {
     const label = button.textContent;
     button.disabled = true;
     button.textContent = "…";
-    const previous = button.parentElement?.querySelector(".form-error");
-    previous?.remove();
+    button.parentElement?.querySelector(".form-error")?.remove();
     try {
       await run();
     } catch (error) {
@@ -345,13 +167,11 @@ function onAction(button, run) {
 }
 
 /**
- * Bouton de suppression en deux temps.
- *
- * Une confirmation modale bloquerait la page et n'apporterait rien : demander
- * un second clic suffit à écarter le geste involontaire, sans interrompre.
+ * Suppression en deux temps. Une confirmation modale bloquerait la page et
+ * n'apporterait rien : un second clic écarte le geste involontaire.
  */
 function dangerButton(label, run) {
-  const button = node("button", "stop", label);
+  const button = node("button", "danger", label);
   button.type = "button";
   let armed = false;
   button.addEventListener("click", async () => {
@@ -359,9 +179,10 @@ function dangerButton(label, run) {
       armed = true;
       button.textContent = "confirmer ?";
       setTimeout(() => {
-        if (!armed) return;
-        armed = false;
-        button.textContent = label;
+        if (armed) {
+          armed = false;
+          button.textContent = label;
+        }
       }, 4000);
       return;
     }
@@ -377,293 +198,777 @@ function dangerButton(label, run) {
   return button;
 }
 
-/** Appel d'une route qui écrit. `post` est déjà l'envoi WebSocket. */
-function postJson(path, body) {
-  return api(path, {}, { method: "POST", body: JSON.stringify(body) });
+async function fill(host, load) {
+  host.replaceChildren(empty("chargement…"));
+  try {
+    host.replaceChildren(await load());
+  } catch (error) {
+    host.replaceChildren(empty(error.message));
+  }
 }
 
-// ─── Notifications ──────────────────────────────────────────────────────────
+// ─── Projets ────────────────────────────────────────────────────────────────
 
-const NOTIFICATION_LABEL = {
-  permission: "permission demandée",
-  idle: "en attente d'une réponse",
-  stop: "réponse terminée",
-  other: "événement",
-};
+const shortName = (path) => path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || path;
 
-/** Historique côté client, pour que le panneau reste vivant sans requête. */
-const notifications = [];
-
-/** Pont vers l'application de bureau. Absent dans un navigateur ordinaire. */
-const desktop = window.claudeIde;
-
-function renderBadge() {
-  // Le titre de l'onglet du navigateur est le seul endroit visible quand la
-  // fenêtre est en arrière-plan.
-  document.title = attention.size > 0 ? `(${attention.size}) claude-ide` : "claude-ide";
-  // Sous Electron, le bouton de la barre des tâches clignote en plus.
-  desktop?.setAttention(attention.size);
+function saveProjects() {
+  localStorage.setItem(
+    "claude-ide.projects",
+    JSON.stringify({ roots: projects.map((p) => p.root), active: activeRoot }),
+  );
 }
 
-function onNotification(notification, terminalId) {
-  notifications.unshift(notification);
-  if (notifications.length > 100) notifications.pop();
+function addProject(root, activate = true) {
+  const trimmed = root.trim().replace(/[\\/]+$/, "");
+  if (!trimmed) return;
+  if (!projects.some((p) => p.root === trimmed)) {
+    projects.push({
+      root: trimmed,
+      name: shortName(trimmed),
+      browsePath: "",
+      leftMode: "links",
+      sessionMode: "files",
+    });
+  }
+  if (activate) activeRoot = trimmed;
+  saveProjects();
+  renderProjectTabs();
+  if (activate) void refreshProjectViews();
+}
 
-  if (terminalId && terminalId !== activeId) {
-    attention.set(terminalId, notification.kind);
-    const entry = terminals.get(terminalId);
-    if (entry) renderTab(entry);
-    renderBadge();
+function closeProject(root) {
+  // Les terminaux du projet partent avec lui : sans onglet, ils seraient
+  // inatteignables.
+  for (const [id, entry] of terminals) {
+    if (entry.owner === root) {
+      send({ t: "close", id });
+      disposeTerminal(id);
+    }
+  }
+  projects = projects.filter((p) => p.root !== root);
+  if (activeRoot === root) activeRoot = projects[0]?.root ?? null;
+  saveProjects();
+  renderProjectTabs();
+  void refreshProjectViews();
+}
+
+function renderProjectTabs() {
+  el.projectTabs.replaceChildren(
+    ...projects.map((p) => {
+      const tab = node("div", `project-tab ${p.root === activeRoot ? "active" : ""}`);
+      tab.title = p.root;
+      const close = node("span", "close", "×");
+      close.addEventListener("click", (event) => {
+        event.stopPropagation();
+        closeProject(p.root);
+      });
+      tab.append(node("span", "glyph", "▣"), node("span", "label", p.name), close);
+      tab.addEventListener("click", () => {
+        activeRoot = p.root;
+        saveProjects();
+        renderProjectTabs();
+        void refreshProjectViews();
+      });
+      return tab;
+    }),
+  );
+}
+
+function promptProject() {
+  const host = node("div");
+  const chemin = input("C:\\Projets\\mon-projet");
+  const ouvrir = node("button", "primary", "Ouvrir");
+  onAction(ouvrir, async () => {
+    addProject(chemin.value);
+  });
+  chemin.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") addProject(chemin.value);
+  });
+  host.append(section("Ouvrir un projet"), form(labeled("dossier", chemin), actions(ouvrir)));
+  el.leftPanel.replaceChildren(host);
+  chemin.focus();
+}
+
+async function refreshProjectViews() {
+  renderTerminalTabs();
+  renderWelcome();
+  await Promise.all([renderFiles(), renderLeftBlock()]);
+  renderSessionBlock();
+}
+
+// ─── Colonne gauche : fichiers ──────────────────────────────────────────────
+
+const FILE_GLYPH = { dir: "▸", file: "·" };
+
+/** Dossier parent d'un chemin relatif. La racine est sa propre limite. */
+function parentOf(relativePath) {
+  const segments = relativePath.split(/[\\/]/).filter(Boolean);
+  segments.pop();
+  return segments.join("\\");
+}
+
+async function renderFiles() {
+  const current = project();
+  if (!current) {
+    el.crumbs.replaceChildren();
+    el.files.replaceChildren();
+    return;
   }
 
-  // Une notification système n'a de sens que si la page n'est pas sous les yeux.
-  if (document.hidden && window.Notification?.permission === "granted") {
-    const title = NOTIFICATION_LABEL[notification.kind] ?? NOTIFICATION_LABEL.other;
-    const body = notification.message ?? notification.cwd ?? "";
-    const system = new Notification(`claude-ide — ${title}`, { body, tag: notification.kind });
-    system.onclick = () => {
-      window.focus();
-      if (terminalId) activate(terminalId);
-      system.close();
-    };
+  let listing;
+  try {
+    listing = await api("/api/files", { root: current.root, path: current.browsePath });
+  } catch (error) {
+    el.crumbs.replaceChildren();
+    el.files.replaceChildren(node("li", "empty", error.message));
+    return;
   }
 
-  if (activePanel === "notifications") void showPanel("notifications");
+  const up = node("button", "up", "↑");
+  up.type = "button";
+  up.title = "Dossier parent";
+  up.disabled = !listing.relativePath;
+  up.addEventListener("click", () => {
+    current.browsePath = parentOf(current.browsePath);
+    void renderFiles();
+  });
+
+  el.crumbs.replaceChildren(
+    up,
+    ...listing.breadcrumb.flatMap((segment, index) => {
+      const button = node("button", index === listing.breadcrumb.length - 1 ? "current" : "", segment.name);
+      button.type = "button";
+      button.addEventListener("click", () => {
+        current.browsePath = segment.relativePath;
+        void renderFiles();
+      });
+      return index === 0 ? [button] : [node("span", "sep", "›"), button];
+    }),
+  );
+
+  const items = [];
+  if (listing.relativePath) {
+    const up = node("li", "up");
+    up.append(node("span", "glyph", "↑"), node("span", "name", ".."));
+    up.addEventListener("click", () => {
+      current.browsePath = parentOf(current.browsePath);
+      void renderFiles();
+    });
+    items.push(up);
+  }
+
+  for (const entry of listing.entries) {
+    const item = node("li");
+    item.title = entry.path;
+    item.append(
+      node("span", `glyph ${entry.directory ? "dir" : ""}`, entry.directory ? FILE_GLYPH.dir : FILE_GLYPH.file),
+      node("span", "name", entry.name),
+    );
+    item.addEventListener("click", () => {
+      if (entry.directory) {
+        current.browsePath = entry.relativePath;
+        void renderFiles();
+        return;
+      }
+      // Un fichier n'ouvre rien : son chemin s'écrit dans le terminal actif,
+      // ce qui est le geste utile ici. Sans terminal, il n'y a rien à faire.
+      insertPath(entry.path);
+    });
+    items.push(item);
+  }
+  el.files.replaceChildren(...items);
 }
 
-async function loadNotifications() {
-  const { status, recent } = await api("/api/notifications");
-  // Le serveur garde l'historique des événements reçus avant l'ouverture de
-  // cette page ; le client y ajoute ceux arrivés depuis.
-  const seen = new Set(notifications.map((item) => item.id));
-  const all = [...notifications, ...recent.filter((item) => !seen.has(item.id))];
+function insertPath(path) {
+  if (!activeTerminalId) return;
+  const quoted = path.includes(" ") ? `"${path}"` : path;
+  send({ t: "input", id: activeTerminalId, data: `${quoted} ` });
+}
 
+// ─── Colonne gauche : bloc à modes ──────────────────────────────────────────
+
+const LEFT_MODES = [
+  {
+    id: "links",
+    glyph: "🔗",
+    title: "Dossiers liés",
+    about:
+      "Les autres projets dont celui-ci dépend. Leurs chemins sont écrits dans .claude/settings.local.json et transmis à Claude au lancement.",
+    load: loadLinks,
+  },
+  {
+    id: "scripts",
+    glyph: "📦",
+    title: "Scripts",
+    about: "Scripts du package.json, espaces de travail compris. Le gestionnaire vient du lockfile.",
+    load: loadScripts,
+  },
+  {
+    id: "skills",
+    glyph: "✦",
+    title: "Skills du projet",
+    about: "Un skill est un .claude/skills/<nom>/SKILL.md. Claude le charge seul quand la description correspond, ou par /nom.",
+    load: loadProjectSkills,
+  },
+  {
+    id: "mcp",
+    glyph: "⛓",
+    title: "MCP du projet",
+    about: "Serveurs déclarés dans .mcp.json, à la racine du dépôt, partagés par l'équipe.",
+    load: loadProjectMcp,
+  },
+  {
+    id: "worktrees",
+    glyph: "⑂",
+    title: "Worktrees",
+    about: "Les worktrees git du dépôt, leur état et les sessions qui y vivent.",
+    load: loadWorktrees,
+  },
+];
+
+/**
+ * Barre de modes d'un bloc : les icônes à gauche, puis `ⓘ` qui explique le mode
+ * courant et `˅` qui replie le bloc. Le même motif sert à gauche et sous le
+ * terminal, comme dans l'original.
+ */
+function renderModeBar(bar, block, modes, currentId, onPick, state) {
+  const buttons = modes.map((mode) => {
+    const button = node("button", `mode ${currentId === mode.id ? "active" : ""}`, mode.glyph);
+    button.type = "button";
+    button.title = mode.title;
+    button.addEventListener("click", () => onPick(mode.id));
+    return button;
+  });
+
+  const info = node("button", `mode ${state.about ? "active" : ""}`, "ⓘ");
+  info.type = "button";
+  info.title = "À quoi sert ce mode";
+  info.addEventListener("click", () => {
+    state.about = !state.about;
+    onPick(currentId);
+  });
+
+  const collapse = node("button", "mode", state.collapsed ? "˄" : "˅");
+  collapse.type = "button";
+  collapse.title = state.collapsed ? "Déplier" : "Replier";
+  collapse.addEventListener("click", () => {
+    state.collapsed = !state.collapsed;
+    onPick(currentId);
+  });
+
+  block.classList.toggle("collapsed", state.collapsed);
+  bar.replaceChildren(...buttons, node("span", "mode-spacer"), info, collapse);
+}
+
+const leftBar = { about: false, collapsed: false };
+const sessionBar = { about: false, collapsed: false };
+
+function renderLeftBlock() {
+  const current = project();
+  const block = el.leftModes.closest(".block");
+  renderModeBar(el.leftModes, block, LEFT_MODES, current?.leftMode, (id) => {
+    if (current) current.leftMode = id;
+    void renderLeftBlock();
+  }, leftBar);
+
+  if (!current) {
+    el.leftPanel.replaceChildren(empty("Aucun projet ouvert."));
+    return;
+  }
+  const mode = LEFT_MODES.find((entry) => entry.id === current.leftMode) ?? LEFT_MODES[0];
+  return fill(el.leftPanel, async () => {
+    const host = node("div");
+    if (leftBar.about) host.append(node("p", "about", mode.about));
+    host.append(await mode.load(current.root));
+    return host;
+  });
+}
+
+/**
+ * Bouton qui révèle un formulaire à la demande.
+ *
+ * Un formulaire déplié en permanence mange la place d'un bloc dont la liste est
+ * le sujet ; l'original le garde derrière un bouton, et c'est le bon compromis.
+ */
+function disclosure(label, buildForm) {
+  const host = node("div");
+  const open = node("button", null, label);
+  open.type = "button";
+  open.addEventListener("click", () => {
+    if (host.querySelector(".form")) {
+      host.querySelector(".form").remove();
+      open.textContent = label;
+      return;
+    }
+    open.textContent = "Annuler";
+    host.append(buildForm());
+  });
+  host.append(actions(open));
+  return host;
+}
+
+async function loadLinks(root) {
+  const { links } = await api("/api/links", { root });
   const container = node("div");
 
-  const state = node("p", "empty");
-  state.append(
-    status.installed
-      ? node("span", "tag ok", "hooks installés")
-      : node("span", "tag warn", status.kinds.length > 0 ? "installation partielle" : "hooks absents"),
-    " ",
-    status.installed
-      ? "Claude Code signale les permissions, les attentes et les fins de réponse."
-      : "Sans eux, aucun événement ne remonte.",
-  );
-  container.append(state);
-
-  const actions = node("div");
-  const toggle = node("button", null, status.installed ? "Désinstaller les hooks" : "Installer les hooks");
-  toggle.type = "button";
-  toggle.title = status.settingsPath;
-  toggle.addEventListener("click", async () => {
-    toggle.disabled = true;
-    try {
-      await postJson(status.installed ? "/api/notifications/uninstall" : "/api/notifications/install", {});
-      await requestSystemPermission();
-      await showPanel("notifications");
-    } catch (error) {
-      toggle.textContent = error.message;
-    }
-  });
-  actions.append(toggle);
-  container.append(actions);
-
-  if (all.length === 0) {
-    container.append(empty("aucun événement reçu."));
-    return container;
-  }
+  const save = async (next) => {
+    await postJson("/api/links/save", { root, links: next });
+    await renderLeftBlock();
+  };
 
   container.append(
-    list(
-      all.slice(0, 60).map((item) => {
-        const when = new Date(item.receivedAt).toLocaleTimeString("fr-FR");
-        const where = (item.cwd ?? "").split(/[\/]/).pop() ?? "";
-        return row(item.message ?? NOTIFICATION_LABEL[item.kind], [when, where].filter(Boolean).join("  ·  "), [
-          { label: NOTIFICATION_LABEL[item.kind], tone: item.kind === "permission" ? "warn" : "" },
-        ]);
-      }),
+    links.length
+      ? list(
+          links.map((link) => {
+            const item = row(link.path, link.role, link.readOnly ? [{ label: "lecture seule", tone: "warn" }] : []);
+            const bascule = node("button", null, link.readOnly ? "rendre modifiable" : "lecture seule");
+            onAction(bascule, () =>
+              save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l))),
+            );
+            item.append(actions(bascule, dangerButton("délier", () => save(links.filter((l) => l.path !== link.path)))));
+            return item;
+          }),
+        )
+      : centerEmpty("🔗", "Les autres dépôts dont celui-ci dépend."),
+  );
+
+  const chemin = input("C:\\Projets\\autre-depot");
+  const role = input("son rôle : api, design system…");
+  const lecture = select([["non", "Claude peut y écrire"], ["oui", "lecture seule"]], "non");
+  const ajouter = node("button", null, "Lier ce dossier");
+  onAction(ajouter, () =>
+    save([
+      ...links.filter((l) => l.path !== chemin.value.trim()),
+      { path: chemin.value.trim(), role: role.value, readOnly: lecture.value === "oui" },
+    ]),
+  );
+  container.append(
+    disclosure("+ Lier un dossier", () =>
+      form(labeled("chemin", chemin), labeled("rôle", role), labeled("accès", lecture), actions(ajouter)),
     ),
   );
   return container;
 }
 
-/** Demande l'autorisation système, sans insister si elle est refusée. */
-async function requestSystemPermission() {
-  if (!window.Notification || Notification.permission !== "default") return;
-  try {
-    await Notification.requestPermission();
-  } catch {
-    // Refus ou navigateur sans notifications : la pastille d'onglet suffit.
-  }
-}
-
-// ─── Sessions ───────────────────────────────────────────────────────────────
-
-async function loadSessions() {
-  el.sessions.replaceChildren(node("li", "empty", "indexation…"));
-  try {
-    sessions = (await api("/api/sessions")).sessions;
-    renderSessions();
-  } catch (error) {
-    el.sessions.replaceChildren(node("li", "empty", error.message));
-  }
-}
-
-function renderSessions() {
-  const needle = el.sessionFilter.value.trim().toLowerCase();
-  const shown = sessions.filter((session) =>
-    needle
-      ? `${session.title ?? ""} ${session.effectiveCwd ?? ""} ${session.gitBranch ?? ""}`
-          .toLowerCase()
-          .includes(needle)
-      : true,
+async function loadScripts(root) {
+  const result = await api("/api/scripts", { root });
+  const container = node("div");
+  container.append(
+    empty(`${result.manager}${result.managerDetected ? "" : " (défaut, aucun lockfile)"}`),
   );
 
-  if (shown.length === 0) {
-    el.sessions.replaceChildren(node("li", "empty", "aucune session"));
-    return;
+  for (const source of result.sources) {
+    if (!source.scripts.length) continue;
+    container.append(section(source.packageName ?? source.relativePath ?? "racine"));
+    container.append(
+      list(
+        source.scripts.map((script) => {
+          const item = row(script.name, script.command);
+          const lancer = node("button", null, "lancer");
+          onAction(lancer, async () => {
+            const command =
+              result.manager === "npm" ? `npm run ${script.name}` : `${result.manager} run ${script.name}`;
+            openTerminal("shell", command, source.directory);
+          });
+          item.append(actions(lancer));
+          return item;
+        }),
+      ),
+    );
   }
+  if (!result.sources.some((source) => source.scripts.length)) {
+    container.append(centerEmpty("📦", "Aucun script dans ce projet."));
+  }
+  return container;
+}
 
-  el.sessions.replaceChildren(
-    ...shown.slice(0, 200).map((session) => {
-      const item = node("li");
-      item.dataset.id = session.sessionId;
-      const when = session.lastActivityAt
-        ? new Date(session.lastActivityAt).toLocaleString("fr-FR")
-        : "";
-      const folder = (session.effectiveCwd ?? "").split(/[\\/]/).pop() ?? "";
-      item.append(
-        node("span", "title", session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)),
-        node(
-          "span",
-          "meta",
-          [when, folder, session.gitBranch, `${session.fileCount} fichiers`].filter(Boolean).join("  ·  "),
-        ),
-      );
-      item.addEventListener("click", () => selectSession(session));
+async function loadProjectSkills(root) {
+  const { skills } = await api("/api/skills", { root });
+  const own = skills.filter((skill) => skill.scope === "project");
+  const container = node("div");
+  container.append(
+    own.length
+      ? list(own.map((skill) => skillRow(skill, root, renderLeftBlock)))
+      : centerEmpty("✦", "Les skills vivent dans .claude/skills/<nom>/SKILL.md."),
+  );
+  const nouveau = node("button", null, "Nouveau skill de projet");
+  onAction(nouveau, async () => {
+    el.leftPanel.replaceChildren(
+      skillForm({ scope: "project", directory: "", body: "" }, root, renderLeftBlock),
+    );
+  });
+  container.append(actions(nouveau));
+  return container;
+}
+
+async function loadProjectMcp(root) {
+  const { servers } = await api("/api/mcp", { root });
+  const own = servers.filter((server) => server.scope === "project");
+  const container = node("div");
+  container.append(
+    own.length
+      ? list(own.map((server) => mcpRow(server, root, renderLeftBlock)))
+      : centerEmpty("⛓", "Serveurs déclarés dans .mcp.json, partagés par l'équipe."),
+  );
+
+  const nom = input("nom du serveur");
+  const cible = input("https://… ou une commande");
+  const ajouter = node("button", null, "Ajouter");
+  onAction(ajouter, async () => {
+    const valeur = cible.value.trim();
+    const config = valeur.startsWith("http")
+      ? { type: "http", url: valeur }
+      : { command: valeur.split(/\s+/)[0], args: valeur.split(/\s+/).slice(1) };
+    await postJson("/api/mcp/save", { root, name: nom.value, config });
+    await renderLeftBlock();
+  });
+  container.append(
+    disclosure("+ Ajouter un serveur", () => form(labeled("nom", nom), labeled("cible", cible), actions(ajouter))),
+  );
+  return container;
+}
+
+async function loadWorktrees(root) {
+  const { worktrees } = await api("/api/worktrees", { root });
+  if (!worktrees.length) return centerEmpty("⑂", "Ce dossier n'est pas un dépôt git.");
+
+  return list(
+    worktrees.map((worktree) => {
+      const badges = [];
+      if (worktree.main) badges.push({ label: "principal" });
+      if (worktree.detached) badges.push({ label: "détaché", tone: "warn" });
+      if (worktree.locked !== undefined) badges.push({ label: "verrouillé", tone: "warn" });
+      if (worktree.dirty > 0) badges.push({ label: `${worktree.dirty} non commité(s)`, tone: "warn" });
+
+      const suite = [];
+      if (worktree.ahead || worktree.behind) suite.push(`↑${worktree.ahead ?? 0} ↓${worktree.behind ?? 0}`);
+      if (worktree.sessions.length) suite.push(`${worktree.sessions.length} session(s)`);
+
+      const item = row(worktree.branch ?? worktree.head?.slice(0, 8) ?? "?", suite.join("  ·  "), badges);
+      const ouvrir = node("button", null, "terminal ici");
+      onAction(ouvrir, async () => openTerminal("shell", undefined, worktree.path));
+
+      const boutons = [ouvrir];
+      if (!worktree.main) {
+        boutons.push(
+          dangerButton("retirer", async () => {
+            await postJson("/api/worktrees/remove", { root, path: worktree.path });
+            await renderLeftBlock();
+          }),
+        );
+      }
+      item.append(actions(...boutons));
       return item;
     }),
   );
 }
 
-function selectSession(session) {
-  selectedSession = session;
-  for (const item of el.sessions.children) {
-    item.classList.toggle("selected", item.dataset.id === session.sessionId);
-  }
-  if (session.effectiveCwd) el.projectRoot.value = session.effectiveCwd;
-  showPanel(activePanel);
+// ─── Terminaux ──────────────────────────────────────────────────────────────
+
+function setConnection(state, label) {
+  el.connection.textContent = label;
+  el.connection.className = `pill ${state}`;
 }
 
-// ─── Panneaux ───────────────────────────────────────────────────────────────
+function connect() {
+  const url = new URL("/pty", location.origin);
+  url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  url.searchParams.set("token", TOKEN);
 
-const PANELS = [
-  { id: "files", label: "Fichiers", scope: "session", load: loadFiles },
-  { id: "activity", label: "Activité", scope: "session", load: loadActivity },
-  { id: "skills", label: "Skills", scope: "project", load: loadSkills },
-  { id: "mcp", label: "MCP", scope: "project", load: loadMcp },
-  { id: "scripts", label: "Scripts", scope: "project", load: loadScripts },
-  { id: "links", label: "Liens", scope: "project", load: loadLinks },
-  { id: "worktrees", label: "Worktrees", scope: "project", load: loadWorktrees },
-  { id: "settings", label: "Réglages", scope: "global", load: loadSettings },
-  { id: "processes", label: "Process", scope: "global", load: loadProcesses },
-  { id: "notifications", label: "Notifications", scope: "global", load: loadNotifications },
-  { id: "plan", label: "Plan", scope: "session", load: loadPlan },
+  socket = new WebSocket(url);
+  socket.addEventListener("open", () => setConnection("on", "connecté"));
+  socket.addEventListener("close", () => {
+    setConnection("off", "déconnecté…");
+    setTimeout(connect, 1500);
+  });
+  socket.addEventListener("message", (event) => onServerMessage(JSON.parse(event.data)));
+}
+
+function send(message) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+}
+
+/** Projet auquel rattacher le prochain terminal ouvert. */
+let pendingOwner = null;
+
+function onServerMessage(message) {
+  switch (message.t) {
+    case "opened":
+      createTerminalView(message.terminal, pendingOwner ?? activeRoot);
+      pendingOwner = null;
+      break;
+    case "data":
+      terminals.get(message.id)?.term.write(message.data);
+      break;
+    case "state": {
+      const entry = terminals.get(message.terminal.id);
+      if (entry) {
+        entry.info = message.terminal;
+        renderTab(entry);
+        if (message.terminal.id === activeTerminalId) renderStatus(message.terminal);
+      }
+      break;
+    }
+    case "exit": {
+      const entry = terminals.get(message.id);
+      if (entry) entry.term.write(`\r\n\u001b[90m— terminal fermé (${message.exitCode}) —\u001b[0m\r\n`);
+      break;
+    }
+    case "notification":
+      onNotification(message.notification, message.terminalId);
+      break;
+    case "error":
+      console.error("[claude-ide]", message.message);
+      break;
+  }
+}
+
+function openTerminal(kind, initialCommand, cwd) {
+  const current = project();
+  if (!current) return;
+  pendingOwner = current.root;
+  send({
+    t: "open",
+    projectRoot: cwd ?? current.root,
+    kind,
+    cols: 100,
+    rows: 30,
+    ...(initialCommand ? { initialCommand } : {}),
+  });
+}
+
+function createTerminalView(info, owner) {
+  const host = node("div", "term");
+  el.terminals.append(host);
+
+  const term = new window.Terminal({
+    fontFamily: 'Consolas, "Cascadia Mono", monospace',
+    fontSize: 13,
+    cursorBlink: true,
+    theme: { background: "#161618", foreground: "#e8e8ed", cursor: "#0a84ff" },
+  });
+  const fit = new window.FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open(host);
+  term.onData((data) => send({ t: "input", id: info.id, data }));
+  attachFileDrop(host, info.id);
+
+  const tab = node("div", "tab");
+  const entry = { info, term, fit, host, tab, owner: owner ?? activeRoot };
+  terminals.set(info.id, entry);
+
+  tab.addEventListener("click", (event) => {
+    if (event.target.dataset.action === "close") {
+      send({ t: "close", id: info.id });
+      disposeTerminal(info.id);
+      return;
+    }
+    activate(info.id);
+  });
+
+  renderTerminalTabs();
+  activate(info.id);
+}
+
+/**
+ * Écrit le chemin d'un fichier déposé dans le terminal.
+ *
+ * Le chemin d'origine n'est connu que sous Electron : un navigateur livre le
+ * contenu d'un fichier déposé, jamais son emplacement. Ailleurs, le dépôt est
+ * laissé au navigateur plutôt que de coller un nom qui ne désigne rien.
+ */
+function attachFileDrop(host, terminalId) {
+  if (!desktop) return;
+  host.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    host.classList.add("dropping");
+  });
+  host.addEventListener("dragleave", () => host.classList.remove("dropping"));
+  host.addEventListener("drop", (event) => {
+    event.preventDefault();
+    host.classList.remove("dropping");
+    const chemins = [...(event.dataTransfer?.files ?? [])]
+      .map((file) => desktop.pathForFile(file))
+      .filter(Boolean)
+      .map((chemin) => (chemin.includes(" ") ? `"${chemin}"` : chemin));
+    if (chemins.length > 0) send({ t: "input", id: terminalId, data: `${chemins.join(" ")} ` });
+  });
+}
+
+function disposeTerminal(id) {
+  const entry = terminals.get(id);
+  if (!entry) return;
+  entry.term.dispose();
+  entry.host.remove();
+  terminals.delete(id);
+  attention.delete(id);
+  if (activeTerminalId === id) activeTerminalId = null;
+  renderTerminalTabs();
+  const next = [...terminals.values()].find((candidate) => candidate.owner === activeRoot);
+  if (next) activate(next.info.id);
+  else {
+    renderStatus(null);
+    renderWelcome();
+  }
+}
+
+/** Les onglets ne montrent que les terminaux du projet courant. */
+function renderTerminalTabs() {
+  el.tabs.replaceChildren(
+    ...[...terminals.values()]
+      .filter((entry) => entry.owner === activeRoot)
+      .map((entry) => {
+        renderTab(entry);
+        return entry.tab;
+      }),
+  );
+  for (const entry of terminals.values()) {
+    entry.host.classList.toggle("active", entry.info.id === activeTerminalId && entry.owner === activeRoot);
+  }
+  const active = terminals.get(activeTerminalId);
+  renderStatus(active && active.owner === activeRoot ? active.info : null);
+  renderWelcome();
+}
+
+function renderTab({ info, tab }) {
+  tab.className = `tab ${info.id === activeTerminalId ? "active" : ""}`;
+  const close = node("span", "close", "×");
+  close.dataset.action = "close";
+  const waiting = attention.get(info.id);
+  const children = [node("span", `dot ${info.state}`), node("span", null, info.title)];
+  if (waiting) children.push(node("span", `bell ${waiting}`, "●"));
+  children.push(close);
+  tab.replaceChildren(...children);
+}
+
+function activate(id) {
+  const entry = terminals.get(id);
+  if (!entry) return;
+  // Activer un terminal d'un autre projet suit ce projet : l'onglet et la
+  // colonne de gauche doivent décrire ce qu'on regarde.
+  if (entry.owner !== activeRoot) {
+    activeRoot = entry.owner;
+    renderProjectTabs();
+    void refreshProjectViews();
+  }
+  activeTerminalId = id;
+  attention.delete(id);
+  renderBadge();
+  renderTerminalTabs();
+  requestAnimationFrame(() => {
+    entry.fit.fit();
+    send({ t: "resize", id, cols: entry.term.cols, rows: entry.term.rows });
+    entry.term.focus();
+  });
+  renderStatus(entry.info);
+}
+
+function renderStatus(info) {
+  if (!info) {
+    el.status.replaceChildren();
+    return;
+  }
+  const bits = [info.cwd, info.kind, info.state];
+  if (info.lastExitCode !== undefined) bits.push(`sortie ${info.lastExitCode}`);
+  el.status.textContent = bits.join("   ·   ");
+}
+
+function renderWelcome() {
+  const current = project();
+  const own = [...terminals.values()].filter((entry) => entry.owner === activeRoot);
+  el.welcome.classList.toggle("hidden", own.length > 0);
+  el.welcomeTitle.textContent = current ? "Aucun terminal" : "Aucun projet ouvert";
+  el.welcomePath.textContent = current?.root ?? "Ouvre un projet pour commencer.";
+  el.welcomeClaude.disabled = !current;
+  el.welcomeShell.disabled = !current;
+}
+
+// ─── Bloc session ───────────────────────────────────────────────────────────
+
+const SESSION_MODES = [
+  {
+    id: "plan",
+    glyph: "📋",
+    title: "Plan",
+    about: "Le plan que Claude soumet en sortant du mode plan, avec sa progression si le plan porte des cases.",
+    load: loadPlan,
+  },
+  {
+    id: "activity",
+    glyph: "📈",
+    title: "Activité",
+    about: "Le déroulé de la session : prompts, réponses et appels d'outils.",
+    load: loadActivity,
+  },
+  {
+    id: "files",
+    glyph: "📄",
+    title: "Fichiers",
+    about:
+      "Ce que la session a changé, avec le diff exact. L'état « avant » vient des sauvegardes de Claude Code, pas de git.",
+    load: loadSessionFiles,
+  },
 ];
 
-let activePanel = "files";
+function renderSessionBlock() {
+  const current = project();
+  const block = el.sessionModes.closest(".block");
+  renderModeBar(el.sessionModes, block, SESSION_MODES, current?.sessionMode, (id) => {
+    if (current) current.sessionMode = id;
+    void renderSessionBlock();
+  }, sessionBar);
 
-function renderPanelTabs() {
-  el.detailTabs.replaceChildren(
-    ...PANELS.map((panel) => {
-      const button = node("button", `subtab ${panel.id === activePanel ? "active" : ""}`, panel.label);
-      button.type = "button";
-      button.addEventListener("click", () => showPanel(panel.id));
-      return button;
-    }),
-  );
-}
-
-async function showPanel(id) {
-  activePanel = id;
-  renderPanelTabs();
-  const panel = PANELS.find((candidate) => candidate.id === id);
-  el.detailTitle.textContent = panel.label;
-
-  if (panel.scope === "session" && !selectedSession) {
-    el.detail.replaceChildren(empty("Choisis une session à gauche."));
+  const selected = selectedSession;
+  if (!selected) {
+    el.sessionPanel.replaceChildren(centerEmpty("📄", "Choisis une session dans History, à droite."));
     return;
   }
-  if (panel.scope === "project" && !projectRoot()) {
-    el.detail.replaceChildren(empty("Indique un dossier de projet en haut."));
-    return;
-  }
-
-  el.detail.replaceChildren(empty("chargement…"));
-  try {
-    el.detail.replaceChildren(await panel.load());
-  } catch (error) {
-    el.detail.replaceChildren(empty(error.message));
-  }
+  const mode = SESSION_MODES.find((entry) => entry.id === current.sessionMode) ?? SESSION_MODES[2];
+  return fill(el.sessionPanel, async () => {
+    const host = node("div");
+    host.append(node("p", "about session-title", selected.title ?? selected.sessionId.slice(0, 8)));
+    if (sessionBar.about) host.append(node("p", "about", mode.about));
+    host.append(await mode.load(selected));
+    return host;
+  });
 }
 
-async function loadFiles() {
-  const { diffs } = await api("/api/session/files", { id: selectedSession.sessionId });
-  if (!diffs?.length) return empty("aucun fichier touché.");
+async function loadSessionFiles(selected) {
+  const { diffs } = await api("/api/session/files", { id: selected.sessionId });
+  if (!diffs?.length) return centerEmpty("📄", "Aucun fichier touché.");
 
   const container = node("div");
   for (const diff of diffs) {
-    const block = node("div", "file");
-    block.append(node("h3", null, diff.trackingPath));
+    const badges = [];
+    if (diff.created) badges.push({ label: "créé", tone: "ok" });
+    if (diff.deleted) badges.push({ label: "supprimé", tone: "warn" });
+    if (diff.binary) badges.push({ label: "binaire" });
+    if (diff.beforeMissing) badges.push({ label: "sauvegarde absente", tone: "warn" });
 
-    const tags = [];
-    if (diff.created) tags.push("créé");
-    if (diff.deleted) tags.push("supprimé");
-    if (diff.binary) tags.push("binaire");
-    if (diff.beforeMissing) tags.push("sauvegarde absente");
-
-    const counts = node("div", "counts");
-    counts.append(
-      node("span", "add", `+${diff.linesAdded}`),
-      " ",
-      node("span", "del", `−${diff.linesRemoved}`),
-      tags.length ? `  ·  ${tags.join(", ")}` : "",
-    );
-    block.append(counts);
-
+    const item = row(diff.trackingPath, `+${diff.linesAdded}  −${diff.linesRemoved}`, badges);
     if (diff.unified) {
-      const pre = node("pre", "diff");
+      const pre = node("pre", "code diff");
       for (const line of diff.unified.split("\n")) {
         const cls = line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : line.startsWith("@@") ? "hunk" : null;
         pre.append(node("span", cls, `${line}\n`));
       }
-      block.append(pre);
+      item.append(pre);
     }
-    container.append(block);
+    container.append(list([item]));
   }
   return container;
 }
 
-const ACTIVITY_LABEL = {
-  prompt: "moi",
-  command: "commande",
-  answer: "claude",
-  tool: "outil",
-  note: "note",
-};
+const ACTIVITY_LABEL = { prompt: "moi", command: "commande", answer: "claude", tool: "outil", note: "note" };
 
-async function loadActivity() {
-  const feed = await api("/api/session/activity", { id: selectedSession.sessionId, limit: 300 });
-  if (!feed.entries?.length) return empty("aucune activité.");
+async function loadActivity(selected) {
+  const feed = await api("/api/session/activity", { id: selected.sessionId, limit: 300 });
+  if (!feed.entries?.length) return centerEmpty("📈", "Aucune activité.");
 
   const container = node("div");
   if (feed.total > feed.entries.length) {
-    container.append(
-      empty(`${feed.entries.length} dernières entrées sur ${feed.total}.`),
-    );
+    container.append(empty(`${feed.entries.length} dernières entrées sur ${feed.total}.`));
   }
-
   const ul = node("ul", "feed");
   for (const entry of feed.entries) {
     const item = node("li", `${entry.kind}${entry.failed ? " failed" : ""}`);
@@ -678,69 +983,169 @@ async function loadActivity() {
   return container;
 }
 
-async function loadSkills() {
-  const root = projectRoot();
+async function loadPlan(selected) {
+  const { plan, mode, planModeEntries } = await api("/api/session/plan", { id: selected.sessionId });
+  if (!plan) {
+    return centerEmpty(
+      "📋",
+      planModeEntries > 0
+        ? "Passée en mode plan, mais aucun plan soumis."
+        : `Jamais passée en mode plan. Mode courant : ${mode ?? "inconnu"}.`,
+    );
+  }
+  const container = node("div");
+  if (plan.progress) container.append(empty(`${plan.progress.done} sur ${plan.progress.total} étapes cochées`));
+  container.append(node("pre", "code", plan.text));
+  return container;
+}
+
+// ─── Panneau droit : le global ──────────────────────────────────────────────
+
+const GLOBAL_TABS = [
+  { id: "processes", glyph: "⚙", label: "Process", load: loadProcesses },
+  { id: "history", glyph: "🕐", label: "History", load: loadHistory },
+  { id: "skills", glyph: "✦", label: "Skills", load: loadUserSkills },
+  { id: "mcp", glyph: "⛓", label: "MCP", load: loadUserMcp },
+  { id: "settings", glyph: "⚙", label: "Réglages", load: loadSettings },
+  { id: "notifications", glyph: "🔔", label: "Alertes", load: loadNotifications },
+];
+
+function renderGlobalTabs() {
+  el.globalTabs.replaceChildren(
+    ...GLOBAL_TABS.map((tab) => {
+      const button = node("button", `global-tab ${tab.id === globalTab ? "active" : ""}`);
+      button.type = "button";
+      button.append(node("span", "glyph", tab.glyph), node("span", null, tab.label));
+      button.addEventListener("click", () => showGlobal(tab.id));
+      return button;
+    }),
+  );
+}
+
+function showGlobal(id) {
+  globalTab = id;
+  renderGlobalTabs();
+  const tab = GLOBAL_TABS.find((entry) => entry.id === id);
+  el.globalFilter.style.display = id === "history" || id === "skills" ? "" : "none";
+  return fill(el.globalPanel, () => tab.load());
+}
+
+async function loadHistory() {
+  sessions = (await api("/api/sessions")).sessions;
+  return renderHistory();
+}
+
+function renderHistory() {
+  const needle = el.globalFilter.value.trim().toLowerCase();
+  const shown = sessions.filter((session) =>
+    needle
+      ? `${session.title ?? ""} ${session.effectiveCwd ?? ""} ${session.gitBranch ?? ""}`.toLowerCase().includes(needle)
+      : true,
+  );
+  if (!shown.length) return centerEmpty("🕐", "Aucune session.");
+
+  const ul = node("ul", "rows sessions");
+  for (const session of shown.slice(0, 200)) {
+    const when = session.lastActivityAt ? new Date(session.lastActivityAt).toLocaleString("fr-FR") : "";
+    const folder = shortName(session.effectiveCwd ?? "");
+    const item = row(
+      session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8),
+      [when, folder, session.gitBranch, `${session.fileCount} fichiers`].filter(Boolean).join("  ·  "),
+      session.prLinks?.length ? [{ label: "MR", tone: "accent" }] : [],
+    );
+    item.dataset.id = session.sessionId;
+    const reprendre = node("button", null, "reprendre");
+    onAction(reprendre, async () => {
+      // `--resume` relance la session là où elle vivait, ce qui ouvre le projet
+      // au passage : c'est une action explicite, contrairement à la sélection.
+      if (session.effectiveCwd) addProject(session.effectiveCwd);
+      openTerminal("claude", `claude --resume ${session.sessionId}`, session.effectiveCwd);
+    });
+    item.append(actions(reprendre));
+    if (selectedSession?.sessionId === session.sessionId) item.classList.add("selected");
+    item.addEventListener("click", () => selectSession(session));
+    ul.append(item);
+  }
+  return ul;
+}
+
+function selectSession(session) {
+  selectedSession = session;
+  for (const item of el.globalPanel.querySelectorAll("li[data-id]")) {
+    item.classList.toggle("selected", item.dataset.id === session.sessionId);
+  }
+  renderSessionBlock();
+}
+
+async function loadUserSkills() {
+  const root = project()?.root ?? "";
   const { skills, commands } = await api("/api/skills", { root });
+  const needle = el.globalFilter.value.trim().toLowerCase();
+  const match = (text) => (needle ? (text ?? "").toLowerCase().includes(needle) : true);
+
+  const personal = skills.filter((skill) => skill.scope === "user" && match(`${skill.name} ${skill.description}`));
   const container = node("div");
 
-  container.append(node("h3", null, `Skills (${skills.length})`));
+  container.append(section("Personnels"));
   container.append(
-    skills.length
-      ? list(skills.map((skill) => skillRow(skill, root)))
-      : empty("aucun skill."),
+    personal.length
+      ? list(personal.map((skill) => skillRow(skill, root, () => showGlobal("skills"))))
+      : empty("Aucun skill personnel."),
   );
 
   const nouveau = node("button", null, "Nouveau skill");
   onAction(nouveau, async () => {
-    el.detail.replaceChildren(skillForm({ scope: "user", directory: "", body: "" }, root));
+    el.globalPanel.replaceChildren(
+      skillForm({ scope: "user", directory: "", body: "" }, root, () => showGlobal("skills")),
+    );
   });
-  container.append(node("div", "actions", ""), nouveau);
+  container.append(actions(nouveau));
 
-  container.append(node("h3", null, `Commandes (${commands.length})`));
+  const shown = commands.filter((command) => match(`${command.name} ${command.description}`));
+  container.append(section(`Commandes (${shown.length})`));
   container.append(
-    commands.length
-      ? list(commands.map((command) => row(`/${command.name}`, command.description)))
-      : empty("aucune commande."),
+    shown.length
+      ? list(shown.map((command) => row(`/${command.name}`, command.description)))
+      : empty("Aucune commande."),
   );
   return container;
 }
 
-function skillRow(skill, root) {
+function skillRow(skill, root, after) {
   const item = row(skill.name, skill.description, [
     { label: skill.scope === "project" ? "projet" : "perso" },
-    ...(skill.invocation === "auto-and-slash" ? [] : [{ label: skill.invocation, tone: "warn" }]),
+    ...(skill.invocation === "auto-and-slash"
+      ? [{ label: "auto + /" }]
+      : [{ label: skill.invocation === "manual-only" ? "/ seulement" : "auto seulement", tone: "warn" }]),
   ]);
 
-  const actions = node("div", "actions");
-  const editer = node("button", "run", "éditer");
+  const editer = node("button", null, "éditer");
   onAction(editer, async () => {
-    // Le corps n'est pas dans la liste : il est relu au moment de l'ouvrir,
-    // pour ne pas charger tous les skills en entier à chaque affichage.
     const { raw } = await api("/api/skill", {
       scope: skill.scope,
       directory: skill.directory,
       ...(skill.scope === "project" ? { root } : {}),
     });
-    el.detail.replaceChildren(
-      skillForm({ ...skill, directory: skill.directory, body: stripFrontmatter(raw) }, root),
-    );
+    const host = skill.scope === "project" ? el.leftPanel : el.globalPanel;
+    host.replaceChildren(skillForm({ ...skill, body: stripFrontmatter(raw) }, root, after));
   });
-  actions.append(editer);
-  actions.append(
-    dangerButton("supprimer", async () => {
-      await postJson("/api/skills/remove", {
-        scope: skill.scope,
-        directory: skill.directory,
-        ...(skill.scope === "project" ? { root } : {}),
-      });
-      await showPanel("skills");
-    }),
+
+  item.append(
+    actions(
+      editer,
+      dangerButton("supprimer", async () => {
+        await postJson("/api/skills/remove", {
+          scope: skill.scope,
+          directory: skill.directory,
+          ...(skill.scope === "project" ? { root } : {}),
+        });
+        await after();
+      }),
+    ),
   );
-  item.append(actions);
   return item;
 }
 
-/** Retire l'en-tête : le formulaire l'édite par ses champs, pas par le texte. */
 function stripFrontmatter(raw) {
   if (!raw.startsWith("---")) return raw;
   const end = raw.indexOf("\n---", 3);
@@ -748,7 +1153,7 @@ function stripFrontmatter(raw) {
   return raw.slice(raw.indexOf("\n", end + 1) + 1).replace(/^\n+/, "");
 }
 
-function skillForm(skill, root) {
+function skillForm(skill, root, after) {
   const directory = input("nom du dossier", skill.directory ?? "");
   const nom = input("nom déclaré, celui de /nom", skill.name ?? "");
   const description = input("quand Claude doit s'en servir", skill.description ?? "");
@@ -760,95 +1165,64 @@ function skillForm(skill, root) {
     ],
     skill.invocation ?? "auto-and-slash",
   );
-  const scope = select(
-    [
-      ["user", "perso (~/.claude/skills)"],
-      ["project", "projet (.claude/skills)"],
-    ],
-    skill.scope ?? "user",
-  );
-  const corps = textarea(skill.body ?? "", 14);
+  const corps = textarea(skill.body ?? "", 10);
 
-  const enregistrer = node("button", "accent", "Enregistrer");
+  const enregistrer = node("button", "primary", "Enregistrer");
   onAction(enregistrer, async () => {
     await postJson("/api/skills/save", {
-      scope: scope.value,
+      scope: skill.scope,
       directory: directory.value,
       name: nom.value,
       description: description.value,
       invocation: invocation.value,
       body: corps.value,
-      ...(scope.value === "project" ? { root } : {}),
+      ...(skill.scope === "project" ? { root } : {}),
     });
-    await showPanel("skills");
+    await after();
   });
-
   const annuler = node("button", null, "Annuler");
-  onAction(annuler, async () => showPanel("skills"));
+  onAction(annuler, async () => after());
 
   return form(
     labeled("dossier", directory),
     labeled("nom", nom),
     labeled("description", description),
     labeled("invocation", invocation),
-    labeled("portée", scope),
     labeled("contenu", corps),
     actions(enregistrer, annuler),
   );
 }
 
-function actions(...children) {
-  const box = node("div", "actions");
-  box.append(...children);
-  return box;
-}
-
-async function loadMcp() {
-  const root = projectRoot();
+async function loadUserMcp() {
+  const root = project()?.root ?? "";
   const { servers } = await api("/api/mcp", { root });
   const container = node("div");
 
-  container.append(
-    servers.length
-      ? list(servers.map((server) => mcpRow(server, root)))
-      : empty("aucun serveur MCP."),
-  );
-
-  container.append(node("h3", null, "Ajouter au projet"));
-  // Seule la portée projet s'écrit : `~/.claude.json` porte aussi l'historique
-  // de chaque projet, et passe par la CLI `claude mcp`.
-  container.append(empty("Les portées perso et locale passent par `claude mcp`."));
-
-  const nom = input("nom du serveur");
-  const cible = input("https://… ou une commande à lancer");
-  const ajouter = node("button", "accent", "Ajouter");
-  onAction(ajouter, async () => {
-    const valeur = cible.value.trim();
-    const config = valeur.startsWith("http")
-      ? { type: "http", url: valeur }
-      : { command: valeur.split(/\s+/)[0], args: valeur.split(/\s+/).slice(1) };
-    await postJson("/api/mcp/save", { root, name: nom.value, config });
-    await showPanel("mcp");
-  });
-
-  container.append(form(labeled("nom", nom), labeled("cible", cible), actions(ajouter)));
+  for (const [scope, label] of [["user", "Personnels"], ["local", "Locaux à ce projet"]]) {
+    const own = servers.filter((server) => server.scope === scope);
+    container.append(section(label));
+    container.append(own.length ? list(own.map((server) => mcpRow(server, root))) : empty("Aucun."));
+  }
+  // Ces deux portées vivent dans `~/.claude.json`, qui porte aussi l'historique
+  // de chaque projet : elles se modifient par la CLI, pas d'ici.
+  container.append(empty("Ces portées se modifient par `claude mcp add|remove`."));
   return container;
 }
 
-function mcpRow(server, root) {
+function mcpRow(server, root, after) {
   const target = server.url ?? [server.command, ...(server.args ?? [])].join(" ");
   const keys = [...Object.keys(server.headers ?? {}), ...Object.keys(server.env ?? {})];
-  const sub = [target, keys.length ? `secrets masqués : ${keys.join(", ")}` : ""]
-    .filter(Boolean)
-    .join("  ·  ");
-
-  const item = row(server.name, sub, [{ label: server.scope }, { label: server.transport }]);
-  if (server.scope === "project") {
+  const item = row(
+    server.name,
+    [target, keys.length ? `secrets masqués : ${keys.join(", ")}` : ""].filter(Boolean).join("  ·  "),
+    [{ label: server.scope }, { label: server.transport }],
+  );
+  if (server.scope === "project" && after) {
     item.append(
       actions(
         dangerButton("retirer", async () => {
           await postJson("/api/mcp/remove", { root, name: server.name });
-          await showPanel("mcp");
+          await after();
         }),
       ),
     );
@@ -856,266 +1230,174 @@ function mcpRow(server, root) {
   return item;
 }
 
-async function loadScripts() {
-  const project = await api("/api/scripts", { root: projectRoot() });
-  const container = node("div");
-  container.append(
-    empty(
-      `${project.manager}${project.managerDetected ? "" : " (défaut — aucun lockfile)"}  ·  ${project.sources.length} paquet(s)`,
-    ),
-  );
-
-  for (const source of project.sources) {
-    container.append(node("h3", null, source.packageName ?? source.relativePath ?? "racine"));
-    if (!source.scripts.length) {
-      container.append(empty("aucun script."));
-      continue;
-    }
-    container.append(
-      list(
-        source.scripts.map((script) => {
-          const item = row("", script.command);
-          const button = node("button", "run", script.name);
-          button.type = "button";
-          button.title = "Lancer dans un nouveau terminal";
-          button.addEventListener("click", () => {
-            const command = project.manager === "npm" ? `npm run ${script.name}` : `${project.manager} run ${script.name}`;
-            el.projectRoot.value = source.directory;
-            openTerminal("shell", command);
-          });
-          item.querySelector(".name").prepend(button);
-          return item;
-        }),
-      ),
-    );
-  }
-  return container;
-}
-
-async function loadLinks() {
-  const root = projectRoot();
-  const { links } = await api("/api/links", { root });
-  const container = node("div");
-
-  const save = async (next) => {
-    await postJson("/api/links/save", { root, links: next });
-    await showPanel("links");
-  };
-
-  container.append(
-    links.length
-      ? list(
-          links.map((link) => {
-            const item = row(link.path, link.role, link.readOnly ? [{ label: "lecture seule", tone: "warn" }] : []);
-            const bascule = node("button", "run", link.readOnly ? "rendre modifiable" : "passer en lecture seule");
-            onAction(bascule, () =>
-              save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l))),
-            );
-            item.append(
-              actions(
-                bascule,
-                dangerButton("délier", () => save(links.filter((l) => l.path !== link.path))),
-              ),
-            );
-            return item;
-          }),
-        )
-      : empty("aucun dossier lié."),
-  );
-
-  const chemin = input("C:\\Projets\\autre-depot");
-  const role = input("son rôle : api, design system…");
-  const lecture = select(
-    [
-      ["non", "Claude peut y écrire"],
-      ["oui", "lecture seule"],
-    ],
-    "non",
-  );
-  const ajouter = node("button", "accent", "Lier ce dossier");
-  onAction(ajouter, () =>
-    save([
-      ...links.filter((l) => l.path !== chemin.value.trim()),
-      { path: chemin.value.trim(), role: role.value, readOnly: lecture.value === "oui" },
-    ]),
-  );
-
-  container.append(node("h3", null, "Lier un dossier"));
-  container.append(
-    form(labeled("chemin", chemin), labeled("rôle", role), labeled("accès", lecture), actions(ajouter)),
-  );
-  return container;
-}
-
 async function loadSettings() {
   const document_ = await api("/api/settings");
   const container = node("div");
   container.append(empty(document_.path));
-
-  const texte = textarea(document_.raw, 22);
-  const enregistrer = node("button", "accent", "Enregistrer");
+  const texte = textarea(document_.raw, 20);
+  const enregistrer = node("button", "primary", "Enregistrer");
   onAction(enregistrer, async () => {
-    // Le serveur analyse avant d'écrire : un JSON invalide revient en erreur
-    // plutôt que de remplacer une configuration qui marche.
     await postJson("/api/settings/replace", { raw: texte.value });
-    await showPanel("settings");
+    await showGlobal("settings");
   });
   const recharger = node("button", null, "Recharger");
-  onAction(recharger, async () => showPanel("settings"));
-
+  onAction(recharger, async () => showGlobal("settings"));
   container.append(
     empty("Une sauvegarde de l'original est posée avant la première modification."),
+    form(texte, actions(enregistrer, recharger)),
   );
-  container.append(form(texte, actions(enregistrer, recharger)));
-  return container;
-}
-
-async function loadWorktrees() {
-  const root = projectRoot();
-  const { worktrees } = await api("/api/worktrees", { root });
-  if (!worktrees.length) return empty("ce dossier n'est pas un dépôt git, ou git est absent.");
-
-  const container = node("div");
-  for (const worktree of worktrees) {
-    const tags = [];
-    if (worktree.main) tags.push({ label: "dépôt principal" });
-    if (worktree.detached) tags.push({ label: "HEAD détaché", tone: "warn" });
-    if (worktree.locked !== undefined) tags.push({ label: "verrouillé", tone: "warn" });
-    if (worktree.prunable !== undefined) tags.push({ label: "à élaguer", tone: "warn" });
-    if (worktree.dirty > 0) tags.push({ label: `${worktree.dirty} non commité(s)`, tone: "warn" });
-
-    const suite = [];
-    if (worktree.ahead || worktree.behind) suite.push(`↑${worktree.ahead ?? 0} ↓${worktree.behind ?? 0}`);
-    suite.push(worktree.path);
-    if (worktree.sessions.length) suite.push(`${worktree.sessions.length} session(s)`);
-
-    const item = row(worktree.branch ?? worktree.head?.slice(0, 8) ?? "?", suite.join("  ·  "), tags);
-
-    const ouvrir = node("button", "run", "ouvrir un terminal");
-    onAction(ouvrir, async () => {
-      el.projectRoot.value = worktree.path;
-      openTerminal("shell");
-    });
-
-    const boutons = [ouvrir];
-    if (!worktree.main) {
-      boutons.push(
-        dangerButton("retirer", async () => {
-          await postJson("/api/worktrees/remove", { root, path: worktree.path });
-          await showPanel("worktrees");
-        }),
-      );
-    }
-    item.append(actions(...boutons));
-
-    // Les sessions du worktree se retrouvent depuis la liste de gauche ; les
-    // nommer ici dit surtout si le worktree est encore vivant.
-    if (worktree.sessions.length) {
-      const dernière = worktree.sessions[0];
-      item.append(
-        node(
-          "span",
-          "sub",
-          `dernière session : ${dernière.title ?? dernière.sessionId.slice(0, 8)}`,
-        ),
-      );
-    }
-    container.append(list([item]));
-  }
   return container;
 }
 
 async function loadProcesses() {
   const { tree } = await api("/api/processes");
-  if (!tree.length) return empty("aucun processus Claude en cours.");
+  if (!tree.length) return centerEmpty("⚙", "Aucun processus Claude en cours.");
 
   const render = (nodes, isRoot) => {
     const ul = node("ul", `tree ${isRoot ? "root" : ""}`);
     for (const item of nodes) {
       const li = node("li");
-      const line = node("span", "name");
-
       const tone = item.link.kind === "owned" ? "ok" : item.link.kind === "inferred" ? "warn" : "";
       const label =
         item.link.kind === "owned" ? "ce terminal" : item.link.kind === "inferred" ? "lancé ailleurs" : "enfant";
-      line.append(node("span", `tag ${tone}`, label), " ", `${item.name} · ${item.pid}`);
+      const line = node("span", "name");
+      line.append(badge(label, tone), node("span", null, `${item.name} · ${item.pid}`));
 
       if (item.link.kind !== "orphan") {
-        const stop = node("button", "stop", "arrêter");
-        stop.type = "button";
-        stop.addEventListener("click", async () => {
-          stop.disabled = true;
-          try {
-            await api("/api/processes/stop", { pid: item.pid }, { method: "POST" });
-            await showPanel("processes");
-          } catch (error) {
-            stop.textContent = error.message;
-          }
+        const stop = node("button", "danger", "arrêter");
+        onAction(stop, async () => {
+          await api("/api/processes/stop", { pid: item.pid }, { method: "POST" });
+          await showGlobal("processes");
         });
-        line.append(" ", stop);
+        line.append(stop);
       }
-
-      li.append(line);
-      if (item.commandLine) li.append(node("span", "sub", item.commandLine));
-      li.append(node("span", "sub", `${item.memoryMB} Mo`));
+      li.append(line, node("span", "sub", `${item.memoryMB} Mo`));
       if (item.children.length) li.append(render(item.children, false));
       ul.append(li);
     }
     return ul;
   };
-
   return render(tree, true);
 }
 
-async function loadPlan() {
-  const { plan, mode, planModeEntries } = await api("/api/session/plan", {
-    id: selectedSession.sessionId,
-  });
+// ─── Notifications ──────────────────────────────────────────────────────────
 
-  if (!plan) {
-    const container = node("div");
-    container.append(
-      empty(
-        planModeEntries > 0
-          ? "Cette session est passée en mode plan mais n'a jamais soumis de plan."
-          : "Cette session n'est jamais passée en mode plan.",
-      ),
-    );
-    // Claude Code n'écrit plus de fichier de plan : le seul endroit où il
-    // apparaisse est l'appel qui le soumet. Le dire évite de chercher ailleurs.
-    container.append(
-      empty(`Mode courant : ${mode ?? "inconnu"}. Le plan est lu dans l'appel à ExitPlanMode.`),
-    );
-    return container;
+const NOTIFICATION_LABEL = {
+  permission: "permission demandée",
+  idle: "en attente d'une réponse",
+  stop: "réponse terminée",
+  other: "événement",
+};
+
+function renderBadge() {
+  document.title = attention.size > 0 ? `(${attention.size}) claude-ide` : "claude-ide";
+  desktop?.setAttention(attention.size);
+}
+
+function onNotification(notification, terminalId) {
+  notifications.unshift(notification);
+  if (notifications.length > 100) notifications.pop();
+
+  if (terminalId && terminalId !== activeTerminalId) {
+    attention.set(terminalId, notification.kind);
+    const entry = terminals.get(terminalId);
+    if (entry) renderTab(entry);
+    renderBadge();
   }
+
+  if (document.hidden && window.Notification?.permission === "granted") {
+    const system = new Notification(`claude-ide — ${NOTIFICATION_LABEL[notification.kind]}`, {
+      body: notification.message ?? notification.cwd ?? "",
+      tag: notification.kind,
+    });
+    system.onclick = () => {
+      window.focus();
+      if (terminalId) activate(terminalId);
+      system.close();
+    };
+  }
+  if (globalTab === "notifications") void showGlobal("notifications");
+}
+
+async function loadNotifications() {
+  const { status, recent } = await api("/api/notifications");
+  const seen = new Set(notifications.map((item) => item.id));
+  const all = [...notifications, ...recent.filter((item) => !seen.has(item.id))];
 
   const container = node("div");
-  if (plan.progress) {
-    const { done, total } = plan.progress;
-    container.append(empty(`${done} sur ${total} étapes cochées`));
-  }
-  if (plan.at) container.append(empty(new Date(plan.at).toLocaleString("fr-FR")));
-  container.append(node("pre", "diff", plan.text));
+  const state = node("p", "empty");
+  state.append(
+    status.installed
+      ? badge("hooks installés", "ok")
+      : badge(status.kinds.length > 0 ? "installation partielle" : "hooks absents", "warn"),
+    node("span", null, status.installed
+      ? " Claude Code signale permissions, attentes et fins de réponse."
+      : " Sans eux, aucun événement ne remonte."),
+  );
+  container.append(state);
+
+  const toggle = node("button", status.installed ? "" : "primary", status.installed ? "Désinstaller" : "Installer les hooks");
+  toggle.title = status.settingsPath;
+  onAction(toggle, async () => {
+    await postJson(status.installed ? "/api/notifications/uninstall" : "/api/notifications/install", {});
+    if (window.Notification && Notification.permission === "default") await Notification.requestPermission();
+    await showGlobal("notifications");
+  });
+  container.append(actions(toggle));
+
+  container.append(section("Reçus"));
+  container.append(
+    all.length
+      ? list(
+          all.slice(0, 60).map((item) =>
+            row(
+              item.message ?? NOTIFICATION_LABEL[item.kind],
+              [new Date(item.receivedAt).toLocaleTimeString("fr-FR"), shortName(item.cwd ?? "")]
+                .filter(Boolean)
+                .join("  ·  "),
+              [{ label: NOTIFICATION_LABEL[item.kind], tone: item.kind === "permission" ? "warn" : "" }],
+            ),
+          ),
+        )
+      : empty("Aucun événement reçu."),
+  );
   return container;
 }
 
 // ─── Démarrage ──────────────────────────────────────────────────────────────
 
+el.addProject.addEventListener("click", promptProject);
 el.openShell.addEventListener("click", () => openTerminal("shell"));
 el.openClaude.addEventListener("click", () => openTerminal("claude", "claude"));
-el.refreshSessions.addEventListener("click", () => void loadSessions());
-el.sessionFilter.addEventListener("input", renderSessions);
-el.detailRefresh.addEventListener("click", () => void showPanel(activePanel));
-
-el.projectRoot.value = localStorage.getItem("claude-ide.projectRoot") ?? "";
-
-window.addEventListener("resize", () => {
-  const entry = terminals.get(activeId);
-  if (!entry) return;
-  entry.fit.fit();
-  post({ t: "resize", id: activeId, cols: entry.term.cols, rows: entry.term.rows });
+el.welcomeShell.addEventListener("click", () => openTerminal("shell"));
+el.welcomeClaude.addEventListener("click", () => openTerminal("claude", "claude"));
+el.globalRefresh.addEventListener("click", () => void showGlobal(globalTab));
+el.globalFilter.addEventListener("input", () => {
+  if (globalTab === "history") el.globalPanel.replaceChildren(renderHistory());
+  else if (globalTab === "skills") void showGlobal("skills");
 });
 
-renderPanelTabs();
+const layout = document.querySelector(".layout");
+el.toggleLeft.addEventListener("click", () => layout.classList.toggle("no-left"));
+el.toggleRight.addEventListener("click", () => layout.classList.toggle("no-right"));
+
+window.addEventListener("resize", () => {
+  const entry = terminals.get(activeTerminalId);
+  if (!entry) return;
+  entry.fit.fit();
+  send({ t: "resize", id: activeTerminalId, cols: entry.term.cols, rows: entry.term.rows });
+});
+
+try {
+  const saved = JSON.parse(localStorage.getItem("claude-ide.projects") ?? "{}");
+  for (const root of saved.roots ?? []) addProject(root, false);
+  activeRoot = saved.active ?? projects[0]?.root ?? null;
+} catch {
+  // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
+}
+
+renderProjectTabs();
+renderGlobalTabs();
 connect();
-void loadSessions();
+void refreshProjectViews();
+void showGlobal("history");

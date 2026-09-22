@@ -70,6 +70,34 @@ CLAUDE_IDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
 CLAUDE_IDE_PORT=7790 …      # port fixe plutôt qu'un port libre
 ```
 
+## Disposition
+
+Celle de ClaudeTerm, et sa règle : **gauche = le projet, centre = la session,
+droite = ce qui ne dépend d'aucun projet.**
+
+```
+┌ barre de titre : (projet A) (projet B) (+)                              ┐
+├──────────────┬────────────────────────────────────┬────────────────────┤
+│ fil d'Ariane │ onglets terminaux        + ✦claude │ ⚙ 🕐 ✦ ⛓ ⚙ 🔔      │
+│ fichiers     │ ┌────────────────────────────────┐ │ filtre             │
+│              │ │  terminal, ou état vide        │ │                    │
+│              │ └────────────────────────────────┘ │ Process · History  │
+│ ──────────── │ dossier · mode · état              │ Skills · MCP       │
+│ 🔗📦✦⛓⑂  ⓘ ˅ │ ────────────────────────────────── │ Réglages · Alertes │
+│ mode courant │ 📋 📈 📄  bloc session        ⓘ ˅  │                    │
+└──────────────┴────────────────────────────────────┴────────────────────┘
+```
+
+Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
+Les blocs à modes se replient (`˅`) et expliquent le mode courant (`ⓘ`).
+
+La session regardée vient de **History**, à droite, et ne déplace pas le projet
+courant : c'est une lecture, pas un déplacement. La reprendre — bouton
+« reprendre », qui lance `claude --resume` — ouvre son projet, parce que là c'est
+une action.
+
+Les fichiers cachés sont écartés de la liste, `node_modules` aussi.
+
 ## Deux façons de l'utiliser
 
 **En application de bureau.** `pnpm package` produit un installateur NSIS ; le
