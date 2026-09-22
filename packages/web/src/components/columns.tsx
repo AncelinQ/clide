@@ -68,7 +68,7 @@ export function ProjectColumn() {
       icon: Link2,
       title: "Dossiers liés",
       about:
-        "Les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json et sont transmis à Claude au lancement.",
+        "Les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json, qui en donne l'accès à Claude ; leurs rôles vont dans un fichier de prompt que chaque session reçoit, qui lui dit à quoi ils servent.",
       render: () => <LinksPanel root={project.root} />,
     },
     {

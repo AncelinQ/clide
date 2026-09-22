@@ -1,9 +1,19 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { appDataDir } from "@claude-ide/core";
+import { LINKS_PROMPT, appDataDir } from "@claude-ide/core";
 
 import { OSC_CODE } from "./osc.js";
+
+/**
+ * Segments du fichier de prompt, cités pour `Join-Path`.
+ *
+ * Le chemin est recomposé par le shell plutôt qu'écrit tel quel : sur Windows il
+ * contient un séparateur qui n'a pas sa place dans ce fichier.
+ */
+const PROMPT_SEGMENTS = LINKS_PROMPT.split(/[\\/]/)
+  .map((segment) => `'${segment}'`)
+  .join(" ");
 
 /**
  * Profil PowerShell injecté dans les terminaux de l'application.
@@ -58,6 +68,31 @@ try {
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
   }
 } catch {
+}
+
+# L'exécutable est résolu une fois, avant que la fonction du même nom existe :
+# appelé par son nom depuis cette fonction, il s'appellerait elle. Sans
+# exécutable trouvé, aucune fonction n'est posée et la commande échoue comme
+# elle l'aurait fait sans nous.
+$global:__claudeIdeClaude = (
+  Get-Command claude -CommandType Application, ExternalScript -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+).Source
+
+if ($global:__claudeIdeClaude) {
+  function global:claude {
+    $promptFile = Join-Path $PWD.Path ${PROMPT_SEGMENTS}
+
+    # Le drapeau refuse de démarrer sur un fichier absent, et un appel qui pose
+    # déjà son propre prompt système garde la main sur ce qu'il a demandé.
+    $own = @($args) -match '^--(append-)?system-prompt(-file)?$'
+
+    if ((Test-Path -LiteralPath $promptFile -PathType Leaf) -and $own.Count -eq 0) {
+      & $global:__claudeIdeClaude --append-system-prompt-file $promptFile @args
+    } else {
+      & $global:__claudeIdeClaude @args
+    }
+  }
 }
 `;
 }

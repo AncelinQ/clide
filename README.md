@@ -260,6 +260,38 @@ tous couverts par des tests :
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
 
+## Dossiers liés
+
+Le front dépend de l'API et du design system, qui vivent dans d'autres dépôts.
+Déclarer ces dossiers évite d'avoir à redire à Claude où ils sont et à quoi ils
+servent. Trois fichiers y suffisent, tous écrits dans le projet :
+
+| Fichier | Rôle |
+|---|---|
+| `.claude/settings.local.json` | les chemins dans `permissions.additionalDirectories`, et une règle `deny` par dossier en lecture seule |
+| `.claude/claude-ide.json` | les rôles, qui n'ont pas d'équivalent natif |
+| `.claude/claude-ide-prompt.md` | le texte décrivant les liens, passé à Claude en `--append-system-prompt-file` |
+
+Trois choses méritent d'être dites :
+
+- **L'accès et le sens sont deux mécanismes distincts.** `additionalDirectories`
+  donne à Claude le droit de lire un dossier, rien de plus : sans le fichier de
+  prompt, il y a accès sans savoir ce qu'il y trouvera. Le fichier est retiré
+  avec le dernier lien, pour ne pas décrire des dossiers dont le projet ne
+  dépend plus, et un projet sans lien n'en reçoit jamais.
+- **Le drapeau est posé par une fonction `claude` du profil du shell**, pas par
+  la commande d'ouverture d'un onglet. Un `claude` tapé à la main en profite donc
+  autant qu'un onglet Claude, et `--resume` comme le reste des arguments passent
+  au travers. La fonction s'efface devant un appel qui pose déjà son propre
+  prompt système, et le drapeau n'est ajouté que si le fichier existe — Claude
+  Code refuse de démarrer sur un fichier absent. L'exécutable est résolu avant
+  que la fonction du même nom soit définie, sans quoi elle s'appellerait
+  elle-même.
+- **La règle de refus est un `Edit`, jamais un `Write`.** C'est la seule forme
+  que Claude Code confronte aux écritures de fichiers, et elle couvre tous les
+  outils qui en font ; un `Write` visant un chemin reste sans effet et se fait
+  signaler au démarrage de chaque session.
+
 ## Worktrees
 
 Le panneau lit `git worktree list --porcelain`, puis l'état de chacun : fichiers

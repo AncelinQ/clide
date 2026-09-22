@@ -206,9 +206,9 @@ a changé depuis, et une sauvegarde de l'état courant avant d'écrire.
 Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
 **Ce qui n'y figure pas est porté** : fil d'ariane et menu contextuel du Finder,
 détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
-les trois modes d'invocation des skills, la progression du plan, les règles `deny`
-et les rôles des dossiers liés, le routage des notifications, l'intégration shell,
-les worktrees.
+les trois modes d'invocation des skills, la progression du plan, les dossiers
+liés au complet — règles `deny`, rôles et fichier de prompt —, le routage des
+notifications, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -272,12 +272,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | MCP : envoyer « /mcp » à l'onglet Claude | pour lancer l'authentification d'un serveur sans quitter l'application |
 | Réglages : formulaire | modèle, permissions, hooks, env, plugins, plutôt que du JSON brut. Les clés inconnues sont préservées des deux côtés |
 | Process : arrêt au survol | le bouton existe, il est simplement toujours visible |
-
-### Projets liés
-
-| Manque | Détail |
-|---|---|
-| Fichier de prompt et `--append-system-prompt-file` | l'original écrit un fichier décrivant les liens et leurs rôles, puis le passe à chaque onglet Claude et à la fonction `claude` du shell. `LinkStore.describe()` produit déjà ce texte, mais **rien ne l'écrit ni ne le transmet** : Claude obtient le droit de lire les dossiers liés sans jamais apprendre à quoi ils servent, ce qui vide la fonctionnalité de la moitié de son intérêt |
 
 ### Skills
 

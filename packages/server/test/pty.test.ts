@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { normalizePath } from "@claude-ide/core";
 
 import { PtyManager, cleanEnvironment, type TerminalInfo } from "../src/pty/manager.js";
+import { shellProfileScript } from "../src/pty/shell-profile.js";
 
 describe("normalizePath", () => {
   it("rend identiques les trois façons d'écrire un dossier Windows", () => {
@@ -34,6 +35,26 @@ describe("cleanEnvironment", () => {
       CLAUDEX: "garde-moi",
     });
     expect(env).toEqual({ PATH: "C:/bin", CLAUDEX: "garde-moi" });
+  });
+});
+
+describe("shellProfileScript", () => {
+  it("n'écrit aucune barre oblique inverse", () => {
+    // Un échappement traverse ici le générateur, le fichier, puis l'analyseur
+    // PowerShell : il s'y perd, et l'erreur ne se voit qu'à l'exécution.
+    expect(shellProfileScript()).not.toContain("\\");
+  });
+
+  it("recompose le chemin du fichier de prompt segment par segment", () => {
+    const script = shellProfileScript();
+    expect(script).toContain("Join-Path $PWD.Path '.claude' 'claude-ide-prompt.md'");
+    expect(script).toContain("--append-system-prompt-file");
+  });
+
+  it("résout l'exécutable avant de poser la fonction du même nom", () => {
+    // Sans cette résolution, la fonction s'appellerait elle-même à l'infini.
+    const script = shellProfileScript();
+    expect(script.indexOf("Get-Command claude")).toBeLessThan(script.indexOf("function global:claude"));
   });
 });
 

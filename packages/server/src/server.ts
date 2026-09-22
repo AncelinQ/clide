@@ -4,7 +4,7 @@ import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, normalize, resolve, sep } from "node:path";
 
-import { SessionIndex, appDataDir, settingsFile } from "@claude-ide/core";
+import { LinkStore, SessionIndex, appDataDir, settingsFile } from "@claude-ide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
@@ -261,6 +261,15 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     try {
       switch (message.t) {
         case "open": {
+          // Le fichier de prompt suit ce que dit le projet, y compris quand ses
+          // liens ont été modifiés à la main. Son échec ne doit pas empêcher
+          // d'ouvrir un terminal : sans lui, `claude` démarre sans le drapeau.
+          try {
+            await new LinkStore().writePrompt(message.projectRoot);
+          } catch {
+            // Projet en lecture seule, ou disparu depuis son ouverture.
+          }
+
           const terminal = await manager.open({
             projectRoot: message.projectRoot,
             ...(message.kind ? { kind: message.kind } : {}),

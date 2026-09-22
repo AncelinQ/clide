@@ -1,9 +1,10 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { LinkStore, denyRules } from "../src/links/store.js";
+import { LinkStore, denyRules, promptPath } from "../src/links/store.js";
 import { MASK, McpStore, redactServer } from "../src/mcp/store.js";
 import { ScriptStore, parsePnpmWorkspace } from "../src/scripts/store.js";
 import { SkillStore, parseFrontmatter } from "../src/skills/store.js";
@@ -264,10 +265,29 @@ describe("ScriptStore", () => {
 
 describe("LinkStore", () => {
   it("rend une règle de refus absolue", () => {
-    expect(denyRules("C:\\Projets\\api")).toEqual([
-      "Edit(//C:/Projets/api/**)",
-      "Write(//C:/Projets/api/**)",
-    ]);
+    // Claude Code ne confronte que les règles `Edit` aux écritures de fichiers,
+    // et les signale quand elles visent un chemin sous une autre forme.
+    expect(denyRules("C:\\Projets\\api")).toEqual(["Edit(//C:/Projets/api/**)"]);
+  });
+
+  it("retire une règle de refus qu'il n'écrit plus lui-même", async () => {
+    const root = join(dir, "projet");
+    await write(
+      "projet/.claude/settings.local.json",
+      JSON.stringify({
+        permissions: {
+          additionalDirectories: ["C:\\Projets\\api"],
+          deny: ["Edit(//C:/Projets/api/**)", "Write(//C:/Projets/api/**)"],
+        },
+      }),
+    );
+
+    const store = new LinkStore();
+    await store.write(root, [{ path: "C:\\Projets\\api", readOnly: true }]);
+
+    const settings = await new SettingsEditor().read(join(root, ".claude", "settings.local.json"));
+    const permissions = settings.value["permissions"] as Record<string, unknown>;
+    expect(permissions["deny"]).toEqual(["Edit(//C:/Projets/api/**)"]);
   });
 
   it("écrit les chemins sans toucher aux permissions déjà accordées", async () => {
@@ -335,8 +355,45 @@ describe("LinkStore", () => {
 
   it("ne produit aucun texte quand il n'y a rien à dire", () => {
     expect(LinkStore.describe([])).toBe("");
-    expect(LinkStore.describe([{ path: "C:\\api", role: "api", readOnly: true }])).toContain(
-      "(lecture seule)",
-    );
+    const text = LinkStore.describe([{ path: "C:\\api", role: "api", readOnly: true }]);
+    expect(text).toContain("C:\\api");
+    expect(text).toContain("api");
+    expect(text).toContain("lecture seule");
+  });
+
+  it("écrit un fichier de prompt portant les chemins et les rôles", async () => {
+    const root = join(dir, "projet");
+    const store = new LinkStore();
+
+    await store.write(root, [
+      { path: "C:\\Projets\\api", role: "api", readOnly: false },
+      { path: "C:\\Projets\\ds", role: "design system", readOnly: true },
+    ]);
+
+    const text = await readFile(promptPath(root), "utf8");
+    expect(text).toContain("C:\\Projets\\api");
+    expect(text).toContain("design system");
+    expect(text).toContain("lecture seule");
+  });
+
+  it("retire le fichier de prompt avec le dernier lien", async () => {
+    const root = join(dir, "projet");
+    const store = new LinkStore();
+
+    await store.write(root, [{ path: "C:\\Projets\\api", readOnly: false }]);
+    expect(existsSync(promptPath(root))).toBe(true);
+
+    // Un fichier laissé là décrirait un dossier dont le projet ne dépend plus.
+    await store.write(root, []);
+    expect(existsSync(promptPath(root))).toBe(false);
+  });
+
+  it("ne crée rien pour un projet sans lien", async () => {
+    const root = join(dir, "vierge");
+    await mkdir(root, { recursive: true });
+
+    await new LinkStore().writePrompt(root);
+
+    expect(existsSync(join(root, ".claude"))).toBe(false);
   });
 });

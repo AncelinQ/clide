@@ -115,6 +115,8 @@ export {
 export {
   LinkStore,
   denyRules,
+  promptPath,
+  LINKS_PROMPT,
   LINKS_ROLES,
   LINKS_SETTINGS,
   type ProjectLink,
