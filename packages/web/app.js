@@ -20,6 +20,49 @@ for (const id of [
   el[id.replace(/-(\w)/g, (_, c) => c.toUpperCase())] = document.querySelector(`#${id}`);
 }
 
+// ─── Thème ──────────────────────────────────────────────────────────────────
+
+/**
+ * Trois réglages : suivre le système, forcer le clair, forcer le sombre.
+ *
+ * Les couleurs sont des variables CSS, sauf celles du terminal : xterm peint sur
+ * un canevas et ne lit pas la feuille de style. Elles sont donc relues depuis les
+ * variables à chaque changement, pour qu'il n'existe qu'une seule définition.
+ */
+const THEMES = ["auto", "light", "dark"];
+const THEME_GLYPH = { auto: "◐", light: "☀", dark: "☾" };
+const THEME_LABEL = { auto: "Thème : système", light: "Thème : clair", dark: "Thème : sombre" };
+let theme = localStorage.getItem("claude-ide.theme") ?? "auto";
+
+function applyTheme() {
+  if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.dataset.theme = theme;
+
+  const button = document.querySelector("#toggle-theme");
+  if (button) {
+    button.textContent = THEME_GLYPH[theme];
+    button.title = THEME_LABEL[theme];
+  }
+  for (const entry of terminals.values()) entry.term.options.theme = terminalTheme();
+}
+
+/** Noms xterm des seize couleurs ANSI, dans l'ordre de `--ansi-0` à `--ansi-15`. */
+const ANSI_NAMES = [
+  "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+  "brightBlack", "brightRed", "brightGreen", "brightYellow",
+  "brightBlue", "brightMagenta", "brightCyan", "brightWhite",
+];
+
+function terminalTheme() {
+  const styles = getComputedStyle(document.documentElement);
+  const read = (name) => styles.getPropertyValue(name).trim();
+  const theme = { background: read("--term-bg"), foreground: read("--term-fg"), cursor: read("--accent") };
+  ANSI_NAMES.forEach((name, index) => {
+    theme[name] = read(`--ansi-${index}`);
+  });
+  return theme;
+}
+
 // ─── État ───────────────────────────────────────────────────────────────────
 
 /** @type {{root: string, name: string, browsePath: string, leftMode: string, sessionMode: string, selectedSession: object|null}[]} */
@@ -745,7 +788,7 @@ function createTerminalView(info, owner) {
     fontFamily: 'Consolas, "Cascadia Mono", monospace',
     fontSize: 13,
     cursorBlink: true,
-    theme: { background: "#161618", foreground: "#e8e8ed", cursor: "#0a84ff" },
+    theme: terminalTheme(),
   });
   const fit = new window.FitAddon.FitAddon();
   term.loadAddon(fit);
@@ -1377,6 +1420,17 @@ el.globalFilter.addEventListener("input", () => {
   else if (globalTab === "skills") void showGlobal("skills");
 });
 
+document.querySelector("#toggle-theme").addEventListener("click", () => {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  localStorage.setItem("claude-ide.theme", theme);
+  applyTheme();
+});
+
+// En mode « système », suivre les changements d'apparence sans recharger.
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  if (theme === "auto") applyTheme();
+});
+
 const layout = document.querySelector(".layout");
 el.toggleLeft.addEventListener("click", () => layout.classList.toggle("no-left"));
 el.toggleRight.addEventListener("click", () => layout.classList.toggle("no-right"));
@@ -1396,6 +1450,7 @@ try {
   // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
 }
 
+applyTheme();
 renderProjectTabs();
 renderGlobalTabs();
 connect();

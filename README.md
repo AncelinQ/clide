@@ -98,6 +98,18 @@ une action.
 
 Les fichiers cachés sont écartés de la liste, `node_modules` aussi.
 
+## Thème
+
+Sombre par défaut, clair quand le système le demande, et un bouton dans la barre
+de titre qui force l'un ou l'autre. Le réglage explicite l'emporte sur le système,
+et le suivi est immédiat — aucun rechargement.
+
+Les couleurs sont des variables CSS, **y compris les seize couleurs ANSI du
+terminal**. xterm peint sur un canevas et ne lit pas la feuille de style : sa
+palette lui est repassée à chaque changement. Sans cela, le jaune et le cyan
+réglés pour un fond noir deviennent illisibles sur blanc — c'est tout le terminal
+qui suit l'apparence, pas seulement son fond.
+
 ## Deux façons de l'utiliser
 
 **En application de bureau.** `pnpm package` produit un installateur NSIS ; le

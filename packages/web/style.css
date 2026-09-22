@@ -2,6 +2,10 @@
  * Reprend les partis pris de ClaudeTerm : un seul fond de fenêtre, des blocs
  * bordés pleine largeur plutôt que des cartes ombrées, des listes transparentes.
  * L'accent est le bleu système, comme dans l'original.
+ *
+ * Deux thèmes. Le sombre est la valeur par défaut ; le clair s'applique quand le
+ * système le demande, sauf si un choix explicite a été fait — d'où la garde
+ * `:not([data-theme="dark"])`, qui laisse le réglage l'emporter sur le système.
  */
 :root {
   color-scheme: dark;
@@ -17,7 +21,102 @@
   --fail: #ff453a;
   --run: #ffd60a;
   --permission: #ff9f0a;
+  --term-bg: #161618;
+  --term-fg: #e8e8ed;
+  --folder: #6fb0ff;
+  /* Palette ANSI du terminal. xterm peint sur un canevas : il ne lit pas la
+     feuille de style, ces valeurs lui sont passées à chaque changement de thème.
+     Sans elles, le jaune et le cyan d'un fond sombre deviennent illisibles sur
+     blanc — c'est tout le terminal qui suit l'apparence, pas seulement le fond. */
+  --ansi-0: #000000;
+  --ansi-1: #cd3131;
+  --ansi-2: #0dbc79;
+  --ansi-3: #e5e510;
+  --ansi-4: #2472c8;
+  --ansi-5: #bc3fbc;
+  --ansi-6: #11a8cd;
+  --ansi-7: #e5e5e5;
+  --ansi-8: #666666;
+  --ansi-9: #f14c4c;
+  --ansi-10: #23d18b;
+  --ansi-11: #f5f543;
+  --ansi-12: #3b8eea;
+  --ansi-13: #d670d6;
+  --ansi-14: #29b8db;
+  --ansi-15: #ffffff;
   font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f2f2f7;
+    --bg-raised: #ffffff;
+    --bg-sunken: #ffffff;
+    --line: #d3d3d8;
+    --line-soft: #e4e4e9;
+    --text: #1c1c1e;
+    --muted: #6c6c72;
+    --accent: #0071e3;
+    --ok: #1e8e3e;
+    --fail: #d13438;
+    --run: #b7791f;
+    --permission: #c2670a;
+    --term-bg: #ffffff;
+    --term-fg: #1c1c1e;
+    --folder: #2f74c0;
+    --ansi-0: #000000;
+    --ansi-1: #cd3131;
+    --ansi-2: #00a41e;
+    --ansi-3: #8a7500;
+    --ansi-4: #0451a5;
+    --ansi-5: #a0129e;
+    --ansi-6: #0a7f9c;
+    --ansi-7: #555555;
+    --ansi-8: #6c6c72;
+    --ansi-9: #b81c1c;
+    --ansi-10: #0a8f1a;
+    --ansi-11: #7a6800;
+    --ansi-12: #0451a5;
+    --ansi-13: #8c0f8a;
+    --ansi-14: #08708a;
+    --ansi-15: #2a2a2e;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f2f2f7;
+  --bg-raised: #ffffff;
+  --bg-sunken: #ffffff;
+  --line: #d3d3d8;
+  --line-soft: #e4e4e9;
+  --text: #1c1c1e;
+  --muted: #6c6c72;
+  --accent: #0071e3;
+  --ok: #1e8e3e;
+  --fail: #d13438;
+  --run: #b7791f;
+  --permission: #c2670a;
+    --term-bg: #ffffff;
+  --term-fg: #1c1c1e;
+  --folder: #2f74c0;
+  --ansi-0: #000000;
+  --ansi-1: #cd3131;
+  --ansi-2: #00a41e;
+  --ansi-3: #8a7500;
+  --ansi-4: #0451a5;
+  --ansi-5: #a0129e;
+  --ansi-6: #0a7f9c;
+  --ansi-7: #555555;
+  --ansi-8: #6c6c72;
+  --ansi-9: #b81c1c;
+  --ansi-10: #0a8f1a;
+  --ansi-11: #7a6800;
+  --ansi-12: #0451a5;
+  --ansi-13: #8c0f8a;
+  --ansi-14: #08708a;
+  --ansi-15: #2a2a2e;
 }
 
 * {
@@ -245,7 +344,7 @@ button.primary:hover {
 }
 
 .files .glyph.dir {
-  color: #6fb0ff;
+  color: var(--folder);
 }
 
 .files .name {
@@ -412,7 +511,7 @@ button.primary:hover {
   margin: 0 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--bg-sunken);
+  background: var(--term-bg);
   overflow: hidden;
 }
 
