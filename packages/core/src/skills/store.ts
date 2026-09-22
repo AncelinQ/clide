@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
 
 import { claudeHome } from "../paths.js";
@@ -215,4 +215,98 @@ export class SkillStore {
   static skillDirectory(skill: Skill): string {
     return basename(skill.path) === "SKILL.md" ? skill.path.slice(0, -"/SKILL.md".length) : skill.path;
   }
+
+  /** Racine des skills d'une portée. */
+  #root(scope: Scope, projectRoot?: string): string {
+    if (scope === "user") return join(this.#home, "skills");
+    if (!projectRoot) throw new Error("un skill de projet demande la racine du projet");
+    return join(projectRoot, ".claude", "skills");
+  }
+
+  /**
+   * Contenu brut d'un skill.
+   *
+   * Résolu depuis la portée et le nom du dossier, jamais depuis un chemin fourni
+   * par l'appelant : une route qui lirait un chemin arbitraire lirait n'importe
+   * quel fichier de la machine.
+   */
+  async readRaw(scope: Scope, directory: string, projectRoot?: string): Promise<string> {
+    const file = join(this.#root(scope, projectRoot), safeDirectoryName(directory), "SKILL.md");
+    return readFile(file, "utf8");
+  }
+
+  /**
+   * Écrit un skill, en le créant au besoin.
+   *
+   * Le corps est conservé tel quel ; seul l'en-tête est régénéré. Un skill est
+   * d'abord un texte que son auteur relit, pas une structure de données — le
+   * reformater à chaque enregistrement lui ferait perdre sa mise en forme.
+   */
+  async save(draft: SkillDraft): Promise<Skill> {
+    const directory = safeDirectoryName(draft.directory);
+    const folder = join(this.#root(draft.scope, draft.projectRoot), directory);
+    await mkdir(folder, { recursive: true });
+    await writeFile(join(folder, "SKILL.md"), renderSkill(draft), "utf8");
+
+    const skill = await this.#readSkill(this.#root(draft.scope, draft.projectRoot), directory, draft.scope);
+    if (!skill) throw new Error(`skill ${directory} illisible après écriture`);
+    return skill;
+  }
+
+  /**
+   * Supprime un skill, dossier compris.
+   *
+   * Le nom est validé avant toute chose : c'est une suppression récursive, et un
+   * nom porteur de séparateurs la ferait sortir du dossier des skills.
+   */
+  async remove(scope: Scope, directory: string, projectRoot?: string): Promise<boolean> {
+    const folder = join(this.#root(scope, projectRoot), safeDirectoryName(directory));
+    try {
+      await rm(folder, { recursive: true, force: false });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+export interface SkillDraft {
+  scope: Scope;
+  /** Nom du dossier qui portera le skill. */
+  directory: string;
+  /** Nom déclaré, celui qui déclenche `/nom`. Par défaut, celui du dossier. */
+  name?: string;
+  description?: string;
+  invocation?: SkillInvocation;
+  allowedTools?: string[];
+  body: string;
+  projectRoot?: string;
+}
+
+/**
+ * Refuse un nom de dossier qui pourrait désigner autre chose que lui-même.
+ *
+ * Ces noms arrivent d'une requête HTTP et servent à composer un chemin qu'on
+ * supprime récursivement : `..` ou un séparateur suffirait à sortir du dossier
+ * des skills.
+ */
+export function safeDirectoryName(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) throw new Error("nom de skill vide");
+  if (trimmed === "." || trimmed === "..") throw new Error(`nom de skill invalide : ${trimmed}`);
+  if (/[\\/:*?"<>|]/.test(trimmed)) throw new Error(`nom de skill invalide : ${trimmed}`);
+  return trimmed;
+}
+
+/** Sérialise un skill : en-tête régénéré, corps intouché. */
+export function renderSkill(draft: SkillDraft): string {
+  const fields: [string, string][] = [["name", draft.name?.trim() || draft.directory.trim()]];
+  if (draft.description) fields.push(["description", draft.description.replace(/\r?\n/g, " ").trim()]);
+  if (draft.allowedTools?.length) fields.push(["allowed-tools", draft.allowedTools.join(", ")]);
+  if (draft.invocation === "manual-only") fields.push(["disable-model-invocation", "true"]);
+  if (draft.invocation === "auto-only") fields.push(["user-invocable", "false"]);
+
+  const header = fields.map(([key, value]) => `${key}: ${value}`).join("\n");
+  const body = draft.body.replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  return `---\n${header}\n---\n\n${body.trimStart()}`;
 }

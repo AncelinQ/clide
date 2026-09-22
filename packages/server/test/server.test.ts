@@ -78,7 +78,14 @@ describe("serveur local", () => {
 
   beforeAll(async () => {
     scratch = await mkdtemp(join(tmpdir(), "claude-ide-srv-"));
-    server = await startServer({ webRoot: WEB_ROOT, token: "jeton-de-test" });
+    // Les routes qui écrivent visent des fichiers du bac à sable : aucun test
+    // ne doit toucher à la configuration de la machine.
+    server = await startServer({
+      webRoot: WEB_ROOT,
+      token: "jeton-de-test",
+      settingsPath: join(scratch, "settings.json"),
+      dataDir: join(scratch, "data"),
+    });
   });
 
   afterAll(async () => {
@@ -155,6 +162,59 @@ describe("serveur local", () => {
     expect(hello["t"]).toBe("hello");
     expect(Array.isArray(hello["terminals"])).toBe(true);
     client.close();
+  });
+
+  it("refuse une mutation en GET", async () => {
+    // Une route qui écrit ne doit pas partir sur une simple navigation.
+    const response = await fetch(`${base()}/api/settings/set?token=${server.token}`);
+    expect(response.status).toBe(405);
+  });
+
+  it("écrit un réglage et le relit", async () => {
+    const write = await fetch(`${base()}/api/settings/set?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ path: ["env", "DEMO"], value: "1" }),
+    });
+    expect(write.status).toBe(200);
+
+    const read = await fetch(`${base()}/api/settings?token=${server.token}`);
+    const document = (await read.json()) as { value: { env?: Record<string, string> } };
+    expect(document.value.env?.["DEMO"]).toBe("1");
+  });
+
+  it("refuse un corps illisible plutôt que d'écrire à moitié", async () => {
+    const response = await fetch(`${base()}/api/settings/set?token=${server.token}`, {
+      method: "POST",
+      body: "{ pas du json",
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("refuse une mutation à laquelle il manque un champ", async () => {
+    const response = await fetch(`${base()}/api/settings/set?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ value: "1" }),
+    });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: string }).error).toContain("path");
+  });
+
+  it("refuse un remplacement dont le JSON ne tient pas", async () => {
+    const response = await fetch(`${base()}/api/settings/replace?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ raw: "{ cassé" }),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("refuse un corps démesuré", async () => {
+    // Ces routes écrivent des fichiers de configuration : rien de légitime n'y
+    // atteint le mégaoctet.
+    const response = await fetch(`${base()}/api/settings/replace?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ raw: "x".repeat(2 * 1024 * 1024) }),
+    }).catch(() => undefined);
+    expect(response === undefined || response.status === 400).toBe(true);
   });
 
   it("rejette un message mal formé sans ouvrir de processus", async () => {

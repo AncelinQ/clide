@@ -45,15 +45,15 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C1 | Fenêtre à trois colonnes, onglets, barre d'état | fait |
 | C2 | Panneaux History et Activité | fait |
 | C3 | Panneau Fichiers avec diff par session | fait |
-| C4 | Panneaux Skills, MCP, Scripts, Liens, Réglages | fait |
+| C4 | Panneaux Skills, MCP, Scripts, Liens, Réglages, en lecture et en écriture | fait |
 | C5 | Panneau Process, arbre Claude, arrêt gardé | fait |
 | C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
 | C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
 | C8 | Démarrage en un clic, `claude-ide.cmd` | fait |
 | B6 | Emballage Electron | **reporté, décidé à l'usage** |
 
-Restent ouverts : l'écriture depuis les panneaux (les magasins la savent déjà
-faire, l'interface ne l'expose pas), et la gestion des worktrees.
+Reste ouvert : la gestion des worktrees, identifiée comme un vrai besoin
+(438 events dans le corpus) mais hors périmètre depuis le début.
 
 ## Lancer
 
@@ -169,6 +169,26 @@ chacune couverte par un test :
 - `~/.claude.json` porte des jetons d'accès dans les `headers` et `env` des
   serveurs MCP. Les listings les masquent par défaut en gardant les clés ;
   les révéler demande `{ reveal: true }`.
+
+## Ce que les panneaux écrivent
+
+Les magasins lisent et écrivent ; l'interface expose les deux. Quatre garde-fous,
+tous couverts par des tests :
+
+- **Les routes qui écrivent sont séparées des lectures et réservées à POST**, pour
+  qu'aucune ne parte sur une simple navigation.
+- **Un nom de dossier de skill est validé avant de composer un chemin** : il sert
+  à une suppression récursive, et un `..` ou un séparateur la ferait sortir du
+  dossier des skills. Un nom de serveur MCP ne peut pas porter de point, qui
+  désignerait une clé imbriquée plutôt qu'un serveur.
+- **L'édition brute de `settings.json` est analysée avant d'atteindre le disque**,
+  et l'original est sauvegardé avant la première modification.
+- **Seule la portée projet des serveurs MCP s'écrit.** `~/.claude.json` porte aussi
+  l'historique et l'état de chaque projet : les portées perso et locale passent par
+  la CLI `claude mcp`.
+
+Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
+cela écarte le geste involontaire sans bloquer la page.
 
 ## Pourquoi le serveur exige un jeton
 

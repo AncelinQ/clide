@@ -137,7 +137,7 @@ Le profil capture `$function:prompt` et le rappelle, il ne le remplace pas.
 | C1 | Fenêtre : barre projets, colonne gauche, centre, panneau droit | A3, B5 | fait — trois colonnes, onglets, barre d'état |
 | C2 | Panneaux History et Activity | C1, A3b | fait — 65 sessions ; flux d'activité avec rendu générique d'outil |
 | C3 | Panneau Files avec diff par session | C1, A4 | fait — diffs affichés, créations comprises |
-| C4 | Panneaux Skills, MCP, Settings, Scripts, Liens | C1, A5–A9 | fait en lecture ; l'écriture depuis l'UI reste à câbler |
+| C4 | Panneaux Skills, MCP, Settings, Scripts, Liens | C1, A5–A9 | fait — lecture et écriture |
 | C5 | Panneau Processes, `Win32_Process`, liens `owned` / `inferred` | C1 | fait — 5 racines Claude, 214 processus ; arrêt refusé hors arbre |
 | C6 | Notifications : hooks `Notification` / `Stop`, pastille d'onglet | C1, A7 | fait — routage par dossier, notification système cliquable |
 | C7 | Panneau Plan | C1 | fait — plan lu dans `ExitPlanMode` ; le mode plan n'apparaît nulle part dans le corpus |

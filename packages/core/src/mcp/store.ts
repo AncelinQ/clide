@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { claudeHome } from "../paths.js";
+import { SettingsEditor } from "../settings/editor.js";
 
 export type McpScope = "project" | "local" | "user";
 export type McpTransport = "stdio" | "http" | "sse";
@@ -94,9 +95,10 @@ export function redactServer(server: McpServer): McpServer {
  * - `local`   : `~/.claude.json`, sous `projects[<chemin>].mcpServers`, privé au projet.
  * - `user`    : `~/.claude.json`, sous `mcpServers`, valable partout.
  *
- * Lecture seule. Écrire dans `~/.claude.json` revient à réécrire un fichier qui
- * porte aussi l'historique et l'état de chaque projet : cela passe par la CLI
- * `claude mcp`, hors de ce module qui ne touche pas au système.
+ * Les trois portées se lisent ; seule la portée projet s'écrit. Écrire dans
+ * `~/.claude.json` reviendrait à réécrire un fichier qui porte aussi l'historique
+ * et l'état de chaque projet : les portées `local` et `user` passent par la CLI
+ * `claude mcp`, hors de ce module.
  */
 export class McpStore {
   readonly #userConfigFile: string;
@@ -159,6 +161,38 @@ export class McpStore {
   }
 
   /**
+   * Écrit un serveur dans le `.mcp.json` du projet.
+   *
+   * Édition chirurgicale : ce fichier est versionné et partagé par l'équipe,
+   * une réécriture complète produirait un diff illisible sur un ajout d'une ligne.
+   *
+   * Seule la portée projet s'écrit ici. Les portées `local` et `user` vivent dans
+   * `~/.claude.json`, qui porte aussi l'historique et l'état de chaque projet :
+   * elles passent par la CLI `claude mcp`, hors de ce module.
+   */
+  async saveProjectServer(
+    projectRoot: string,
+    name: string,
+    config: Record<string, unknown>,
+  ): Promise<McpServer> {
+    const file = join(projectRoot, ".mcp.json");
+    const editor = new SettingsEditor();
+    await editor.update(file, [{ path: ["mcpServers", safeServerName(name)], value: config }]);
+    return toServer(name, "project", config);
+  }
+
+  async removeProjectServer(projectRoot: string, name: string): Promise<boolean> {
+    const file = join(projectRoot, ".mcp.json");
+    const editor = new SettingsEditor();
+    const current = await editor.read(file);
+    const servers = asRecord(current.value["mcpServers"]) ?? {};
+    if (!(name in servers)) return false;
+
+    await editor.update(file, [{ path: ["mcpServers", name], value: undefined }]);
+    return true;
+  }
+
+  /**
    * Les trois portées réunies. Les valeurs sensibles sont masquées sauf demande
    * explicite : c'est le défaut sûr, parce que ce résultat finit affiché.
    */
@@ -171,6 +205,17 @@ export class McpStore {
     const all = [...project, ...local, ...user];
     return options.reveal ? all : all.map(redactServer);
   }
+}
+
+/**
+ * Un nom de serveur devient une clé de chemin dans l'arbre JSON : un nom vide ou
+ * porteur d'un point désignerait une clé imbriquée qu'on n'a pas demandée.
+ */
+export function safeServerName(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) throw new Error("nom de serveur vide");
+  if (trimmed.includes(".")) throw new Error(`nom de serveur invalide : ${trimmed}`);
+  return trimmed;
 }
 
 function normalizeRoot(path: string): string {

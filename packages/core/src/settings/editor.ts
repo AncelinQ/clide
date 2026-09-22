@@ -109,6 +109,21 @@ export class SettingsEditor {
     return { path: file, raw: next, value };
   }
 
+  /**
+   * Remplace le fichier entier.
+   *
+   * Réservé à une édition écrite par un humain : le texte est le sien, et le
+   * préserver tel quel a plus de valeur qu'une mise en forme reconstruite. Le
+   * contenu est validé avant d'atteindre le disque, et la sauvegarde d'origine
+   * est posée comme pour une édition ciblée.
+   */
+  async replace(file: string, raw: string): Promise<SettingsDocument> {
+    const value = SettingsEditor.parse(raw, file);
+    await this.#backupOnce(file);
+    await this.#writeAtomic(file, raw);
+    return { path: file, raw, value };
+  }
+
   async #backupOnce(file: string): Promise<void> {
     const backup = SettingsEditor.backupPath(file);
     try {

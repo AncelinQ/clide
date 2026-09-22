@@ -244,6 +244,110 @@ function openTerminal(kind, initialCommand) {
   });
 }
 
+
+// ─── Formulaires ────────────────────────────────────────────────────────────
+
+function input(placeholder, value = "") {
+  const control = node("input");
+  control.placeholder = placeholder;
+  control.value = value;
+  control.spellcheck = false;
+  return control;
+}
+
+function textarea(value = "", rows = 12) {
+  const control = node("textarea");
+  control.value = value;
+  control.rows = rows;
+  control.spellcheck = false;
+  return control;
+}
+
+function select(options, value) {
+  const control = node("select");
+  for (const [key, label] of options) {
+    const option = node("option", null, label);
+    option.value = key;
+    if (key === value) option.selected = true;
+    control.append(option);
+  }
+  return control;
+}
+
+function labeled(label, control) {
+  const wrapper = node("label", "field");
+  wrapper.append(node("span", null, label), control);
+  return wrapper;
+}
+
+function form(...children) {
+  const box = node("div", "form");
+  box.append(...children);
+  return box;
+}
+
+/**
+ * Enveloppe une action qui écrit : bouton désactivé le temps de l'aller-retour,
+ * message d'erreur rendu à côté plutôt qu'avalé dans la console.
+ */
+function onAction(button, run) {
+  button.type = "button";
+  button.addEventListener("click", async () => {
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = "…";
+    const previous = button.parentElement?.querySelector(".form-error");
+    previous?.remove();
+    try {
+      await run();
+    } catch (error) {
+      button.parentElement?.append(node("span", "form-error", error.message));
+    } finally {
+      button.disabled = false;
+      button.textContent = label;
+    }
+  });
+  return button;
+}
+
+/**
+ * Bouton de suppression en deux temps.
+ *
+ * Une confirmation modale bloquerait la page et n'apporterait rien : demander
+ * un second clic suffit à écarter le geste involontaire, sans interrompre.
+ */
+function dangerButton(label, run) {
+  const button = node("button", "stop", label);
+  button.type = "button";
+  let armed = false;
+  button.addEventListener("click", async () => {
+    if (!armed) {
+      armed = true;
+      button.textContent = "confirmer ?";
+      setTimeout(() => {
+        if (!armed) return;
+        armed = false;
+        button.textContent = label;
+      }, 4000);
+      return;
+    }
+    armed = false;
+    button.disabled = true;
+    try {
+      await run();
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = error.message;
+    }
+  });
+  return button;
+}
+
+/** Appel d'une route qui écrit. `post` est déjà l'envoi WebSocket. */
+function postJson(path, body) {
+  return api(path, {}, { method: "POST", body: JSON.stringify(body) });
+}
+
 // ─── Notifications ──────────────────────────────────────────────────────────
 
 const NOTIFICATION_LABEL = {
@@ -316,9 +420,7 @@ async function loadNotifications() {
   toggle.addEventListener("click", async () => {
     toggle.disabled = true;
     try {
-      await api(status.installed ? "/api/notifications/uninstall" : "/api/notifications/install", {}, {
-        method: "POST",
-      });
+      await postJson(status.installed ? "/api/notifications/uninstall" : "/api/notifications/install", {});
       await requestSystemPermission();
       await showPanel("notifications");
     } catch (error) {
@@ -537,22 +639,22 @@ async function loadActivity() {
 }
 
 async function loadSkills() {
-  const { skills, commands } = await api("/api/skills", { root: projectRoot() });
+  const root = projectRoot();
+  const { skills, commands } = await api("/api/skills", { root });
   const container = node("div");
 
   container.append(node("h3", null, `Skills (${skills.length})`));
   container.append(
     skills.length
-      ? list(
-          skills.map((skill) =>
-            row(skill.name, skill.description, [
-              { label: skill.scope === "project" ? "projet" : "perso" },
-              ...(skill.invocation === "auto-and-slash" ? [] : [{ label: skill.invocation, tone: "warn" }]),
-            ]),
-          ),
-        )
+      ? list(skills.map((skill) => skillRow(skill, root)))
       : empty("aucun skill."),
   );
+
+  const nouveau = node("button", null, "Nouveau skill");
+  onAction(nouveau, async () => {
+    el.detail.replaceChildren(skillForm({ scope: "user", directory: "", body: "" }, root));
+  });
+  container.append(node("div", "actions", ""), nouveau);
 
   container.append(node("h3", null, `Commandes (${commands.length})`));
   container.append(
@@ -563,20 +665,155 @@ async function loadSkills() {
   return container;
 }
 
-async function loadMcp() {
-  const { servers } = await api("/api/mcp", { root: projectRoot() });
-  if (!servers.length) return empty("aucun serveur MCP.");
+function skillRow(skill, root) {
+  const item = row(skill.name, skill.description, [
+    { label: skill.scope === "project" ? "projet" : "perso" },
+    ...(skill.invocation === "auto-and-slash" ? [] : [{ label: skill.invocation, tone: "warn" }]),
+  ]);
 
-  return list(
-    servers.map((server) => {
-      const target = server.url ?? [server.command, ...(server.args ?? [])].join(" ");
-      const keys = [...Object.keys(server.headers ?? {}), ...Object.keys(server.env ?? {})];
-      const sub = [target, keys.length ? `secrets masqués : ${keys.join(", ")}` : ""]
-        .filter(Boolean)
-        .join("  ·  ");
-      return row(server.name, sub, [{ label: server.scope }, { label: server.transport }]);
+  const actions = node("div", "actions");
+  const editer = node("button", "run", "éditer");
+  onAction(editer, async () => {
+    // Le corps n'est pas dans la liste : il est relu au moment de l'ouvrir,
+    // pour ne pas charger tous les skills en entier à chaque affichage.
+    const { raw } = await api("/api/skill", {
+      scope: skill.scope,
+      directory: skill.directory,
+      ...(skill.scope === "project" ? { root } : {}),
+    });
+    el.detail.replaceChildren(
+      skillForm({ ...skill, directory: skill.directory, body: stripFrontmatter(raw) }, root),
+    );
+  });
+  actions.append(editer);
+  actions.append(
+    dangerButton("supprimer", async () => {
+      await postJson("/api/skills/remove", {
+        scope: skill.scope,
+        directory: skill.directory,
+        ...(skill.scope === "project" ? { root } : {}),
+      });
+      await showPanel("skills");
     }),
   );
+  item.append(actions);
+  return item;
+}
+
+/** Retire l'en-tête : le formulaire l'édite par ses champs, pas par le texte. */
+function stripFrontmatter(raw) {
+  if (!raw.startsWith("---")) return raw;
+  const end = raw.indexOf("\n---", 3);
+  if (end === -1) return raw;
+  return raw.slice(raw.indexOf("\n", end + 1) + 1).replace(/^\n+/, "");
+}
+
+function skillForm(skill, root) {
+  const directory = input("nom du dossier", skill.directory ?? "");
+  const nom = input("nom déclaré, celui de /nom", skill.name ?? "");
+  const description = input("quand Claude doit s'en servir", skill.description ?? "");
+  const invocation = select(
+    [
+      ["auto-and-slash", "automatique et /nom"],
+      ["manual-only", "seulement /nom"],
+      ["auto-only", "seulement automatique"],
+    ],
+    skill.invocation ?? "auto-and-slash",
+  );
+  const scope = select(
+    [
+      ["user", "perso (~/.claude/skills)"],
+      ["project", "projet (.claude/skills)"],
+    ],
+    skill.scope ?? "user",
+  );
+  const corps = textarea(skill.body ?? "", 14);
+
+  const enregistrer = node("button", "accent", "Enregistrer");
+  onAction(enregistrer, async () => {
+    await postJson("/api/skills/save", {
+      scope: scope.value,
+      directory: directory.value,
+      name: nom.value,
+      description: description.value,
+      invocation: invocation.value,
+      body: corps.value,
+      ...(scope.value === "project" ? { root } : {}),
+    });
+    await showPanel("skills");
+  });
+
+  const annuler = node("button", null, "Annuler");
+  onAction(annuler, async () => showPanel("skills"));
+
+  return form(
+    labeled("dossier", directory),
+    labeled("nom", nom),
+    labeled("description", description),
+    labeled("invocation", invocation),
+    labeled("portée", scope),
+    labeled("contenu", corps),
+    actions(enregistrer, annuler),
+  );
+}
+
+function actions(...children) {
+  const box = node("div", "actions");
+  box.append(...children);
+  return box;
+}
+
+async function loadMcp() {
+  const root = projectRoot();
+  const { servers } = await api("/api/mcp", { root });
+  const container = node("div");
+
+  container.append(
+    servers.length
+      ? list(servers.map((server) => mcpRow(server, root)))
+      : empty("aucun serveur MCP."),
+  );
+
+  container.append(node("h3", null, "Ajouter au projet"));
+  // Seule la portée projet s'écrit : `~/.claude.json` porte aussi l'historique
+  // de chaque projet, et passe par la CLI `claude mcp`.
+  container.append(empty("Les portées perso et locale passent par `claude mcp`."));
+
+  const nom = input("nom du serveur");
+  const cible = input("https://… ou une commande à lancer");
+  const ajouter = node("button", "accent", "Ajouter");
+  onAction(ajouter, async () => {
+    const valeur = cible.value.trim();
+    const config = valeur.startsWith("http")
+      ? { type: "http", url: valeur }
+      : { command: valeur.split(/\s+/)[0], args: valeur.split(/\s+/).slice(1) };
+    await postJson("/api/mcp/save", { root, name: nom.value, config });
+    await showPanel("mcp");
+  });
+
+  container.append(form(labeled("nom", nom), labeled("cible", cible), actions(ajouter)));
+  return container;
+}
+
+function mcpRow(server, root) {
+  const target = server.url ?? [server.command, ...(server.args ?? [])].join(" ");
+  const keys = [...Object.keys(server.headers ?? {}), ...Object.keys(server.env ?? {})];
+  const sub = [target, keys.length ? `secrets masqués : ${keys.join(", ")}` : ""]
+    .filter(Boolean)
+    .join("  ·  ");
+
+  const item = row(server.name, sub, [{ label: server.scope }, { label: server.transport }]);
+  if (server.scope === "project") {
+    item.append(
+      actions(
+        dangerButton("retirer", async () => {
+          await postJson("/api/mcp/remove", { root, name: server.name });
+          await showPanel("mcp");
+        }),
+      ),
+    );
+  }
+  return item;
 }
 
 async function loadScripts() {
@@ -616,20 +853,80 @@ async function loadScripts() {
 }
 
 async function loadLinks() {
-  const { links } = await api("/api/links", { root: projectRoot() });
-  if (!links.length) return empty("aucun dossier lié.");
-  return list(
-    links.map((link) =>
-      row(link.path, link.role, link.readOnly ? [{ label: "lecture seule", tone: "warn" }] : []),
-    ),
+  const root = projectRoot();
+  const { links } = await api("/api/links", { root });
+  const container = node("div");
+
+  const save = async (next) => {
+    await postJson("/api/links/save", { root, links: next });
+    await showPanel("links");
+  };
+
+  container.append(
+    links.length
+      ? list(
+          links.map((link) => {
+            const item = row(link.path, link.role, link.readOnly ? [{ label: "lecture seule", tone: "warn" }] : []);
+            const bascule = node("button", "run", link.readOnly ? "rendre modifiable" : "passer en lecture seule");
+            onAction(bascule, () =>
+              save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l))),
+            );
+            item.append(
+              actions(
+                bascule,
+                dangerButton("délier", () => save(links.filter((l) => l.path !== link.path))),
+              ),
+            );
+            return item;
+          }),
+        )
+      : empty("aucun dossier lié."),
   );
+
+  const chemin = input("C:\\Projets\\autre-depot");
+  const role = input("son rôle : api, design system…");
+  const lecture = select(
+    [
+      ["non", "Claude peut y écrire"],
+      ["oui", "lecture seule"],
+    ],
+    "non",
+  );
+  const ajouter = node("button", "accent", "Lier ce dossier");
+  onAction(ajouter, () =>
+    save([
+      ...links.filter((l) => l.path !== chemin.value.trim()),
+      { path: chemin.value.trim(), role: role.value, readOnly: lecture.value === "oui" },
+    ]),
+  );
+
+  container.append(node("h3", null, "Lier un dossier"));
+  container.append(
+    form(labeled("chemin", chemin), labeled("rôle", role), labeled("accès", lecture), actions(ajouter)),
+  );
+  return container;
 }
 
 async function loadSettings() {
   const document_ = await api("/api/settings");
   const container = node("div");
   container.append(empty(document_.path));
-  container.append(node("pre", "json", JSON.stringify(document_.value, null, 2)));
+
+  const texte = textarea(document_.raw, 22);
+  const enregistrer = node("button", "accent", "Enregistrer");
+  onAction(enregistrer, async () => {
+    // Le serveur analyse avant d'écrire : un JSON invalide revient en erreur
+    // plutôt que de remplacer une configuration qui marche.
+    await postJson("/api/settings/replace", { raw: texte.value });
+    await showPanel("settings");
+  });
+  const recharger = node("button", null, "Recharger");
+  onAction(recharger, async () => showPanel("settings"));
+
+  container.append(
+    empty("Une sauvegarde de l'original est posée avant la première modification."),
+  );
+  container.append(form(texte, actions(enregistrer, recharger)));
   return container;
 }
 

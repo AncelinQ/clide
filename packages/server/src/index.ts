@@ -1,5 +1,5 @@
 export { startServer, type RunningServer, type ServerOptions } from "./server.js";
-export { mutations, routes, type ApiContext, type Handler } from "./api/routes.js";
+export { mutations, routes, type ApiContext, type Handler, type Mutation } from "./api/routes.js";
 export {
   HOOK_DEFINITIONS,
   eventsDir,

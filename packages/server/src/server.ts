@@ -4,7 +4,7 @@ import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, normalize, resolve, sep } from "node:path";
 
-import { SessionIndex } from "@claude-ide/core";
+import { SessionIndex, appDataDir, settingsFile } from "@claude-ide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
@@ -21,6 +21,9 @@ export interface ServerOptions {
   port?: number;
   /** Jeton d'accès. Généré si absent. */
   token?: string;
+  /** Fichiers que les mutations modifient. Détournables pour les tests. */
+  settingsPath?: string;
+  dataDir?: string;
 }
 
 export interface RunningServer {
@@ -40,6 +43,40 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
   ".map": "application/json; charset=utf-8",
 };
+
+/**
+ * Lit le corps d'une requête.
+ *
+ * La taille est bornée : ces routes écrivent dans des fichiers de configuration,
+ * et rien de légitime n'y dépasse quelques dizaines de kilo-octets. Un corps
+ * absent vaut un objet vide — une mutation sans paramètre reste valable.
+ */
+const MAX_BODY = 1 << 20;
+
+function readBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((done, fail) => {
+    let raw = "";
+    request.on("data", (chunk: Buffer) => {
+      raw += chunk.toString("utf8");
+      if (raw.length > MAX_BODY) {
+        fail(new Error("corps de requête trop volumineux"));
+        request.destroy();
+      }
+    });
+    request.on("end", () => {
+      if (raw.trim().length === 0) return done({});
+      try {
+        const value: unknown = JSON.parse(raw);
+        done(value && typeof value === "object" && !Array.isArray(value)
+          ? (value as Record<string, unknown>)
+          : {});
+      } catch {
+        fail(new Error("corps de requête illisible"));
+      }
+    });
+    request.on("error", fail);
+  });
+}
 
 function send(response: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -102,12 +139,14 @@ async function serveStatic(
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
   const token = options.token ?? randomBytes(24).toString("base64url");
   const manager = new PtyManager();
-  const notifications = new NotificationWatcher();
+  const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());
   const context: ApiContext = {
     index: new SessionIndex(),
     processes: new ProcessLister(),
     terminals: manager,
     notifications,
+    settingsPath: options.settingsPath ?? settingsFile(),
+    dataDir: options.dataDir ?? appDataDir(),
   };
   await context.index.load();
   await notifications.start();
@@ -133,7 +172,8 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
           return;
         }
         try {
-          send(response, 200, await mutation(url.searchParams, context));
+          const body = await readBody(request);
+          send(response, 200, await mutation(url.searchParams, context, body));
         } catch (error) {
           send(response, 400, { error: error instanceof Error ? error.message : String(error) });
         }
