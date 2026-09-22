@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+
+# pnpm bloque par défaut les scripts d'installation.
+# esbuild pose le binaire de vitest ; node-pty pose son binaire ConPTY prebuild.
+# Ni l'un ni l'autre ne compile quoi que ce soit.
+allowBuilds:
+  esbuild: true
+  node-pty: true

@@ -1,0 +1,1077 @@
+{
+  "agent-name": [
+    {
+      "type": "agent-name",
+      "agentName": "[texte 25]",
+      "sessionId": "00000000-0000-4000-8000-000000000022"
+    },
+    {
+      "type": "agent-name",
+      "agentName": "[texte 25]",
+      "sessionId": "00000000-0000-4000-8000-000000000022"
+    },
+    {
+      "type": "agent-name",
+      "agentName": "[texte 25]",
+      "sessionId": "00000000-0000-4000-8000-000000000022"
+    }
+  ],
+  "ai-title": [
+    {
+      "type": "ai-title",
+      "aiTitle": "[texte 12]",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "ai-title",
+      "aiTitle": "[texte 12]",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "ai-title",
+      "aiTitle": "[texte 12]",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "artifact-autoreact-ledger": [
+    {
+      "type": "artifact-autoreact-ledger",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "accountUuid": "00000000-0000-4000-8000-00000000001f",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "savedAt": 1789727906722,
+          "stampHighWater": "2026-09-18T10:37:26.466Z",
+          "everBaselined": true,
+          "everHadThreads": false,
+          "turnTimestamps": [],
+          "threads": []
+        }
+      }
+    },
+    {
+      "type": "artifact-autoreact-ledger",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "accountUuid": "00000000-0000-4000-8000-00000000001f",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "savedAt": 1789733051830,
+          "stampHighWater": "2026-09-18T10:37:26.466Z",
+          "everBaselined": true,
+          "everHadThreads": false,
+          "turnTimestamps": [],
+          "threads": []
+        }
+      }
+    },
+    {
+      "type": "artifact-autoreact-ledger",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "accountUuid": "00000000-0000-4000-8000-00000000001f",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "savedAt": 1789737524047,
+          "stampHighWater": "2026-09-18T10:37:26.466Z",
+          "everBaselined": true,
+          "everHadThreads": false,
+          "turnTimestamps": [],
+          "threads": []
+        }
+      }
+    }
+  ],
+  "artifact-comment-monitor": [
+    {
+      "type": "artifact-comment-monitor",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "state": "armed",
+          "writtenAtMs": 1789727906286,
+          "title": "[texte 30]",
+          "holder": "bg",
+          "holderPid": 35912,
+          "holderJob": "676a9362",
+          "holderProcStartFt": "134341298242485378",
+          "holderPidSpace": "AMURPIKE"
+        }
+      }
+    },
+    {
+      "type": "artifact-comment-monitor",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "state": "armed",
+          "writtenAtMs": 1789733617027,
+          "title": "[texte 30]",
+          "holder": "bg",
+          "holderPid": 35912,
+          "holderJob": "676a9362",
+          "holderProcStartFt": "134341298242485378",
+          "holderPidSpace": "AMURPIKE"
+        }
+      }
+    },
+    {
+      "type": "artifact-comment-monitor",
+      "v": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "artifacts": {
+        "a3fd7bb4-be4e-4f58-b54a-a504f2697366": {
+          "state": "armed",
+          "writtenAtMs": 1789737523221,
+          "title": "[texte 30]",
+          "holder": "bg",
+          "holderPid": 35912,
+          "holderJob": "676a9362",
+          "holderProcStartFt": "134341298242485378",
+          "holderPidSpace": "AMURPIKE"
+        }
+      }
+    }
+  ],
+  "assistant": [
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000008",
+      "isSidechain": false,
+      "message": {
+        "model": "claude-opus-5",
+        "id": "msg_011CfJCArHNX37oe8aeotFx5",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "[texte 0]",
+            "signature": "[texte 7824]"
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 20898,
+          "cache_read_input_tokens": 28325,
+          "output_tokens": 3030,
+          "output_tokens_details": {
+            "thinking_tokens": 2008
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 20898,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3030,
+              "cache_read_input_tokens": 28325,
+              "cache_creation_input_tokens": 20898,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 20898
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "serverClassifierRequest": "00000000-0000-4000-8000-000000000009",
+      "apiBlockIndex": 0,
+      "requestId": "req_011CfJCAqobuFWqHD5DUdFiq",
+      "attributionSkill": "[texte 13]",
+      "attributionPlugin": "sc",
+      "type": "assistant",
+      "uuid": "00000000-0000-4000-8000-00000000000a",
+      "timestamp": "2026-09-22T08:52:27.489Z",
+      "advisorModel": "claude-opus-5",
+      "effort": "xhigh",
+      "perTurnEffort": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-00000000000a",
+      "isSidechain": false,
+      "message": {
+        "model": "claude-opus-5",
+        "id": "msg_011CfJCArHNX37oe8aeotFx5",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "[texte 127]"
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 20898,
+          "cache_read_input_tokens": 28325,
+          "output_tokens": 3030,
+          "output_tokens_details": {
+            "thinking_tokens": 2008
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 20898,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3030,
+              "cache_read_input_tokens": 28325,
+              "cache_creation_input_tokens": 20898,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 20898
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "serverClassifierRequest": "00000000-0000-4000-8000-000000000009",
+      "apiBlockIndex": 1,
+      "requestId": "req_011CfJCAqobuFWqHD5DUdFiq",
+      "attributionSkill": "[texte 13]",
+      "attributionPlugin": "sc",
+      "type": "assistant",
+      "uuid": "00000000-0000-4000-8000-00000000000b",
+      "timestamp": "2026-09-22T08:52:28.292Z",
+      "advisorModel": "claude-opus-5",
+      "effort": "xhigh",
+      "perTurnEffort": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-00000000000b",
+      "isSidechain": false,
+      "message": {
+        "model": "claude-opus-5",
+        "id": "msg_011CfJCArHNX37oe8aeotFx5",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01UmNgbAR8Y7nCdDQzTWybTG",
+            "name": "Bash",
+            "input": {
+              "command": "[texte 626]",
+              "description": "[texte 61]"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 20898,
+          "cache_read_input_tokens": 28325,
+          "output_tokens": 3030,
+          "output_tokens_details": {
+            "thinking_tokens": 2008
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 20898,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "not_available",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3030,
+              "cache_read_input_tokens": 28325,
+              "cache_creation_input_tokens": 20898,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 20898
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "wireToolInputs": {
+        "toolu_01UmNgbAR8Y7nCdDQzTWybTG": {
+          "command": "[texte 626]",
+          "description": "[texte 61]"
+        }
+      },
+      "serverClassifierRequest": "00000000-0000-4000-8000-000000000009",
+      "apiBlockIndex": 2,
+      "requestId": "req_011CfJCAqobuFWqHD5DUdFiq",
+      "attributionSkill": "[texte 13]",
+      "attributionPlugin": "sc",
+      "type": "assistant",
+      "uuid": "00000000-0000-4000-8000-00000000000c",
+      "timestamp": "2026-09-22T08:52:32.465Z",
+      "advisorModel": "claude-opus-5",
+      "effort": "xhigh",
+      "perTurnEffort": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    }
+  ],
+  "atis-latch": [
+    {
+      "type": "atis-latch",
+      "atis": "",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "atis-latch",
+      "atis": "",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "atis-latch",
+      "atis": "",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "attachment": [
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000004",
+      "isSidechain": false,
+      "attachment": {
+        "type": "environment",
+        "snapshot": {
+          "workingDirectory": "C:\\Projets\\projet-a\\d1\\fichier1",
+          "isWorktree": false,
+          "isGitRepo": false,
+          "additionalWorkingDirectories": [],
+          "platform": "win32",
+          "shell": "[texte 93]",
+          "osVersion": "[texte 25]",
+          "scratchpadDirectory": "C:\\Projets\\projet-a\\d1\\d2\\fichier2"
+        }
+      },
+      "type": "attachment",
+      "uuid": "00000000-0000-4000-8000-000000000005",
+      "timestamp": "2026-09-22T08:51:55.515Z",
+      "rendered": [
+        {
+          "content": "[texte 781]"
+        }
+      ],
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000005",
+      "isSidechain": false,
+      "attachment": {
+        "type": "model",
+        "identity": {
+          "modelId": "[texte 17]",
+          "marketingName": "[texte 19]",
+          "knowledgeCutoff": "[texte 8]"
+        },
+        "text": "[texte 136]"
+      },
+      "type": "attachment",
+      "uuid": "00000000-0000-4000-8000-000000000006",
+      "timestamp": "2026-09-22T08:51:55.516Z",
+      "rendered": [
+        {
+          "content": "[texte 173]"
+        }
+      ],
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000006",
+      "isSidechain": false,
+      "attachment": {
+        "type": "deferred_tools_delta",
+        "addedNames": [
+          "ArtifactComments",
+          "ArtifactData",
+          "CronCreate"
+        ],
+        "addedLines": [
+          "ArtifactComments",
+          "ArtifactData",
+          "CronCreate"
+        ],
+        "removedNames": [],
+        "wireHiddenNames": [],
+        "readdedNames": [],
+        "pendingMcpServers": [],
+        "failedMcpServers": []
+      },
+      "type": "attachment",
+      "uuid": "00000000-0000-4000-8000-000000000007",
+      "timestamp": "2026-09-22T08:51:55.517Z",
+      "rendered": [
+        {
+          "content": "[texte 9620]"
+        }
+      ],
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    }
+  ],
+  "bridge-session": [
+    {
+      "type": "bridge-session",
+      "sessionId": "00000000-0000-4000-8000-00000000001e",
+      "bridgeSessionId": "cse_01AmAnQeUPQbJmyoB7vMYMdv",
+      "lastSequenceNum": 0,
+      "ownerAccountUuid": "00000000-0000-4000-8000-00000000001f",
+      "ownerOrganizationUuid": "00000000-0000-4000-8000-000000000020"
+    },
+    {
+      "type": "bridge-session",
+      "sessionId": "00000000-0000-4000-8000-00000000001e",
+      "bridgeSessionId": "cse_01AmAnQeUPQbJmyoB7vMYMdv",
+      "lastSequenceNum": 0,
+      "ownerAccountUuid": "00000000-0000-4000-8000-00000000001f",
+      "ownerOrganizationUuid": "00000000-0000-4000-8000-000000000020"
+    },
+    {
+      "type": "bridge-session",
+      "sessionId": "00000000-0000-4000-8000-00000000001e",
+      "bridgeSessionId": "cse_01AmAnQeUPQbJmyoB7vMYMdv",
+      "lastSequenceNum": 0,
+      "ownerAccountUuid": "00000000-0000-4000-8000-00000000001f",
+      "ownerOrganizationUuid": "00000000-0000-4000-8000-000000000020"
+    }
+  ],
+  "continued-in": [
+    {
+      "type": "continued-in",
+      "timestamp": "2026-09-17T14:43:43.348Z",
+      "sessionId": "00000000-0000-4000-8000-000000000024",
+      "continuedInSessionId": "00000000-0000-4000-8000-000000000025"
+    },
+    {
+      "type": "continued-in",
+      "timestamp": "2026-09-10T13:13:20.125Z",
+      "sessionId": "00000000-0000-4000-8000-000000000027",
+      "continuedInSessionId": "00000000-0000-4000-8000-000000000028"
+    },
+    {
+      "type": "continued-in",
+      "timestamp": "2026-09-17T08:28:34.818Z",
+      "sessionId": "00000000-0000-4000-8000-000000000029",
+      "continuedInSessionId": "00000000-0000-4000-8000-000000000026"
+    }
+  ],
+  "cost-state": [
+    {
+      "type": "cost-state",
+      "sessionId": "00000000-0000-4000-8000-000000000021",
+      "totalCostUSD": 2.3560800000000004,
+      "totalAPIDuration": 305550,
+      "totalAPIDurationWithoutRetries": 305458,
+      "totalToolDuration": 50774,
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0,
+      "totalDuration": 2053006,
+      "startTime": 1789029010875,
+      "modelUsage": {
+        "claude-opus-5[1m]": {
+          "inputTokens": 1572,
+          "outputTokens": 20928,
+          "thinkingTokens": 12048,
+          "cacheReadInputTokens": 2370084,
+          "cacheCreationInputTokens": 63774,
+          "webSearchRequests": 0,
+          "costUSD": 2.353842
+        },
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 2098,
+          "outputTokens": 28,
+          "thinkingTokens": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.002238
+        }
+      },
+      "hasUnknownModelCost": false
+    },
+    {
+      "type": "cost-state",
+      "sessionId": "00000000-0000-4000-8000-000000000022",
+      "totalCostUSD": 6.7007129999999995,
+      "totalAPIDuration": 475710,
+      "totalAPIDurationWithoutRetries": 474775,
+      "totalToolDuration": 1722186,
+      "totalLinesAdded": 6,
+      "totalLinesRemoved": 6,
+      "totalDuration": 267891681,
+      "startTime": 1789114601510,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 1846,
+          "outputTokens": 32,
+          "thinkingTokens": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.002006
+        },
+        "claude-opus-5[1m]": {
+          "inputTokens": 2284,
+          "outputTokens": 34532,
+          "thinkingTokens": 11121,
+          "cacheReadInputTokens": 9244994,
+          "cacheCreationInputTokens": 120149,
+          "webSearchRequests": 0,
+          "costUSD": 6.698707
+        }
+      },
+      "hasUnknownModelCost": false
+    },
+    {
+      "type": "cost-state",
+      "sessionId": "00000000-0000-4000-8000-000000000023",
+      "totalCostUSD": 30.83655200000001,
+      "totalAPIDuration": 2506561,
+      "totalAPIDurationWithoutRetries": 2505374,
+      "totalToolDuration": 1824367,
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0,
+      "totalDuration": 78460730,
+      "startTime": 1788881591166,
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 1928,
+          "outputTokens": 38,
+          "thinkingTokens": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.002118
+        },
+        "claude-opus-5[1m]": {
+          "inputTokens": 6940,
+          "outputTokens": 181355,
+          "thinkingTokens": 98330,
+          "cacheReadInputTokens": 45228358,
+          "cacheCreationInputTokens": 365168,
+          "webSearchRequests": 0,
+          "costUSD": 30.83443400000001
+        }
+      },
+      "hasUnknownModelCost": false
+    }
+  ],
+  "file-history-delta": [
+    {
+      "type": "file-history-delta",
+      "messageId": "00000000-0000-4000-8000-000000000019",
+      "snapshotMessageId": "00000000-0000-4000-8000-00000000001a",
+      "trackingPath": "d1\\fichier5.md",
+      "backup": {
+        "backupFileName": null,
+        "version": 1,
+        "backupTime": "2026-09-22T10:15:00.154Z",
+        "realParentDir": "C:\\Projets\\projet-a\\d1\\d2\\fichier6"
+      },
+      "timestamp": "2026-09-22T10:15:00.155Z"
+    },
+    {
+      "type": "file-history-delta",
+      "messageId": "00000000-0000-4000-8000-00000000001b",
+      "snapshotMessageId": "00000000-0000-4000-8000-00000000001c",
+      "trackingPath": "d1\\d2\\fichier7.ts",
+      "backup": {
+        "backupFileName": null,
+        "version": 1,
+        "backupTime": "2026-09-22T11:50:37.349Z",
+        "realParentDir": "C:\\Projets\\projet-a\\d1\\d2\\fichier8"
+      },
+      "timestamp": "2026-09-22T11:50:37.353Z"
+    },
+    {
+      "type": "file-history-delta",
+      "messageId": "00000000-0000-4000-8000-00000000001d",
+      "snapshotMessageId": "00000000-0000-4000-8000-00000000001c",
+      "trackingPath": "d1\\d2\\fichier9.ts",
+      "backup": {
+        "backupFileName": null,
+        "version": 1,
+        "backupTime": "2026-09-22T11:51:01.011Z",
+        "realParentDir": "C:\\Projets\\projet-a\\d1\\d2\\fichier10"
+      },
+      "timestamp": "2026-09-22T11:51:01.012Z"
+    }
+  ],
+  "file-history-snapshot": [
+    {
+      "type": "file-history-snapshot",
+      "messageId": "00000000-0000-4000-8000-000000000002",
+      "snapshot": {
+        "messageId": "00000000-0000-4000-8000-000000000002",
+        "trackedFileBackups": {},
+        "timestamp": "2026-09-22T08:51:57.697Z"
+      },
+      "isSnapshotUpdate": false
+    },
+    {
+      "type": "file-history-snapshot",
+      "messageId": "00000000-0000-4000-8000-000000000014",
+      "snapshot": {
+        "messageId": "00000000-0000-4000-8000-000000000014",
+        "trackedFileBackups": {},
+        "timestamp": "2026-09-22T09:06:36.226Z"
+      },
+      "isSnapshotUpdate": false
+    },
+    {
+      "type": "file-history-snapshot",
+      "messageId": "00000000-0000-4000-8000-000000000018",
+      "snapshot": {
+        "messageId": "00000000-0000-4000-8000-000000000018",
+        "trackedFileBackups": {},
+        "timestamp": "2026-09-22T09:46:17.326Z"
+      },
+      "isSnapshotUpdate": false
+    }
+  ],
+  "frame-link": [
+    {
+      "type": "frame-link",
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "path": "C:\\Projets\\projet-a\\d1\\d2\\fichier13.html",
+      "frameUrl": "https://exemple.invalid/ressource",
+      "title": "[texte 30]",
+      "artifactCount": 1,
+      "timestamp": "2026-09-18T10:38:25.807Z"
+    },
+    {
+      "type": "frame-link",
+      "artifactCount": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "timestamp": "2026-09-18T10:39:02.775Z"
+    },
+    {
+      "type": "frame-link",
+      "artifactCount": 1,
+      "sessionId": "00000000-0000-4000-8000-00000000002a",
+      "timestamp": "2026-09-18T10:44:23.716Z"
+    }
+  ],
+  "last-prompt": [
+    {
+      "type": "last-prompt",
+      "lastPrompt": "[texte 201]",
+      "leafUuid": "00000000-0000-4000-8000-000000000008",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "last-prompt",
+      "lastPrompt": "[texte 201]",
+      "leafUuid": "00000000-0000-4000-8000-00000000000e",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "last-prompt",
+      "lastPrompt": "[texte 201]",
+      "leafUuid": "00000000-0000-4000-8000-00000000000f",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "mode": [
+    {
+      "type": "mode",
+      "mode": "normal",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "mode",
+      "mode": "normal",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "mode",
+      "mode": "normal",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "permission-mode": [
+    {
+      "type": "permission-mode",
+      "permissionMode": "auto",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "permission-mode",
+      "permissionMode": "auto",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "permission-mode",
+      "permissionMode": "auto",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "pr-link": [
+    {
+      "type": "pr-link",
+      "sessionId": "00000000-0000-4000-8000-000000000022",
+      "prNumber": 1386,
+      "prUrl": "https://exemple.invalid/ressource",
+      "prRepository": "[texte 34]",
+      "timestamp": "2026-09-11T09:32:55.680Z"
+    },
+    {
+      "type": "pr-link",
+      "sessionId": "00000000-0000-4000-8000-000000000022",
+      "prNumber": 1386,
+      "prUrl": "https://exemple.invalid/ressource",
+      "prRepository": "[texte 34]",
+      "timestamp": "2026-09-11T09:33:16.640Z"
+    },
+    {
+      "type": "pr-link",
+      "sessionId": "00000000-0000-4000-8000-000000000022",
+      "prNumber": 1386,
+      "prUrl": "https://exemple.invalid/ressource",
+      "prRepository": "[texte 34]",
+      "timestamp": "2026-09-11T09:45:28.192Z"
+    }
+  ],
+  "queue-operation": [
+    {
+      "type": "queue-operation",
+      "operation": "enqueue",
+      "timestamp": "2026-09-22T08:54:08.227Z",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "content": "[texte 78]"
+    },
+    {
+      "type": "queue-operation",
+      "operation": "remove",
+      "timestamp": "2026-09-22T08:57:15.151Z",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "content": "[texte 78]",
+      "reason": "absorbed_mid_turn"
+    },
+    {
+      "type": "queue-operation",
+      "operation": "enqueue",
+      "timestamp": "2026-09-22T10:42:55.692Z",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "content": "[texte 1035]"
+    }
+  ],
+  "relocated": [
+    {
+      "type": "relocated",
+      "sessionId": "00000000-0000-4000-8000-000000000026",
+      "relocatedCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier11"
+    },
+    {
+      "type": "relocated",
+      "relocatedCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier11",
+      "sessionId": "00000000-0000-4000-8000-000000000026"
+    },
+    {
+      "type": "relocated",
+      "relocatedCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier11",
+      "sessionId": "00000000-0000-4000-8000-000000000026"
+    }
+  ],
+  "system": [
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000010",
+      "isSidechain": false,
+      "type": "system",
+      "subtype": "stop_hook_summary",
+      "hookCount": 1,
+      "hookInfos": [
+        {
+          "command": "[texte 64]",
+          "durationMs": 309
+        }
+      ],
+      "hookErrors": [],
+      "hookAdditionalContext": [],
+      "preventedContinuation": false,
+      "stopReason": "",
+      "hasOutput": false,
+      "level": "suggestion",
+      "timestamp": "2026-09-22T09:02:04.416Z",
+      "uuid": "00000000-0000-4000-8000-000000000011",
+      "toolUseID": "00000000-0000-4000-8000-000000000012",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier4",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000011",
+      "isSidechain": false,
+      "type": "system",
+      "subtype": "turn_duration",
+      "durationMs": 456409,
+      "messageCount": 73,
+      "timestamp": "2026-09-22T09:02:04.506Z",
+      "uuid": "00000000-0000-4000-8000-000000000013",
+      "isMeta": false,
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier4",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000015",
+      "isSidechain": false,
+      "type": "system",
+      "subtype": "stop_hook_summary",
+      "hookCount": 1,
+      "hookInfos": [
+        {
+          "command": "[texte 64]",
+          "durationMs": 1657
+        }
+      ],
+      "hookErrors": [],
+      "hookAdditionalContext": [],
+      "preventedContinuation": false,
+      "stopReason": "",
+      "hasOutput": false,
+      "level": "suggestion",
+      "timestamp": "2026-09-22T09:10:21.365Z",
+      "uuid": "00000000-0000-4000-8000-000000000016",
+      "toolUseID": "00000000-0000-4000-8000-000000000017",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier4",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    }
+  ],
+  "user": [
+    {
+      "parentUuid": null,
+      "isSidechain": false,
+      "promptId": "00000000-0000-4000-8000-000000000003",
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "[texte 573]"
+      },
+      "uuid": "00000000-0000-4000-8000-000000000002",
+      "timestamp": "2026-09-22T08:51:55.533Z",
+      "origin": {
+        "kind": "human"
+      },
+      "turnOrigin": "human",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-000000000002",
+      "isSidechain": false,
+      "promptId": "00000000-0000-4000-8000-000000000003",
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "[texte 5780]"
+          }
+        ]
+      },
+      "isMeta": true,
+      "turnCompanion": true,
+      "uuid": "00000000-0000-4000-8000-000000000004",
+      "timestamp": "2026-09-22T08:51:55.533Z",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    },
+    {
+      "parentUuid": "00000000-0000-4000-8000-00000000000c",
+      "isSidechain": false,
+      "promptId": "00000000-0000-4000-8000-000000000003",
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_01UmNgbAR8Y7nCdDQzTWybTG",
+            "type": "tool_result",
+            "content": "[texte 563]",
+            "is_error": false
+          }
+        ]
+      },
+      "uuid": "00000000-0000-4000-8000-00000000000d",
+      "timestamp": "2026-09-22T08:52:51.516Z",
+      "toolUseResult": {
+        "stdout": "[texte 563]",
+        "stderr": "[texte 0]",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false
+      },
+      "serverClassifierContext": {
+        "request": "00000000-0000-4000-8000-000000000009",
+        "context": {
+          "git_state": {
+            "cwd": "C:\\Projets\\projet-a\\d1\\fichier3",
+            "root": null,
+            "branch": null,
+            "default_branch": null,
+            "status": null,
+            "visibility": {
+              "origin": null,
+              "push_remote": null,
+              "remotes": [],
+              "visibility_cache": []
+            },
+            "error": "not_a_repo"
+          },
+          "live_cwd": "C:\\Projets\\projet-a\\d1\\fichier3",
+          "platform": "windows"
+        }
+      },
+      "sourceToolAssistantUUID": "00000000-0000-4000-8000-00000000000c",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "userType": "external",
+      "entrypoint": "cli",
+      "cwd": "C:\\Projets\\projet-a\\d1\\fichier1",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "version": "2.1.278",
+      "gitBranch": "HEAD"
+    }
+  ],
+  "worktree-state": [
+    {
+      "type": "worktree-state",
+      "worktreeSession": {
+        "originalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "preEnterOriginalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "worktreePath": "C:\\Projets\\projet-a\\d1\\d2\\fichier11",
+        "worktreeName": "hn-13270-workout-module",
+        "worktreeBranch": "[texte 26]",
+        "sessionId": "00000000-0000-4000-8000-000000000026",
+        "enteredExisting": true
+      },
+      "sessionId": "00000000-0000-4000-8000-000000000026"
+    },
+    {
+      "type": "worktree-state",
+      "worktreeSession": {
+        "originalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "preEnterOriginalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "worktreePath": "C:\\Projets\\projet-a\\d1\\d2\\fichier11",
+        "worktreeName": "hn-13270-workout-module",
+        "worktreeBranch": "[texte 26]",
+        "sessionId": "00000000-0000-4000-8000-000000000026",
+        "enteredExisting": true
+      },
+      "sessionId": "00000000-0000-4000-8000-000000000026"
+    },
+    {
+      "type": "worktree-state",
+      "worktreeSession": {
+        "originalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "preEnterOriginalCwd": "C:\\Projets\\projet-a\\d1\\d2\\fichier12",
+        "worktreePath": "C:\\Projets\\projet-a\\d1\\d2\\fichier11",
+        "worktreeName": "hn-13270-workout-module",
+        "worktreeBranch": "[texte 26]",
+        "sessionId": "00000000-0000-4000-8000-000000000026",
+        "enteredExisting": true
+      },
+      "sessionId": "00000000-0000-4000-8000-000000000026"
+    }
+  ]
+}

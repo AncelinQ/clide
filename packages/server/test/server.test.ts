@@ -1,0 +1,221 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import WebSocket from "ws";
+
+import { parseClientMessage } from "../src/protocol.js";
+import { shellProfileScript } from "../src/pty/shell-profile.js";
+import { startServer, type RunningServer } from "../src/server.js";
+
+const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "web");
+
+describe("shellProfileScript", () => {
+  const script = shellProfileScript();
+
+  it("ne contient aucune barre oblique inverse", () => {
+    // Tout échappement se perd en traversant le générateur puis PowerShell :
+    // les caractères de contrôle sont construits par [char].
+    expect(script).not.toContain("\\");
+  });
+
+  it("capture le prompt existant avant de le remplacer", () => {
+    expect(script).toContain("$global:__claudeIdeInner = $function:prompt");
+    expect(script).toContain("& $global:__claudeIdeInner");
+  });
+
+  it("lit $? avant toute autre commande", () => {
+    const body = script.slice(script.indexOf("function global:prompt"));
+    const lines = body.split("\n").filter((line) => line.trim() && !line.trim().startsWith("#"));
+    expect(lines[1]?.trim()).toBe("$ok = $?");
+  });
+
+  it("tolère l'absence de PSReadLine", () => {
+    expect(script).toContain("Set-PSReadLineKeyHandler");
+    expect(script.slice(script.indexOf("Set-PSReadLineKeyHandler"))).toContain("catch");
+  });
+});
+
+describe("parseClientMessage", () => {
+  it("accepte une ouverture valide", () => {
+    expect(parseClientMessage('{"t":"open","projectRoot":"C:/x","kind":"claude"}')).toEqual({
+      t: "open",
+      projectRoot: "C:/x",
+      kind: "claude",
+    });
+  });
+
+  it("rejette une ouverture sans dossier", () => {
+    expect(parseClientMessage('{"t":"open"}')).toBeUndefined();
+  });
+
+  it("rejette un type de terminal inventé", () => {
+    const message = parseClientMessage('{"t":"open","projectRoot":"C:/x","kind":"root"}');
+    expect(message).toEqual({ t: "open", projectRoot: "C:/x" });
+  });
+
+  it("rejette un message inconnu, du JSON invalide et un tableau", () => {
+    expect(parseClientMessage('{"t":"exec","cmd":"rm"}')).toBeUndefined();
+    expect(parseClientMessage("pas du json")).toBeUndefined();
+    expect(parseClientMessage("[1,2]")).toBeUndefined();
+  });
+
+  it("exige des dimensions numériques pour un redimensionnement", () => {
+    expect(parseClientMessage('{"t":"resize","id":"a","cols":"80","rows":24}')).toBeUndefined();
+    expect(parseClientMessage('{"t":"resize","id":"a","cols":80,"rows":24}')).toEqual({
+      t: "resize",
+      id: "a",
+      cols: 80,
+      rows: 24,
+    });
+  });
+});
+
+describe("serveur local", () => {
+  let server: RunningServer;
+  let scratch: string;
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "claude-ide-srv-"));
+    server = await startServer({ webRoot: WEB_ROOT, token: "jeton-de-test" });
+  });
+
+  afterAll(async () => {
+    await server.close();
+    await rm(scratch, { recursive: true, force: true });
+  });
+
+  const base = (): string => `http://127.0.0.1:${server.port}`;
+
+  it("n'écoute que sur la boucle locale", () => {
+    expect(server.url).toContain("127.0.0.1");
+  });
+
+  it("refuse une requête d'API sans jeton", async () => {
+    const response = await fetch(`${base()}/api/skills?root=${encodeURIComponent(scratch)}`);
+    expect(response.status).toBe(401);
+  });
+
+  it("accepte le jeton en paramètre comme en en-tête", async () => {
+    const withQuery = await fetch(
+      `${base()}/api/skills?root=${encodeURIComponent(scratch)}&token=${server.token}`,
+    );
+    expect(withQuery.status).toBe(200);
+
+    const withHeader = await fetch(`${base()}/api/skills?root=${encodeURIComponent(scratch)}`, {
+      headers: { authorization: `Bearer ${server.token}` },
+    });
+    expect(withHeader.status).toBe(200);
+  });
+
+  it("refuse une requête venant d'une autre origine", async () => {
+    const response = await fetch(
+      `${base()}/api/skills?root=${encodeURIComponent(scratch)}&token=${server.token}`,
+      { headers: { origin: "https://site-malveillant.invalid" } },
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("signale un paramètre manquant plutôt que de deviner", async () => {
+    const response = await fetch(`${base()}/api/skills?token=${server.token}`);
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error?: string };
+    expect(body.error).toContain("root");
+  });
+
+  it("sert la page du client", async () => {
+    const response = await fetch(`${base()}/`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("claude-ide");
+  });
+
+  it("ne sort pas de la racine servie", async () => {
+    const response = await fetch(`${base()}/../../package.json`);
+    expect(response.status).toBe(404);
+  });
+
+  it("refuse une connexion WebSocket sans jeton", async () => {
+    await expect(TestClient.open(`ws://127.0.0.1:${server.port}/pty`)).rejects.toThrow();
+  });
+
+  it("refuse une connexion WebSocket venant d'un site tiers", async () => {
+    // Une WebSocket n'est pas soumise à la politique d'origine : sans ce refus,
+    // une page visitée pourrait ouvrir un shell sur la machine.
+    await expect(
+      TestClient.open(`ws://127.0.0.1:${server.port}/pty?token=${server.token}`, {
+        origin: "https://site-malveillant.invalid",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("accueille un client légitime avec l'état courant", async () => {
+    const client = await TestClient.open(`ws://127.0.0.1:${server.port}/pty?token=${server.token}`);
+    const hello = await client.next();
+    expect(hello["t"]).toBe("hello");
+    expect(Array.isArray(hello["terminals"])).toBe(true);
+    client.close();
+  });
+
+  it("rejette un message mal formé sans ouvrir de processus", async () => {
+    const client = await TestClient.open(`ws://127.0.0.1:${server.port}/pty?token=${server.token}`);
+    await client.next();
+    client.send('{"t":"exec","cmd":"calc.exe"}');
+    expect(await client.next()).toEqual({ t: "error", message: "message rejeté" });
+    client.close();
+  });
+});
+
+/**
+ * Ouvre une connexion et met les messages en file dès l'ouverture.
+ *
+ * Le serveur envoie `hello` immédiatement après la négociation : un test qui
+ * n'attacherait son écouteur qu'après l'`await` perdrait ce premier message.
+ */
+class TestClient {
+  readonly #queue: Record<string, unknown>[] = [];
+  #waiting: ((message: Record<string, unknown>) => void) | undefined;
+
+  private constructor(readonly socket: WebSocket) {
+    socket.on("message", (raw) => {
+      const message = JSON.parse(raw.toString()) as Record<string, unknown>;
+      if (this.#waiting) {
+        const resolve = this.#waiting;
+        this.#waiting = undefined;
+        resolve(message);
+      } else {
+        this.#queue.push(message);
+      }
+    });
+  }
+
+  static open(url: string, options: { origin?: string } = {}): Promise<TestClient> {
+    return new Promise((done, fail) => {
+      const socket = new WebSocket(url, options.origin ? { origin: options.origin } : {});
+      const client = new TestClient(socket);
+      socket.once("open", () => done(client));
+      socket.once("error", fail);
+      socket.once("close", () => fail(new Error("connexion refusée")));
+    });
+  }
+
+  next(timeoutMs = 5000): Promise<Record<string, unknown>> {
+    const queued = this.#queue.shift();
+    if (queued) return Promise.resolve(queued);
+    return new Promise((done, fail) => {
+      const timer = setTimeout(() => fail(new Error("aucun message")), timeoutMs);
+      this.#waiting = (message) => {
+        clearTimeout(timer);
+        done(message);
+      };
+    });
+  }
+
+  send(raw: string): void {
+    this.socket.send(raw);
+  }
+
+  close(): void {
+    this.socket.close();
+  }
+}

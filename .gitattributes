@@ -1,0 +1,7 @@
+# Fins de ligne normalisées en LF dans le dépôt, quelle que soit la plateforme
+# qui écrit. Sans cette règle, `core.autocrlf` d'un poste Windows réécrit tout
+# le dépôt au premier checkout et le premier diff devient illisible.
+* text=auto eol=lf
+
+# Le fichier de verrou est généré : le sortir des diffs allège les revues.
+pnpm-lock.yaml -diff linguist-generated

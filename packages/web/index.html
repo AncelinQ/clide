@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>claude-ide</title>
+    <link rel="stylesheet" href="/vendor/xterm.css" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="brand">claude-ide</span>
+      <label class="project">
+        <span>projet</span>
+        <input id="project-root" spellcheck="false" placeholder="C:\Projets\mon-projet" />
+      </label>
+      <button id="open-shell" type="button">+ shell</button>
+      <button id="open-claude" type="button" class="accent">+ claude</button>
+      <span id="connection" class="pill">connexion…</span>
+    </header>
+
+    <main class="layout">
+      <aside class="panel" aria-label="Sessions">
+        <div class="panel-head">
+          <h2>Sessions</h2>
+          <button id="refresh-sessions" type="button" title="Réindexer">↻</button>
+        </div>
+        <input id="session-filter" class="filter" placeholder="filtrer" spellcheck="false" />
+        <ul id="sessions" class="sessions"></ul>
+      </aside>
+
+      <section class="center">
+        <nav id="tabs" class="tabs" aria-label="Terminaux"></nav>
+        <div id="terminals" class="terminals"></div>
+        <footer id="status" class="status"></footer>
+      </section>
+
+      <aside class="panel right" aria-label="Détail">
+        <div class="panel-head">
+          <h2 id="detail-title">Détail</h2>
+          <button id="detail-refresh" type="button" title="Recharger">↻</button>
+        </div>
+        <nav id="detail-tabs" class="subtabs" aria-label="Panneaux"></nav>
+        <div id="detail" class="detail">
+          <p class="empty">Choisis une session pour voir ce qu'elle a changé.</p>
+        </div>
+      </aside>
+    </main>
+
+    <script src="/vendor/xterm.js"></script>
+    <script src="/vendor/addon-fit.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
