@@ -21,7 +21,14 @@ Trois besoins sautent aux yeux : **le coût est invisible**, **la file d'attente
 invisible**, et **le lien session → branche → MR → ticket n'existe nulle part**
 alors qu'il structure toute la journée de travail.
 
-## La question qui oriente tout
+---
+
+## Questions ouvertes
+
+Quatre questions à trancher avant d'ajouter quoi que ce soit. Elles ne portent
+pas sur le comment : elles décident de ce qui mérite d'exister.
+
+### 1. Poste de pilotage ou journal de bord ?
 
 À quoi sert cette application, au juste ?
 
@@ -31,8 +38,33 @@ alors qu'il structure toute la journée de travail.
   compte est le passé — ce qui a été fait, combien ça a coûté, où c'est parti.
 
 Les deux lectures ne priorisent pas la même chose, et les panneaux actuels font
-un peu des deux sans trancher. **Cette question mérite d'être tranchée avant
-d'ajouter quoi que ce soit** : elle décide de ce qui mérite la place centrale.
+un peu des deux sans trancher. La réponse décide de ce qui occupe le centre et de
+ce qui reste dans un panneau qu'on ouvre.
+
+### 2. L'application parle-t-elle à Linear et GitLab, ou seulement aux transcripts ?
+
+Les transcripts savent déjà beaucoup : numéro de MR, dépôt, URL, branche,
+worktree. Ils ne savent pas si la MR est passée, ni où en est le ticket.
+
+Aller le demander veut dire des jetons d'accès, donc **un stockage de secrets —
+ce que l'application n'a jamais fait, et pas par hasard**. Elle ne lit aujourd'hui
+que des fichiers déjà présents sur le poste, ce qui la rend inoffensive en cas de
+fuite. Franchir ce pas change sa nature ; s'en tenir à la lecture limite ce que la
+piste 3 peut promettre.
+
+### 3. La file d'attente est-elle reconstituable, ou seulement observable ?
+
+`queue-operation` décrit ce qui *a été* mis en file, pas ce qui y reste.
+Reconstituer l'état courant demande de rejouer les opérations, et rien ne dit
+qu'`enqueue` soit la seule. **À vérifier sur le corpus avant d'en promettre
+l'affichage** : une file fausse est pire qu'une file absente.
+
+### 4. Quelle place pour l'écriture destructrice ?
+
+Restaurer un fichier dans son état d'avant la session est la capacité la plus
+distinctive de la base de code — et la seule qui puisse détruire du travail en
+cours. Soit on l'assume avec les garde-fous qui vont avec (piste 7), soit on s'en
+tient à la lecture, et le panneau Fichiers reste un panneau de constat.
 
 ---
 
@@ -67,9 +99,8 @@ qu'on regarde ailleurs.
 - Ce qui attend, dans le bloc session, en clair.
 - Retirer une entrée, en ajouter une.
 
-**La difficulté.** `queue-operation` décrit ce qui *a été* mis en file, pas ce qui
-y reste. Reconstituer l'état courant demande de suivre les opérations, et rien ne
-dit qu'`enqueue` soit la seule. **À vérifier avant de promettre quoi que ce soit.**
+**La difficulté.** Voir la question ouverte 3 : rien ne garantit que l'état courant
+de la file soit reconstituable depuis les events.
 
 **Critère.** Ce que montre le panneau correspond à ce que montre `claude` dans le
 terminal, sans décalage.
@@ -91,10 +122,8 @@ que la session.
 **Ce qu'on a déjà** : `pr-link` (URL, numéro, dépôt), `gitBranch`, `worktree-state`,
 et le MCP Linear côté Claude Code.
 
-**La question ouverte.** Faut-il que l'application parle à Linear et GitLab
-elle-même, ou se contenter de ce que les transcripts en disent ? Parler aux deux
-demande des jetons, donc un stockage de secrets — ce que l'application n'a jamais
-fait jusqu'ici, et pas par hasard.
+**Ce qui la bloque** : la question ouverte 2. Sans accès direct, la vue existe mais
+reste muette sur les états.
 
 **Critère.** Depuis un ticket, je vois tout ce qui a été fait pour lui.
 
@@ -172,34 +201,108 @@ a changé depuis, et une sauvegarde de l'état courant avant d'écrire.
 
 ---
 
-## Ce qui reste de l'audit ClaudeTerm
+## Ce qui n'est pas porté depuis ClaudeTerm
 
-Écarts relevés en comparant au README de l'original, par ordre de valeur :
+Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
+**Ce qui n'y figure pas est porté** : fil d'ariane et menu contextuel du Finder,
+détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
+les trois modes d'invocation des skills, la progression du plan, les règles `deny`
+et les rôles des dossiers liés, le routage des notifications, l'intégration shell,
+les worktrees.
 
-| | Écart |
+Les manques renvoyés à une piste y sont déjà traités.
+
+### Barre de titre et projets
+
+| Manque | Détail |
 |---|---|
-| Réglages | un **formulaire** plutôt que du JSON brut |
-| MCP | **statut** des serveurs via `claude mcp list` |
-| History | **supprimer** une session |
-| Terminal | taper `claude` dans un shell **bascule l'onglet en mode Claude** |
-| Images | **coller** une image, **capturer** l'écran vers le prompt |
-| Barre d'état | mode de permission, plan, **tokens** |
-| Plan | rendu **markdown**, ouverture automatique à l'entrée en mode plan |
-| Scripts | inclure ceux des **dossiers liés**, réutiliser un onglet inactif |
-| Skills | **importer** un .md ou un dossier, **copier** entre projet et perso |
+| Raccourcis d'ouverture et de navigation | ⌘N nouveau projet, ⌘O ouvrir, ⇧⌘W fermer, ⌥⌘[ ] changer de projet — piste 5 |
+| Bouton Capture dans la barre d'onglets | déclenche une capture d'écran vers le prompt |
+
+### Finder
+
+| Manque | Détail |
+|---|---|
+| Ouvrir un fichier | le double-clic entre dans un dossier ; sur un fichier, il ne fait rien |
+| Aperçu rapide (Espace) | lire un fichier sans quitter l'application ni ouvrir d'éditeur |
+| Glisser un fichier sur le terminal | insère son chemin dans le prompt. Le glisser **interne** reste faisable ; celui qui vient de l'Explorateur ne l'est pas dans un navigateur, qui ne voit jamais le chemin réel |
+
+### Scripts
+
+| Manque | Détail |
+|---|---|
+| Scripts des dossiers liés | seuls ceux du projet et de ses espaces de travail sont listés |
+| Réutiliser un onglet inactif | `PtyManager.findIdle` existe et n'est appelé que par ses tests : chaque lancement ouvre un onglet de plus |
+
+### MCP du projet
+
+| Manque | Détail |
+|---|---|
+| Serveurs des dossiers liés | on ne voit que le `.mcp.json` du projet courant |
+| Éditer un serveur | on ajoute et on retire ; modifier demande de retirer puis rajouter |
+| Copier depuis un autre projet | reprendre un serveur déjà configuré ailleurs sans le retaper |
+
+### Terminal
+
+| Manque | Détail |
+|---|---|
+| Taper `claude` bascule l'onglet en mode Claude | le mode est décidé à l'ouverture ; un `claude` lancé à la main dans un shell reste un shell, donc sans plan, activité ni fichiers |
+| Raccourcis d'onglet | ⌘T shell, ⇧⌘T Claude, ⌘W fermer, ⇧⌘[ ] naviguer — piste 5 |
+| Images vers le prompt | glisser-déposer d'un fichier ou d'une image, capture d'écran (⌥⌘S), collage d'une image (⌘V). Tout devient un fichier dont le chemin est tapé dans le prompt |
+| Barre d'état : mode de permission, plan, tokens | elle montre le dossier, le type d'onglet, l'état et le code de sortie |
+
+### Bloc session
+
+| Manque | Détail |
+|---|---|
+| Ouverture automatique du plan | l'original bascule sur Plan quand Claude entre en mode plan ; ici il faut y aller |
+| Rendu markdown du plan | le texte est affiché tel quel ; la progression, elle, est bien calculée |
+| Tokens dans l'activité | le flux montre messages, outils et fichiers, sans coût ni volume |
+| Raccourci de repli | ⌥⌘3 chez l'original — piste 5 |
+
+### Panneau droit
+
+| Manque | Détail |
+|---|---|
+| History : supprimer une session | aucune route d'écriture. C'est une suppression de fichier dans `~/.claude/projects`, donc à traiter avec les mêmes précautions que la piste 7 |
+| Skills : plugins | les skills livrés par un plugin ne sont pas listés |
+| MCP : statut des serveurs | `claude mcp list` dit connecté, authentification requise ou en échec. Lent, d'où un bouton chez l'original plutôt qu'un chargement automatique |
+| MCP : connecteurs claude.ai | absents de la liste |
+| MCP : écrire les portées user et local | lecture seule ici, et à raison : elles vivent dans `~/.claude.json`, qu'on ne réécrit pas. L'original passe par `claude mcp add` et `claude mcp remove` |
+| MCP : envoyer « /mcp » à l'onglet Claude | pour lancer l'authentification d'un serveur sans quitter l'application |
+| Réglages : formulaire | modèle, permissions, hooks, env, plugins, plutôt que du JSON brut. Les clés inconnues sont préservées des deux côtés |
+| Process : arrêt au survol | le bouton existe, il est simplement toujours visible |
+
+### Projets liés
+
+| Manque | Détail |
+|---|---|
+| Fichier de prompt et `--append-system-prompt-file` | l'original écrit un fichier décrivant les liens et leurs rôles, puis le passe à chaque onglet Claude et à la fonction `claude` du shell. `LinkStore.describe()` produit déjà ce texte, mais **rien ne l'écrit ni ne le transmet** : Claude obtient le droit de lire les dossiers liés sans jamais apprendre à quoi ils servent, ce qui vide la fonctionnalité de la moitié de son intérêt |
+
+### Skills
+
+| Manque | Détail |
+|---|---|
+| Création écrite par Claude | l'original sait créer un skill vide ou envoyer la demande à Claude, qui rédige le `SKILL.md` |
+| Importer un `.md` ou un dossier | reprendre un skill venu d'ailleurs |
+| Glisser-déposer | même chose, au geste |
+| Copier entre projet et perso | promouvoir un skill de projet en skill personnel, et l'inverse |
+
+### Notifications
+
+| Manque | Détail |
+|---|---|
+| Notification système | la permission du navigateur est demandée, mais **aucune notification n'est jamais affichée** : il manque l'appel et le clic qui ramène sur l'onglet concerné |
+| Effacer quand la session repart | on efface quand l'onglet est montré ; l'original efface aussi quand Claude recommence à écrire, ce qui évite les pastilles périmées |
+| Incrustation sur l'icône | l'application fait clignoter le bouton de la barre des tâches (`flashFrame`) ; Windows sait aussi y poser un compteur (`setOverlayIcon`) |
+
+### Application
+
+| Manque | Détail |
+|---|---|
+| Localisation FR / EN | l'interface est en français seulement. L'original garde ses chaînes françaises en source et une table anglaise à côté |
+| Police du terminal | figée dans le code (`Consolas`), là où l'original en fait une préférence |
 
 ---
-
-## Questions ouvertes
-
-1. **Poste de pilotage ou journal de bord ?** La réponse décide de ce qui occupe
-   le centre et de ce qui reste dans un panneau.
-2. **L'application doit-elle parler à Linear et GitLab**, ou rester en lecture de
-   ce que Claude Code écrit ? La première option lui fait stocker des secrets pour
-   la première fois.
-3. **La file d'attente est-elle reconstituable** depuis les events, ou seulement
-   observable ? À vérifier avant d'en promettre l'affichage.
-4. **Quelle place pour l'écriture destructrice** ? La restauration de fichiers est
-   la capacité la plus distinctive, et la plus dangereuse.
 
 **Étape suivante** : `/sc:design` sur la ou les pistes retenues.
