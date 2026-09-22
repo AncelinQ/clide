@@ -18,6 +18,12 @@ export {
   type ClaudeNotification,
 } from "./notifications/watcher.js";
 export {
+  GitWorktrees,
+  parseWorktreeList,
+  type Worktree,
+  type WorktreeDetails,
+} from "./platform/git.js";
+export {
   ProcessLister,
   buildProcessTree,
   flatten,

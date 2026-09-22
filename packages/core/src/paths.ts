@@ -36,6 +36,31 @@ export function settingsFile(home: string = claudeHome()): string {
 }
 
 /**
+ * Forme comparable d'un chemin.
+ *
+ * Le même dossier s'écrit de plusieurs façons : `C:\Projets\app`, `C:/Projets/app`,
+ * avec ou sans barre finale, dans n'importe quelle casse. Git rend des barres
+ * obliques, Windows en écrit d'autres, et Claude Code recopie ce qu'on lui donne.
+ * Comparer des chemins bruts revient à rater une correspondance sur deux.
+ */
+export function normalizePath(path: string): string {
+  return path
+    .split(/[\\/]/)
+    .filter((segment, index) => segment.length > 0 || index === 0)
+    .join("/")
+    .toLowerCase();
+}
+
+export function samePath(a: string, b: string): boolean {
+  return normalizePath(a) === normalizePath(b);
+}
+
+/** Vrai si `child` est à l'intérieur de `parent`, et non `parent` lui-même. */
+export function isInside(parent: string, child: string): boolean {
+  return normalizePath(child).startsWith(`${normalizePath(parent)}/`);
+}
+
+/**
  * Dossier de données de l'application, distinct de `~/.claude` : ce qui est
  * écrit ici appartient à claude-ide et peut être supprimé sans toucher à la
  * configuration de Claude Code.

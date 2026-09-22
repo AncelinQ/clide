@@ -50,10 +50,10 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
 | C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
 | C8 | Démarrage en un clic, `claude-ide.cmd` | fait |
+| — | Panneau Worktrees : état git, sessions rattachées, retrait gardé | fait |
 | B6 | Emballage Electron | **reporté, décidé à l'usage** |
 
-Reste ouvert : la gestion des worktrees, identifiée comme un vrai besoin
-(438 events dans le corpus) mais hors périmètre depuis le début.
+Le plan est bouclé.
 
 ## Lancer
 
@@ -122,6 +122,7 @@ packages/core/          TypeScript pur : ni Electron, ni Windows, ni PTY
   src/session/activity.ts  déroulé lisible d'une session
 packages/server/        Node : terminaux ConPTY, HTTP + WebSocket, API
   src/platform/processes.ts  arbre des processus Claude (Win32_Process)
+  src/platform/git.ts   worktrees : inventaire, état, retrait gardé
   src/notifications/    hooks Claude Code, file d'événements, surveillance
   src/pty/osc.ts        marqueurs d'intégration shell (OSC 7 et 7771)
   src/pty/shell-profile.ts  profil PowerShell injecté dans les terminaux
@@ -189,6 +190,23 @@ tous couverts par des tests :
 
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
+
+## Worktrees
+
+Le panneau lit `git worktree list --porcelain`, puis l'état de chacun : fichiers
+non commités, avance et retard sur la branche amont. C'est ce qui distingue un
+worktree encore en cours d'un worktree simplement oublié.
+
+Deux points méritent d'être dits :
+
+- **Les chemins sont résolus des deux côtés avant d'être comparés.** Git rend
+  toujours sa propre résolution : un dossier atteint par un nom court
+  `ADM-A~1.QUI`, par une jonction ou dans une autre casse ressort sous sa forme
+  longue. Sans cette résolution, aucune session ne se rattache à son worktree.
+- **Le retrait refuse un worktree qui porte du travail non commité.**
+  `git worktree remove --force` saurait le faire ; ce forçage n'est pas exposé,
+  parce que ce travail-là ne se retrouve nulle part. Le dépôt principal et tout
+  chemin hors du projet sont refusés de la même façon.
 
 ## Pourquoi le serveur exige un jeton
 

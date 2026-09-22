@@ -10,6 +10,7 @@ import {
   buildActivity,
   discoverTranscripts,
   extractPlan,
+  normalizePath,
   settingsFile,
   type Scope,
   type SkillDraft,
@@ -18,6 +19,7 @@ import {
 } from "@claude-ide/core";
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
+import { GitWorktrees, realPath } from "../platform/git.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
@@ -135,6 +137,46 @@ export const routes: Record<string, Handler> = {
 
   "/api/settings": async (_params, { settingsPath }) => new SettingsEditor().read(settingsPath),
 
+  /**
+   * Worktrees du projet, avec les sessions qui y vivent.
+   *
+   * Le rattachement se fait sur `effectiveCwd` : une session déplacée dans un
+   * worktree l'annonce par un `relocated`, et l'indexer sur son dossier de
+   * départ la rangerait sous le dépôt principal.
+   */
+  "/api/worktrees": async (params, { index }) => {
+    const root = requireParam(params, "root");
+    const worktrees = await new GitWorktrees().details(root);
+    const sessions = index.list().filter((session) => session.effectiveCwd);
+
+    // Chaque chemin est résolu une fois, puis comparé sous sa forme canonique :
+    // git rend sa propre résolution, et croiser N worktrees avec M sessions
+    // paierait sinon un appel système par paire.
+    const resolvedWorktrees = await Promise.all(
+      worktrees.map(async (worktree) => ({ worktree, key: normalizePath(await realPath(worktree.path)) })),
+    );
+    const resolvedSessions = await Promise.all(
+      sessions.map(async (session) => ({
+        session,
+        key: normalizePath(await realPath(session.effectiveCwd as string)),
+      })),
+    );
+
+    return {
+      worktrees: resolvedWorktrees.map(({ worktree, key }) => ({
+        ...worktree,
+        sessions: resolvedSessions
+          .filter((entry) => entry.key === key)
+          .slice(0, 20)
+          .map(({ session }) => ({
+            sessionId: session.sessionId,
+            title: session.title,
+            lastActivityAt: session.lastActivityAt,
+          })),
+      })),
+    };
+  },
+
   "/api/processes": async (_params, { processes, terminals }) => ({
     tree: await processes.tree(terminals.ownedPids()),
   }),
@@ -219,6 +261,12 @@ export const mutations: Record<string, Mutation> = {
     const removed = await new McpStore().removeProjectServer(root, name);
     if (!removed) throw new Error(`serveur ${name} absent de .mcp.json`);
     return { removed: name };
+  },
+
+  "/api/worktrees/remove": async (_params, _context, body) => {
+    const root = requireField(body, "root", isString);
+    const path = requireField(body, "path", isString);
+    return new GitWorktrees().remove(root, path);
   },
 
   "/api/links/save": async (_params, _context, body) => {

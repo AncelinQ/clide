@@ -1,6 +1,9 @@
 export {
   appDataDir,
   claudeHome,
+  isInside,
+  normalizePath,
+  samePath,
   encodeProjectPath,
   fileHistoryDir,
   projectsDir,

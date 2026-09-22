@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PtyManager, cleanEnvironment, normalizePath, type TerminalInfo } from "../src/pty/manager.js";
+import { normalizePath } from "@claude-ide/core";
+
+import { PtyManager, cleanEnvironment, type TerminalInfo } from "../src/pty/manager.js";
 
 describe("normalizePath", () => {
   it("rend identiques les trois façons d'écrire un dossier Windows", () => {

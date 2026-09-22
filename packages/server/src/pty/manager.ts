@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { normalizePath } from "@claude-ide/core";
 import { spawn, type IPty } from "node-pty";
 
 import { OscScanner, type ShellEvent } from "./osc.js";
@@ -242,18 +243,6 @@ export class PtyManager {
   }
 }
 
-/**
- * Compare deux chemins Windows sans se laisser piéger par la casse, le style de
- * séparateur ni une barre finale — trois façons d'écrire le même dossier.
- */
-export function normalizePath(path: string): string {
-  const separators = /[\\/]/;
-  return path
-    .split(separators)
-    .filter((segment, index) => segment.length > 0 || index === 0)
-    .join("/")
-    .toLowerCase();
-}
 
 /**
  * Retire les variables que Claude Code place dans l'environnement de ses propres

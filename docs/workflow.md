@@ -41,8 +41,8 @@ Trois ont des conséquences directes sur les panneaux :
 - **`relocated` (439)** — une session change de chemin projet en cours de route. L'History
   ne peut pas indexer une session par son dossier d'origine.
 - **`continued-in` (3)** — les sessions se chaînent. Reprendre une session doit suivre la chaîne.
-- **`worktree-state` (438)** — l'usage des worktrees est massif chez l'utilisateur.
-  ClaudeTerm ne les gère pas ; c'est une **fonctionnalité à ajouter**, pas à porter.
+- **`worktree-state` (438)** — l'usage des worktrees est massif. ClaudeTerm ne les gère
+  pas : c'était une **fonctionnalité à ajouter**, pas à porter. Elle l'a été.
 - **`agent-name` (958)** — les sous-agents ont leurs propres transcripts, dans
   `<sessionId>/subagents/agent-*.jsonl` : 12 fichiers imbriqués qu'un parcours à plat rate.
   Le reader doit descendre récursivement, et Activity doit pouvoir ouvrir la session d'un
@@ -79,12 +79,14 @@ La voie A porte la valeur et le risque. La voie B est du câblage déjà prototy
 
 | ID | Tâche | Dép. | Fait quand |
 |---|---|---|---|
-| T0.1 | **Accord de Jérôme sur la licence PolyForm** | — | réponse écrite obtenue |
+| T0.1 | Accord de Jérôme sur la licence PolyForm | — | **obtenu** |
 | T0.2 | Repo, pnpm workspace, TS strict, vitest | — | fait — 54 tests, `./claude-ide` |
 | T0.3 | Code OSC privé | — | fait — **OSC 7771** (1337 iTerm2, 633 VS Code, 133 FinalTerm, 7770 ClaudeTerm sont pris) |
 
-T0.1 est un **prérequis non technique** : usage personnel probablement couvert, diffusion à
-des collègues non. Le régler avant d'investir, pas après.
+T0.1 était le **prérequis non technique** du projet : il est levé. L'analyse a par ailleurs
+montré que PolyForm ne mordait pas — c'est une licence de copyright sur le code de
+ClaudeTerm, et celui-ci est une implémentation indépendante. L'accord de Jérôme règle la
+question de la correction, que la licence n'imposait pas.
 
 ### Voie A — `core/`
 
@@ -199,7 +201,7 @@ de compresser : la seule urgence réelle est T0.1.
 | Risque | Probabilité | Parade |
 |---|---|---|
 | Le format des transcripts change en cours de route | élevée — il a **déjà** changé | A2 tolérant par construction, G1 rejoué à chaque montée de version de Claude Code |
-| Diffusion à des collègues bloquée par PolyForm | moyenne | T0.1 en premier ; à défaut, usage strictement personnel |
+| Diffusion à des collègues bloquée par PolyForm | **écartée** | accord de Jérôme obtenu ; l'analyse montrait de toute façon une implémentation indépendante |
 | Le panneau Plan reste sans source | moyenne | C7 isolé derrière une interface, coupable sans impact |
 | Injection du profil casse le prompt utilisateur | faible | B4 chaîne le prompt existant, testé avec oh-my-posh |
 | SmartScreen au premier lancement | **écartée** | plus de binaire à signer tant qu'Electron n'est pas là |

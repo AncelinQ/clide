@@ -526,6 +526,7 @@ const PANELS = [
   { id: "mcp", label: "MCP", scope: "project", load: loadMcp },
   { id: "scripts", label: "Scripts", scope: "project", load: loadScripts },
   { id: "links", label: "Liens", scope: "project", load: loadLinks },
+  { id: "worktrees", label: "Worktrees", scope: "project", load: loadWorktrees },
   { id: "settings", label: "Réglages", scope: "global", load: loadSettings },
   { id: "processes", label: "Process", scope: "global", load: loadProcesses },
   { id: "notifications", label: "Notifications", scope: "global", load: loadNotifications },
@@ -927,6 +928,61 @@ async function loadSettings() {
     empty("Une sauvegarde de l'original est posée avant la première modification."),
   );
   container.append(form(texte, actions(enregistrer, recharger)));
+  return container;
+}
+
+async function loadWorktrees() {
+  const root = projectRoot();
+  const { worktrees } = await api("/api/worktrees", { root });
+  if (!worktrees.length) return empty("ce dossier n'est pas un dépôt git, ou git est absent.");
+
+  const container = node("div");
+  for (const worktree of worktrees) {
+    const tags = [];
+    if (worktree.main) tags.push({ label: "dépôt principal" });
+    if (worktree.detached) tags.push({ label: "HEAD détaché", tone: "warn" });
+    if (worktree.locked !== undefined) tags.push({ label: "verrouillé", tone: "warn" });
+    if (worktree.prunable !== undefined) tags.push({ label: "à élaguer", tone: "warn" });
+    if (worktree.dirty > 0) tags.push({ label: `${worktree.dirty} non commité(s)`, tone: "warn" });
+
+    const suite = [];
+    if (worktree.ahead || worktree.behind) suite.push(`↑${worktree.ahead ?? 0} ↓${worktree.behind ?? 0}`);
+    suite.push(worktree.path);
+    if (worktree.sessions.length) suite.push(`${worktree.sessions.length} session(s)`);
+
+    const item = row(worktree.branch ?? worktree.head?.slice(0, 8) ?? "?", suite.join("  ·  "), tags);
+
+    const ouvrir = node("button", "run", "ouvrir un terminal");
+    onAction(ouvrir, async () => {
+      el.projectRoot.value = worktree.path;
+      openTerminal("shell");
+    });
+
+    const boutons = [ouvrir];
+    if (!worktree.main) {
+      boutons.push(
+        dangerButton("retirer", async () => {
+          await postJson("/api/worktrees/remove", { root, path: worktree.path });
+          await showPanel("worktrees");
+        }),
+      );
+    }
+    item.append(actions(...boutons));
+
+    // Les sessions du worktree se retrouvent depuis la liste de gauche ; les
+    // nommer ici dit surtout si le worktree est encore vivant.
+    if (worktree.sessions.length) {
+      const dernière = worktree.sessions[0];
+      item.append(
+        node(
+          "span",
+          "sub",
+          `dernière session : ${dernière.title ?? dernière.sessionId.slice(0, 8)}`,
+        ),
+      );
+    }
+    container.append(list([item]));
+  }
   return container;
 }
 
