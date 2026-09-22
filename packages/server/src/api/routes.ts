@@ -13,6 +13,8 @@ import {
   type TranscriptRef,
 } from "@claude-ide/core";
 
+import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
+import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
 
@@ -20,6 +22,7 @@ export interface ApiContext {
   index: SessionIndex;
   processes: ProcessLister;
   terminals: PtyManager;
+  notifications: NotificationWatcher;
 }
 
 export type Handler = (params: URLSearchParams, context: ApiContext) => Promise<unknown>;
@@ -91,6 +94,11 @@ export const routes: Record<string, Handler> = {
   "/api/processes": async (_params, { processes, terminals }) => ({
     tree: await processes.tree(terminals.ownedPids()),
   }),
+
+  "/api/notifications": async (_params, { notifications }) => ({
+    status: await hooksStatus(),
+    recent: notifications.recent(),
+  }),
 };
 
 /**
@@ -98,6 +106,15 @@ export const routes: Record<string, Handler> = {
  * d'elles ne puisse être déclenchée par une simple navigation.
  */
 export const mutations: Record<string, Handler> = {
+  /**
+   * Déclare les hooks dans `settings.json`. Action explicite : l'application
+   * modifie un fichier que l'utilisateur tient à la main, cela ne se fait pas
+   * au démarrage.
+   */
+  "/api/notifications/install": async () => ({ status: await installHooks() }),
+
+  "/api/notifications/uninstall": async () => ({ status: await uninstallHooks() }),
+
   "/api/processes/stop": async (params, { processes, terminals }) => {
     const pid = Number(requireParam(params, "pid"));
     if (!Number.isInteger(pid)) throw new Error("`pid` doit être un entier");

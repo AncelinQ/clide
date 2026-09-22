@@ -139,7 +139,7 @@ Le profil capture `$function:prompt` et le rappelle, il ne le remplace pas.
 | C3 | Panneau Files avec diff par session | C1, A4 | fait — diffs affichés, créations comprises |
 | C4 | Panneaux Skills, MCP, Settings, Scripts, Liens | C1, A5–A9 | fait en lecture ; l'écriture depuis l'UI reste à câbler |
 | C5 | Panneau Processes, `Win32_Process`, liens `owned` / `inferred` | C1 | fait — 5 racines Claude, 214 processus ; arrêt refusé hors arbre |
-| C6 | Notifications toast + hooks `Notification` / `Stop` | C1, A7 | notification cliquable qui focalise l'onglet |
+| C6 | Notifications : hooks `Notification` / `Stop`, pastille d'onglet | C1, A7 | fait — routage par dossier, notification système cliquable |
 | C7 | Panneau Plan | C1 | **source toujours introuvable** — le panneau le dit explicitement |
 | C8 | Démarrage en un clic (raccourci + serveur local) | C2–C6 | l'app s'ouvre sans ligne de commande |
 

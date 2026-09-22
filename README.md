@@ -37,7 +37,7 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C3 | Panneau Fichiers avec diff par session | fait |
 | C4 | Panneaux Skills, MCP, Scripts, Liens, Réglages | fait |
 | C5 | Panneau Process, arbre Claude, arrêt gardé | fait |
-| C6 | Notifications | à faire |
+| C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
 | C7 | Panneau Plan | **sans source** — état vide explicite |
 | B6 | Emballage Electron | **reporté, décidé à l'usage** |
 
@@ -100,6 +100,7 @@ packages/core/          TypeScript pur : ni Electron, ni Windows, ni PTY
   src/session/activity.ts  déroulé lisible d'une session
 packages/server/        Node : terminaux ConPTY, HTTP + WebSocket, API
   src/platform/processes.ts  arbre des processus Claude (Win32_Process)
+  src/notifications/    hooks Claude Code, file d'événements, surveillance
   src/pty/osc.ts        marqueurs d'intégration shell (OSC 7 et 7771)
   src/pty/shell-profile.ts  profil PowerShell injecté dans les terminaux
   src/pty/manager.ts    cycle de vie des terminaux
@@ -157,6 +158,26 @@ pourrait ouvrir un shell sur la machine.
 D'où deux verrous, tous deux couverts par des tests : un jeton tiré au démarrage,
 exigé sur chaque requête et sur la négociation WebSocket, et le refus de toute
 origine qui n'est pas la nôtre.
+
+## Notifications
+
+Claude Code signale trois choses par ses hooks : une permission demandée, une
+attente de réponse, une réponse terminée. L'installation, depuis le panneau
+**Notifications**, déclare ces hooks dans `settings.json` et dépose un script qui
+déverse chaque événement dans une file que le serveur surveille.
+
+Trois décisions de conception :
+
+- **Le type vient du `matcher`, pas de la charge utile.** Une entrée de hook par
+  type, et le type est passé en argument du script : la documentation fixe les
+  valeurs de `matcher`, pas le champ qui les porterait dans le JSON reçu.
+  `Stop` n'accepte pas de `matcher` — en poser un ferait taire le hook.
+- **Le script ne fait que déverser.** Un hook s'exécute dans le chemin critique
+  de la session : il rend la main tout de suite, n'échoue jamais vers l'appelant,
+  et sort de lui-même au bout de deux secondes si l'entrée standard ne se ferme pas.
+- **L'installation conserve les hooks existants.** `settings.json` porte souvent
+  des hooks posés à la main sur les mêmes événements ; une réinstallation remplace
+  les nôtres sans toucher aux autres, et la désinstallation les laisse en place.
 
 ## Ce que le corpus vivant impose aux tests
 

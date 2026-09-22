@@ -471,3 +471,23 @@ pre.json {
   font-size: 11px;
   line-height: 1.45;
 }
+
+/* Pastille d'attente sur un onglet : les trois couleurs distinguent ce que
+   Claude Code réclame — une permission, une réponse, ou rien de plus. */
+.bell {
+  font-size: 9px;
+  line-height: 1;
+}
+
+.bell.permission {
+  color: #d98b3a;
+}
+
+.bell.idle {
+  color: var(--run);
+}
+
+.bell.stop,
+.bell.other {
+  color: #5a8fd6;
+}

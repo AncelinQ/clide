@@ -1,6 +1,23 @@
 export { startServer, type RunningServer, type ServerOptions } from "./server.js";
 export { mutations, routes, type ApiContext, type Handler } from "./api/routes.js";
 export {
+  HOOK_DEFINITIONS,
+  eventsDir,
+  hookCommand,
+  hookScript,
+  hookScriptPath,
+  hooksStatus,
+  installHooks,
+  uninstallHooks,
+  type HooksStatus,
+  type NotificationKind,
+} from "./notifications/hook.js";
+export {
+  NotificationWatcher,
+  parseNotification,
+  type ClaudeNotification,
+} from "./notifications/watcher.js";
+export {
   ProcessLister,
   buildProcessTree,
   flatten,

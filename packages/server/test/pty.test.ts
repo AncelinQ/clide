@@ -3,7 +3,25 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PtyManager, cleanEnvironment, type TerminalInfo } from "../src/pty/manager.js";
+import { PtyManager, cleanEnvironment, normalizePath, type TerminalInfo } from "../src/pty/manager.js";
+
+describe("normalizePath", () => {
+  it("rend identiques les trois façons d'écrire un dossier Windows", () => {
+    const expected = "c:/projets/perso/claude-ide";
+    expect(normalizePath("C:\\Projets\\perso\\claude-ide")).toBe(expected);
+    expect(normalizePath("C:/Projets/perso/claude-ide")).toBe(expected);
+    expect(normalizePath("C:\\Projets\\perso\\claude-ide\\")).toBe(expected);
+    expect(normalizePath("c:/PROJETS/Perso/Claude-IDE")).toBe(expected);
+  });
+
+  it("ne confond pas deux dossiers voisins", () => {
+    expect(normalizePath("C:\\Projets\\perso")).not.toBe(normalizePath("C:\\Projets\\perso\\claude-ide"));
+  });
+
+  it("garde un chemin UNC reconnaissable", () => {
+    expect(normalizePath("\\\\serveur\\partage")).toBe("/serveur/partage");
+  });
+});
 
 describe("cleanEnvironment", () => {
   it("retire les variables de Claude Code et garde les autres", () => {
@@ -69,6 +87,22 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
 
     manager.close(terminal.id);
   }, 60_000);
+
+  it("retrouve un terminal par son dossier, quel que soit le style de séparateur", async () => {
+    // C'est ce rattachement qui dirige une notification de hook vers un onglet :
+    // Claude Code annonce un dossier, pas un terminal.
+    const terminal = await manager.open({ projectRoot: scratch });
+
+    expect(manager.findByCwd(scratch)?.id).toBe(terminal.id);
+    expect(manager.findByCwd(scratch.replace(/\\/g, "/"))?.id).toBe(terminal.id);
+    expect(manager.findByCwd(`${scratch}\\`)?.id).toBe(terminal.id);
+    expect(manager.findByCwd(`${scratch}\\sous-dossier`)).toBeUndefined();
+
+    // Attendre la sortie effective : le terminal reste inscrit jusqu'à ce que
+    // le processus soit parti, et le test suivant le retrouverait.
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
 
   it("réutilise un terminal inactif plutôt que d'en ouvrir un autre", async () => {
     const terminal = await manager.open({ projectRoot: scratch });

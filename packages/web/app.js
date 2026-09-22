@@ -26,6 +26,8 @@ let activeId = null;
 let sessions = [];
 let selectedSession = null;
 let socket = null;
+/** Onglets en attente d'un regard, par identifiant de terminal. */
+const attention = new Map();
 
 // ─── API ────────────────────────────────────────────────────────────────────
 
@@ -121,6 +123,9 @@ function onServerMessage(message) {
       if (entry) entry.term.write(`\r\n\u001b[90m— terminal fermé (${message.exitCode}) —\u001b[0m\r\n`);
       break;
     }
+    case "notification":
+      onNotification(message.notification, message.terminalId);
+      break;
     case "error":
       console.error("[claude-ide]", message.message);
       break;
@@ -180,11 +185,19 @@ function renderTab({ info, tab }) {
   tab.classList.toggle("active", info.id === activeId);
   const close = node("span", "close", "×");
   close.dataset.action = "close";
-  tab.replaceChildren(node("span", `dot ${info.state}`), node("span", null, info.title), close);
+
+  const waiting = attention.get(info.id);
+  const children = [node("span", `dot ${info.state}`), node("span", null, info.title)];
+  if (waiting) children.push(node("span", `bell ${waiting}`, "●"));
+  children.push(close);
+  tab.replaceChildren(...children);
 }
 
 function activate(id) {
   activeId = id;
+  // Regarder l'onglet vaut acquittement : l'attente n'a plus lieu d'être.
+  attention.delete(id);
+  renderBadge();
   for (const entry of terminals.values()) {
     const isActive = entry.info.id === id;
     entry.host.classList.toggle("active", isActive);
@@ -229,6 +242,119 @@ function openTerminal(kind, initialCommand) {
     rows: 30,
     ...(initialCommand ? { initialCommand } : {}),
   });
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+const NOTIFICATION_LABEL = {
+  permission: "permission demandée",
+  idle: "en attente d'une réponse",
+  stop: "réponse terminée",
+  other: "événement",
+};
+
+/** Historique côté client, pour que le panneau reste vivant sans requête. */
+const notifications = [];
+
+function renderBadge() {
+  // Le titre de l'onglet du navigateur est le seul endroit visible quand la
+  // fenêtre est en arrière-plan.
+  document.title = attention.size > 0 ? `(${attention.size}) claude-ide` : "claude-ide";
+}
+
+function onNotification(notification, terminalId) {
+  notifications.unshift(notification);
+  if (notifications.length > 100) notifications.pop();
+
+  if (terminalId && terminalId !== activeId) {
+    attention.set(terminalId, notification.kind);
+    const entry = terminals.get(terminalId);
+    if (entry) renderTab(entry);
+    renderBadge();
+  }
+
+  // Une notification système n'a de sens que si la page n'est pas sous les yeux.
+  if (document.hidden && window.Notification?.permission === "granted") {
+    const title = NOTIFICATION_LABEL[notification.kind] ?? NOTIFICATION_LABEL.other;
+    const body = notification.message ?? notification.cwd ?? "";
+    const system = new Notification(`claude-ide — ${title}`, { body, tag: notification.kind });
+    system.onclick = () => {
+      window.focus();
+      if (terminalId) activate(terminalId);
+      system.close();
+    };
+  }
+
+  if (activePanel === "notifications") void showPanel("notifications");
+}
+
+async function loadNotifications() {
+  const { status, recent } = await api("/api/notifications");
+  // Le serveur garde l'historique des événements reçus avant l'ouverture de
+  // cette page ; le client y ajoute ceux arrivés depuis.
+  const seen = new Set(notifications.map((item) => item.id));
+  const all = [...notifications, ...recent.filter((item) => !seen.has(item.id))];
+
+  const container = node("div");
+
+  const state = node("p", "empty");
+  state.append(
+    status.installed
+      ? node("span", "tag ok", "hooks installés")
+      : node("span", "tag warn", status.kinds.length > 0 ? "installation partielle" : "hooks absents"),
+    " ",
+    status.installed
+      ? "Claude Code signale les permissions, les attentes et les fins de réponse."
+      : "Sans eux, aucun événement ne remonte.",
+  );
+  container.append(state);
+
+  const actions = node("div");
+  const toggle = node("button", null, status.installed ? "Désinstaller les hooks" : "Installer les hooks");
+  toggle.type = "button";
+  toggle.title = status.settingsPath;
+  toggle.addEventListener("click", async () => {
+    toggle.disabled = true;
+    try {
+      await api(status.installed ? "/api/notifications/uninstall" : "/api/notifications/install", {}, {
+        method: "POST",
+      });
+      await requestSystemPermission();
+      await showPanel("notifications");
+    } catch (error) {
+      toggle.textContent = error.message;
+    }
+  });
+  actions.append(toggle);
+  container.append(actions);
+
+  if (all.length === 0) {
+    container.append(empty("aucun événement reçu."));
+    return container;
+  }
+
+  container.append(
+    list(
+      all.slice(0, 60).map((item) => {
+        const when = new Date(item.receivedAt).toLocaleTimeString("fr-FR");
+        const where = (item.cwd ?? "").split(/[\/]/).pop() ?? "";
+        return row(item.message ?? NOTIFICATION_LABEL[item.kind], [when, where].filter(Boolean).join("  ·  "), [
+          { label: NOTIFICATION_LABEL[item.kind], tone: item.kind === "permission" ? "warn" : "" },
+        ]);
+      }),
+    ),
+  );
+  return container;
+}
+
+/** Demande l'autorisation système, sans insister si elle est refusée. */
+async function requestSystemPermission() {
+  if (!window.Notification || Notification.permission !== "default") return;
+  try {
+    await Notification.requestPermission();
+  } catch {
+    // Refus ou navigateur sans notifications : la pastille d'onglet suffit.
+  }
 }
 
 // ─── Sessions ───────────────────────────────────────────────────────────────
@@ -300,6 +426,7 @@ const PANELS = [
   { id: "links", label: "Liens", scope: "project", load: loadLinks },
   { id: "settings", label: "Réglages", scope: "global", load: loadSettings },
   { id: "processes", label: "Process", scope: "global", load: loadProcesses },
+  { id: "notifications", label: "Notifications", scope: "global", load: loadNotifications },
   { id: "plan", label: "Plan", scope: "session", load: loadPlan },
 ];
 

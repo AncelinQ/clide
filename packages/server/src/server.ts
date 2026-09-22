@@ -8,6 +8,7 @@ import { SessionIndex } from "@claude-ide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
+import { NotificationWatcher } from "./notifications/watcher.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
@@ -101,12 +102,15 @@ async function serveStatic(
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
   const token = options.token ?? randomBytes(24).toString("base64url");
   const manager = new PtyManager();
+  const notifications = new NotificationWatcher();
   const context: ApiContext = {
     index: new SessionIndex(),
     processes: new ProcessLister(),
     terminals: manager,
+    notifications,
   };
   await context.index.load();
+  await notifications.start();
 
   const http: Server = createServer((request, response) => {
     void handleRequest(request, response);
@@ -185,6 +189,13 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       manager.on("data", (id, data) => post({ t: "data", id, data })),
       manager.on("state", (terminal) => post({ t: "state", terminal })),
       manager.on("exit", (id, exitCode) => post({ t: "exit", id, exitCode })),
+      notifications.on((notification) => {
+        // Claude Code annonce le dossier de la session, pas l'onglet : le
+        // rattachement se fait sur ce dossier, et reste absent s'il ne
+        // correspond à aucun terminal ouvert.
+        const terminal = notification.cwd ? manager.findByCwd(notification.cwd) : undefined;
+        post({ t: "notification", notification, ...(terminal ? { terminalId: terminal.id } : {}) });
+      }),
     ];
 
     post({ t: "hello", terminals: manager.list() });
@@ -240,6 +251,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     port,
     token,
     async close() {
+      notifications.stop();
       manager.closeAll();
       // `http.close()` attend la fin des connexions en cours : une WebSocket
       // ouverte ne se termine jamais d'elle-même, et l'arrêt resterait bloqué.

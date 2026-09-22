@@ -209,6 +209,23 @@ export class PtyManager {
     return out;
   }
 
+  /**
+   * Terminal dont le dossier correspond à un chemin.
+   *
+   * Sert à rattacher un événement de hook à un onglet : Claude Code annonce le
+   * dossier de la session, pas le terminal qui l'héberge. Le dossier courant
+   * prime sur le dossier d'ouverture — un `cd` a pu déplacer le shell.
+   */
+  findByCwd(path: string): TerminalInfo | undefined {
+    const wanted = normalizePath(path);
+    let fallback: TerminalInfo | undefined;
+    for (const { info } of this.#terminals.values()) {
+      if (normalizePath(info.cwd) === wanted) return { ...info };
+      if (!fallback && normalizePath(info.projectRoot) === wanted) fallback = { ...info };
+    }
+    return fallback;
+  }
+
   /** Terminal inactif réutilisable pour un projet, plutôt qu'en ouvrir un de plus. */
   findIdle(projectRoot: string, kind: TerminalKind = "shell"): TerminalInfo | undefined {
     for (const terminal of this.#terminals.values()) {
@@ -223,6 +240,19 @@ export class PtyManager {
   closeAll(): void {
     for (const id of [...this.#terminals.keys()]) this.close(id);
   }
+}
+
+/**
+ * Compare deux chemins Windows sans se laisser piéger par la casse, le style de
+ * séparateur ni une barre finale — trois façons d'écrire le même dossier.
+ */
+export function normalizePath(path: string): string {
+  const separators = /[\\/]/;
+  return path
+    .split(separators)
+    .filter((segment, index) => segment.length > 0 || index === 0)
+    .join("/")
+    .toLowerCase();
 }
 
 /**
