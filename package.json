@@ -10,13 +10,14 @@
     "typecheck": "pnpm -r typecheck",
     "fixtures": "node tools/make-fixtures.mjs",
     "replay": "node tools/replay.mjs",
-    "start": "tsx packages/server/src/main.ts",
-    "build": "pnpm -r typecheck",
+    "start": "pnpm --filter @claude-ide/web build && tsx packages/server/src/main.ts",
+    "build": "pnpm --filter @claude-ide/web build",
     "desktop": "pnpm --filter @claude-ide/desktop start",
     "package": "pnpm --filter @claude-ide/desktop package"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
+    "lucide-static": "^1.47.0",
     "tsx": "^4.23.15",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"

@@ -4,76 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>claude-ide</title>
-    <link rel="stylesheet" href="/vendor/xterm.css" />
-    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <!-- Barre de titre : un onglet par projet ouvert, comme dans l'original. -->
-    <header class="titlebar">
-      <button id="toggle-left" class="icon-button" type="button" title="Colonne du projet">◧</button>
-      <nav id="project-tabs" class="project-tabs" aria-label="Projets"></nav>
-      <button id="add-project" class="icon-button" type="button" title="Ouvrir un projet">+</button>
-      <span id="connection" class="pill">connexion…</span>
-      <button id="toggle-theme" class="icon-button" type="button" title="Thème">◐</button>
-      <button id="toggle-right" class="icon-button" type="button" title="Panneau global">◨</button>
-    </header>
-
-    <main class="layout">
-      <!-- Gauche = le projet -->
-      <aside id="left" class="column left" aria-label="Projet">
-        <div class="crumbs" id="crumbs"></div>
-        <ul id="files" class="files"></ul>
-
-        <div class="block">
-          <nav id="left-modes" class="mode-bar" aria-label="Outils du projet"></nav>
-          <div id="left-panel" class="block-body"></div>
-        </div>
-      </aside>
-
-      <!-- Centre = la session -->
-      <section class="center">
-        <div class="tabstrip">
-          <nav id="tabs" class="tabs" aria-label="Terminaux"></nav>
-          <div class="tabstrip-actions">
-            <button id="open-shell" class="icon-button" type="button" title="Nouveau shell">+</button>
-            <button id="open-claude" class="text-button accent" type="button">✦ claude</button>
-          </div>
-        </div>
-
-        <div id="terminals" class="terminals">
-          <div id="welcome" class="welcome">
-            <div class="welcome-mark">✦</div>
-            <h2 id="welcome-title">Aucun terminal</h2>
-            <p id="welcome-path" class="muted"></p>
-            <div class="welcome-actions">
-              <button id="welcome-claude" class="text-button accent" type="button">✦ Démarrer Claude</button>
-              <button id="welcome-shell" class="text-button" type="button">⌨ Shell</button>
-            </div>
-          </div>
-        </div>
-
-        <footer id="status" class="status"></footer>
-
-        <!-- Bloc session, sous le terminal : ce qui décrit la session en cours. -->
-        <div class="block session">
-          <nav id="session-modes" class="mode-bar" aria-label="Session"></nav>
-          <div id="session-panel" class="block-body"></div>
-        </div>
-      </section>
-
-      <!-- Droite = ce qui ne dépend d'aucun projet -->
-      <aside id="right" class="column right" aria-label="Global">
-        <nav id="global-tabs" class="global-tabs" aria-label="Panneaux globaux"></nav>
-        <div class="panel-tools">
-          <input id="global-filter" class="filter" placeholder="Filtrer…" spellcheck="false" />
-          <button id="global-refresh" class="icon-button" type="button" title="Recharger">↻</button>
-        </div>
-        <div id="global-panel" class="panel-body"></div>
-      </aside>
-    </main>
-
-    <script src="/vendor/xterm.js"></script>
-    <script src="/vendor/addon-fit.js"></script>
-    <script type="module" src="/app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

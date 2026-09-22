@@ -49,6 +49,6 @@ await build({
 });
 
 // Le client est servi depuis le dossier du bundle, à côté de lui.
-await cp(join(here, "..", "web"), join(dist, "web"), { recursive: true });
+await cp(join(here, "..", "web", "dist"), join(dist, "web"), { recursive: true });
 
 console.log("empaqueté dans", dist);

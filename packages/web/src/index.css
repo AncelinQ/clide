@@ -1,0 +1,142 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.205 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.56 0.18 258);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.95 0.01 258);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.58 0.21 27);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.56 0.18 258);
+}
+
+.dark {
+  --background: oklch(0.17 0.004 260);
+  --foreground: oklch(0.93 0.004 260);
+  --card: oklch(0.21 0.005 260);
+  --card-foreground: oklch(0.93 0.004 260);
+  --popover: oklch(0.23 0.005 260);
+  --popover-foreground: oklch(0.93 0.004 260);
+  --primary: oklch(0.66 0.17 254);
+  --primary-foreground: oklch(0.15 0.01 260);
+  --secondary: oklch(0.26 0.006 260);
+  --secondary-foreground: oklch(0.93 0.004 260);
+  --muted: oklch(0.26 0.006 260);
+  --muted-foreground: oklch(0.66 0.006 260);
+  --accent: oklch(0.29 0.008 260);
+  --accent-foreground: oklch(0.93 0.004 260);
+  --destructive: oklch(0.65 0.19 27);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.66 0.17 254);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-hidden text-[13px] antialiased;
+    font-family: "Segoe UI", system-ui, sans-serif;
+  }
+}
+
+/*
+ * Couleurs du terminal, en hexadécimal et hors du jeu de jetons shadcn.
+ * xterm peint sur un canevas et analyse les couleurs lui-même : il ne sait pas
+ * lire `oklch()`. Ces variables sont donc relues puis passées à chaque instance
+ * lorsque le thème change.
+ */
+:root {
+  --term-bg: #ffffff;
+  --term-fg: #1c1c1e;
+  --ansi-0: #000000;
+  --ansi-1: #cd3131;
+  --ansi-2: #00a41e;
+  --ansi-3: #8a7500;
+  --ansi-4: #0451a5;
+  --ansi-5: #a0129e;
+  --ansi-6: #0a7f9c;
+  --ansi-7: #555555;
+  --ansi-8: #6c6c72;
+  --ansi-9: #b81c1c;
+  --ansi-10: #0a8f1a;
+  --ansi-11: #7a6800;
+  --ansi-12: #0451a5;
+  --ansi-13: #8c0f8a;
+  --ansi-14: #08708a;
+  --ansi-15: #2a2a2e;
+}
+
+.dark {
+  --term-bg: #16161a;
+  --term-fg: #e8e8ed;
+  --ansi-0: #000000;
+  --ansi-1: #cd3131;
+  --ansi-2: #0dbc79;
+  --ansi-3: #e5e510;
+  --ansi-4: #2472c8;
+  --ansi-5: #bc3fbc;
+  --ansi-6: #11a8cd;
+  --ansi-7: #e5e5e5;
+  --ansi-8: #666666;
+  --ansi-9: #f14c4c;
+  --ansi-10: #23d18b;
+  --ansi-11: #f5f543;
+  --ansi-12: #3b8eea;
+  --ansi-13: #d670d6;
+  --ansi-14: #29b8db;
+  --ansi-15: #ffffff;
+}
+
+/* xterm fournit sa propre feuille ; on la laisse remplir son conteneur. */
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+}

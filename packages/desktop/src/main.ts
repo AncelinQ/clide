@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { startServer, type RunningServer } from "@claude-ide/server";
 import { BrowserWindow, app, ipcMain, shell } from "electron";
@@ -11,11 +11,6 @@ import { BrowserWindow, app, ipcMain, shell } from "electron";
 declare const __dirname: string;
 
 const here = __dirname;
-
-/** Résout un fichier d'une bibliothèque installée, sans dépendre de ses `exports`. */
-function packageFile(packageName: string, relativePath: string): string {
-  return join(dirname(require.resolve(`${packageName}/package.json`)), relativePath);
-}
 
 let server: RunningServer | undefined;
 let window_: BrowserWindow | undefined;
@@ -30,11 +25,6 @@ let window_: BrowserWindow | undefined;
 async function createWindow(): Promise<void> {
   server ??= await startServer({
     webRoot: join(here, "web"),
-    vendor: {
-      "xterm.js": packageFile("@xterm/xterm", "lib/xterm.js"),
-      "xterm.css": packageFile("@xterm/xterm", "css/xterm.css"),
-      "addon-fit.js": packageFile("@xterm/addon-fit", "lib/addon-fit.js"),
-    },
   });
 
   window_ = new BrowserWindow({

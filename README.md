@@ -186,15 +186,24 @@ packages/server/        Node : terminaux ConPTY, HTTP + WebSocket, API
   src/pty/shell-profile.ts  profil PowerShell injecté dans les terminaux
   src/pty/manager.ts    cycle de vie des terminaux
   src/server.ts         jeton d'accès, fichiers statiques, WebSocket
-packages/web/           client sans outil de construction : HTML, CSS, un module
+packages/web/           client React : Vite, Tailwind 4, shadcn/ui, xterm.js
 packages/desktop/       fenêtre Electron, pont contextBridge, empaquetage NSIS
 tools/make-fixtures.mjs anonymisation des transcripts réels vers les fixtures
 ```
 
-Deux dépendances, toutes deux en JavaScript pur : `jsonc-parser` pour éditer du
-JSON sans le réécrire, `diff` pour produire des diffs comparables à ceux de git.
-Réimplémenter l'un ou l'autre aurait fait porter le risque exactement là où la
-recette exige l'exactitude.
+Le cœur n'a que deux dépendances, toutes deux en JavaScript pur : `jsonc-parser`
+pour éditer du JSON sans le réécrire, `diff` pour produire des diffs comparables à
+ceux de git. Réimplémenter l'un ou l'autre aurait fait porter le risque exactement
+là où la recette exige l'exactitude.
+
+Le client est en **React 19 + Tailwind 4 + shadcn/ui**, construit par Vite. Le
+serveur sert son `dist` et ne sait rien d'autre de lui : le contrat entre les deux
+est l'API HTTP, pas un typage partagé.
+
+**Les instances xterm vivent hors de React.** Chacune possède un nœud du DOM, un
+tampon de plusieurs milliers de lignes et un canevas ; les faire vivre au rythme
+des rendus les réinitialiserait à chaque changement d'onglet. React ne reçoit que
+leur état.
 
 `core/` ne connaît aucune API de plateforme : c'est la condition pour que les tests
 portent et pour que l'ajout d'Electron ne contamine pas la logique.

@@ -9,7 +9,7 @@ import { parseClientMessage } from "../src/protocol.js";
 import { shellProfileScript } from "../src/pty/shell-profile.js";
 import { startServer, type RunningServer } from "../src/server.js";
 
-const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "web");
+const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "web", "dist");
 
 describe("shellProfileScript", () => {
   const script = shellProfileScript();
@@ -138,8 +138,12 @@ describe("serveur local", () => {
   });
 
   it("ne sort pas de la racine servie", async () => {
-    const response = await fetch(`${base()}/../../package.json`);
-    expect(response.status).toBe(404);
+    // Les `..` sont encodés : `fetch` normalise un chemin littéral avant de
+    // l'envoyer, et la requête n'atteindrait jamais le serveur sous cette forme.
+    for (const attempt of ["%2e%2e%2f%2e%2e%2fpackage.json", "..%2f..%2fpackage.json"]) {
+      const response = await fetch(`${base()}/${attempt}`);
+      expect(response.status, attempt).toBe(404);
+    }
   });
 
   it("refuse une connexion WebSocket sans jeton", async () => {
