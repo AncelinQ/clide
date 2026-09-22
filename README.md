@@ -49,9 +49,11 @@ Plan d'implémentation, mesures et arbitrages : [`docs/workflow.md`](docs/workfl
 | C5 | Panneau Process, arbre Claude, arrêt gardé | fait |
 | C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
 | C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
+| C8 | Démarrage en un clic, `claude-ide.cmd` | fait |
 | B6 | Emballage Electron | **reporté, décidé à l'usage** |
 
-| C8 | Démarrage en un clic | fait — `claude-ide.cmd` |
+Restent ouverts : l'écriture depuis les panneaux (les magasins la savent déjà
+faire, l'interface ne l'expose pas), et la gestion des worktrees.
 
 ## Lancer
 
