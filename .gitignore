@@ -4,3 +4,6 @@ dist/
 .vitest/
 reports/
 release/
+
+# Configuration locale du MCP Serena, propre à la machine.
+.serena/
