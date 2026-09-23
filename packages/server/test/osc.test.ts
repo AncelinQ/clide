@@ -43,6 +43,13 @@ describe("OscScanner", () => {
     expect(new OscScanner().push(start()).events).toEqual([{ kind: "command-start" }]);
   });
 
+  it("lit le lancement de claude avec sa ligne de commande entière", () => {
+    const { text, events } = new OscScanner().push(osc("7771;CLAUDE_START;claude -r abc; --verbose"));
+    expect(text).toBe("");
+    expect(events).toEqual([{ kind: "claude-start", command: "claude -r abc; --verbose" }]);
+    expect(new OscScanner().push(osc("7771;CLAUDE_END")).events).toEqual([{ kind: "claude-end" }]);
+  });
+
   it("laisse passer les séquences qui ne sont pas les nôtres", () => {
     // OSC 0 fixe le titre de la fenêtre : xterm doit le recevoir.
     const title = osc("0;pwsh.exe");

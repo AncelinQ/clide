@@ -87,10 +87,19 @@ if ($global:__claudeIdeClaude) {
     # déjà son propre prompt système garde la main sur ce qu'il a demandé.
     $own = @($args) -match '^--(append-)?system-prompt(-file)?$'
 
-    if ((Test-Path -LiteralPath $promptFile -PathType Leaf) -and $own.Count -eq 0) {
-      & $global:__claudeIdeClaude --append-system-prompt-file $promptFile @args
-    } else {
-      & $global:__claudeIdeClaude @args
+    # L'onglet passe en mode Claude le temps de la session, avec la ligne de
+    # commande pour reconnaître une reprise. Les caractères de contrôle sont
+    # retirés : un BEL dans un argument fermerait la séquence avant son terme.
+    $line = -join (('claude ' + ($args -join ' ')).ToCharArray() | Where-Object { [int] $_ -ge 32 })
+    __claudeIdeEmit ('CLAUDE_START;' + $line)
+    try {
+      if ((Test-Path -LiteralPath $promptFile -PathType Leaf) -and $own.Count -eq 0) {
+        & $global:__claudeIdeClaude --append-system-prompt-file $promptFile @args
+      } else {
+        & $global:__claudeIdeClaude @args
+      }
+    } finally {
+      __claudeIdeEmit 'CLAUDE_END'
     }
   }
 }

@@ -482,6 +482,14 @@ principal n'a pas de canevas.
 
 ## La session d'un onglet
 
+Un `claude` tapé dans un shell fait de l'onglet un onglet Claude le temps de la
+session, puis le rend au shell. C'est la fonction `claude` du profil qui le
+signale — elle est ce qui lance Claude — par deux marqueurs, `CLAUDE_START` avec
+la ligne de commande et `CLAUDE_END`, ce dernier émis dans un `finally` pour qu'un
+Ctrl+C ou un échec ne laisse pas l'onglet en mode Claude. Chaque lancement repart
+de zéro dans le suivi de session, sur la session neuve ou celle que nomme
+`--resume`.
+
 Le bloc session suit l'onglet Claude actif ; choisir une session dans History l'en
 détache jusqu'au prochain changement d'onglet. Le serveur relie chaque onglet
 Claude à son transcript, puis le lit par ajouts :

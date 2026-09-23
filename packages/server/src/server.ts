@@ -157,6 +157,13 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   // Un onglet fermé ne suit plus rien ; son transcript redevient disponible pour
   // un autre onglet du même dossier.
   manager.on("exit", (id) => live.forget(id));
+  // Chaque `claude` lancé dans un onglet repart de zéro : une nouvelle session, ou
+  // celle que nomme `--resume`. À sa sortie, l'onglet ne suit plus rien.
+  manager.on("claude", (id, command) => {
+    live.forget(id);
+    const terminal = manager.get(id);
+    if (command !== undefined && terminal) live.track(id, terminal.cwd, command);
+  });
   // Un hook porte la session et son transcript : c'est le rattachement exact,
   // qui prime sur la recherche par date.
   notifications.on((notification) => {

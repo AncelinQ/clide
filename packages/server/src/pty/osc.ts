@@ -14,7 +14,10 @@ const ST = `${ESC}\\`;
 export type ShellEvent =
   | { kind: "cwd"; path: string }
   | { kind: "command-start" }
-  | { kind: "command-end"; exitCode: number };
+  | { kind: "command-end"; exitCode: number }
+  /** `claude` lancé dans le shell, avec sa ligne de commande. */
+  | { kind: "claude-start"; command: string }
+  | { kind: "claude-end" };
 
 export interface ScanResult {
   /** Flux débarrassé des séquences que nous avons consommées. */
@@ -57,6 +60,11 @@ function parseSequence(body: string): Parsed {
   // parasite dans le terminal.
   const [marker, value] = payload.split(";");
   if (marker === "START") return { ours: true, event: { kind: "command-start" } };
+  // La ligne de commande peut porter des `;` : elle court jusqu'au bout.
+  if (marker === "CLAUDE_START") {
+    return { ours: true, event: { kind: "claude-start", command: payload.slice("CLAUDE_START;".length) } };
+  }
+  if (marker === "CLAUDE_END") return { ours: true, event: { kind: "claude-end" } };
   if (marker === "END") {
     const exitCode = Number(value);
     return {

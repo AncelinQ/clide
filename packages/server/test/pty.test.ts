@@ -51,6 +51,14 @@ describe("shellProfileScript", () => {
     expect(script).toContain("--append-system-prompt-file");
   });
 
+  it("signale l'entrée et la sortie de claude, même quand il échoue", () => {
+    const script = shellProfileScript();
+    expect(script).toContain("'CLAUDE_START;'");
+    // La sortie est émise dans un `finally` : un Ctrl+C ou un échec de claude
+    // ne doit pas laisser l'onglet en mode Claude.
+    expect(script.indexOf("finally")).toBeLessThan(script.indexOf("'CLAUDE_END'"));
+  });
+
   it("résout l'exécutable avant de poser la fonction du même nom", () => {
     // Sans cette résolution, la fonction s'appellerait elle-même à l'infini.
     const script = shellProfileScript();
@@ -110,6 +118,26 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
 
     manager.close(terminal.id);
   }, 60_000);
+
+  it("fait d'un shell un onglet Claude le temps d'un claude, puis le rend", async () => {
+    const terminal = await manager.open({ projectRoot: scratch });
+    const kinds: string[] = [];
+    const claude: (string | undefined)[] = [];
+    manager.on("state", (info) => info.id === terminal.id && kinds.push(info.kind));
+    manager.on("claude", (id, command) => id === terminal.id && claude.push(command));
+    await waitFor(() => kinds.length > 0, 15000);
+
+    // La fonction `claude` du profil émet ces marqueurs ; on les émet ici sans
+    // lancer Claude Code pour de vrai.
+    manager.write(terminal.id, "__claudeIdeEmit 'CLAUDE_START;claude --resume x'; __claudeIdeEmit 'CLAUDE_END'\r");
+    await waitFor(() => claude.length === 2, 15000);
+
+    expect(claude).toEqual(["claude --resume x", undefined]);
+    expect(kinds).toContain("claude");
+    expect(kinds.at(-1)).toBe("shell");
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
 
   it("retrouve un terminal par son dossier, quel que soit le style de séparateur", async () => {
     // C'est ce rattachement qui dirige une notification de hook vers un onglet :

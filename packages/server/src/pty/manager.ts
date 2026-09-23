@@ -40,6 +40,8 @@ export interface TerminalEvents {
   data: (id: string, text: string) => void;
   state: (info: TerminalInfo) => void;
   exit: (id: string, exitCode: number) => void;
+  /** `claude` démarre dans l'onglet (avec sa ligne de commande) ou en sort (sans). */
+  claude: (id: string, command: string | undefined) => void;
 }
 
 interface Terminal {
@@ -63,6 +65,7 @@ export class PtyManager {
     data: new Set(),
     state: new Set(),
     exit: new Set(),
+    claude: new Set(),
   };
   #profile: ShellProfile | undefined;
 
@@ -137,6 +140,7 @@ export class PtyManager {
 
   #applyShellEvents(terminal: Terminal, events: readonly ShellEvent[]): void {
     let changed = false;
+    const claude: (string | undefined)[] = [];
     for (const event of events) {
       switch (event.kind) {
         case "cwd":
@@ -154,9 +158,24 @@ export class PtyManager {
           terminal.info.lastExitCode = event.exitCode;
           changed = true;
           break;
+        // Un `claude` tapé à la main fait de l'onglet un onglet Claude — plan,
+        // activité, fichiers — le temps de la session, puis il redevient un shell.
+        case "claude-start":
+          terminal.info.kind = "claude";
+          terminal.info.title = "claude";
+          changed = true;
+          claude.push(event.command);
+          break;
+        case "claude-end":
+          terminal.info.kind = "shell";
+          terminal.info.title = "shell";
+          changed = true;
+          claude.push(undefined);
+          break;
       }
     }
     if (changed) this.#emit("state", { ...terminal.info });
+    for (const command of claude) this.#emit("claude", terminal.info.id, command);
   }
 
   write(id: string, data: string): boolean {

@@ -64,8 +64,12 @@ function onMessage(message: ServerMessage): void {
       setState((current) => {
         const existing = current.terminals[message.terminal.id];
         if (!existing) return {};
+        // Revenu au shell, l'onglet n'a plus de session à montrer.
+        const live = { ...current.live };
+        if (message.terminal.kind === "shell") delete live[message.terminal.id];
         return {
           terminals: { ...current.terminals, [message.terminal.id]: { ...existing, info: message.terminal } },
+          live,
         };
       });
       break;
