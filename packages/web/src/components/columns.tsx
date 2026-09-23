@@ -1,5 +1,5 @@
 import { Bell, Coins, Cpu, GitBranch, History, Link2, Package, Plug, RefreshCw, Settings, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
@@ -120,6 +120,61 @@ const TABS = [
   { id: "notifications", icon: Bell, label: "Alertes" },
 ] as const;
 
+/**
+ * Onglets du panneau global, icône au-dessus du libellé comme dans l'original.
+ *
+ * Ils défilent à l'horizontale quand la colonne ne les tient pas tous, libellés
+ * entiers plutôt que tronqués. La molette verticale fait défiler aussi : sans
+ * pavé tactile, une barre horizontale ne se ferait défiler qu'à la souris sur
+ * son ascenseur. L'onglet actif est ramené dans la vue quand il change — depuis
+ * la palette, par exemple.
+ */
+function TabStrip({ current }: { current: string }) {
+  const nav = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    nav.current?.querySelector<HTMLElement>(`[data-tab="${current}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [current]);
+
+  useEffect(() => {
+    const element = nav.current;
+    if (!element) return;
+    const onWheel = (event: WheelEvent) => {
+      if (element.scrollWidth <= element.clientWidth || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      element.scrollLeft += event.deltaY;
+    };
+    // Non passif : sans quoi `preventDefault` n'empêcherait pas la page de défiler.
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, []);
+
+  return (
+    <nav
+      ref={nav}
+      className="flex shrink-0 gap-0.5 overflow-x-auto border-b px-1.5 py-2 [scrollbar-width:thin]"
+    >
+      {TABS.map((tab) => (
+        <button
+          key={tab.id}
+          data-tab={tab.id}
+          type="button"
+          onClick={() => setState({ globalTab: tab.id })}
+          className={cn(
+            "flex min-w-13 flex-1 shrink-0 flex-col items-center gap-1 rounded-lg border px-1.5 py-1.5 text-[10px] whitespace-nowrap transition-colors",
+            tab.id === current
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+          )}
+        >
+          <tab.icon className="size-4" />
+          {t(tab.label)}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export function GlobalColumn() {
   const globalTab = useStore((state) => state.globalTab);
   const [filter, setFilter] = useState("");
@@ -147,26 +202,7 @@ export function GlobalColumn() {
 
   return (
     <Island>
-      {/* Icône au-dessus du libellé, comme dans l'original. */}
-      <nav className="flex shrink-0 justify-around gap-0.5 border-b px-1.5 py-2">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setState({ globalTab: tab.id })}
-            className={cn(
-              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg border px-0.5 py-1.5 text-[10px] transition-colors",
-              tab.id === globalTab
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            <tab.icon className="size-4" />
-            {/* Sept onglets dans 340 px : le libellé cède avant l'icône. */}
-            <span className="max-w-full truncate">{t(tab.label)}</span>
-          </button>
-        ))}
-      </nav>
+      <TabStrip current={globalTab} />
 
       <div className="flex shrink-0 items-center gap-1.5 px-3 py-2">
         {searchable && (
