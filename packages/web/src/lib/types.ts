@@ -134,7 +134,7 @@ export interface ProcessNode {
   children: ProcessNode[];
 }
 
-export type NotificationKind = "permission" | "idle" | "stop" | "other";
+export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "other";
 
 export interface ClaudeNotification {
   id: string;
@@ -164,4 +164,5 @@ export type ServerMessage =
   | { t: "state"; terminal: TerminalInfo }
   | { t: "exit"; id: string; exitCode: number }
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
+  | { t: "resume"; terminalId: string }
   | { t: "error"; message: string };

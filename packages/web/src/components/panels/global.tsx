@@ -365,6 +365,7 @@ const NOTIFICATION_LABEL: Record<string, string> = {
   permission: "permission demandée",
   idle: "en attente d'une réponse",
   stop: "réponse terminée",
+  resume: "reprise",
   other: "événement",
 };
 
@@ -392,7 +393,7 @@ export function NotificationsPanel() {
               </Badge>
               <span className="text-[11px] text-muted-foreground">
                 {status.installed
-                  ? "Claude Code signale permissions, attentes et fins de réponse."
+                  ? "Claude Code signale permissions, attentes, fins de réponse et reprises."
                   : "Sans eux, aucun événement ne remonte."}
               </span>
             </div>

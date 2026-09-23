@@ -341,7 +341,8 @@ origine qui n'est pas la nôtre.
 ## Notifications
 
 Claude Code signale trois choses par ses hooks : une permission demandée, une
-attente de réponse, une réponse terminée. L'installation, depuis le panneau
+attente de réponse, une réponse terminée — et, par `UserPromptSubmit`, la reprise
+qui les rend caduques. L'installation, depuis le panneau
 **Notifications**, déclare ces hooks dans `settings.json` et dépose un script qui
 déverse chaque événement dans une file que le serveur surveille.
 
@@ -364,6 +365,13 @@ remplace la précédente —, et la cliquer ramène la fenêtre sur cet onglet. 
 l'application, la pastille suffit. Sous Windows, l'application de bureau déclare
 son identifiant d'application : sans lui, les notifications d'une application
 absente du menu Démarrer ne s'affichent pas.
+
+La pastille et la notification s'éteignent quand on montre l'onglet, et aussi
+quand la session repart sur un nouveau prompt. La reprise est lue sur
+`UserPromptSubmit` plutôt que sur `PreToolUse`, qui lancerait un processus à
+chaque appel d'outil. Elle ne voit donc pas une session qui repart sans prompt.
+Une installation antérieure à ce hook apparaît comme partielle : il suffit de
+réinstaller.
 
 ## Le plan d'une session
 

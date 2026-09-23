@@ -93,20 +93,20 @@ describe("hookCommand", () => {
 });
 
 describe("installation des hooks", () => {
-  it("déclare les trois types et dépose le script", async () => {
+  it("déclare tous les types et dépose le script", async () => {
     const status = await installHooks(dataDir, settings);
 
     expect(status.installed).toBe(true);
-    expect(status.kinds.sort()).toEqual(["idle", "permission", "stop"]);
+    expect(status.kinds.sort()).toEqual(["idle", "permission", "resume", "stop"]);
     expect(existsSync(hookScriptPath(dataDir))).toBe(true);
     expect(existsSync(eventsDir(dataDir))).toBe(true);
   });
 
-  it("ne pose pas de matcher sur Stop, qui n'en accepte pas", async () => {
+  it.each(["Stop", "UserPromptSubmit"])("ne pose pas de matcher sur %s, qui n'en accepte pas", async (event) => {
     await installHooks(dataDir, settings);
     const value = JSON.parse(await readFile(settings, "utf8"));
 
-    const ours = (value.hooks.Stop as HookEntry[]).filter((entry) =>
+    const ours = (value.hooks[event] as HookEntry[]).filter((entry) =>
       entry.hooks.some((hook) => hook.command.includes(hookScriptPath(dataDir))),
     );
     expect(ours).toHaveLength(1);
@@ -166,6 +166,7 @@ describe("installation des hooks", () => {
     expect(value.hooks.Stop[0].hooks[0].command).toBe("outil-maison hook");
     // La clé vidée disparaît plutôt que de rester en tableau vide.
     expect(value.hooks.Notification).toBeUndefined();
+    expect(value.hooks.UserPromptSubmit).toBeUndefined();
   });
 
   it("rapporte l'absence d'installation sur une configuration vierge", async () => {
@@ -297,6 +298,27 @@ describe("NotificationWatcher", () => {
     watcher.stop();
   });
 
+  it("transmet une reprise sans la garder dans l'historique", async () => {
+    const watcher = new NotificationWatcher(dataDir);
+    await watcher.start();
+
+    const received: ClaudeNotification[] = [];
+    watcher.on((notification) => received.push(notification));
+
+    await writeFile(
+      join(watcher.directory, "1.json"),
+      JSON.stringify({ kind: "resume", payload: { cwd: "C:/x", prompt: "suite" } }),
+      "utf8",
+    );
+    await watcher.drain();
+    await waitFor(() => received.length === 1);
+
+    expect(received[0]?.kind).toBe("resume");
+    expect(watcher.recent()).toEqual([]);
+
+    watcher.stop();
+  });
+
   it("borne l'historique qu'il garde", async () => {
     const watcher = new NotificationWatcher(dataDir, 3000, 3);
     await watcher.start();
@@ -375,11 +397,12 @@ describe("script de hook, exécuté pour de vrai", () => {
 });
 
 describe("définitions", () => {
-  it("couvre les trois états qu'un onglet doit savoir signaler", () => {
+  it("couvre les trois états qu'un onglet doit signaler, et la reprise qui les éteint", () => {
     expect(HOOK_DEFINITIONS.map((definition) => definition.kind)).toEqual([
       "permission",
       "idle",
       "stop",
+      "resume",
     ]);
   });
 });

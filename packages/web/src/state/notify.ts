@@ -5,8 +5,12 @@ const TITLES: Record<NotificationKind, string> = {
   permission: "Claude demande une autorisation",
   idle: "Claude attend une réponse",
   stop: "Claude a terminé",
+  resume: "Claude reprend",
   other: "Claude",
 };
+
+/** Notification encore affichée, par onglet. */
+const shownFor = new Map<string, Notification>();
 
 /**
  * Affiche une notification système pour un événement de hook.
@@ -40,4 +44,17 @@ export function notifySystem(
     if (terminalId && getState().terminals[terminalId]) focus(terminalId);
     shown.close();
   };
+  if (terminalId) {
+    shownFor.get(terminalId)?.close();
+    shownFor.set(terminalId, shown);
+    shown.onclose = () => {
+      if (shownFor.get(terminalId) === shown) shownFor.delete(terminalId);
+    };
+  }
+}
+
+/** Retire la notification d'un onglet qui n'attend plus rien. */
+export function dismissSystem(terminalId: string): void {
+  shownFor.get(terminalId)?.close();
+  shownFor.delete(terminalId);
 }

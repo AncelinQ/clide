@@ -234,6 +234,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         // rattachement se fait sur ce dossier, et reste absent s'il ne
         // correspond à aucun terminal ouvert.
         const terminal = notification.cwd ? manager.findByCwd(notification.cwd) : undefined;
+        if (notification.kind === "resume") {
+          if (terminal) post({ t: "resume", terminalId: terminal.id });
+          return;
+        }
         post({ t: "notification", notification, ...(terminal ? { terminalId: terminal.id } : {}) });
       }),
     ];

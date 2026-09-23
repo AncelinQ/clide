@@ -19,7 +19,7 @@ export interface ClaudeNotification {
   message?: string;
 }
 
-const KINDS = new Set<NotificationKind>(["permission", "idle", "stop", "other"]);
+const KINDS = new Set<NotificationKind>(["permission", "idle", "stop", "resume", "other"]);
 
 function pickString(record: Record<string, unknown>, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -172,8 +172,11 @@ export class NotificationWatcher {
         const notification = parseNotification(name.replace(/\.json$/, ""), text);
         if (!notification) continue;
 
-        this.#recent.push(notification);
-        if (this.#recent.length > this.keep) this.#recent.shift();
+        // Une reprise n'est pas une alerte à relire : elle ne va pas à l'historique.
+        if (notification.kind !== "resume") {
+          this.#recent.push(notification);
+          if (this.#recent.length > this.keep) this.#recent.shift();
+        }
         produced.push(notification);
         for (const listener of this.#listeners) listener(notification);
       }

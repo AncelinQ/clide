@@ -3,8 +3,15 @@ import { dirname, join } from "node:path";
 
 import { SettingsEditor, appDataDir, settingsFile, type SettingsEdit } from "@claude-ide/core";
 
-/** Ce que l'application sait faire d'un événement de hook. */
-export type NotificationKind = "permission" | "idle" | "stop" | "other";
+/**
+ * Ce que l'application sait faire d'un événement de hook.
+ *
+ * `resume` n'est pas une alerte : il signale que la session repart, et éteint la
+ * pastille de l'onglet au lieu d'en allumer une.
+ */
+export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "other";
+
+type HookEvent = "Notification" | "Stop" | "UserPromptSubmit";
 
 /**
  * Hooks déclarés dans `settings.json`.
@@ -14,13 +21,21 @@ export type NotificationKind = "permission" | "idle" | "stop" | "other";
  * entrée par type nous le fait connaître sans dépendre d'un champ que la
  * documentation ne fixe pas.
  *
- * `Stop` n'accepte pas de `matcher` — en poser un ferait taire le hook.
+ * `Stop` et `UserPromptSubmit` n'acceptent pas de `matcher` — en poser un ferait
+ * taire le hook.
+ *
+ * La reprise est lue sur `UserPromptSubmit`, qui tire une fois par prompt, et non
+ * sur `PreToolUse` : ce dernier tirerait à chaque appel d'outil et lancerait un
+ * processus Node dans le chemin critique de chacun.
  */
-export const HOOK_DEFINITIONS: { event: "Notification" | "Stop"; matcher?: string; kind: NotificationKind }[] = [
+export const HOOK_DEFINITIONS: { event: HookEvent; matcher?: string; kind: NotificationKind }[] = [
   { event: "Notification", matcher: "permission_prompt", kind: "permission" },
   { event: "Notification", matcher: "idle_prompt|agent_needs_input", kind: "idle" },
   { event: "Stop", kind: "stop" },
+  { event: "UserPromptSubmit", kind: "resume" },
 ];
+
+const HOOK_EVENTS = [...new Set(HOOK_DEFINITIONS.map((definition) => definition.event))];
 
 export function eventsDir(dataDir: string = appDataDir()): string {
   return join(dataDir, "hook-events");
@@ -150,7 +165,7 @@ export async function installHooks(
   const scriptPath = hookScriptPath(dataDir);
 
   const edits: SettingsEdit[] = [];
-  for (const event of ["Notification", "Stop"] as const) {
+  for (const event of HOOK_EVENTS) {
     const kept = entriesOf(hooks[event]).filter((entry) => !isOurs(entry, scriptPath));
     const ours = HOOK_DEFINITIONS.filter((definition) => definition.event === event).map((definition) => ({
       ...(definition.matcher ? { matcher: definition.matcher } : {}),
@@ -174,7 +189,7 @@ export async function uninstallHooks(
   const scriptPath = hookScriptPath(dataDir);
 
   const edits: SettingsEdit[] = [];
-  for (const event of ["Notification", "Stop"] as const) {
+  for (const event of HOOK_EVENTS) {
     const kept = entriesOf(hooks[event]).filter((entry) => !isOurs(entry, scriptPath));
     edits.push({ path: ["hooks", event], value: kept.length > 0 ? kept : undefined });
   }

@@ -3,7 +3,7 @@ import { Terminal } from "@xterm/xterm";
 
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
-import { notifySystem } from "@/state/notify";
+import { dismissSystem, notifySystem } from "@/state/notify";
 import { getState, setState } from "@/state/store";
 
 /**
@@ -81,6 +81,16 @@ function onMessage(message: ServerMessage): void {
       notifySystem(notification, terminalId, focusTerminal);
       break;
     }
+    case "resume":
+      // La session repart : ce qu'elle attendait a été donné, la pastille ment.
+      dismissSystem(message.terminalId);
+      setState((current) => {
+        if (!current.attention[message.terminalId]) return {};
+        const attention = { ...current.attention };
+        delete attention[message.terminalId];
+        return { attention };
+      });
+      break;
     case "error":
       console.error("[claude-ide]", message.message);
       break;
@@ -123,6 +133,7 @@ export function closeTerminal(id: string): void {
 export function focusTerminal(id: string): void {
   const entry = getState().terminals[id];
   if (!entry) return;
+  dismissSystem(id);
   setState((current) => {
     const attention = { ...current.attention };
     delete attention[id];

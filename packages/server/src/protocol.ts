@@ -16,6 +16,7 @@ export type ServerMessage =
   | { t: "state"; terminal: TerminalInfo }
   | { t: "exit"; id: string; exitCode: number }
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
+  | { t: "resume"; terminalId: string }
   | { t: "error"; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
