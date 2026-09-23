@@ -210,6 +210,33 @@ export function focusTerminal(id: string): void {
   requestAnimationFrame(() => resize(id));
 }
 
+/**
+ * Onglet Claude du projet courant où envoyer une commande : l'actif s'il en est
+ * un, sinon le premier ouvert. Aucun s'il n'y a pas d'onglet Claude vivant.
+ */
+export function claudeTabFor(root: string | null): string | undefined {
+  const { terminals, activeTerminalId } = getState();
+  const tabs = Object.values(terminals).filter(
+    (entry) => entry.owner === root && entry.info.kind === "claude" && !entry.info.exited,
+  );
+  return (tabs.find((entry) => entry.info.id === activeTerminalId) ?? tabs[0])?.info.id;
+}
+
+/**
+ * Tape une commande dans l'onglet Claude du projet et l'y amène.
+ *
+ * Sans Échap devant, contrairement aux shells : dans Claude Code, Échap
+ * interrompt le tour en cours, et deux de suite ouvrent le retour arrière. Une
+ * commande envoyée pendant que Claude travaille part dans sa file d'attente.
+ */
+export function sendToClaude(command: string): boolean {
+  const id = claudeTabFor(getState().activeRoot);
+  if (!id) return false;
+  typeInto(id, `${command}\r`);
+  focusTerminal(id);
+  return true;
+}
+
 /** Écrit dans le terminal actif, pour insérer un chemin par exemple. */
 export function typeInto(id: string, data: string): void {
   send({ t: "input", id, data });

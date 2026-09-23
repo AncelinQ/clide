@@ -289,6 +289,11 @@ le disque : il faut interroger chaque serveur, ce que fait `claude mcp list`.
   sortir la commande en erreur, et ce qu'elle a écrit avant est l'état des
   autres.
 
+Un serveur qui demande une authentification porte un bouton `/mcp` : il tape la
+commande dans l'onglet Claude du projet, l'actif s'il en est un, où Claude Code
+mène l'authentification. Sans Échap devant, contrairement aux shells : dans Claude
+Code, Échap interrompt le tour en cours.
+
 ## Dossiers liés
 
 Le front dépend de l'API et du design system, qui vivent dans d'autres dépôts.
