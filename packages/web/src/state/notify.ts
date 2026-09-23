@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { ClaudeNotification, NotificationKind } from "@/lib/types";
 import { getState } from "@/state/store";
 
@@ -32,7 +33,7 @@ export function notifySystem(
   const where = entry ? getState().projects.find((project) => project.root === entry.owner)?.name : undefined;
   const body = [where, notification.message].filter(Boolean).join(" — ");
 
-  const shown = new Notification(TITLES[notification.kind], {
+  const shown = new Notification(t(TITLES[notification.kind]), {
     body,
     ...(terminalId ? { tag: terminalId } : {}),
   });

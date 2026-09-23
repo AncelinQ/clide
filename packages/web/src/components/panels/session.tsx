@@ -3,6 +3,7 @@ import { Activity, ClipboardList, FileDiff } from "lucide-react";
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
 import { Badge } from "@/components/ui/badge";
+import { t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, TokenUsage } from "@/lib/types";
 import { cn } from "cn";
@@ -36,7 +37,7 @@ export function FilesPanel({ session }: { session: ShownSession }) {
     <Async state={state}>
       {({ diffs }) =>
         diffs.length === 0 ? (
-          <Empty icon={FileDiff}>Aucun fichier touché.</Empty>
+          <Empty icon={FileDiff}>{t("Aucun fichier touché.")}</Empty>
         ) : (
           <Rows>
             {diffs.map((diff) => (
@@ -51,10 +52,10 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                 }
                 badges={
                   <>
-                    {diff.created && <Badge variant="secondary">créé</Badge>}
-                    {diff.deleted && <Badge variant="outline">supprimé</Badge>}
-                    {diff.binary && <Badge variant="outline">binaire</Badge>}
-                    {diff.beforeMissing && <Badge variant="outline">sauvegarde absente</Badge>}
+                    {diff.created && <Badge variant="secondary">{t("créé")}</Badge>}
+                    {diff.deleted && <Badge variant="outline">{t("supprimé")}</Badge>}
+                    {diff.binary && <Badge variant="outline">{t("binaire")}</Badge>}
+                    {diff.beforeMissing && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
                   </>
                 }
               >
@@ -97,11 +98,11 @@ function Consumption({ session }: { session: ShownSession }) {
   const { tokens, costUSD } = session;
   if (!tokens && costUSD === undefined) return null;
   const parts = [
-    tokens && `contexte ${formatTokens(tokens.context)}`,
-    tokens && `${formatTokens(tokens.output)} en sortie`,
-    tokens && `${formatTokens(tokens.input + tokens.cacheCreation)} en entrée`,
-    tokens && tokens.cacheRead > 0 && `${formatTokens(tokens.cacheRead)} lus en cache`,
-    costUSD !== undefined && `${costUSD.toFixed(2).replace(".", ",")} $`,
+    tokens && t("contexte {tokens}", { tokens: formatTokens(tokens.context) }),
+    tokens && t("{tokens} en sortie", { tokens: formatTokens(tokens.output) }),
+    tokens && t("{tokens} en entrée", { tokens: formatTokens(tokens.input + tokens.cacheCreation) }),
+    tokens && tokens.cacheRead > 0 && t("{tokens} lus en cache", { tokens: formatTokens(tokens.cacheRead) }),
+    costUSD !== undefined && t("{cost} $", { cost: costUSD.toFixed(2).replace(".", ",") }),
   ].filter(Boolean);
   return (
     <p className="py-1 text-[11px] text-muted-foreground" title={tokens?.model}>
@@ -124,13 +125,13 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
     <Async state={state}>
       {(feed) =>
         feed.entries.length === 0 ? (
-          <Empty icon={Activity}>Aucune activité.</Empty>
+          <Empty icon={Activity}>{t("Aucune activité.")}</Empty>
         ) : (
           <>
             <Consumption session={session} />
             {feed.total > feed.entries.length && (
               <p className="py-1 text-[11px] text-muted-foreground">
-                {feed.entries.length} dernières entrées sur {feed.total}.
+                {t("{count} dernières entrées sur {total}.", { count: feed.entries.length, total: feed.total })}
               </p>
             )}
             <ul className="m-0 list-none p-0 text-[12px]">
@@ -141,7 +142,7 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                   className="flex gap-2 border-b py-1.5 last:border-0"
                 >
                   <span className="w-14 shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">
-                    {entry.kind === "tool" ? entry.name : ACTIVITY_LABEL[entry.kind]}
+                    {entry.kind === "tool" ? entry.name : t(ACTIVITY_LABEL[entry.kind] ?? "")}
                   </span>
                   <span
                     className={cn(
@@ -179,14 +180,14 @@ export function PlanPanel({ session }: { session: ShownSession }) {
         !plan ? (
           <Empty icon={ClipboardList}>
             {planModeEntries > 0
-              ? "Passée en mode plan, mais aucun plan soumis."
-              : `Jamais passée en mode plan. Mode courant : ${mode ?? "inconnu"}.`}
+              ? t("Passée en mode plan, mais aucun plan soumis.")
+              : t("Jamais passée en mode plan. Mode courant : {mode}.", { mode: mode ?? t("inconnu") })}
           </Empty>
         ) : (
           <>
             {plan.progress && (
               <p className="py-1 text-[11px] text-muted-foreground">
-                {plan.progress.done} sur {plan.progress.total} étapes cochées
+                {t("{done} sur {total} étapes cochées", { done: plan.progress.done, total: plan.progress.total })}
               </p>
             )}
             <Markdown text={plan.text} className="rounded-md border bg-muted/20 px-3 py-2" />

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/i18n";
 import { api, formatDate, formatTime, post, shortName } from "@/lib/api";
 import type {
   ClaudeNotification,
@@ -57,13 +58,13 @@ export function HistoryPanel({ filter }: { filter: string }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les projets</SelectItem>
-                <SelectItem value="project">Ce projet</SelectItem>
+                <SelectItem value="all">{t("Tous les projets")}</SelectItem>
+                <SelectItem value="project">{t("Ce projet")}</SelectItem>
               </SelectContent>
             </Select>
 
             {shown.length === 0 ? (
-              <Empty icon={History}>Aucune session.</Empty>
+              <Empty icon={History}>{t("Aucune session.")}</Empty>
             ) : (
               <Rows>
                 {shown.slice(0, 200).map((session) => (
@@ -77,7 +78,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                       formatDate(session.lastActivityAt),
                       shortName(session.effectiveCwd ?? ""),
                       session.gitBranch,
-                      `${session.fileCount} fichiers`,
+                      t("{count} fichiers", { count: session.fileCount }),
                     ]
                       .filter(Boolean)
                       .join("  ·  ")}
@@ -94,10 +95,10 @@ export function HistoryPanel({ filter }: { filter: string }) {
                           });
                         }}
                       >
-                        reprendre
+                        {t("reprendre")}
                       </ActionButton>
                       <ActionButton variant="ghost" onAction={() => setRemoving(session.sessionId)}>
-                        retirer
+                        {t("retirer")}
                       </ActionButton>
                       </>
                     }
@@ -161,9 +162,9 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
         return (
           <>
             <SkillImport scope="user" root={root} onDone={state.reload}>
-              <Section>Personnels</Section>
+              <Section>{t("Personnels")}</Section>
               {personal.length === 0 ? (
-                <p className="py-2 text-muted-foreground">Aucun skill personnel.</p>
+                <p className="py-2 text-muted-foreground">{t("Aucun skill personnel.")}</p>
               ) : (
                 <Rows>
                   {personal.map((skill) => (
@@ -183,7 +184,7 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
                 className="mt-2 h-7"
                 onClick={() => setEditing({ directory: "", description: "" })}
               >
-                Nouveau skill
+                {t("Nouveau skill")}
               </Button>
             </SkillImport>
 
@@ -198,7 +199,7 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
               </>
             )}
 
-            <Section>Commandes ({shown.length})</Section>
+            <Section>{t("Commandes ({count})", { count: shown.length })}</Section>
             <Rows>
               {shown.map((command) => (
                 <Row key={command.name} title={`/${command.name}`} sub={command.description} />
@@ -232,9 +233,9 @@ export function UserMcpPanel() {
             const own = servers.filter((server) => server.scope === scope);
             return (
               <div key={scope}>
-                <Section>{label}</Section>
+                <Section>{t(label)}</Section>
                 {own.length === 0 ? (
-                  <p className="py-2 text-muted-foreground">Aucun.</p>
+                  <p className="py-2 text-muted-foreground">{t("Aucun.")}</p>
                 ) : (
                   <Rows>
                     {own.map((server) => {
@@ -251,7 +252,7 @@ export function UserMcpPanel() {
                           }
                           sub={[
                             serverTarget(server),
-                            keys.length ? `secrets masqués : ${keys.join(", ")}` : "",
+                            keys.length ? t("secrets masqués : {keys}", { keys: keys.join(", ") }) : "",
                           ]
                             .filter(Boolean)
                             .join("  ·  ")}
@@ -264,11 +265,11 @@ export function UserMcpPanel() {
                                     await post("/api/mcp/copy", { root, name: server.name, from: root, scope });
                                   }}
                                 >
-                                  copier dans le projet
+                                  {t("copier dans le projet")}
                                 </ActionButton>
                               )}
                               <DangerButton
-                                label="retirer"
+                                label={t("retirer")}
                                 onConfirm={async () => {
                                   await post("/api/mcp/cli/remove", { root, scope, name: server.name });
                                   state.reload();
@@ -288,7 +289,7 @@ export function UserMcpPanel() {
               configuration locale : ils n'existent ici qu'une fois l'état lu. */}
           {connectors && connectors.length > 0 && (
             <div>
-              <Section>Connecteurs claude.ai</Section>
+              <Section>{t("Connecteurs claude.ai")}</Section>
               <Rows>
                 {connectors.map((connector) => (
                   <Row
@@ -302,9 +303,9 @@ export function UserMcpPanel() {
           )}
 
           <div className="flex items-center gap-2 py-3">
-            <ActionButton onAction={check}>Vérifier l'état</ActionButton>
+            <ActionButton onAction={check}>{t("Vérifier l'état")}</ActionButton>
             <span className="text-[11px] text-muted-foreground">
-              interroge chaque serveur, quelques secondes
+              {t("interroge chaque serveur, quelques secondes")}
             </span>
           </div>
 
@@ -312,10 +313,10 @@ export function UserMcpPanel() {
               chaque projet : l'écriture passe par la CLI, pas par ce fichier. */}
           <div className="flex items-center gap-2 pb-3">
             <Button variant="outline" size="sm" className="h-7" onClick={() => setCreating((value) => value + 1)}>
-              Ajouter un serveur
+              {t("Ajouter un serveur")}
             </Button>
             <span className="text-[11px] text-muted-foreground">
-              par <code>claude mcp add-json</code>
+              {t("par")} <code>claude mcp add-json</code>
             </span>
           </div>
           {creating > 0 && (
@@ -346,11 +347,11 @@ export function SettingsPanel() {
         <>
           <p className="py-2 font-mono text-[11px] break-all text-muted-foreground">{document_.path}</p>
           <p className="pb-2 text-[11px] text-muted-foreground">
-            Une sauvegarde de l'original est posée avant la première modification.
+            {t("Une sauvegarde de l'original est posée avant la première modification.")}
           </p>
           <SettingsForm value={document_.value} onChanged={() => { setDraft(null); state.reload(); }} />
           <details>
-            <summary className="cursor-pointer py-2 text-[12px] text-muted-foreground">JSON brut</summary>
+            <summary className="cursor-pointer py-2 text-[12px] text-muted-foreground">{t("JSON brut")}</summary>
           <Textarea
             rows={18}
             className="font-mono text-[11px]"
@@ -366,7 +367,7 @@ export function SettingsPanel() {
                 state.reload();
               }}
             >
-              Enregistrer
+              {t("Enregistrer")}
             </ActionButton>
             <ActionButton
               onAction={() => {
@@ -374,7 +375,7 @@ export function SettingsPanel() {
                 state.reload();
               }}
             >
-              Recharger
+              {t("Recharger")}
             </ActionButton>
           </div>
           </details>
@@ -394,10 +395,10 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
           <div className="group/process flex flex-wrap items-baseline gap-1.5">
             <Badge variant={node.link.kind === "owned" ? "default" : "outline"}>
               {node.link.kind === "owned"
-                ? "ce terminal"
+                ? t("ce terminal")
                 : node.link.kind === "inferred"
-                  ? "lancé ailleurs"
-                  : "enfant"}
+                  ? t("lancé ailleurs")
+                  : t("enfant")}
             </Badge>
             <span>
               {node.name} · {node.pid}
@@ -407,7 +408,7 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
               // processus en permanence noie l'arbre.
               <span className="opacity-0 transition-opacity group-hover/process:opacity-100 focus-within:opacity-100 has-[[data-armed]]:opacity-100">
                 <DangerButton
-                  label="arrêter"
+                  label={t("arrêter")}
                   onConfirm={async () => {
                     await api("/api/processes/stop", { pid: node.pid }, { method: "POST" });
                     reload();
@@ -416,7 +417,7 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
               </span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground">{node.memoryMB} Mo</div>
+          <div className="text-[11px] text-muted-foreground">{t("{size} Mo", { size: node.memoryMB })}</div>
           {node.children.length > 0 && <ProcessTree nodes={node.children} reload={reload} />}
         </li>
       ))}
@@ -430,7 +431,7 @@ export function ProcessesPanel() {
     <Async state={state}>
       {({ tree }) =>
         tree.length === 0 ? (
-          <Empty icon={Cpu}>Aucun processus Claude en cours.</Empty>
+          <Empty icon={Cpu}>{t("Aucun processus Claude en cours.")}</Empty>
         ) : (
           <ProcessTree nodes={tree} reload={state.reload} root />
         )
@@ -447,6 +448,11 @@ const NOTIFICATION_LABEL: Record<string, string> = {
   stop: "réponse terminée",
   resume: "reprise",
   other: "événement",
+};
+
+const notificationLabel = (kind: string): string | undefined => {
+  const label = NOTIFICATION_LABEL[kind];
+  return label && t(label);
 };
 
 export function NotificationsPanel() {
@@ -466,15 +472,15 @@ export function NotificationsPanel() {
             <div className="flex flex-wrap items-center gap-2 py-2">
               <Badge variant={status.installed ? "default" : "outline"}>
                 {status.installed
-                  ? "hooks installés"
+                  ? t("hooks installés")
                   : status.kinds.length > 0
-                    ? "installation partielle"
-                    : "hooks absents"}
+                    ? t("installation partielle")
+                    : t("hooks absents")}
               </Badge>
               <span className="text-[11px] text-muted-foreground">
                 {status.installed
-                  ? "Claude Code signale permissions, attentes, fins de réponse et reprises."
-                  : "Sans eux, aucun événement ne remonte."}
+                  ? t("Claude Code signale permissions, attentes, fins de réponse et reprises.")
+                  : t("Sans eux, aucun événement ne remonte.")}
               </span>
             </div>
             <ActionButton
@@ -490,21 +496,21 @@ export function NotificationsPanel() {
                 state.reload();
               }}
             >
-              {status.installed ? "Désinstaller" : "Installer les hooks"}
+              {status.installed ? t("Désinstaller") : t("Installer les hooks")}
             </ActionButton>
 
-            <Section>Reçus</Section>
+            <Section>{t("Reçus")}</Section>
             {all.length === 0 ? (
-              <p className="py-2 text-muted-foreground">Aucun événement reçu.</p>
+              <p className="py-2 text-muted-foreground">{t("Aucun événement reçu.")}</p>
             ) : (
               <Rows>
                 {all.slice(0, 60).map((item) => (
                   <Row
                     key={item.id}
-                    title={item.message ?? NOTIFICATION_LABEL[item.kind]}
+                    title={item.message ?? notificationLabel(item.kind)}
                     badges={
                       <Badge variant={item.kind === "permission" ? "default" : "outline"}>
-                        {NOTIFICATION_LABEL[item.kind]}
+                        {notificationLabel(item.kind)}
                       </Badge>
                     }
                     sub={[formatTime(item.receivedAt), shortName(item.cwd ?? "")].filter(Boolean).join("  ·  ")}

@@ -10,6 +10,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { t } from "@/i18n";
 import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, updateProject, type Project } from "@/state/store";
@@ -64,7 +65,7 @@ export function FileBrowser({ project }: { project: Project }) {
           className="size-6"
           disabled={!project.browsePath}
           onClick={() => goTo(parentOf(project.browsePath))}
-          title="Dossier parent"
+          title={t("Dossier parent")}
         >
           <ArrowUp className="size-3.5" />
         </Button>
@@ -143,36 +144,36 @@ export function FileBrowser({ project }: { project: Project }) {
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     <ContextMenuItem onSelect={() => insertPath(entry.path)}>
-                      Insérer le chemin
+                      {t("Insérer le chemin")}
                     </ContextMenuItem>
                     {!entry.directory && (
                       <>
                         <ContextMenuItem onSelect={() => setPreviewing(entry.path)}>
-                          Aperçu (Espace)
+                          {t("Aperçu (Espace)")}
                         </ContextMenuItem>
                         <ContextMenuItem onSelect={() => openOnDisk(project.root, entry.path)}>
-                          Ouvrir
+                          {t("Ouvrir")}
                         </ContextMenuItem>
                       </>
                     )}
                     <ContextMenuItem onSelect={() => openOnDisk(project.root, entry.path, true)}>
-                      Afficher dans l'Explorateur
+                      {t("Afficher dans l'Explorateur")}
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(entry.path)}>
-                      Copier le chemin
+                      {t("Copier le chemin")}
                     </ContextMenuItem>
                     {entry.directory && (
                       <>
                         <ContextMenuItem
                           onSelect={() => openTerminal("claude", { command: "claude", cwd: entry.path })}
                         >
-                          Claude ici
+                          {t("Claude ici")}
                         </ContextMenuItem>
                         <ContextMenuItem onSelect={() => openTerminal("shell", { cwd: entry.path })}>
-                          Shell ici
+                          {t("Shell ici")}
                         </ContextMenuItem>
                         <ContextMenuItem onSelect={() => openProject(entry.path)}>
-                          Ouvrir comme projet
+                          {t("Ouvrir comme projet")}
                         </ContextMenuItem>
                       </>
                     )}

@@ -1,6 +1,7 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 
+import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { dismissSystem, notifySystem } from "@/state/notify";
@@ -74,7 +75,7 @@ function onMessage(message: ServerMessage): void {
       });
       break;
     case "exit":
-      attached.get(message.id)?.term.write(`\r\n\u001b[90m— terminal fermé (${message.exitCode}) —\u001b[0m\r\n`);
+      attached.get(message.id)?.term.write(`\r\n\u001b[90m— ${t("terminal fermé ({code})", { code: message.exitCode })} —\u001b[0m\r\n`);
       break;
     case "notification": {
       const { notification, terminalId } = message;
@@ -276,7 +277,12 @@ export function resizeActive(): void {
 export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<string, string>): void {
   const existing = attached.get(info.id);
   if (existing) {
-    if (existing.host !== host) host.append(...existing.host.childNodes);
+    // Le nouvel hôte devient la référence : garder l'ancien ferait chercher le
+    // terminal, au remontage suivant, dans un nœud qu'on vient de vider.
+    if (existing.host !== host) {
+      host.append(...existing.host.childNodes);
+      existing.host = host;
+    }
     return;
   }
 

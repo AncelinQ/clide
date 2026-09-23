@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "cn";
+import { t } from "@/i18n";
 import { activeProject, setState, updateProject, useStore } from "@/state/store";
 
 /** Coquille commune des trois colonnes : un îlot posé sur la toile. */
@@ -57,7 +58,7 @@ export function ProjectColumn() {
   if (!project) {
     return (
       <Island>
-        <p className="p-4 text-muted-foreground">Aucun projet ouvert.</p>
+        <p className="p-4 text-muted-foreground">{t("Aucun projet ouvert.")}</p>
       </Island>
     );
   }
@@ -66,38 +67,40 @@ export function ProjectColumn() {
     {
       id: "links",
       icon: Link2,
-      title: "Dossiers liés",
-      about:
+      title: t("Dossiers liés"),
+      about: t(
         "Les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json, qui en donne l'accès à Claude ; leurs rôles vont dans un fichier de prompt que chaque session reçoit, qui lui dit à quoi ils servent.",
+      ),
       render: () => <LinksPanel root={project.root} />,
     },
     {
       id: "scripts",
       icon: Package,
       title: "Scripts",
-      about: "Scripts du package.json, espaces de travail compris. Le gestionnaire vient du lockfile.",
+      about: t("Scripts du package.json, espaces de travail compris. Le gestionnaire vient du lockfile."),
       render: () => <ScriptsPanel root={project.root} />,
     },
     {
       id: "skills",
       icon: Sparkles,
-      title: "Skills du projet",
-      about:
+      title: t("Skills du projet"),
+      about: t(
         "Un skill est un .claude/skills/<nom>/SKILL.md. Claude le charge seul quand la description correspond, ou par /nom.",
+      ),
       render: () => <ProjectSkillsPanel root={project.root} />,
     },
     {
       id: "mcp",
       icon: Plug,
-      title: "MCP du projet",
-      about: "Serveurs déclarés dans .mcp.json, à la racine du dépôt, partagés par l'équipe.",
+      title: t("MCP du projet"),
+      about: t("Serveurs déclarés dans .mcp.json, à la racine du dépôt, partagés par l'équipe."),
       render: () => <ProjectMcpPanel root={project.root} />,
     },
     {
       id: "worktrees",
       icon: GitBranch,
       title: "Worktrees",
-      about: "Les worktrees git du dépôt, leur état et les sessions qui y vivent.",
+      about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),
       render: () => <WorktreesPanel root={project.root} />,
     },
   ];
@@ -166,7 +169,7 @@ export function GlobalColumn() {
             )}
           >
             <tab.icon className="size-4" />
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </nav>
@@ -176,7 +179,7 @@ export function GlobalColumn() {
           <Input
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            placeholder="Filtrer…"
+            placeholder={t("Filtrer…")}
             spellCheck={false}
             className="h-7 flex-1 text-[12px]"
           />
@@ -186,7 +189,7 @@ export function GlobalColumn() {
           size="icon"
           className={cn("size-7", searchable ? "" : "ml-auto")}
           onClick={() => setNonce((value) => value + 1)}
-          title="Recharger"
+          title={t("Recharger")}
         >
           <RefreshCw />
         </Button>

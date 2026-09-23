@@ -11,6 +11,9 @@ export interface Project {
 
 export type Theme = "auto" | "light" | "dark";
 
+/** Langue de l'interface ; `auto` suit celle du système. */
+export type Language = "auto" | "fr" | "en";
+
 export interface TerminalFont {
   /** Famille choisie ; vide pour la pile par défaut. */
   family: string;
@@ -54,11 +57,12 @@ export interface State {
    * par défaut ; une action absente garde le sien.
    */
   shortcuts: Record<string, string | null>;
+  language: Language;
 }
 
 const SAVED = "claude-ide.state";
 
-function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts"> {
+function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language"> {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
       roots?: string[];
@@ -66,6 +70,7 @@ function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminal
       theme?: Theme;
       terminalFont?: Partial<TerminalFont>;
       shortcuts?: Record<string, string | null>;
+      language?: Language;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
@@ -74,10 +79,11 @@ function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminal
       theme: saved.theme ?? "auto",
       terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
       shortcuts: saved.shortcuts ?? {},
+      language: saved.language ?? "auto",
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {} };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto" };
   }
 }
 
@@ -122,6 +128,7 @@ function persist(): void {
       theme: state.theme,
       terminalFont: state.terminalFont,
       shortcuts: state.shortcuts,
+      language: state.language,
     }),
   );
 }

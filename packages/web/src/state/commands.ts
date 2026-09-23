@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { post, quotePath } from "@/lib/api";
 import { closeProject, getState, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
@@ -74,48 +75,48 @@ export function commands(): Command[] {
   };
 
   return [
-    { id: "palette", group: "Application", label: "Palette de commandes", shortcut: "Ctrl+Shift+P", run: () => setState({ paletteOpen: true }) },
-    { id: "preferences", group: "Application", label: "Préférences", run: () => setState({ preferencesOpen: true }) },
-    { id: "theme", group: "Application", label: "Changer de thème", run: cycleTheme },
+    { id: "palette", group: t("Application"), label: t("Palette de commandes"), shortcut: "Ctrl+Shift+P", run: () => setState({ paletteOpen: true }) },
+    { id: "preferences", group: t("Application"), label: t("Préférences"), run: () => setState({ preferencesOpen: true }) },
+    { id: "theme", group: t("Application"), label: t("Changer de thème"), run: cycleTheme },
 
-    { id: "project.open", group: "Projets", label: "Ouvrir un projet", shortcut: "Ctrl+Shift+O", run: () => setState({ addingProject: true }) },
+    { id: "project.open", group: t("Projets"), label: t("Ouvrir un projet"), shortcut: "Ctrl+Shift+O", run: () => setState({ addingProject: true }) },
     {
       id: "project.close",
-      group: "Projets",
-      label: "Fermer le projet",
+      group: t("Projets"),
+      label: t("Fermer le projet"),
       run: () => {
         if (!activeRoot) return;
         for (const id of ownTabs()) closeTerminal(id);
         closeProject(activeRoot);
       },
     },
-    { id: "project.next", group: "Projets", label: "Projet suivant", shortcut: "Alt+PageDown", run: () => nextProject(1) },
-    { id: "project.previous", group: "Projets", label: "Projet précédent", shortcut: "Alt+PageUp", run: () => nextProject(-1) },
+    { id: "project.next", group: t("Projets"), label: t("Projet suivant"), shortcut: "Alt+PageDown", run: () => nextProject(1) },
+    { id: "project.previous", group: t("Projets"), label: t("Projet précédent"), shortcut: "Alt+PageUp", run: () => nextProject(-1) },
 
-    { id: "tab.shell", group: "Onglets", label: "Nouveau shell", shortcut: "Ctrl+Shift+T", run: () => openTerminal("shell") },
+    { id: "tab.shell", group: t("Onglets"), label: t("Nouveau shell"), shortcut: "Ctrl+Shift+T", run: () => openTerminal("shell") },
     {
       id: "tab.claude",
-      group: "Onglets",
-      label: "Nouvel onglet Claude",
+      group: t("Onglets"),
+      label: t("Nouvel onglet Claude"),
       shortcut: "Ctrl+Shift+A",
       run: () => openTerminal("claude", { command: "claude" }),
     },
     {
       id: "tab.close",
-      group: "Onglets",
-      label: "Fermer l'onglet",
+      group: t("Onglets"),
+      label: t("Fermer l'onglet"),
       shortcut: "Ctrl+Shift+W",
       run: () => {
         const id = activeTab();
         if (id) closeTerminal(id);
       },
     },
-    { id: "tab.next", group: "Onglets", label: "Onglet suivant", shortcut: "Ctrl+Shift+PageDown", run: () => nextTab(1) },
-    { id: "tab.previous", group: "Onglets", label: "Onglet précédent", shortcut: "Ctrl+Shift+PageUp", run: () => nextTab(-1) },
+    { id: "tab.next", group: t("Onglets"), label: t("Onglet suivant"), shortcut: "Ctrl+Shift+PageDown", run: () => nextTab(1) },
+    { id: "tab.previous", group: t("Onglets"), label: t("Onglet précédent"), shortcut: "Ctrl+Shift+PageUp", run: () => nextTab(-1) },
     {
       id: "tab.capture",
-      group: "Onglets",
-      label: "Capture d'écran vers le prompt",
+      group: t("Onglets"),
+      label: t("Capture d'écran vers le prompt"),
       shortcut: "Ctrl+Shift+S",
       run: () => {
         const id = activeTab();
@@ -125,8 +126,8 @@ export function commands(): Command[] {
 
     {
       id: "session.toggle",
-      group: "Session",
-      label: "Replier ou déplier le bloc session",
+      group: t("Session"),
+      label: t("Replier ou déplier le bloc session"),
       shortcut: "Ctrl+Shift+J",
       run: () => setState((current) => ({ sessionCollapsed: !current.sessionCollapsed })),
     },
@@ -138,29 +139,32 @@ export function commands(): Command[] {
       ] as const
     ).map(([mode, label]) => ({
       id: `session.${mode}`,
-      group: "Session",
-      label: `Montrer : ${label}`,
+      group: t("Session"),
+      label: t("Montrer : {label}", { label: t(label) }),
       run: () => setState({ sessionMode: mode, sessionCollapsed: false }),
     })),
 
     {
       id: "view.left",
-      group: "Affichage",
-      label: "Colonne du projet",
+      group: t("Affichage"),
+      label: t("Colonne du projet"),
       shortcut: "Ctrl+Shift+B",
       run: () => setState((current) => ({ showLeft: !current.showLeft })),
     },
     {
       id: "view.right",
-      group: "Affichage",
-      label: "Panneau global",
+      group: t("Affichage"),
+      label: t("Panneau global"),
       shortcut: "Ctrl+Shift+E",
       run: () => setState((current) => ({ showRight: !current.showRight })),
     },
     ...tabs.map(([id, label]) => ({
       id: `panel.${id}`,
-      group: "Affichage",
-      label: `Panneau global : ${label}${id === globalTab ? " (ouvert)" : ""}`,
+      group: t("Affichage"),
+      label:
+        id === globalTab
+          ? t("Panneau global : {label} (ouvert)", { label: t(label) })
+          : t("Panneau global : {label}", { label: t(label) }),
       run: () => setState({ showRight: true, globalTab: id }),
     })),
   ];

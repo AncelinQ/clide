@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
+import { t } from "@/i18n";
 
 export interface Mode {
   id: string;
@@ -74,7 +75,7 @@ export function ModeBlock({
           size="icon"
           className={cn("size-7", about && "bg-accent text-primary")}
           onClick={() => setAbout((value) => !value)}
-          title="À quoi sert ce mode"
+          title={t("À quoi sert ce mode")}
         >
           <Info />
         </Button>
@@ -83,7 +84,7 @@ export function ModeBlock({
           size="icon"
           className="size-7"
           onClick={() => setCollapsed((value) => !value)}
-          title={collapsed ? "Déplier" : "Replier"}
+          title={collapsed ? t("Déplier") : t("Replier")}
         >
           {collapsed ? <ChevronUp /> : <ChevronDown />}
         </Button>

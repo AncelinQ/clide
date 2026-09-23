@@ -170,6 +170,9 @@ laisser de caractère derrière elle.
 
 **Critère.** Je découvre une action que je ne connaissais pas en ouvrant la palette.
 
+**État.** Fait : palette sur `Ctrl+Maj+P`, raccourcis par défaut, modifiables dans
+les préférences.
+
 ---
 
 ## Piste 6 — Les sous-agents
@@ -230,74 +233,31 @@ sans la rejouer.
 
 ---
 
-## Ce qui n'est pas porté depuis ClaudeTerm
+## Portage depuis ClaudeTerm
 
-Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
-**Ce qui n'y figure pas est porté** : fil d'ariane et menu contextuel du Finder,
-détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
-les trois modes d'invocation des skills, ceux des plugins, leur
-import, leur dépôt et leur copie entre projet et perso et leur rédaction par Claude, la progression du plan, les dossiers
-liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
-serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
-l'édition d'un serveur, ceux des dossiers liés la reprise depuis un autre projet,
-l'écriture des portées user et local par la CLI, le routage des notifications,
-leur affichage système, leur effacement à la reprise et le compteur de la barre
-des tâches, la réutilisation d'un shell inactif pour les scripts et ceux des dossiers liés, l'arrêt de processus au
-survol, la police du terminal,
-l'ouverture d'un fichier depuis le Finder et son aperçu rapide et son glisser
-sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode, le
-mode plan et les tokens dans la barre d'état et l'activité, et l'ouverture
-automatique du plan —, le plan rendu en markdown, l'intégration shell — un `claude` tapé dans un shell en fait un onglet Claude —, les
-images vers le prompt et le bouton Capture, le formulaire des réglages, le retrait d'une session à la
-corbeille, la palette de commandes et les raccourcis modifiables, les worktrees.
+Relevé fait README de l'original en main et vérifié contre le code d'ici : **tout
+est porté**.
 
-Les manques renvoyés à une piste y sont déjà traités.
-
-### Barre de titre et projets
-
-| Manque | Détail |
-|---|---|
-
-### Finder
-
-| Manque | Détail |
-|---|---|
-
-### Scripts
-
-| Manque | Détail |
-|---|---|
-
-### MCP du projet
-
-| Manque | Détail |
-|---|---|
-
-### Terminal
-
-| Manque | Détail |
-|---|---|
-
-### Bloc session
-
-| Manque | Détail |
-|---|---|
-
-### Panneau droit
-
-| Manque | Détail |
-|---|---|
-
-### Skills
-
-| Manque | Détail |
-|---|---|
-
-### Application
-
-| Manque | Détail |
-|---|---|
-| Localisation FR / EN | l'interface est en français seulement. L'original garde ses chaînes françaises en source et une table anglaise à côté |
+- **Projets et Finder** : fil d'ariane et menu contextuel ; ouverture d'un fichier,
+  aperçu rapide (Espace), glisser d'un fichier sur le terminal.
+- **Scripts** : gestionnaire déduit du lockfile, espaces de travail, scripts des
+  dossiers liés, réutilisation d'un shell inactif.
+- **Dossiers liés** au complet : règles `deny`, rôles et fichier de prompt.
+- **MCP** : état des serveurs et connecteurs claude.ai, `/mcp` vers l'onglet
+  Claude, édition, serveurs des dossiers liés, reprise depuis un autre projet,
+  écriture des portées user et local par la CLI.
+- **Terminal** : intégration shell, `claude` tapé dans un shell qui en fait un
+  onglet Claude, images vers le prompt, bouton Capture, police en préférence.
+- **Bloc session** : il suit l'onglet Claude actif, avec mode, mode plan et
+  tokens ; ouverture automatique du plan, plan rendu en markdown.
+- **Panneau droit** : skills des plugins, formulaire des réglages, retrait d'une
+  session à la corbeille, arrêt de processus au survol, worktrees.
+- **Skills** : les trois modes d'invocation, `.claude/commands`, import, dépôt,
+  copie entre projet et perso, rédaction par Claude.
+- **Notifications** : routage, affichage système, effacement à la reprise,
+  compteur de la barre des tâches.
+- **Application** : palette de commandes et raccourcis modifiables, interface en
+  français ou en anglais.
 
 ---
 

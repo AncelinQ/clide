@@ -5,6 +5,7 @@ import { ActionButton, Section } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/i18n";
 import { post } from "@/lib/api";
 
 type Json = Record<string, unknown>;
@@ -75,8 +76,8 @@ export function SettingsForm({ value, onChanged }: { value: Json; onChanged: () 
     <div className="flex flex-col gap-1 pb-3">
       {error && <p className="text-[11px] text-destructive">{error}</p>}
 
-      <Section>Général</Section>
-      <Field label="Modèle">
+      <Section>{t("Général")}</Section>
+      <Field label={t("Modèle")}>
         <Choice options={MODELS} {...text(["model"])} />
       </Field>
       <Field label="Effort">
@@ -85,21 +86,21 @@ export function SettingsForm({ value, onChanged }: { value: Json; onChanged: () 
       <Field label="Interface">
         <Choice options={INTERFACES} {...text(["tui"])} />
       </Field>
-      <Field label="Langue">
-        <TextField placeholder="ex. français" {...text(["language"])} />
+      <Field label={t("Langue")}>
+        <TextField placeholder={t("ex. français")} {...text(["language"])} />
       </Field>
       <Toggle
-        label="Réflexion étendue toujours active"
+        label={t("Réflexion étendue toujours active")}
         checked={read(value, ["alwaysThinkingEnabled"]) === true}
         onChange={(checked) => write(["alwaysThinkingEnabled"], checked ? true : undefined)}
       />
       <Toggle
-        label="Co-Authored-By dans les commits"
+        label={t("Co-Authored-By dans les commits")}
         checked={read(value, ["includeCoAuthoredBy"]) !== false}
         // Vrai par défaut : seul le refus s'écrit.
         onChange={(checked) => write(["includeCoAuthoredBy"], checked ? undefined : false)}
       />
-      <Field label="Purge des transcripts (jours)">
+      <Field label={t("Purge des transcripts (jours)")}>
         <TextField
           placeholder="30"
           value={typeof read(value, ["cleanupPeriodDays"]) === "number" ? String(read(value, ["cleanupPeriodDays"])) : ""}
@@ -110,11 +111,11 @@ export function SettingsForm({ value, onChanged }: { value: Json; onChanged: () 
         />
       </Field>
       <Field label="Status line">
-        <TextField placeholder="commande" {...text(["statusLine", "command"])} />
+        <TextField placeholder={t("commande")} {...text(["statusLine", "command"])} />
       </Field>
 
       <Section>Permissions</Section>
-      <Field label="Mode par défaut">
+      <Field label={t("Mode par défaut")}>
         <Choice options={PERMISSION_MODES} {...text(["permissions", "defaultMode"])} />
       </Field>
       {(
@@ -127,8 +128,8 @@ export function SettingsForm({ value, onChanged }: { value: Json; onChanged: () 
       ).map(([key, label, placeholder]) => (
         <ListEditor
           key={key}
-          label={label}
-          placeholder={placeholder}
+          label={t(label)}
+          placeholder={t(placeholder)}
           items={asList(read(value, ["permissions", key]))}
           onChange={(items) => write(["permissions", key], items.length ? items : undefined)}
         />
@@ -137,7 +138,7 @@ export function SettingsForm({ value, onChanged }: { value: Json; onChanged: () 
       <Section>Hooks</Section>
       <HooksEditor hooks={asRecord(read(value, ["hooks"]))} write={write} />
 
-      <Section>Variables d'environnement</Section>
+      <Section>{t("Variables d'environnement")}</Section>
       <DictEditor
         items={Object.fromEntries(Object.entries(asRecord(read(value, ["env"]))).map(([k, v]) => [k, asString(v)]))}
         onSet={(key, next) => write(["env", key], next)}
@@ -214,7 +215,7 @@ function Choice({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={DEFAULT}>par défaut</SelectItem>
+        <SelectItem value={DEFAULT}>{t("par défaut")}</SelectItem>
         {all.map((option) => (
           <SelectItem key={option} value={option}>
             {option}
@@ -270,7 +271,7 @@ function ListEditor({
               variant="ghost"
               size="icon"
               className="size-5 opacity-50 hover:opacity-100"
-              title="retirer"
+              title={t("retirer")}
               onClick={() => void onChange(items.filter((other) => other !== item))}
             >
               <X className="size-3" />
@@ -286,7 +287,7 @@ function ListEditor({
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && add()}
         />
-        <ActionButton onAction={add}>ajouter</ActionButton>
+        <ActionButton onAction={add}>{t("ajouter")}</ActionButton>
       </div>
     </details>
   );
@@ -309,14 +310,14 @@ function DictEditor({
             {name}
           </span>
           <TextField value={current} commit={(next) => onSet(name, next)} />
-          <Button variant="ghost" size="icon" className="size-6" title="retirer" onClick={() => void onSet(name, undefined)}>
+          <Button variant="ghost" size="icon" className="size-6" title={t("retirer")} onClick={() => void onSet(name, undefined)}>
             <X className="size-3" />
           </Button>
         </div>
       ))}
       <div className="grid grid-cols-[9rem_1fr_auto] items-center gap-2">
-        <Input className="h-7 font-mono text-[11px]" value={key} placeholder="NOM" onChange={(e) => setKey(e.target.value)} />
-        <Input className="h-7 text-[12px]" value={draft} placeholder="valeur" onChange={(e) => setDraft(e.target.value)} />
+        <Input className="h-7 font-mono text-[11px]" value={key} placeholder={t("NOM")} onChange={(e) => setKey(e.target.value)} />
+        <Input className="h-7 text-[12px]" value={draft} placeholder={t("valeur")} onChange={(e) => setDraft(e.target.value)} />
         <ActionButton
           onAction={async () => {
             if (!key.trim()) return;
@@ -325,7 +326,7 @@ function DictEditor({
             setDraft("");
           }}
         >
-          ajouter
+          {t("ajouter")}
         </ActionButton>
       </div>
     </div>
@@ -391,14 +392,14 @@ function HooksEditor({ hooks, write }: { hooks: Json; write: (path: Path, value:
 
   return (
     <div className="flex flex-col gap-1 text-[12px]">
-      {rows.length === 0 && <p className="py-1 text-muted-foreground">Aucun hook.</p>}
+      {rows.length === 0 && <p className="py-1 text-muted-foreground">{t("Aucun hook.")}</p>}
       {rows.map((row) => (
         <div key={`${row.event}|${row.entry}|${row.hook}`} className="rounded border px-2 py-1">
           <div className="flex items-center gap-2">
             <span className="font-medium">{row.event}</span>
             {row.matcher && <span className="font-mono text-[11px] text-muted-foreground">{row.matcher}</span>}
             <span className="flex-1" />
-            <Button variant="ghost" size="icon" className="size-5" title="retirer" onClick={() => void remove(row)}>
+            <Button variant="ghost" size="icon" className="size-5" title={t("retirer")} onClick={() => void remove(row)}>
               <X className="size-3" />
             </Button>
           </div>
@@ -425,13 +426,13 @@ function HooksEditor({ hooks, write }: { hooks: Json; write: (path: Path, value:
           className="h-7 font-mono text-[11px]"
           value={matcher}
           disabled={WITHOUT_MATCHER.has(event)}
-          placeholder={WITHOUT_MATCHER.has(event) ? "pas de filtre pour cet événement" : "filtre (ex. Bash)"}
+          placeholder={WITHOUT_MATCHER.has(event) ? t("pas de filtre pour cet événement") : t("filtre (ex. Bash)")}
           onChange={(e) => setMatcher(e.target.value)}
         />
         <Input
           className="col-span-2 h-7 font-mono text-[11px]"
           value={command}
-          placeholder="commande"
+          placeholder={t("commande")}
           onChange={(e) => setCommand(e.target.value)}
         />
         <div className="col-span-2">
@@ -448,7 +449,7 @@ function HooksEditor({ hooks, write }: { hooks: Json; write: (path: Path, value:
               setCommand("");
             }}
           >
-            ajouter un hook
+            {t("ajouter un hook")}
           </ActionButton>
         </div>
       </div>

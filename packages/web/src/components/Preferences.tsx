@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_TERMINAL_FONT, setState, useStore, type TerminalFont } from "@/state/store";
+import { t } from "@/i18n";
+import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
 
 /** Polices à chasse fixe courantes sous Windows ; seules celles installées sont proposées. */
@@ -77,6 +78,7 @@ export function PreferencesDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const font = useStore((state) => state.terminalFont);
+  const language = useStore((state) => state.language);
   // Mesurées à l'ouverture seulement : une police installée entre-temps apparaît
   // à la suivante.
   const available = useMemo(() => (open ? CANDIDATES.filter(installed) : []), [open]);
@@ -89,13 +91,27 @@ export function PreferencesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Préférences</DialogTitle>
-          <DialogDescription>Propres à claude-ide, sans effet sur Claude Code.</DialogDescription>
+          <DialogTitle>{t("Préférences")}</DialogTitle>
+          <DialogDescription>{t("Propres à claude-ide, sans effet sur Claude Code.")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label>Police du terminal</Label>
+            <Label>{t("Langue de l'interface")}</Label>
+            <Select value={language} onValueChange={(value) => setState({ language: value as Language })}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">{t("Celle du système")}</SelectItem>
+                <SelectItem value="fr">{t("Français")}</SelectItem>
+                <SelectItem value="en">{t("Anglais")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>{t("Police du terminal")}</Label>
             <Select
               value={font.family || DEFAULT}
               onValueChange={(value) => update({ ...font, family: value === DEFAULT ? "" : value })}
@@ -104,21 +120,21 @@ export function PreferencesDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={DEFAULT}>Par défaut (Consolas)</SelectItem>
+                <SelectItem value={DEFAULT}>{t("Par défaut (Consolas)")}</SelectItem>
                 {available.map((family) => (
                   <SelectItem key={family} value={family}>
                     <span style={{ fontFamily: `"${family}"` }}>{family}</span>
                   </SelectItem>
                 ))}
                 {font.family && !available.includes(font.family) && (
-                  <SelectItem value={font.family}>{font.family} (introuvable)</SelectItem>
+                  <SelectItem value={font.family}>{t("{family} (introuvable)", { family: font.family })}</SelectItem>
                 )}
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor="terminal-font-size">Taille (pt)</Label>
+            <Label htmlFor="terminal-font-size">{t("Taille (pt)")}</Label>
             <Input
               id="terminal-font-size"
               type="number"
@@ -140,7 +156,7 @@ export function PreferencesDialog({
             className="justify-self-start text-[11px] text-muted-foreground underline-offset-2 hover:underline"
             onClick={() => update(DEFAULT_TERMINAL_FONT)}
           >
-            Revenir aux valeurs par défaut
+            {t("Revenir aux valeurs par défaut")}
           </button>
 
           <ShortcutsEditor />

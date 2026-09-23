@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Keys } from "@/components/CommandPalette";
 import { Button } from "@/components/ui/button";
+import { t } from "@/i18n";
 import { commands, effectiveShortcut, isUsableShortcut, shortcutOf } from "@/state/commands";
 import { setState, useStore } from "@/state/store";
 
@@ -37,7 +38,7 @@ export function ShortcutsEditor() {
       const shortcut = shortcutOf(event);
       if (!shortcut) return;
       if (!isUsableShortcut(shortcut)) {
-        setNotice(`${shortcut} se tape : un raccourci demande Ctrl ou Alt.`);
+        setNotice(t("{shortcut} se tape : un raccourci demande Ctrl ou Alt.", { shortcut }));
         return;
       }
       const taken = all.find((command) => command.id !== recording && effectiveShortcut(command, overrides) === shortcut);
@@ -48,7 +49,11 @@ export function ShortcutsEditor() {
           ...(taken ? { [taken.id]: null } : {}),
         },
       }));
-      setNotice(taken ? `${shortcut} était à « ${taken.label} », qui n'a plus de raccourci.` : undefined);
+      setNotice(
+        taken
+          ? t("{shortcut} était à « {label} », qui n'a plus de raccourci.", { shortcut, label: taken.label })
+          : undefined,
+      );
       setRecording(undefined);
     };
     window.addEventListener("keydown", onKey, { capture: true });
@@ -61,7 +66,7 @@ export function ShortcutsEditor() {
   return (
     <div className="grid gap-1.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">Raccourcis</span>
+        <span className="text-sm font-medium">{t("Raccourcis")}</span>
         {Object.keys(overrides).length > 0 && (
           <button
             type="button"
@@ -71,7 +76,7 @@ export function ShortcutsEditor() {
               setNotice(undefined);
             }}
           >
-            tout remettre par défaut
+            {t("tout remettre par défaut")}
           </button>
         )}
       </div>
@@ -86,21 +91,21 @@ export function ShortcutsEditor() {
                 {command.label}
               </span>
               {recording === command.id ? (
-                <span className="text-[11px] text-primary">tape la combinaison… (Échap : annuler, Suppr : aucun)</span>
+                <span className="text-[11px] text-primary">{t("tape la combinaison… (Échap : annuler, Suppr : aucun)")}</span>
               ) : shortcut ? (
                 <Keys shortcut={shortcut} />
               ) : (
                 <span className="text-[11px] text-muted-foreground">—</span>
               )}
               <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setRecording(command.id)}>
-                modifier
+                {t("modifier")}
               </Button>
               {changed && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-[11px] text-muted-foreground"
-                  title="revenir au raccourci par défaut"
+                  title={t("revenir au raccourci par défaut")}
                   onClick={() =>
                     setState((current) => {
                       const shortcuts = { ...current.shortcuts };
@@ -109,7 +114,7 @@ export function ShortcutsEditor() {
                     })
                   }
                 >
-                  défaut
+                  {t("défaut")}
                 </Button>
               )}
             </li>

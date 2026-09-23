@@ -6,6 +6,7 @@ import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
+import { t } from "@/i18n";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, mount, openTerminal, resize, typeInto } from "@/state/terminals";
@@ -20,14 +21,14 @@ function Welcome({ root }: { root?: string }) {
       <div className="grid size-16 place-items-center rounded-full bg-accent text-primary">
         <Sparkles className="size-7" />
       </div>
-      <h2 className="text-[15px] font-semibold">{root ? "Aucun terminal" : "Aucun projet ouvert"}</h2>
+      <h2 className="text-[15px] font-semibold">{root ? t("Aucun terminal") : t("Aucun projet ouvert")}</h2>
       <p className="font-mono text-[11px] text-muted-foreground">
-        {root ?? "Ouvre un projet pour commencer."}
+        {root ?? t("Ouvre un projet pour commencer.")}
       </p>
       {root && (
         <div className="mt-1 flex gap-2">
           <Button onClick={() => openTerminal("claude", { command: "claude" })}>
-            <Sparkles /> Démarrer Claude
+            <Sparkles /> {t("Démarrer Claude")}
           </Button>
           <Button variant="outline" onClick={() => openTerminal("shell")}>
             <TerminalIcon /> Shell
@@ -148,7 +149,7 @@ function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
       size="icon"
       className="size-7"
       disabled={!terminalId || busy}
-      title={error ?? "Capture d'écran vers le prompt"}
+      title={error ?? t("Capture d'écran vers le prompt")}
       onClick={async () => {
         if (!terminalId) return;
         setBusy(true);
@@ -210,28 +211,29 @@ export function TerminalArea() {
       id: "plan",
       icon: ClipboardList,
       title: "Plan",
-      about: "Le plan soumis en sortant du mode plan, avec sa progression s'il porte des cases.",
+      about: t("Le plan soumis en sortant du mode plan, avec sa progression s'il porte des cases."),
       render: () => (shown ? <PlanPanel session={shown} /> : null),
     },
     {
       id: "activity",
       icon: Activity,
-      title: "Activité",
-      about: "Le déroulé de la session : prompts, réponses et appels d'outils.",
+      title: t("Activité"),
+      about: t("Le déroulé de la session : prompts, réponses et appels d'outils."),
       render: () => (shown ? <ActivityPanel session={shown} /> : null),
     },
     {
       id: "files",
       icon: FileDiff,
-      title: "Fichiers",
-      about:
+      title: t("Fichiers"),
+      about: t(
         "Ce que la session a changé, avec le diff exact. L'état « avant » vient des sauvegardes de Claude Code, pas de git.",
+      ),
       render: () =>
         shown ? (
           <FilesPanel session={shown} />
         ) : (
           <p className="py-6 text-center text-muted-foreground">
-            Lance Claude dans un onglet, ou choisis une session dans History.
+            {t("Lance Claude dans un onglet, ou choisis une session dans History.")}
           </p>
         ),
     },
@@ -293,7 +295,7 @@ export function TerminalArea() {
           className="size-7"
           disabled={!project}
           onClick={() => openTerminal("shell")}
-          title="Nouveau shell"
+          title={t("Nouveau shell")}
         >
           <Plus />
         </Button>
@@ -322,9 +324,13 @@ export function TerminalArea() {
               status.cwd,
               status.kind,
               status.state,
-              status.lastExitCode !== undefined ? `sortie ${status.lastExitCode}` : "",
-              current?.planMode ? "mode plan" : current?.permissionMode ? `permissions ${current.permissionMode}` : "",
-              current?.tokens ? `contexte ${formatTokens(current.tokens.context)}` : "",
+              status.lastExitCode !== undefined ? t("sortie {code}", { code: status.lastExitCode }) : "",
+              current?.planMode
+                ? t("mode plan")
+                : current?.permissionMode
+                  ? t("permissions {mode}", { mode: current.permissionMode })
+                  : "",
+              current?.tokens ? t("contexte {tokens}", { tokens: formatTokens(current.tokens.context) }) : "",
             ]
               .filter(Boolean)
               .join("   ·   ")

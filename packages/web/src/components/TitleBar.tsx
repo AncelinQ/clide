@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
+import { t } from "@/i18n";
 import { closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal } from "@/state/terminals";
@@ -61,7 +62,7 @@ export function TitleBar() {
             <PanelLeft />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Colonne du projet</TooltipContent>
+        <TooltipContent>{t("Colonne du projet")}</TooltipContent>
       </Tooltip>
 
       <nav className="flex flex-1 justify-center gap-1 overflow-x-auto [scrollbar-width:none]">
@@ -107,13 +108,13 @@ export function TitleBar() {
             <Plus />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Ouvrir un projet</TooltipContent>
+        <TooltipContent>{t("Ouvrir un projet")}</TooltipContent>
       </Tooltip>
 
       <span
         className={cn("ml-auto text-[11px]", connected ? "text-muted-foreground" : "text-destructive")}
       >
-        {connected ? "connecté" : "déconnecté…"}
+        {connected ? t("connecté") : t("déconnecté…")}
       </span>
 
       <Tooltip>
@@ -122,7 +123,7 @@ export function TitleBar() {
             <ThemeIcon />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{THEME_LABEL[theme]}</TooltipContent>
+        <TooltipContent>{t(THEME_LABEL[theme])}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -131,7 +132,7 @@ export function TitleBar() {
             <Settings2 />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Préférences</TooltipContent>
+        <TooltipContent>{t("Préférences")}</TooltipContent>
       </Tooltip>
       <PreferencesDialog open={preferences} onOpenChange={setPreferences} />
 
@@ -146,30 +147,30 @@ export function TitleBar() {
             <PanelRight />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Panneau global</TooltipContent>
+        <TooltipContent>{t("Panneau global")}</TooltipContent>
       </Tooltip>
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Ouvrir un projet</DialogTitle>
+            <DialogTitle>{t("Ouvrir un projet")}</DialogTitle>
             <DialogDescription>
-              Le dossier racine du dépôt. Ses terminaux, ses fichiers et ses réglages en dépendent.
+              {t("Le dossier racine du dépôt. Ses terminaux, ses fichiers et ses réglages en dépendent.")}
             </DialogDescription>
           </DialogHeader>
           <Input
             autoFocus
             spellCheck={false}
-            placeholder="C:\Projets\mon-projet"
+            placeholder={t("C:\\Projets\\mon-projet")}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && confirm()}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdding(false)}>
-              Annuler
+              {t("Annuler")}
             </Button>
-            <Button onClick={confirm}>Ouvrir</Button>
+            <Button onClick={confirm}>{t("Ouvrir")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

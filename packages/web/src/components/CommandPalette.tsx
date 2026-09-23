@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "cn";
+import { t } from "@/i18n";
 import { commands, effectiveShortcut, type Command } from "@/state/commands";
 import { setState, useStore } from "@/state/store";
 import { resizeActive } from "@/state/terminals";
@@ -12,7 +13,7 @@ export function Keys({ shortcut }: { shortcut: string }) {
     <span className="flex shrink-0 gap-0.5">
       {shortcut.split("+").map((key) => (
         <kbd key={key} className="rounded border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
-          {key === "Shift" ? "Maj" : key === "PageDown" ? "Page suiv." : key === "PageUp" ? "Page préc." : key}
+          {key === "Shift" ? t("Maj") : key === "PageDown" ? t("Page suiv.") : key === "PageUp" ? t("Page préc.") : key}
         </kbd>
       ))}
     </span>
@@ -61,12 +62,12 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
       <DialogContent className="top-[20%] translate-y-0 gap-0 p-0 sm:max-w-lg" showCloseButton={false}>
-        <DialogTitle className="sr-only">Palette de commandes</DialogTitle>
-        <DialogDescription className="sr-only">Chercher une action et la lancer.</DialogDescription>
+        <DialogTitle className="sr-only">{t("Palette de commandes")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("Chercher une action et la lancer.")}</DialogDescription>
         <input
           autoFocus
           value={query}
-          placeholder="Chercher une action…"
+          placeholder={t("Chercher une action…")}
           className="w-full border-b bg-transparent px-3 py-2.5 text-[13px] outline-none"
           onChange={(event) => {
             setQuery(event.target.value);
@@ -86,7 +87,7 @@ export function CommandPalette() {
           }}
         />
         <ul className="m-0 max-h-80 list-none overflow-auto p-1">
-          {shown.length === 0 && <li className="px-2 py-3 text-center text-[12px] text-muted-foreground">Aucune action.</li>}
+          {shown.length === 0 && <li className="px-2 py-3 text-center text-[12px] text-muted-foreground">{t("Aucune action.")}</li>}
           {shown.map((command, index) => {
             const shortcut = effectiveShortcut(command, overrides);
             return (

@@ -112,6 +112,16 @@ réglés pour un fond noir deviennent illisibles sur blanc — c'est tout le ter
 qui suit l'apparence, pas seulement son fond.
 
 
+## Langue
+
+L'interface est en français ou en anglais, au choix dans les préférences, ou selon
+la langue du système. Le français est la source, écrit tel quel dans le code : il se
+lit à l'endroit où il s'affiche. L'anglais vient d'une table indexée par la chaîne
+française ; une chaîne qu'elle n'a pas s'affiche en français plutôt que de
+disparaître, et une phrase à trous passe par des marques `{nom}`, jamais par une
+concaténation qui figerait l'ordre des mots. Ce qui est tapé dans un terminal ou
+envoyé à Claude ne se traduit pas.
+
 ## Palette et raccourcis
 
 `Ctrl+Maj+P` ouvre la palette : toute action de l'application, cherchée par mots et

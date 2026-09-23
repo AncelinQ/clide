@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
+import { t } from "@/i18n";
 
 /**
  * Charge une donnée et suit son cycle.
@@ -46,7 +47,7 @@ export function Async<T>({
   state: { data?: T; error?: string; loading: boolean };
   children: (data: T) => ReactNode;
 }) {
-  if (state.loading && state.data === undefined) return <p className="py-3 text-muted-foreground">chargement…</p>;
+  if (state.loading && state.data === undefined) return <p className="py-3 text-muted-foreground">{t("chargement…")}</p>;
   if (state.error) return <p className="py-3 text-destructive">{state.error}</p>;
   if (state.data === undefined) return null;
   return <>{children(state.data)}</>;
@@ -149,7 +150,7 @@ export function DangerButton({ label, onConfirm }: { label: string; onConfirm: (
         }
       }}
     >
-      {error ?? (armed ? "confirmer ?" : label)}
+      {error ?? (armed ? t("confirmer ?") : label)}
     </Button>
   );
 }

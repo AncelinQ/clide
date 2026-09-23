@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
 import type { McpServer } from "@/lib/types";
 
@@ -130,15 +131,15 @@ export function McpEditor({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Modifier le serveur MCP" : "Nouveau serveur MCP"}</DialogTitle>
+          <DialogTitle>{editing ? t("Modifier le serveur MCP") : t("Nouveau serveur MCP")}</DialogTitle>
           <DialogDescription>
-            {editing ? "Dans le .mcp.json du projet, partagé avec l'équipe." : SCOPE_LABEL[scope]}
+            {editing ? t("Dans le .mcp.json du projet, partagé avec l'équipe.") : t(SCOPE_LABEL[scope])}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="mcp-name">Nom</Label>
+            <Label htmlFor="mcp-name">{t("Nom")}</Label>
             <Input
               id="mcp-name"
               value={name}
@@ -149,7 +150,7 @@ export function McpEditor({
           </div>
           {!editing && (
             <div className="grid gap-1.5">
-              <Label>Portée</Label>
+              <Label>{t("Portée")}</Label>
               <Select value={scope} onValueChange={(value) => setScope(value as WritableScope)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -157,7 +158,7 @@ export function McpEditor({
                 <SelectContent>
                   {(Object.keys(SCOPE_LABEL) as WritableScope[]).map((value) => (
                     <SelectItem key={value} value={value}>
-                      {SCOPE_LABEL[value]}
+                      {t(SCOPE_LABEL[value])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -171,7 +172,7 @@ export function McpEditor({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="stdio">Commande (stdio)</SelectItem>
+                <SelectItem value="stdio">{t("Commande (stdio)")}</SelectItem>
                 <SelectItem value="http">HTTP</SelectItem>
                 <SelectItem value="sse">SSE</SelectItem>
               </SelectContent>
@@ -179,7 +180,7 @@ export function McpEditor({
           </div>
           {transport === "stdio" ? (
             <div className="grid gap-1.5">
-              <Label htmlFor="mcp-command">Commande</Label>
+              <Label htmlFor="mcp-command">{t("Commande")}</Label>
               <Input
                 id="mcp-command"
                 className="font-mono text-[12px]"
@@ -201,29 +202,29 @@ export function McpEditor({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="mcp-headers">En-têtes</Label>
+                <Label htmlFor="mcp-headers">{t("En-têtes")}</Label>
                 <Textarea
                   id="mcp-headers"
                   className="min-h-14 font-mono text-[12px]"
                   value={headers}
-                  placeholder="Authorization: Bearer … (un par ligne)"
+                  placeholder={t("Authorization: Bearer … (un par ligne)")}
                   onChange={(event) => setHeaders(event.target.value)}
                 />
               </div>
             </>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor="mcp-env">Environnement</Label>
+            <Label htmlFor="mcp-env">{t("Environnement")}</Label>
             <Textarea
               id="mcp-env"
               className="min-h-14 font-mono text-[12px]"
               value={env}
-              placeholder="CLÉ=valeur (une par ligne)"
+              placeholder={t("CLÉ=valeur (une par ligne)")}
               onChange={(event) => setEnv(event.target.value)}
             />
             {server?.redacted && (
               <p className="text-[11px] text-muted-foreground">
-                *** : valeur d'origine gardée telle quelle. La remplacer la change.
+                {t("*** : valeur d'origine gardée telle quelle. La remplacer la change.")}
               </p>
             )}
           </div>
@@ -232,10 +233,10 @@ export function McpEditor({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Annuler
+            {t("Annuler")}
           </Button>
           <Button disabled={!valid || busy} onClick={() => void save()}>
-            {editing ? "Enregistrer" : "Ajouter"}
+            {editing ? t("Enregistrer") : t("Ajouter")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -254,7 +255,7 @@ export function McpLibrary({ root, onCopied }: { root: string; onCopied: () => v
     <Async state={state}>
       {({ servers }) =>
         servers.length === 0 ? (
-          <p className="py-1 text-[11px] text-muted-foreground">Aucun serveur dans tes autres projets.</p>
+          <p className="py-1 text-[11px] text-muted-foreground">{t("Aucun serveur dans tes autres projets.")}</p>
         ) : (
           <ul className="m-0 grid max-h-48 list-none gap-0.5 overflow-auto p-0">
             {servers.map((server) => (
@@ -269,7 +270,7 @@ export function McpLibrary({ root, onCopied }: { root: string; onCopied: () => v
                     onCopied();
                   }}
                 >
-                  reprendre
+                  {t("reprendre ici")}
                 </ActionButton>
               </li>
             ))}

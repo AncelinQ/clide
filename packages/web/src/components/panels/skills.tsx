@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
 import type { Skill } from "@/lib/types";
 import { useStore } from "@/state/store";
@@ -45,8 +46,8 @@ export function SkillRow({
       sub={skill.description}
       badges={
         <>
-          <Badge variant="secondary">{SCOPE_LABEL[skill.scope]}</Badge>
-          <Badge variant="outline">{INVOCATION_LABEL[skill.invocation]}</Badge>
+          <Badge variant="secondary">{t(SCOPE_LABEL[skill.scope])}</Badge>
+          <Badge variant="outline">{t(INVOCATION_LABEL[skill.invocation])}</Badge>
         </>
       }
       actions={
@@ -62,7 +63,7 @@ export function SkillRow({
               onEdit({ ...skill, body: stripFrontmatter(raw) });
             }}
           >
-            éditer
+            {t("éditer")}
           </ActionButton>
           {/* Promouvoir un skill de projet en skill perso, ou l'inverse. Vers le
               projet, il en faut un d'ouvert. */}
@@ -79,11 +80,11 @@ export function SkillRow({
                 onDone();
               }}
             >
-              {skill.scope === "project" ? "vers perso" : "vers projet"}
+              {skill.scope === "project" ? t("vers perso") : t("vers projet")}
             </ActionButton>
           )}
           <DangerButton
-            label="supprimer"
+            label={t("supprimer")}
             onConfirm={async () => {
               await post("/api/skills/remove", { scope: skill.scope, directory: skill.directory, ...scoped });
               onDone();
@@ -126,15 +127,15 @@ export function SkillEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label>Dossier</Label>
-      <Input value={directory} onChange={(e) => setDirectory(e.target.value)} placeholder="revue-de-code" />
-      <Label>Nom</Label>
-      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="celui de /nom" />
+      <Label>{t("Dossier")}</Label>
+      <Input value={directory} onChange={(e) => setDirectory(e.target.value)} placeholder={t("revue-de-code")} />
+      <Label>{t("Nom")}</Label>
+      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("celui de /nom")} />
       <Label>Description</Label>
       <Input
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="quand Claude doit s'en servir"
+        placeholder={t("quand Claude doit s'en servir")}
       />
       <Label>Invocation</Label>
       <Select value={invocation} onValueChange={(value) => setInvocation(value as Skill["invocation"])}>
@@ -142,12 +143,12 @@ export function SkillEditor({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="auto-and-slash">automatique et /nom</SelectItem>
-          <SelectItem value="manual-only">seulement /nom</SelectItem>
-          <SelectItem value="auto-only">seulement automatique</SelectItem>
+          <SelectItem value="auto-and-slash">{t("automatique et /nom")}</SelectItem>
+          <SelectItem value="manual-only">{t("seulement /nom")}</SelectItem>
+          <SelectItem value="auto-only">{t("seulement automatique")}</SelectItem>
         </SelectContent>
       </Select>
-      <Label>Contenu</Label>
+      <Label>{t("Contenu")}</Label>
       <Textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -162,15 +163,15 @@ export function SkillEditor({
             onDone();
           }}
         >
-          Enregistrer
+          {t("Enregistrer")}
         </ActionButton>
         {/* Le squelette est écrit d'abord : Claude reçoit un fichier existant à
             compléter, avec l'en-tête voulu, plutôt qu'un emplacement à deviner. */}
         {creating && (
           <ActionButton
             onAction={async () => {
-              if (!description.trim()) throw new Error("décris d'abord ce que le skill doit faire");
-              if (!claudeTab) throw new Error("ouvre un onglet Claude pour lui confier la rédaction");
+              if (!description.trim()) throw new Error(t("décris d'abord ce que le skill doit faire"));
+              if (!claudeTab) throw new Error(t("ouvre un onglet Claude pour lui confier la rédaction"));
               const { skill: written } = await save(
                 body.trim() || "<!-- Instructions pour Claude : quand utiliser ce skill, étapes, contraintes. -->\n",
               );
@@ -182,10 +183,10 @@ export function SkillEditor({
               onDone();
             }}
           >
-            Rédiger avec Claude
+            {t("Rédiger avec Claude")}
           </ActionButton>
         )}
-        <ActionButton onAction={onDone}>Annuler</ActionButton>
+        <ActionButton onAction={onDone}>{t("Annuler")}</ActionButton>
       </div>
     </div>
   );
@@ -210,7 +211,7 @@ async function importDropped(files: File[], scope: WriteScope, root: string): Pr
       continue;
     }
     if (!file.name.toLowerCase().endsWith(".md")) {
-      throw new Error(`${file.name} : seul un .md s'importe depuis un navigateur`);
+      throw new Error(t("{file} : seul un .md s'importe depuis un navigateur", { file: file.name }));
     }
     await post("/api/skills/import-text", { ...target, name: file.name.replace(/\.md$/i, ""), text: await file.text() });
   }
@@ -268,16 +269,16 @@ export function SkillImport({
       {children}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Button variant="ghost" size="sm" className="h-7" onClick={() => setOpen(!open)}>
-          Importer…
+          {t("Importer…")}
         </Button>
-        <span className="text-[11px] text-muted-foreground">ou dépose un .md sur le panneau</span>
+        <span className="text-[11px] text-muted-foreground">{t("ou dépose un .md sur le panneau")}</span>
       </div>
       {open && (
         <div className="mt-1 flex gap-2">
           <Input
             value={path}
             onChange={(event) => setPath(event.target.value)}
-            placeholder="chemin d'un .md ou d'un dossier de skill"
+            placeholder={t("chemin d'un .md ou d'un dossier de skill")}
             className="h-7 font-mono text-[11px]"
           />
           <ActionButton
@@ -289,7 +290,7 @@ export function SkillImport({
               })
             }
           >
-            importer
+            {t("importer")}
           </ActionButton>
         </div>
       )}

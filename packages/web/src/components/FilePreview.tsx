@@ -6,13 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { t } from "@/i18n";
 import { api, shortName } from "@/lib/api";
 import type { FilePreview } from "@/lib/types";
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+  if (bytes < 1024) return t("{size} o", { size: bytes });
+  if (bytes < 1024 * 1024) return t("{size} Ko", { size: (bytes / 1024).toFixed(1) });
+  return t("{size} Mo", { size: (bytes / 1024 / 1024).toFixed(1) });
 }
 
 function Body({ preview }: { preview: FilePreview }) {
@@ -24,7 +25,7 @@ function Body({ preview }: { preview: FilePreview }) {
             {preview.text}
           </pre>
           {preview.truncated && (
-            <p className="text-[11px] text-muted-foreground">Tronqué : seul le début du fichier est montré.</p>
+            <p className="text-[11px] text-muted-foreground">{t("Tronqué : seul le début du fichier est montré.")}</p>
           )}
         </>
       );
@@ -39,9 +40,9 @@ function Body({ preview }: { preview: FilePreview }) {
         </div>
       );
     case "binary":
-      return <p className="text-muted-foreground">Fichier binaire, sans aperçu.</p>;
+      return <p className="text-muted-foreground">{t("Fichier binaire, sans aperçu.")}</p>;
     case "too-large":
-      return <p className="text-muted-foreground">Image trop lourde pour l'aperçu.</p>;
+      return <p className="text-muted-foreground">{t("Image trop lourde pour l'aperçu.")}</p>;
   }
 }
 

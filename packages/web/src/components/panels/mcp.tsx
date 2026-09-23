@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
+import { t } from "@/i18n";
 import { api } from "@/lib/api";
 import type { McpStatus } from "@/lib/types";
 import { useStore } from "@/state/store";
@@ -52,7 +53,7 @@ export function McpHealth({ status }: { status?: McpStatus }) {
     <>
       <Badge variant="outline" className="gap-1" title={status.detail}>
         <span className={cn("size-1.5 shrink-0 rounded-full", dot)} />
-        {label}
+        {t(label)}
       </Badge>
       {status.health === "needs-auth" && (
         <Button
@@ -60,7 +61,7 @@ export function McpHealth({ status }: { status?: McpStatus }) {
           size="sm"
           className="h-5 px-1.5 font-mono text-[10px]"
           disabled={!claudeTab}
-          title={claudeTab ? "Envoyer /mcp à l'onglet Claude" : "Ouvre un onglet Claude pour authentifier"}
+          title={claudeTab ? t("Envoyer /mcp à l'onglet Claude") : t("Ouvre un onglet Claude pour authentifier")}
           onClick={() => sendToClaude("/mcp")}
         >
           /mcp

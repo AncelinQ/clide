@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
 import type { McpServer, ProjectLink, ProjectScripts, Skill, SlashCommand, Worktree } from "@/lib/types";
 import { openTerminal, runScript } from "@/state/terminals";
@@ -33,7 +34,7 @@ export function LinksPanel({ root }: { root: string }) {
       {({ links }) => (
         <>
           {links.length === 0 ? (
-            <Empty icon={Link2}>Les autres dépôts dont celui-ci dépend.</Empty>
+            <Empty icon={Link2}>{t("Les autres dépôts dont celui-ci dépend.")}</Empty>
           ) : (
             <Rows>
               {links.map((link) => (
@@ -41,7 +42,7 @@ export function LinksPanel({ root }: { root: string }) {
                   key={link.path}
                   title={link.path}
                   sub={link.role}
-                  badges={link.readOnly && <Badge variant="outline">lecture seule</Badge>}
+                  badges={link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
                   actions={
                     <>
                       <ActionButton
@@ -49,10 +50,10 @@ export function LinksPanel({ root }: { root: string }) {
                           save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
                         }
                       >
-                        {link.readOnly ? "rendre modifiable" : "lecture seule"}
+                        {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
                       </ActionButton>
                       <DangerButton
-                        label="délier"
+                        label={t("délier")}
                         onConfirm={() => save(links.filter((l) => l.path !== link.path))}
                       />
                     </>
@@ -64,18 +65,18 @@ export function LinksPanel({ root }: { root: string }) {
 
           {open ? (
             <div className="mt-3 flex flex-col gap-2">
-              <Label>Chemin</Label>
-              <Input value={path} onChange={(e) => setPath(e.target.value)} placeholder="C:\Projets\api" />
-              <Label>Rôle</Label>
-              <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="api, design system…" />
-              <Label>Accès</Label>
+              <Label>{t("Chemin")}</Label>
+              <Input value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("C:\\Projets\\api")} />
+              <Label>{t("Rôle")}</Label>
+              <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("api, design system…")} />
+              <Label>{t("Accès")}</Label>
               <Select value={readOnly} onValueChange={setReadOnly}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="non">Claude peut y écrire</SelectItem>
-                  <SelectItem value="oui">Lecture seule</SelectItem>
+                  <SelectItem value="non">{t("Claude peut y écrire")}</SelectItem>
+                  <SelectItem value="oui">{t("Lecture seule")}</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex gap-2">
@@ -91,14 +92,14 @@ export function LinksPanel({ root }: { root: string }) {
                     setRole("");
                   }}
                 >
-                  Lier
+                  {t("Lier")}
                 </ActionButton>
-                <ActionButton onAction={() => setOpen(false)}>Annuler</ActionButton>
+                <ActionButton onAction={() => setOpen(false)}>{t("Annuler")}</ActionButton>
               </div>
             </div>
           ) : (
             <Button variant="outline" size="sm" className="mt-3 h-7" onClick={() => setOpen(true)}>
-              Lier un dossier
+              {t("Lier un dossier")}
             </Button>
           )}
         </>
@@ -119,7 +120,7 @@ function ScriptGroups({ project, prefix }: { project: ProjectScripts; prefix?: s
           <div key={source.directory}>
             <Section>
               {prefix ? `${prefix} · ` : ""}
-              {source.packageName ?? (source.relativePath || "racine")}
+              {source.packageName ?? (source.relativePath || t("racine"))}
             </Section>
             <Rows>
               {source.scripts.map((script) => (
@@ -139,7 +140,7 @@ function ScriptGroups({ project, prefix }: { project: ProjectScripts; prefix?: s
                         )
                       }
                     >
-                      <Play className="size-3" /> lancer
+                      <Play className="size-3" /> {t("lancer")}
                     </ActionButton>
                   }
                 />
@@ -159,14 +160,15 @@ export function ScriptsPanel({ root }: { root: string }) {
       {(project) => {
         const own = project.sources.some((source) => source.scripts.length > 0);
         const linked = project.linked ?? [];
-        if (!own && linked.length === 0) return <Empty icon={Package}>Aucun script dans ce projet.</Empty>;
+        if (!own && linked.length === 0) return <Empty icon={Package}>{t("Aucun script dans ce projet.")}</Empty>;
         return (
           <>
             {own && (
               <>
                 <p className="text-[11px] text-muted-foreground">
-                  {project.manager}
-                  {project.managerDetected ? "" : " (défaut, aucun lockfile)"}
+                  {project.managerDetected
+                    ? project.manager
+                    : t("{manager} (défaut, aucun lockfile)", { manager: project.manager })}
                 </p>
                 <ScriptGroups project={project} />
               </>
@@ -175,7 +177,7 @@ export function ScriptsPanel({ root }: { root: string }) {
               <ScriptGroups
                 key={folder.root}
                 project={folder}
-                prefix={`lié ${shortName(folder.root)} (${folder.manager})`}
+                prefix={t("lié {name} ({manager})", { name: shortName(folder.root), manager: folder.manager })}
               />
             ))}
           </>
@@ -216,7 +218,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
           <>
             <SkillImport scope="project" root={root} onDone={state.reload}>
               {own.length === 0 ? (
-                <Empty icon={Sparkles}>Les skills vivent dans .claude/skills/&lt;nom&gt;/SKILL.md.</Empty>
+                <Empty icon={Sparkles}>{t("Les skills vivent dans .claude/skills/<nom>/SKILL.md.")}</Empty>
               ) : (
                 <Rows>
                   {own.map((skill) => (
@@ -236,12 +238,12 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
                 className="mt-3 h-7"
                 onClick={() => setEditing({ directory: "", description: "" })}
               >
-                Nouveau skill
+                {t("Nouveau skill")}
               </Button>
             </SkillImport>
             {ownCommands.length > 0 && (
               <>
-                <Section>Commandes ({ownCommands.length})</Section>
+                <Section>{t("Commandes ({count})", { count: ownCommands.length })}</Section>
                 <Rows>
                   {ownCommands.map((command) => (
                     <Row key={command.name} title={`/${command.name}`} sub={command.description} />
@@ -280,7 +282,7 @@ export function ProjectMcpPanel({ root }: { root: string }) {
         return (
           <>
             {own.length === 0 ? (
-              <Empty icon={Plug}>Serveurs déclarés dans .mcp.json, partagés par l'équipe.</Empty>
+              <Empty icon={Plug}>{t("Serveurs déclarés dans .mcp.json, partagés par l'équipe.")}</Empty>
             ) : (
               <Rows>
                 {own.map((server) => (
@@ -297,10 +299,10 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                     actions={
                       <>
                         <ActionButton variant="ghost" onAction={() => openEditor(server)}>
-                          modifier
+                          {t("modifier")}
                         </ActionButton>
                         <DangerButton
-                          label="retirer"
+                          label={t("retirer")}
                           onConfirm={async () => {
                             await post("/api/mcp/remove", { root, name: server.name });
                             state.reload();
@@ -317,7 +319,7 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                 pour pouvoir les reprendre, pas comme s'ils s'appliquaient. */}
             {linked.length > 0 && (
               <>
-                <Section>Dossiers liés</Section>
+                <Section>{t("Dossiers liés")}</Section>
                 <Rows>
                   {linked.map((server) => (
                     <Row
@@ -338,7 +340,7 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                               state.reload();
                             }}
                           >
-                            copier ici
+                            {t("copier ici")}
                           </ActionButton>
                         )
                       }
@@ -350,12 +352,12 @@ export function ProjectMcpPanel({ root }: { root: string }) {
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" className="h-7" onClick={() => openEditor(null)}>
-                Ajouter un serveur
+                {t("Ajouter un serveur")}
               </Button>
               <Button variant="ghost" size="sm" className="h-7" onClick={() => setBrowsing(!browsing)}>
-                {browsing ? "Masquer les autres projets" : "Reprendre d'un autre projet"}
+                {browsing ? t("Masquer les autres projets") : t("Reprendre d'un autre projet")}
               </Button>
-              {own.length > 0 && <ActionButton onAction={check}>Vérifier l'état</ActionButton>}
+              {own.length > 0 && <ActionButton onAction={check}>{t("Vérifier l'état")}</ActionButton>}
             </div>
             {browsing && (
               <div className="mt-2 rounded-md border p-2">
@@ -389,7 +391,7 @@ export function WorktreesPanel({ root }: { root: string }) {
     <Async state={state}>
       {({ worktrees }) =>
         worktrees.length === 0 ? (
-          <Empty icon={GitBranch}>Ce dossier n'est pas un dépôt git.</Empty>
+          <Empty icon={GitBranch}>{t("Ce dossier n'est pas un dépôt git.")}</Empty>
         ) : (
           <Rows>
             {worktrees.map((worktree) => (
@@ -398,29 +400,29 @@ export function WorktreesPanel({ root }: { root: string }) {
                 title={worktree.branch ?? worktree.head?.slice(0, 8) ?? "?"}
                 sub={[
                   worktree.ahead || worktree.behind ? `↑${worktree.ahead ?? 0} ↓${worktree.behind ?? 0}` : "",
-                  worktree.sessions.length ? `${worktree.sessions.length} session(s)` : "",
+                  worktree.sessions.length ? t("{count} session(s)", { count: worktree.sessions.length }) : "",
                   worktree.path,
                 ]
                   .filter(Boolean)
                   .join("  ·  ")}
                 badges={
                   <>
-                    {worktree.main && <Badge variant="secondary">principal</Badge>}
-                    {worktree.detached && <Badge variant="outline">détaché</Badge>}
-                    {worktree.locked !== undefined && <Badge variant="outline">verrouillé</Badge>}
+                    {worktree.main && <Badge variant="secondary">{t("principal")}</Badge>}
+                    {worktree.detached && <Badge variant="outline">{t("détaché")}</Badge>}
+                    {worktree.locked !== undefined && <Badge variant="outline">{t("verrouillé")}</Badge>}
                     {(worktree.dirty ?? 0) > 0 && (
-                      <Badge variant="outline">{worktree.dirty} non commité(s)</Badge>
+                      <Badge variant="outline">{t("{count} non commité(s)", { count: worktree.dirty ?? 0 })}</Badge>
                     )}
                   </>
                 }
                 actions={
                   <>
                     <ActionButton onAction={() => openTerminal("shell", { cwd: worktree.path })}>
-                      terminal ici
+                      {t("terminal ici")}
                     </ActionButton>
                     {!worktree.main && (
                       <DangerButton
-                        label="retirer"
+                        label={t("retirer")}
                         onConfirm={async () => {
                           await post("/api/worktrees/remove", { root, path: worktree.path });
                           state.reload();
