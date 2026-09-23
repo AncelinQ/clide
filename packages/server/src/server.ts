@@ -10,6 +10,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { mutations, routes, type ApiContext } from "./api/routes.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
+import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
@@ -155,6 +156,8 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   await context.index.load();
   await notifications.start();
 
+  // Les tarifs viennent des relevés de l'index, tel qu'il est à cet instant.
+  live.usePricing(() => calibrationOf(context.index));
   live.start();
   // Un onglet fermé ne suit plus rien ; son transcript redevient disponible pour
   // un autre onglet du même dossier.

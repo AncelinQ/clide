@@ -595,6 +595,34 @@ session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour 
 sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
 tour, ne dit rien des permissions.
 
+## Ce que coûtent les sessions
+
+Claude Code écrit le coût d'une session dans un event `cost-state`, cumulé et
+détaillé par modèle — mais pas toujours : sur le corpus de référence, 31 sessions sur
+72 en portent un, écrit en fin de séance, et deux ont continué après lui, dont une de
+276 réponses. Le coût d'une session est donc l'une de quatre choses, et le dit :
+
+- **exact** : le relevé, rien ne l'ayant suivi ;
+- **estimé** (≈) : un tarif a chiffré la session, ou ce qui a suivi son relevé ;
+- **plancher** (≥) : une partie relève d'un modèle sans tarif fiable ;
+- **inconnu** : rien de chiffrable.
+
+Les tarifs ne sont écrits nulle part : ils sont **déduits des relevés** de
+l'utilisateur, à chaque lecture de l'index. Un ajustement à un seul tarif de base,
+avec les proportions habituelles — sortie ×5, lecture de cache ×0,1, écriture ×2 —,
+est tenté d'abord ; un ajustement libre, tarif par nature de token, ensuite. Un
+modèle n'en reçoit que si chaque relevé est redonné à 2 % près, sur au moins trois
+sessions. Sur le corpus, Opus 5 retrouve 5 $ par million en entrée et Haiku 1 $, à
+0,01 % près ; Opus 5.5, avec deux relevés qui ne suivent pas ces proportions, n'en
+reçoit pas, et ses sessions restent « coût inconnu » plutôt que chiffrées faux. Le
+nom d'un modèle est lu sans ses crochets : `cost-state` écrit `claude-opus-5[1m]` là
+où les réponses écrivent `claude-opus-5`, au même tarif.
+
+Le relevé d'une session couvre ses sous-agents ; sans relevé, leurs tokens
+s'ajoutent aux siens. Une réponse s'écrit en plusieurs events au même `message.id` :
+elle n'est comptée qu'une fois. Le panneau Coûts range chaque session au jour de sa
+dernière activité — ses réponses ne sont pas datées une à une dans l'index.
+
 ## Retirer une session
 
 Une session se retire depuis History, et part à la corbeille de Windows — jamais

@@ -19,15 +19,26 @@ export interface FileTrack {
   backups: FileBackupRef[];
 }
 
-/** Tokens consommés par la session, sommés sur ses réponses distinctes. */
-export interface TokenUsage {
+/** Volume de tokens, par nature : c'est à ce grain que se fait la facturation. */
+export interface TokenCounts {
   input: number;
   output: number;
   cacheRead: number;
   cacheCreation: number;
+}
+
+/** Tokens consommés par la session, sommés sur ses réponses distinctes. */
+export interface TokenUsage extends TokenCounts {
   /** Taille du contexte envoyé à la dernière réponse : entrée et cache compris. */
   context: number;
   model?: string;
+  /** Les mêmes volumes, par modèle : une session en mêle souvent plusieurs. */
+  byModel: Record<string, TokenCounts>;
+  /**
+   * Ce qui a été consommé après le dernier `cost-state`. Ce relevé est un cumul :
+   * une session reprise après lui en sort, et son coût exact ne couvre plus tout.
+   */
+  afterCost?: Record<string, TokenCounts>;
 }
 
 export interface SessionProjection {
@@ -84,8 +95,10 @@ export class SessionProjector {
    * bloc de contenu — qui répètent le même `message.id` et le même `usage` :
    * les sommer compterait la même réponse deux ou trois fois.
    */
-  readonly #usage = new Map<string, { input: number; output: number; cacheRead: number; cacheCreation: number }>();
+  readonly #usage = new Map<string, TokenCounts & { model: string }>();
   #lastUsage: { context: number; model?: string } | undefined;
+  /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
+  #costed: Set<string> | undefined;
   #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens">;
 
   constructor(sessionId: string) {
@@ -176,7 +189,10 @@ export class SessionProjector {
 
       case "cost-state": {
         const cost = readCostState(event);
-        if (cost) s.cost = cost;
+        if (cost) {
+          s.cost = cost;
+          this.#costed = new Set(this.#usage.keys());
+        }
         break;
       }
 
@@ -271,14 +287,15 @@ export class SessionProjector {
     if (typeof usage !== "object" || usage === null || typeof id !== "string") return;
     const u = usage as Record<string, unknown>;
     const count = (key: string): number => (typeof u[key] === "number" ? (u[key] as number) : 0);
+    const model = typeof record["model"] === "string" ? (record["model"] as string) : undefined;
     const entry = {
       input: count("input_tokens"),
       output: count("output_tokens"),
       cacheRead: count("cache_read_input_tokens"),
       cacheCreation: count("cache_creation_input_tokens"),
+      model: model ?? "inconnu",
     };
     this.#usage.set(id, entry);
-    const model = typeof record["model"] === "string" ? (record["model"] as string) : undefined;
     this.#lastUsage = {
       context: entry.input + entry.cacheRead + entry.cacheCreation,
       ...(model ? { model } : {}),
@@ -288,13 +305,29 @@ export class SessionProjector {
   #tokens(): TokenUsage | undefined {
     if (!this.#lastUsage) return undefined;
     const total = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
-    for (const entry of this.#usage.values()) {
+    const byModel: Record<string, TokenCounts> = {};
+    const afterCost: Record<string, TokenCounts> = {};
+    const add = (into: Record<string, TokenCounts>, entry: TokenCounts & { model: string }) => {
+      const slot = (into[entry.model] ??= { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 });
+      slot.input += entry.input;
+      slot.output += entry.output;
+      slot.cacheRead += entry.cacheRead;
+      slot.cacheCreation += entry.cacheCreation;
+    };
+    for (const [id, entry] of this.#usage) {
       total.input += entry.input;
       total.output += entry.output;
       total.cacheRead += entry.cacheRead;
       total.cacheCreation += entry.cacheCreation;
+      add(byModel, entry);
+      if (this.#costed && !this.#costed.has(id)) add(afterCost, entry);
     }
-    return { ...total, ...this.#lastUsage };
+    return {
+      ...total,
+      ...this.#lastUsage,
+      byModel,
+      ...(Object.keys(afterCost).length > 0 ? { afterCost } : {}),
+    };
   }
 
   /**

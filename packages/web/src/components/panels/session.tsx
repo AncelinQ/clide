@@ -5,7 +5,8 @@ import { Markdown } from "@/components/Markdown";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
-import type { ActivityEntry, FileDiff as Diff, TokenUsage } from "@/lib/types";
+import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
+import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
 
 /**
@@ -16,7 +17,7 @@ export interface ShownSession {
   sessionId: string;
   refresh?: string;
   tokens?: TokenUsage;
-  costUSD?: number;
+  price?: SessionCost;
 }
 
 /** « 12,3 k » : un volume de tokens se lit en ordre de grandeur. */
@@ -95,17 +96,18 @@ const ACTIVITY_LABEL: Record<string, string> = {
 
 /** Volume et coût de la session, en tête de son activité. */
 function Consumption({ session }: { session: ShownSession }) {
-  const { tokens, costUSD } = session;
-  if (!tokens && costUSD === undefined) return null;
+  const { tokens, price } = session;
+  const cost = formatSessionCost(price);
+  if (!tokens && !cost) return null;
   const parts = [
     tokens && t("contexte {tokens}", { tokens: formatTokens(tokens.context) }),
     tokens && t("{tokens} en sortie", { tokens: formatTokens(tokens.output) }),
     tokens && t("{tokens} en entrée", { tokens: formatTokens(tokens.input + tokens.cacheCreation) }),
     tokens && tokens.cacheRead > 0 && t("{tokens} lus en cache", { tokens: formatTokens(tokens.cacheRead) }),
-    costUSD !== undefined && t("{cost} $", { cost: costUSD.toFixed(2).replace(".", ",") }),
+    cost,
   ].filter(Boolean);
   return (
-    <p className="py-1 text-[11px] text-muted-foreground" title={tokens?.model}>
+    <p className="py-1 text-[11px] text-muted-foreground" title={[tokens?.model, describeSessionCost(price)].filter(Boolean).join(" · ")}>
       {parts.join("  ·  ")}
     </p>
   );

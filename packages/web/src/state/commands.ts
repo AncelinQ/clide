@@ -58,6 +58,7 @@ export function commands(): Command[] {
     ["history", "History"],
     ["skills", "Skills"],
     ["mcp", "MCP"],
+    ["costs", "Coûts"],
     ["settings", "Réglages"],
     ["notifications", "Alertes"],
   ];

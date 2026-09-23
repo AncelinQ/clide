@@ -191,7 +191,34 @@ describe("SessionProjector", () => {
       cacheCreation: 20,
       context: 1013,
       model: "claude-opus-5-5",
+      byModel: { "claude-opus-5-5": { input: 8, output: 100, cacheRead: 2000, cacheCreation: 20 } },
     });
+  });
+
+  it("sépare ce qui a été consommé après le dernier relevé de coût", () => {
+    const answer = (id: string, output: number) => ({
+      type: "assistant",
+      message: { id, model: "claude-haiku-4-5", usage: { input_tokens: 1, output_tokens: output } },
+    });
+    const projection = projectEvents(SID, [
+      answer("m1", 10),
+      { type: "cost-state", totalCostUSD: 0.5 },
+      // La même réponse réécrite après le relevé reste comptée par lui.
+      answer("m1", 10),
+      answer("m2", 7),
+    ]);
+    expect(projection.tokens?.afterCost).toEqual({
+      "claude-haiku-4-5": { input: 1, output: 7, cacheRead: 0, cacheCreation: 0 },
+    });
+    expect(projection.tokens?.byModel["claude-haiku-4-5"]?.output).toBe(17);
+  });
+
+  it("ne signale rien après un relevé qui clôt la session", () => {
+    const projection = projectEvents(SID, [
+      { type: "assistant", message: { id: "m1", model: "x", usage: { input_tokens: 1, output_tokens: 1 } } },
+      { type: "cost-state", totalCostUSD: 0.1 },
+    ]);
+    expect(projection.tokens?.afterCost).toBeUndefined();
   });
 
   it("n'invente pas de consommation sans réponse chiffrée", () => {

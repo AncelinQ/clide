@@ -42,8 +42,21 @@ export {
   projectEvents,
   type FileTrack,
   type SessionProjection,
+  type TokenCounts,
   type TokenUsage,
 } from "./session/projection.js";
+export {
+  calibrate,
+  mergeUsage,
+  modelKey,
+  priceOf,
+  samplesOf,
+  sessionCost,
+  type Calibration,
+  type CostSample,
+  type Rates,
+  type SessionCost,
+} from "./cost/pricing.js";
 export { findLiveTranscript, resumedSessionId, type TranscriptMatch } from "./transcript/live.js";
 
 export {

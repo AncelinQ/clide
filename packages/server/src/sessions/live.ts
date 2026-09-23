@@ -3,7 +3,10 @@ import {
   claudeHome,
   findLiveTranscript,
   resumedSessionId,
+  sessionCost,
+  type Calibration,
   type CostState,
+  type SessionCost,
   type TokenUsage,
 } from "@claude-ide/core";
 
@@ -15,6 +18,8 @@ export interface LiveSession {
   planMode?: boolean;
   tokens?: TokenUsage;
   cost?: CostState;
+  /** Coût de la session : exact, estimé à partir des tarifs déduits, ou inconnu. */
+  price?: SessionCost;
   lastActivityAt?: string;
 }
 
@@ -43,11 +48,17 @@ export class LiveSessions {
   readonly #listeners = new Set<(terminalId: string, session: LiveSession) => void>();
   #timer: NodeJS.Timeout | undefined;
   #running: Promise<void> | undefined;
+  #pricing: () => Map<string, Calibration> = () => new Map();
 
   constructor(
     private readonly home: string = claudeHome(),
     private readonly intervalMs = 1500,
   ) {}
+
+  /** Source des tarifs déduits, pour chiffrer une session qui n'a pas encore de relevé. */
+  usePricing(pricing: () => Map<string, Calibration>): void {
+    this.#pricing = pricing;
+  }
 
   on(listener: (terminalId: string, session: LiveSession) => void): () => void {
     this.#listeners.add(listener);
@@ -146,6 +157,18 @@ export class LiveSessions {
           ...(fresh && projection.planMode !== undefined ? { planMode: projection.planMode } : {}),
           ...(projection.tokens ? { tokens: projection.tokens } : {}),
           ...(projection.cost ? { cost: projection.cost } : {}),
+          ...(projection.tokens || projection.cost
+            ? {
+                price: sessionCost(
+                  {
+                    cost: projection.cost,
+                    usage: projection.tokens?.byModel,
+                    afterCost: projection.tokens?.afterCost,
+                  },
+                  this.#pricing(),
+                ),
+              }
+            : {}),
           ...(projection.lastActivityAt ? { lastActivityAt: projection.lastActivityAt } : {}),
         };
       } catch {

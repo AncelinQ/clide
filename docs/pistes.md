@@ -86,6 +86,12 @@ décider reste humain.
 **Critère.** Je peux répondre à « combien m'a coûté ce chantier » sans quitter
 l'application.
 
+**État.** Fait : coût dans la barre d'état, dans History et dans l'activité, et un
+panneau Coûts par jour, par projet et par modèle. Les tarifs sont déduits des
+`cost-state` de l'utilisateur, jamais écrits en dur ; un modèle dont les relevés ne
+concordent pas — Opus 5.5 aujourd'hui, avec deux relevés — reste « coût inconnu »
+plutôt que chiffré faux.
+
 ---
 
 ## Piste 2 — La file d'attente

@@ -1,19 +1,9 @@
-import {
-  Bell,
-  Cpu,
-  GitBranch,
-  History,
-  Link2,
-  Package,
-  Plug,
-  RefreshCw,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import { Bell, Coins, Cpu, GitBranch, History, Link2, Package, Plug, RefreshCw, Settings, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
+import { CostsPanel } from "@/components/panels/costs";
 import {
   LinksPanel,
   ProjectMcpPanel,
@@ -125,6 +115,7 @@ const TABS = [
   { id: "history", icon: History, label: "History" },
   { id: "skills", icon: Sparkles, label: "Skills" },
   { id: "mcp", icon: Plug, label: "MCP" },
+  { id: "costs", icon: Coins, label: "Coûts" },
   { id: "settings", icon: Settings, label: "Réglages" },
   { id: "notifications", icon: Bell, label: "Alertes" },
 ] as const;
@@ -147,6 +138,8 @@ export function GlobalColumn() {
         return <UserMcpPanel key={nonce} />;
       case "settings":
         return <SettingsPanel key={nonce} />;
+      case "costs":
+        return <CostsPanel key={nonce} />;
       default:
         return <NotificationsPanel key={nonce} />;
     }
@@ -162,14 +155,15 @@ export function GlobalColumn() {
             type="button"
             onClick={() => setState({ globalTab: tab.id })}
             className={cn(
-              "flex min-w-12 flex-col items-center gap-1 rounded-lg border px-1.5 py-1.5 text-[10px] transition-colors",
+              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg border px-0.5 py-1.5 text-[10px] transition-colors",
               tab.id === globalTab
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
             <tab.icon className="size-4" />
-            {t(tab.label)}
+            {/* Sept onglets dans 340 px : le libellé cède avant l'icône. */}
+            <span className="max-w-full truncate">{t(tab.label)}</span>
           </button>
         ))}
       </nav>

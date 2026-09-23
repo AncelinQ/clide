@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
+import { formatSessionCost } from "@/components/panels/costs";
 import { SessionRemovalDialog } from "@/components/panels/session-removal";
 import { SettingsForm } from "@/components/panels/settings-form";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
@@ -79,6 +80,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                       shortName(session.effectiveCwd ?? ""),
                       session.gitBranch,
                       t("{count} fichiers", { count: session.fileCount }),
+                      formatSessionCost(session.price),
                     ]
                       .filter(Boolean)
                       .join("  ·  ")}

@@ -38,6 +38,7 @@ import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { LiveSessions } from "../sessions/live.js";
 import { moveToRecycleBin } from "../platform/trash.js";
+import { calibrationOf, costOfSession, costReport } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
 
@@ -146,7 +147,19 @@ export const routes: Record<string, Handler> = {
     await index.refresh();
     await index.save();
     const projectDir = params.get("projectDir");
-    return { sessions: index.list(projectDir ? { projectDir } : {}) };
+    const calibration = calibrationOf(index);
+    return {
+      sessions: index
+        .list(projectDir ? { projectDir } : {})
+        .map((session) => ({ ...session, price: costOfSession(session, index, calibration) })),
+    };
+  },
+
+  /** Consommation de toutes les sessions : totaux, jours, projets, modèles, tarifs déduits. */
+  "/api/costs": async (_params, { index }) => {
+    await index.refresh();
+    await index.save();
+    return costReport(index);
   },
 
   "/api/session": async (params, { index }) => {

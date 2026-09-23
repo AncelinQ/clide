@@ -5,10 +5,10 @@ import { appDataDir, claudeHome } from "../paths.js";
 import { discoverTranscripts, type TranscriptKind, type TranscriptRef } from "../transcript/discover.js";
 import { TranscriptReader } from "../transcript/reader.js";
 import type { CostState, PrLink } from "../transcript/events.js";
-import type { SessionProjection } from "./projection.js";
+import type { SessionProjection, TokenCounts } from "./projection.js";
 
 /** Version du format de l'index. Une valeur différente sur disque le fait repartir de zéro. */
-const INDEX_VERSION = 1;
+const INDEX_VERSION = 2;
 
 /** Résumé d'une session, suffisant pour peupler une liste sans relire son transcript. */
 export interface IndexedSession {
@@ -31,6 +31,10 @@ export interface IndexedSession {
   eventCount: number;
   fileCount: number;
   cost?: CostState;
+  /** Tokens par modèle, pour chiffrer une session que Claude Code n'a pas chiffrée. */
+  usage?: Record<string, TokenCounts>;
+  /** Tokens écrits après le dernier `cost-state`, que son montant ne couvre pas. */
+  usageAfterCost?: Record<string, TokenCounts>;
   continuedInSessionId?: string;
   prLinks: PrLink[];
   unknownTypes: Record<string, number>;
@@ -74,6 +78,8 @@ function summarize(
     eventCount: projection.eventCount,
     fileCount: projection.files.length,
     ...(projection.cost ? { cost: projection.cost } : {}),
+    ...(projection.tokens ? { usage: projection.tokens.byModel } : {}),
+    ...(projection.tokens?.afterCost ? { usageAfterCost: projection.tokens.afterCost } : {}),
     ...(projection.continuedInSessionId
       ? { continuedInSessionId: projection.continuedInSessionId }
       : {}),

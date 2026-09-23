@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
+import { formatSessionCost } from "@/components/panels/costs";
 import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
@@ -194,15 +195,13 @@ export function TerminalArea() {
           ...(current.title ? { title: current.title } : {}),
           ...(current.lastActivityAt ? { refresh: current.lastActivityAt } : {}),
           ...(current.tokens ? { tokens: current.tokens } : {}),
-          ...(current.cost?.totalCostUSD !== undefined ? { costUSD: current.cost.totalCostUSD } : {}),
+          ...(current.price ? { price: current.price } : {}),
         }
       : selectedSession
         ? {
             sessionId: selectedSession.sessionId,
             ...(selectedSession.title ? { title: selectedSession.title } : {}),
-            ...(selectedSession.cost?.totalCostUSD !== undefined
-              ? { costUSD: selectedSession.cost.totalCostUSD }
-              : {}),
+            ...(selectedSession.price ? { price: selectedSession.price } : {}),
           }
         : undefined;
 
@@ -331,6 +330,7 @@ export function TerminalArea() {
                   ? t("permissions {mode}", { mode: current.permissionMode })
                   : "",
               current?.tokens ? t("contexte {tokens}", { tokens: formatTokens(current.tokens.context) }) : "",
+              formatSessionCost(current?.price) ?? "",
             ]
               .filter(Boolean)
               .join("   ·   ")

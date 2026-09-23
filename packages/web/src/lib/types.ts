@@ -20,6 +20,13 @@ export interface TerminalInfo {
   exited: boolean;
 }
 
+/** Coût d'une session, avec ce qu'il vaut : relevé, estimé, plancher ou inconnu. */
+export type SessionCost =
+  | { kind: "exact"; usd: number }
+  | { kind: "estimated"; usd: number }
+  | { kind: "atLeast"; usd: number; unpriced: string[] }
+  | { kind: "unknown"; unpriced: string[] };
+
 export interface SessionSummary {
   sessionId: string;
   projectDir: string;
@@ -32,6 +39,7 @@ export interface SessionSummary {
   messageCount: number;
   fileCount: number;
   cost?: { totalCostUSD?: number; totalLinesAdded?: number; totalLinesRemoved?: number };
+  price?: SessionCost;
   prLinks: { prUrl?: string; prNumber?: number }[];
 }
 
@@ -186,6 +194,7 @@ export interface LiveSession {
   planMode?: boolean;
   tokens?: TokenUsage;
   cost?: { totalCostUSD?: number };
+  price?: SessionCost;
   lastActivityAt?: string;
 }
 
