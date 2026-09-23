@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -287,13 +287,37 @@ describe("NotificationWatcher", () => {
     const received: ClaudeNotification[] = [];
     watcher.on((notification) => received.push(notification));
 
-    await writeFile(join(watcher.directory, "1.json"), "{ cassé", "utf8");
+    // Vieilli : un fichier illisible et récent pourrait être encore en écriture.
+    const broken = join(watcher.directory, "1.json");
+    await writeFile(broken, "{ cassé", "utf8");
+    await utimes(broken, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
     await writeFile(join(watcher.directory, "2.json"), JSON.stringify({ kind: "idle" }), "utf8");
     await watcher.drain();
     await waitFor(() => received.length === 1);
 
     expect(received[0]?.kind).toBe("idle");
     expect(await readdir(watcher.directory)).toEqual([]);
+
+    watcher.stop();
+  });
+
+  it("laisse en place un fichier en cours d'écriture, et le lit une fois complet", async () => {
+    const watcher = new NotificationWatcher(dataDir);
+    await watcher.start();
+
+    const received: ClaudeNotification[] = [];
+    watcher.on((notification) => received.push(notification));
+
+    const path = join(watcher.directory, "1.json");
+    await writeFile(path, '{"kind":"st', "utf8");
+    await watcher.drain();
+    expect(existsSync(path)).toBe(true);
+    expect(received).toHaveLength(0);
+
+    await writeFile(path, JSON.stringify({ kind: "stop" }), "utf8");
+    await watcher.drain();
+    await waitFor(() => received.length === 1);
+    expect(received[0]?.kind).toBe("stop");
 
     watcher.stop();
   });

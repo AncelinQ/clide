@@ -1,5 +1,5 @@
 import { watch, type FSWatcher } from "node:fs";
-import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import { appDataDir } from "@claude-ide/core";
@@ -74,6 +74,17 @@ export function parseNotification(id: string, text: string): ClaudeNotification 
     ...(pickString(payload, ["agent_type"]) ? { agentType: pickString(payload, ["agent_type"]) } : {}),
     ...(message ? { message: condense(message) } : {}),
   };
+}
+
+/** Délai en deçà duquel un fichier illisible est supposé en cours d'écriture. */
+const WRITE_GRACE_MS = 2000;
+
+async function isFresh(path: string): Promise<boolean> {
+  try {
+    return Date.now() - (await stat(path)).mtimeMs < WRITE_GRACE_MS;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -167,9 +178,14 @@ export class NotificationWatcher {
         } catch {
           continue;
         }
-        await rm(path, { force: true });
-
         const notification = parseNotification(name.replace(/\.json$/, ""), text);
+        if (!notification && (await isFresh(path))) {
+          // Peut-être encore en cours d'écriture par un script d'une version
+          // antérieure, qui n'écrit pas par renommage : on le relira au passage
+          // suivant plutôt que de perdre l'événement.
+          continue;
+        }
+        await rm(path, { force: true });
         if (!notification) continue;
 
         // Une reprise n'est pas une alerte à relire : elle ne va pas à l'historique.

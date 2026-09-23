@@ -407,6 +407,9 @@ Trois décisions de conception :
 - **Le script ne fait que déverser.** Un hook s'exécute dans le chemin critique
   de la session : il rend la main tout de suite, n'échoue jamais vers l'appelant,
   et sort de lui-même au bout de deux secondes si l'entrée standard ne se ferme pas.
+  Il écrit à côté puis renomme : le serveur ne lit jamais un événement à moitié
+  écrit, et un fichier illisible de moins de deux secondes est relu au passage
+  suivant plutôt que jeté — le cas d'un script installé avant ce renommage.
 - **L'installation conserve les hooks existants.** `settings.json` porte souvent
   des hooks posés à la main sur les mêmes événements ; une réinstallation remplace
   les nôtres sans toucher aux autres, et la désinstallation les laisse en place.

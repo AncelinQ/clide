@@ -58,7 +58,7 @@ export function hookScript(): string {
   return `#!/usr/bin/env node
 // Généré par claude-ide. Déverse la charge utile d'un hook dans un dossier surveillé.
 // Toute modification sera écrasée à la prochaine installation.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const kind = process.argv[2] ?? "other";
@@ -75,7 +75,11 @@ function spool() {
     const name = Date.now() + "-" + process.pid + "-" + Math.random().toString(36).slice(2, 8) + ".json";
     let payload = null;
     try { payload = JSON.parse(raw); } catch { payload = { raw: raw.slice(0, 2000) }; }
-    writeFileSync(join(directory, name), JSON.stringify({ kind, receivedAt: new Date().toISOString(), payload }), "utf8");
+    // Écrit à côté puis renommé : le renommage est atomique, et l'application ne
+    // lit jamais un fichier à moitié écrit.
+    const target = join(directory, name);
+    writeFileSync(target + ".tmp", JSON.stringify({ kind, receivedAt: new Date().toISOString(), payload }), "utf8");
+    renameSync(target + ".tmp", target);
   } catch {
     // Un hook qui échoue ne doit pas remonter à la session : il n'y a rien à
     // sauver ici, et une erreur coûterait plus cher que l'événement perdu.
