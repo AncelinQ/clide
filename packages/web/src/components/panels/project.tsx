@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
-import { McpEditor, McpLibrary } from "@/components/panels/mcp-editor";
+import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -231,10 +231,6 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
 }
 
 // ─── MCP du projet ──────────────────────────────────────────────────────────
-
-function serverTarget(server: McpServer): string {
-  return server.url ?? [server.command, ...(server.args ?? [])].join(" ");
-}
 
 export function ProjectMcpPanel({ root }: { root: string }) {
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp", { root }), [root]);

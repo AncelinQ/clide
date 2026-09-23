@@ -18,6 +18,13 @@ import { api, post, shortName } from "@/lib/api";
 import type { McpServer } from "@/lib/types";
 
 type Transport = McpServer["transport"];
+type WritableScope = "project" | "local" | "user";
+
+const SCOPE_LABEL: Record<WritableScope, string> = {
+  project: "Projet · .mcp.json, partagé avec l'équipe",
+  local: "Local · ce projet, privé",
+  user: "Perso · tous les projets",
+};
 
 /** Découpe une ligne de commande en mots, guillemets compris : `npx -y "mon paquet"`. */
 export function splitCommand(line: string): string[] {
@@ -26,7 +33,7 @@ export function splitCommand(line: string): string[] {
   return words;
 }
 
-function joinCommand(words: string[]): string {
+export function joinCommand(words: string[]): string {
   return words.map((word) => (/\s/.test(word) ? `"${word}"` : word)).join(" ");
 }
 
@@ -47,28 +54,40 @@ function formatPairs(record: Record<string, string> | undefined, separator: stri
     .join("\n");
 }
 
+/** Cible d'un serveur telle qu'on la taperait : son URL, ou sa commande et ses arguments. */
+export function serverTarget(server: McpServer): string {
+  return server.url ?? joinCommand([server.command ?? "", ...(server.args ?? [])]);
+}
+
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 /**
- * Création ou modification d'un serveur du `.mcp.json` du projet.
+ * Création d'un serveur, ou modification d'un serveur du `.mcp.json` du projet.
  *
  * Les secrets arrivent masqués : laisser un `***` en place garde la valeur
  * d'origine, que le serveur remet à l'écriture. Rien ne l'expose ici.
+ *
+ * Les portées `local` et `user` passent par `claude mcp add-json` : elles vivent
+ * dans `~/.claude.json`, qu'on ne réécrit pas. Elles ne se modifient pas ici — la
+ * CLI n'édite pas, elle ajoute et retire.
  */
 export function McpEditor({
   root,
   server,
+  defaultScope = "project",
   open,
   onClose,
   onSaved,
 }: {
   root: string;
   server?: McpServer;
+  defaultScope?: WritableScope;
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const editing = server !== undefined;
+  const [scope, setScope] = useState<WritableScope>(defaultScope);
   const [name, setName] = useState(server?.name ?? "");
   const [transport, setTransport] = useState<Transport>(server?.transport ?? "stdio");
   const [command, setCommand] = useState(
@@ -96,7 +115,8 @@ export function McpEditor({
     setBusy(true);
     setError(undefined);
     try {
-      await post("/api/mcp/save", { root, name, config });
+      if (editing || scope === "project") await post("/api/mcp/save", { root, name, config });
+      else await post("/api/mcp/cli/add", { root, scope, name, config });
       onSaved();
       onClose();
     } catch (caught) {
@@ -111,7 +131,9 @@ export function McpEditor({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Modifier le serveur MCP" : "Nouveau serveur MCP"}</DialogTitle>
-          <DialogDescription>Dans le .mcp.json du projet, partagé avec l'équipe.</DialogDescription>
+          <DialogDescription>
+            {editing ? "Dans le .mcp.json du projet, partagé avec l'équipe." : SCOPE_LABEL[scope]}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3">
@@ -125,6 +147,23 @@ export function McpEditor({
               onChange={(event) => setName(event.target.value)}
             />
           </div>
+          {!editing && (
+            <div className="grid gap-1.5">
+              <Label>Portée</Label>
+              <Select value={scope} onValueChange={(value) => setScope(value as WritableScope)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(SCOPE_LABEL) as WritableScope[]).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SCOPE_LABEL[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid gap-1.5">
             <Label>Transport</Label>
             <Select value={transport} onValueChange={(value) => setTransport(value as Transport)}>

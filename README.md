@@ -297,6 +297,15 @@ ne s'appliquent pas au projet — avec de quoi les copier ici, et ceux des autre
 dossiers où l'on a travaillé, tirés de l'index des sessions, se reprennent de même.
 Une copie se fait côté serveur, secrets compris : la page ne les voit jamais.
 
+Les portées `local` et `user` vivent dans `~/.claude.json`, qui porte aussi
+l'historique et l'état de chaque projet : on ne le réécrit pas, l'écriture passe par
+`claude mcp add-json` et `claude mcp remove`. La configuration part en un seul
+argument JSON, et la CLI est lancée sans shell : les valeurs saisies — commande,
+jetons — ne sont jamais relues par `cmd.exe`. Seul un `claude.exe` convient ; une
+installation par npm, qui ne fournit qu'un `.cmd`, voit ces écritures refusées. Ces
+portées s'ajoutent, se retirent et se copient dans le projet ; elles ne se modifient
+pas, la CLI n'éditant pas.
+
 Un serveur qui demande une authentification porte un bouton `/mcp` : il tape la
 commande dans l'onglet Claude du projet, l'actif s'il en est un, où Claude Code
 mène l'authentification. Sans Échap devant, contrairement aux shells : dans Claude

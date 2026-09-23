@@ -238,7 +238,8 @@ détection du gestionnaire par le lockfile, espaces de travail, `.claude/command
 les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
-l'édition d'un serveur, ceux des dossiers liés et la reprise depuis un autre projet, le routage des notifications,
+l'édition d'un serveur, ceux des dossiers liés la reprise depuis un autre projet,
+l'écriture des portées user et local par la CLI, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
 des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
 survol, la police du terminal,
@@ -292,7 +293,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 |---|---|
 | History : supprimer une session | aucune route d'écriture. C'est une suppression de fichier dans `~/.claude/projects`, donc à traiter avec les mêmes précautions que la piste 7 |
 | Skills : plugins | les skills livrés par un plugin ne sont pas listés |
-| MCP : écrire les portées user et local | lecture seule ici, et à raison : elles vivent dans `~/.claude.json`, qu'on ne réécrit pas. L'original passe par `claude mcp add` et `claude mcp remove` |
 | Réglages : formulaire | modèle, permissions, hooks, env, plugins, plutôt que du JSON brut. Les clés inconnues sont préservées des deux côtés |
 
 ### Skills

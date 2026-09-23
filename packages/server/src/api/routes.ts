@@ -13,6 +13,7 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  safeServerName,
   redactServer,
   restoreMasked,
   withPlanFile,
@@ -27,6 +28,7 @@ import {
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
+import { addJsonArgs, removeArgs, runClaudeMcp, type CliScope } from "../platform/claude-cli.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
@@ -67,6 +69,12 @@ const isString = (value: unknown): value is string => typeof value === "string" 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
+
+function requireCliScope(body: Record<string, unknown>): CliScope {
+  const scope = body["scope"];
+  if (scope !== "local" && scope !== "user") throw new Error("`scope` doit valoir local ou user");
+  return scope;
+}
 
 function requireParam(params: URLSearchParams, name: string): string {
   const value = params.get(name);
@@ -314,6 +322,27 @@ export const mutations: Record<string, Mutation> = {
       await store.rawConfig("project", root, name),
     );
     return { server: await store.saveProjectServer(root, name, config) };
+  },
+
+  /**
+   * Ajoute un serveur aux portées `local` ou `user`, par la CLI.
+   *
+   * Ces portées vivent dans `~/.claude.json`, qui porte aussi l'historique et
+   * l'état de chaque projet : on ne le réécrit pas, `claude mcp` s'en charge.
+   */
+  "/api/mcp/cli/add": async (_params, _context, body) => {
+    const root = requireField(body, "root", isString);
+    const scope = requireCliScope(body);
+    const name = safeServerName(requireField(body, "name", isString));
+    const config = requireField(body, "config", isRecord);
+    return { output: await runClaudeMcp(addJsonArgs(scope, name, config), root) };
+  },
+
+  "/api/mcp/cli/remove": async (_params, _context, body) => {
+    const root = requireField(body, "root", isString);
+    const scope = requireCliScope(body);
+    const name = requireField(body, "name", isString);
+    return { output: await runClaudeMcp(removeArgs(scope, name), root) };
   },
 
   /** Recopie un serveur dans le `.mcp.json` du projet, secrets compris, sans passer par la page. */

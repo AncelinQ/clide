@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
+import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,7 @@ export function UserMcpPanel() {
   const root = getState().activeRoot ?? "";
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp", { root }), [root]);
   const { byName, connectors, check } = useMcpStatus(root);
+  const [creating, setCreating] = useState(0);
 
   return (
     <Async state={state}>
@@ -214,11 +216,32 @@ export function UserMcpPanel() {
                             </>
                           }
                           sub={[
-                            server.url ?? [server.command, ...(server.args ?? [])].join(" "),
+                            serverTarget(server),
                             keys.length ? `secrets masqués : ${keys.join(", ")}` : "",
                           ]
                             .filter(Boolean)
                             .join("  ·  ")}
+                          actions={
+                            <>
+                              {root && (
+                                <ActionButton
+                                  variant="ghost"
+                                  onAction={async () => {
+                                    await post("/api/mcp/copy", { root, name: server.name, from: root, scope });
+                                  }}
+                                >
+                                  copier dans le projet
+                                </ActionButton>
+                              )}
+                              <DangerButton
+                                label="retirer"
+                                onConfirm={async () => {
+                                  await post("/api/mcp/cli/remove", { root, scope, name: server.name });
+                                  state.reload();
+                                }}
+                              />
+                            </>
+                          }
                         />
                       );
                     })}
@@ -252,10 +275,25 @@ export function UserMcpPanel() {
           </div>
 
           {/* Ces portées vivent dans ~/.claude.json, qui porte aussi l'état de
-              chaque projet : elles se modifient par la CLI, pas d'ici. */}
-          <p className="pb-3 text-[11px] text-muted-foreground">
-            Ces portées se modifient par <code>claude mcp add|remove</code>.
-          </p>
+              chaque projet : l'écriture passe par la CLI, pas par ce fichier. */}
+          <div className="flex items-center gap-2 pb-3">
+            <Button variant="outline" size="sm" className="h-7" onClick={() => setCreating((value) => value + 1)}>
+              Ajouter un serveur
+            </Button>
+            <span className="text-[11px] text-muted-foreground">
+              par <code>claude mcp add-json</code>
+            </span>
+          </div>
+          {creating > 0 && (
+            <McpEditor
+              key={creating}
+              root={root}
+              defaultScope="user"
+              open
+              onClose={() => setCreating(0)}
+              onSaved={state.reload}
+            />
+          )}
         </>
       )}
     </Async>
