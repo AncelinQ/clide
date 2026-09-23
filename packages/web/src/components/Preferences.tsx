@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { ShortcutsEditor } from "@/components/ShortcutsEditor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -86,7 +87,7 @@ export function PreferencesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Préférences</DialogTitle>
           <DialogDescription>Propres à claude-ide, sans effet sur Claude Code.</DialogDescription>
@@ -141,6 +142,8 @@ export function PreferencesDialog({
           >
             Revenir aux valeurs par défaut
           </button>
+
+          <ShortcutsEditor />
         </div>
       </DialogContent>
     </Dialog>

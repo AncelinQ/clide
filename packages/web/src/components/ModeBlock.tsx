@@ -25,15 +25,26 @@ export function ModeBlock({
   onPick,
   header,
   className,
+  collapsed: controlled,
+  onCollapse,
 }: {
   modes: Mode[];
   current: string;
   onPick: (id: string) => void;
   header?: ReactNode;
   className?: string;
+  /** Repli piloté de l'extérieur, pour qu'une commande puisse le basculer. */
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
 }) {
   const [about, setAbout] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [local, setLocal] = useState(false);
+  const collapsed = controlled ?? local;
+  const setCollapsed = (update: (value: boolean) => boolean) => {
+    const next = update(collapsed);
+    if (onCollapse) onCollapse(next);
+    else setLocal(next);
+  };
   const mode = modes.find((entry) => entry.id === current) ?? modes[0];
   if (!mode) return null;
 

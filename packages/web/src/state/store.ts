@@ -43,17 +43,29 @@ export interface State {
   terminalFont: TerminalFont;
   showLeft: boolean;
   showRight: boolean;
+  /** Bloc session replié sous le terminal. */
+  sessionCollapsed: boolean;
+  /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
+  paletteOpen: boolean;
+  addingProject: boolean;
+  preferencesOpen: boolean;
+  /**
+   * Raccourcis changés par l'utilisateur, par action. `null` retire le raccourci
+   * par défaut ; une action absente garde le sien.
+   */
+  shortcuts: Record<string, string | null>;
 }
 
 const SAVED = "claude-ide.state";
 
-function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont"> {
+function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts"> {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
       roots?: string[];
       active?: string;
       theme?: Theme;
       terminalFont?: Partial<TerminalFont>;
+      shortcuts?: Record<string, string | null>;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
@@ -61,10 +73,11 @@ function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminal
       activeRoot: saved.active ?? projects[0]?.root ?? null,
       theme: saved.theme ?? "auto",
       terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
+      shortcuts: saved.shortcuts ?? {},
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {} };
   }
 }
 
@@ -91,6 +104,10 @@ let state: State = {
   connected: false,
   showLeft: true,
   showRight: true,
+  sessionCollapsed: false,
+  paletteOpen: false,
+  addingProject: false,
+  preferencesOpen: false,
   ...restored(),
 };
 
@@ -104,6 +121,7 @@ function persist(): void {
       active: state.activeRoot,
       theme: state.theme,
       terminalFont: state.terminalFont,
+      shortcuts: state.shortcuts,
     }),
   );
 }

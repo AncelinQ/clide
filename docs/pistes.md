@@ -249,7 +249,7 @@ sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode
 mode plan et les tokens dans la barre d'état et l'activité, et l'ouverture
 automatique du plan —, le plan rendu en markdown, l'intégration shell — un `claude` tapé dans un shell en fait un onglet Claude —, les
 images vers le prompt et le bouton Capture, le formulaire des réglages, le retrait d'une session à la
-corbeille, les worktrees.
+corbeille, la palette de commandes et les raccourcis modifiables, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -257,7 +257,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Raccourcis d'ouverture et de navigation | ⌘N nouveau projet, ⌘O ouvrir, ⇧⌘W fermer, ⌥⌘[ ] changer de projet — piste 5 |
 
 ### Finder
 
@@ -278,13 +277,11 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Raccourcis d'onglet | ⌘T shell, ⇧⌘T Claude, ⌘W fermer, ⇧⌘[ ] naviguer — piste 5 |
 
 ### Bloc session
 
 | Manque | Détail |
 |---|---|
-| Raccourci de repli | ⌥⌘3 chez l'original — piste 5 |
 
 ### Panneau droit
 

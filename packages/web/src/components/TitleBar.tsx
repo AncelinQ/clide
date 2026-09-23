@@ -26,8 +26,10 @@ export function TitleBar() {
   const { projects, activeRoot, connected, theme, showLeft, showRight, terminals, attention } = useStore(
     (state) => state,
   );
-  const [adding, setAdding] = useState(false);
-  const [preferences, setPreferences] = useState(false);
+  const adding = useStore((state) => state.addingProject);
+  const setAdding = (value: boolean) => setState({ addingProject: value });
+  const preferences = useStore((state) => state.preferencesOpen);
+  const setPreferences = (value: boolean) => setState({ preferencesOpen: value });
   const [draft, setDraft] = useState("");
 
   const ThemeIcon = THEME_ICON[theme];

@@ -9,7 +9,8 @@ import { cn } from "cn";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, mount, openTerminal, resize, typeInto } from "@/state/terminals";
-import { PATHS_MIME, post, quotePath, saveImage } from "@/lib/api";
+import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
+import { captureInto } from "@/state/commands";
 import type { TerminalInfo } from "@/lib/types";
 
 /** Accueil affiché tant qu'aucun terminal n'est ouvert pour ce projet. */
@@ -153,9 +154,7 @@ function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
         setBusy(true);
         setError(undefined);
         try {
-          const { path } = await post<{ path: string }>("/api/capture", {});
-          typeInto(terminalId, `${quotePath(path)} `);
-          focusTerminal(terminalId);
+          await captureInto(terminalId);
         } catch (caught) {
           setError((caught as Error).message);
         } finally {
@@ -169,8 +168,17 @@ function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
 }
 
 export function TerminalArea() {
-  const { terminals, activeTerminalId, attention, activeRoot, selectedSession, sessionMode, live, followLive } =
-    useStore((state) => state);
+  const {
+    terminals,
+    activeTerminalId,
+    attention,
+    activeRoot,
+    selectedSession,
+    sessionMode,
+    live,
+    followLive,
+    sessionCollapsed,
+  } = useStore((state) => state);
   const project = useStore(activeProject);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
@@ -328,6 +336,8 @@ export function TerminalArea() {
         current={sessionMode}
         onPick={(id) => setState({ sessionMode: id })}
         header={shown?.title}
+        collapsed={sessionCollapsed}
+        onCollapse={(value) => setState({ sessionCollapsed: value })}
         className="max-h-[38%]"
       />
     </Island>
