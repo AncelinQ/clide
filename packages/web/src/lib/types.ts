@@ -66,7 +66,7 @@ export interface SlashCommand {
 
 export interface McpServer {
   name: string;
-  scope: "project" | "local" | "user";
+  scope: "project" | "local" | "user" | "linked";
   transport: "stdio" | "http" | "sse";
   command?: string;
   args?: string[];
@@ -74,6 +74,8 @@ export interface McpServer {
   env?: Record<string, string>;
   headers?: Record<string, string>;
   redacted: boolean;
+  /** Dossier dont vient le serveur : dossier lié, ou autre projet. */
+  source?: string;
 }
 
 export interface McpStatus {

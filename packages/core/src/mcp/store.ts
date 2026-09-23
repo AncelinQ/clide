@@ -4,7 +4,14 @@ import { join } from "node:path";
 import { claudeHome } from "../paths.js";
 import { SettingsEditor } from "../settings/editor.js";
 
-export type McpScope = "project" | "local" | "user";
+/**
+ * Portée d'un serveur. `linked` désigne le `.mcp.json` d'un dossier lié : il ne
+ * s'applique pas au projet, mais on le montre pour pouvoir le reprendre.
+ */
+export type McpScope = "project" | "local" | "user" | "linked";
+
+/** Portées dont un serveur se relit en entier, pour être copié ou édité. */
+export type McpSourceScope = "project" | "local" | "user";
 export type McpTransport = "stdio" | "http" | "sse";
 
 export interface McpServer {
@@ -18,6 +25,8 @@ export interface McpServer {
   headers?: Record<string, string>;
   /** Vrai quand `env` ou `headers` ont été masqués. */
   redacted: boolean;
+  /** Dossier dont vient le serveur, pour un dossier lié ou un autre projet. */
+  source?: string;
 }
 
 /** Ce qui remplace une valeur masquée. */
@@ -152,6 +161,68 @@ export class McpStore {
     return [];
   }
 
+  /**
+   * Configuration d'un serveur telle qu'écrite, secrets compris.
+   *
+   * Elle ne quitte pas le serveur : une copie ou une édition la relit ici plutôt
+   * que de la faire transiter par la page, qui ne voit que des valeurs masquées.
+   */
+  async rawConfig(scope: McpSourceScope, root: string, name: string): Promise<Record<string, unknown> | undefined> {
+    if (scope === "project") {
+      const config = await this.#readJson(join(root, ".mcp.json"));
+      return asRecord(asRecord(config?.["mcpServers"])?.[name]);
+    }
+    const config = await this.#readJson(this.userConfigFile);
+    if (scope === "user") return asRecord(asRecord(config?.["mcpServers"])?.[name]);
+    const projects = asRecord(config?.["projects"]) ?? {};
+    const wanted = normalizeRoot(root);
+    for (const [key, value] of Object.entries(projects)) {
+      if (normalizeRoot(key) === wanted) return asRecord(asRecord(asRecord(value)?.["mcpServers"])?.[name]);
+    }
+    return undefined;
+  }
+
+  /** Serveurs du `.mcp.json` de chaque dossier lié, marqués de leur dossier. */
+  async listLinked(folders: string[]): Promise<McpServer[]> {
+    const lists = await Promise.all(
+      folders.map(async (folder) =>
+        (await this.listProject(folder)).map((server) => ({ ...server, scope: "linked" as const, source: folder })),
+      ),
+    );
+    return lists.flat();
+  }
+
+  /**
+   * Serveurs déjà configurés ailleurs, à reprendre sans les retaper.
+   *
+   * Un nom n'apparaît qu'une fois, pris dans le premier dossier qui le déclare :
+   * le même serveur est souvent recopié d'un dépôt à l'autre.
+   */
+  async library(folders: string[], excluding: string[] = []): Promise<McpServer[]> {
+    const skip = new Set(excluding.map(normalizeRoot));
+    const seen = new Set<string>();
+    const out: McpServer[] = [];
+    for (const folder of folders) {
+      if (skip.has(normalizeRoot(folder))) continue;
+      for (const server of await this.listProject(folder)) {
+        if (seen.has(server.name)) continue;
+        seen.add(server.name);
+        out.push({ ...server, source: folder });
+      }
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** Recopie un serveur d'une portée ou d'un dossier dans le `.mcp.json` du projet. */
+  async copyToProject(
+    targetRoot: string,
+    from: { scope: McpSourceScope; root: string; name: string },
+  ): Promise<McpServer> {
+    const config = await this.rawConfig(from.scope, from.root, from.name);
+    if (!config) throw new Error(`serveur ${from.name} introuvable`);
+    return this.saveProjectServer(targetRoot, from.name, config);
+  }
+
   async listProject(projectRoot: string): Promise<McpServer[]> {
     const config = await this.#readJson(join(projectRoot, ".mcp.json"));
     const servers = asRecord(config?.["mcpServers"]) ?? {};
@@ -220,4 +291,35 @@ export function safeServerName(name: string): string {
 
 function normalizeRoot(path: string): string {
   return path.replace(/[\\/]+$/, "").split(/[\\/]/).join("/").toLowerCase();
+}
+
+/**
+ * Remet les valeurs d'origine à la place des valeurs masquées.
+ *
+ * La page ne voit `env` et `headers` que masqués : un serveur qu'on édite revient
+ * avec des `***` là où l'on n'a rien touché. Une valeur masquée sans valeur
+ * d'origine est refusée plutôt qu'écrite telle quelle : `***` n'est le jeton de
+ * personne.
+ */
+export function restoreMasked(
+  config: Record<string, unknown>,
+  previous: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const out = { ...config };
+  for (const field of ["env", "headers"] as const) {
+    const values = asRecord(config[field]);
+    if (!values) continue;
+    const before = asRecord(previous?.[field]) ?? {};
+    const restored: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (value !== MASK) {
+        restored[key] = value;
+        continue;
+      }
+      if (typeof before[key] !== "string") throw new Error(`valeur masquée sans valeur d'origine : ${field}.${key}`);
+      restored[key] = before[key];
+    }
+    out[field] = restored;
+  }
+  return out;
 }

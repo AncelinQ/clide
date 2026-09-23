@@ -289,6 +289,14 @@ le disque : il faut interroger chaque serveur, ce que fait `claude mcp list`.
   sortir la commande en erreur, et ce qu'elle a écrit avant est l'état des
   autres.
 
+Les serveurs du `.mcp.json` s'ajoutent et se modifient dans un éditeur. Les
+secrets (`env`, `headers`) y arrivent masqués : laisser un `***` en place garde la
+valeur d'origine, que le serveur remet à l'écriture ; un `***` sans valeur d'origine
+est refusé plutôt qu'écrit. Les serveurs des dossiers liés sont montrés à part — ils
+ne s'appliquent pas au projet — avec de quoi les copier ici, et ceux des autres
+dossiers où l'on a travaillé, tirés de l'index des sessions, se reprennent de même.
+Une copie se fait côté serveur, secrets compris : la page ne les voit jamais.
+
 Un serveur qui demande une authentification porte un bouton `/mcp` : il tape la
 commande dans l'onglet Claude du projet, l'actif s'il en est un, où Claude Code
 mène l'authentification. Sans Échap devant, contrairement aux shells : dans Claude

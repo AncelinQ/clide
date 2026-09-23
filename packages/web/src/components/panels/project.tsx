@@ -3,13 +3,14 @@ import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
+import { McpEditor, McpLibrary } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, post } from "@/lib/api";
+import { api, post, shortName } from "@/lib/api";
 import type { McpServer, ProjectLink, ProjectScripts, Skill, SlashCommand, Worktree } from "@/lib/types";
 import { openTerminal, runScript } from "@/state/terminals";
 
@@ -231,17 +232,29 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
 
 // ─── MCP du projet ──────────────────────────────────────────────────────────
 
+function serverTarget(server: McpServer): string {
+  return server.url ?? [server.command, ...(server.args ?? [])].join(" ");
+}
+
 export function ProjectMcpPanel({ root }: { root: string }) {
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp", { root }), [root]);
   const { byName, check } = useMcpStatus(root);
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [target, setTarget] = useState("");
+  // `null` : création ; un serveur : édition ; `undefined` : fermé. La clé
+  // remonte l'éditeur à chaque ouverture, pour qu'il parte des bonnes valeurs.
+  const [editing, setEditing] = useState<McpServer | null | undefined>(undefined);
+  const [nonce, setNonce] = useState(0);
+  const [browsing, setBrowsing] = useState(false);
+
+  const openEditor = (server: McpServer | null) => {
+    setNonce((value) => value + 1);
+    setEditing(server);
+  };
 
   return (
     <Async state={state}>
       {({ servers }) => {
         const own = servers.filter((server) => server.scope === "project");
+        const linked = servers.filter((server) => server.scope === "linked");
         return (
           <>
             {own.length === 0 ? (
@@ -252,7 +265,7 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                   <Row
                     key={server.name}
                     title={server.name}
-                    sub={server.url ?? [server.command, ...(server.args ?? [])].join(" ")}
+                    sub={serverTarget(server)}
                     badges={
                       <>
                         <Badge variant="secondary">{server.transport}</Badge>
@@ -260,56 +273,83 @@ export function ProjectMcpPanel({ root }: { root: string }) {
                       </>
                     }
                     actions={
-                      <DangerButton
-                        label="retirer"
-                        onConfirm={async () => {
-                          await post("/api/mcp/remove", { root, name: server.name });
-                          state.reload();
-                        }}
-                      />
+                      <>
+                        <ActionButton variant="ghost" onAction={() => openEditor(server)}>
+                          modifier
+                        </ActionButton>
+                        <DangerButton
+                          label="retirer"
+                          onConfirm={async () => {
+                            await post("/api/mcp/remove", { root, name: server.name });
+                            state.reload();
+                          }}
+                        />
+                      </>
                     }
                   />
                 ))}
               </Rows>
             )}
 
-            {open ? (
-              <div className="mt-3 flex flex-col gap-2">
-                <Label>Nom</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
-                <Label>Cible</Label>
-                <Input
-                  value={target}
-                  onChange={(e) => setTarget(e.target.value)}
-                  placeholder="https://… ou une commande"
-                />
-                <div className="flex gap-2">
-                  <ActionButton
-                    variant="default"
-                    onAction={async () => {
-                      const value = target.trim();
-                      const config = value.startsWith("http")
-                        ? { type: "http", url: value }
-                        : { command: value.split(/\s+/)[0], args: value.split(/\s+/).slice(1) };
-                      await post("/api/mcp/save", { root, name, config });
-                      setOpen(false);
-                      setName("");
-                      setTarget("");
-                      state.reload();
-                    }}
-                  >
-                    Ajouter
-                  </ActionButton>
-                  <ActionButton onAction={() => setOpen(false)}>Annuler</ActionButton>
-                </div>
+            {/* Un dossier lié n'apporte pas ses serveurs au projet : on les montre
+                pour pouvoir les reprendre, pas comme s'ils s'appliquaient. */}
+            {linked.length > 0 && (
+              <>
+                <Section>Dossiers liés</Section>
+                <Rows>
+                  {linked.map((server) => (
+                    <Row
+                      key={`${server.source}|${server.name}`}
+                      title={server.name}
+                      sub={`${shortName(server.source ?? "")}  ·  ${serverTarget(server)}`}
+                      badges={<Badge variant="secondary">{server.transport}</Badge>}
+                      actions={
+                        own.some((mine) => mine.name === server.name) ? undefined : (
+                          <ActionButton
+                            onAction={async () => {
+                              await post("/api/mcp/copy", {
+                                root,
+                                name: server.name,
+                                from: server.source,
+                                scope: "project",
+                              });
+                              state.reload();
+                            }}
+                          >
+                            copier ici
+                          </ActionButton>
+                        )
+                      }
+                    />
+                  ))}
+                </Rows>
+              </>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" className="h-7" onClick={() => openEditor(null)}>
+                Ajouter un serveur
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7" onClick={() => setBrowsing(!browsing)}>
+                {browsing ? "Masquer les autres projets" : "Reprendre d'un autre projet"}
+              </Button>
+              {own.length > 0 && <ActionButton onAction={check}>Vérifier l'état</ActionButton>}
+            </div>
+            {browsing && (
+              <div className="mt-2 rounded-md border p-2">
+                <McpLibrary root={root} onCopied={state.reload} />
               </div>
-            ) : (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" className="h-7" onClick={() => setOpen(true)}>
-                  Ajouter un serveur
-                </Button>
-                {own.length > 0 && <ActionButton onAction={check}>Vérifier l'état</ActionButton>}
-              </div>
+            )}
+
+            {editing !== undefined && (
+              <McpEditor
+                key={nonce}
+                root={root}
+                {...(editing ? { server: editing } : {})}
+                open
+                onClose={() => setEditing(undefined)}
+                onSaved={state.reload}
+              />
             )}
           </>
         );

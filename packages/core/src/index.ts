@@ -102,9 +102,11 @@ export {
   McpStore,
   MASK,
   redactServer,
+  restoreMasked,
   safeServerName,
   type McpScope,
   type McpServer,
+  type McpSourceScope,
   type McpTransport,
 } from "./mcp/store.js";
 

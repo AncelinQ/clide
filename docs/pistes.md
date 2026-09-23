@@ -237,7 +237,8 @@ Relevé exhaustif, README de l'original en main et vérifié contre le code d'ic
 détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
 les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
-serveurs MCP, les connecteurs claude.ai et l'envoi de `/mcp` pour les authentifier, le routage des notifications,
+serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
+l'édition d'un serveur, ceux des dossiers liés et la reprise depuis un autre projet, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
 des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
 survol, la police du terminal,
@@ -270,9 +271,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Serveurs des dossiers liés | on ne voit que le `.mcp.json` du projet courant |
-| Éditer un serveur | on ajoute et on retire ; modifier demande de retirer puis rajouter |
-| Copier depuis un autre projet | reprendre un serveur déjà configuré ailleurs sans le retaper |
 
 ### Terminal
 

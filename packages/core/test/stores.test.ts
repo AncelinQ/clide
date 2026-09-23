@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { LinkStore, denyRules, promptPath } from "../src/links/store.js";
-import { MASK, McpStore, redactServer } from "../src/mcp/store.js";
+import { MASK, McpStore, redactServer, restoreMasked } from "../src/mcp/store.js";
 import { ScriptStore, parsePnpmWorkspace } from "../src/scripts/store.js";
 import { SkillStore, parseFrontmatter } from "../src/skills/store.js";
 import { SettingsEditor } from "../src/settings/editor.js";
@@ -194,6 +194,37 @@ describe("McpStore", () => {
   it("rend une liste vide sur une configuration absente", async () => {
     const store = new McpStore(dir, join(dir, "nulle-part.json"));
     expect(await store.listAll(join(dir, "app"))).toEqual([]);
+  });
+
+  it("recopie un serveur d'un autre projet avec ses secrets, sans les exposer en liste", async () => {
+    await write(
+      "autre/.mcp.json",
+      JSON.stringify({ mcpServers: { db: { command: "npx", args: ["db"], env: { TOKEN: "secret-de-test" } } } }),
+    );
+    await mkdir(join(dir, "app"), { recursive: true });
+    const store = new McpStore(dir, userConfig());
+
+    const [listed] = await store.library([join(dir, "autre"), join(dir, "app")], [join(dir, "app")]);
+    expect(listed).toMatchObject({ name: "db", source: join(dir, "autre") });
+
+    await store.copyToProject(join(dir, "app"), { scope: "project", root: join(dir, "autre"), name: "db" });
+    const written = JSON.parse(await readFile(join(dir, "app", ".mcp.json"), "utf8"));
+    expect(written.mcpServers.db.env.TOKEN).toBe("secret-de-test");
+  });
+
+  it("montre les serveurs des dossiers liés sous leur propre portée", async () => {
+    await write("lib/.mcp.json", JSON.stringify({ mcpServers: { outil: { url: "https://x" } } }));
+    const linked = await new McpStore(dir, userConfig()).listLinked([join(dir, "lib"), join(dir, "vide")]);
+    expect(linked).toEqual([expect.objectContaining({ name: "outil", scope: "linked", source: join(dir, "lib") })]);
+  });
+
+  it("remet les secrets d'origine derrière les valeurs masquées d'une édition", () => {
+    const edited = restoreMasked(
+      { url: "https://nouvelle", headers: { Authorization: MASK, "X-Autre": "neuf" } },
+      { url: "https://ancienne", headers: { Authorization: "Bearer vrai" } },
+    );
+    expect(edited).toEqual({ url: "https://nouvelle", headers: { Authorization: "Bearer vrai", "X-Autre": "neuf" } });
+    expect(() => restoreMasked({ env: { CLE: MASK } }, undefined)).toThrow("valeur masquée");
   });
 });
 

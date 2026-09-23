@@ -13,6 +13,8 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  redactServer,
+  restoreMasked,
   withPlanFile,
   previewFile,
   resolveInside,
@@ -146,7 +148,34 @@ export const routes: Record<string, Handler> = {
     return { raw: await new SkillStore().readRaw(scope, directory, root) };
   },
 
-  "/api/mcp": async (params) => ({ servers: await new McpStore().listAll(requireParam(params, "root")) }),
+  "/api/mcp": async (params) => {
+    const root = requireParam(params, "root");
+    const store = new McpStore();
+    const links = await new LinkStore().read(root);
+    const linked = await store.listLinked(links.map((link) => link.path));
+    return { servers: [...(await store.listAll(root)), ...linked.map(redactServer)] };
+  },
+
+  /**
+   * Serveurs déclarés dans les autres dossiers où l'on a travaillé, à reprendre.
+   * Les dossiers viennent de l'index des sessions : il les connaît tous, sans
+   * qu'on ait à les avoir ouverts ici.
+   */
+  "/api/mcp/library": async (params, { index }) => {
+    const root = requireParam(params, "root");
+    await index.refresh();
+    const folders = [
+      ...new Set(
+        index
+          .list({ kind: "session" })
+          .map((session) => session.effectiveCwd)
+          .filter((cwd): cwd is string => Boolean(cwd)),
+      ),
+    ];
+    const links = await new LinkStore().read(root);
+    const servers = await new McpStore().library(folders, [root, ...links.map((link) => link.path)]);
+    return { servers: servers.map(redactServer) };
+  },
 
   /**
    * État des serveurs, interrogés un à un par la CLI. Route à part de `/api/mcp`
@@ -277,8 +306,26 @@ export const mutations: Record<string, Mutation> = {
   "/api/mcp/save": async (_params, _context, body) => {
     const root = requireField(body, "root", isString);
     const name = requireField(body, "name", isString);
-    const config = requireField(body, "config", isRecord);
-    return { server: await new McpStore().saveProjectServer(root, name, config) };
+    const store = new McpStore();
+    // Une édition revient avec des `***` là où les secrets n'ont pas été touchés :
+    // on les reprend dans la configuration écrite.
+    const config = restoreMasked(
+      requireField(body, "config", isRecord),
+      await store.rawConfig("project", root, name),
+    );
+    return { server: await store.saveProjectServer(root, name, config) };
+  },
+
+  /** Recopie un serveur dans le `.mcp.json` du projet, secrets compris, sans passer par la page. */
+  "/api/mcp/copy": async (_params, _context, body) => {
+    const root = requireField(body, "root", isString);
+    const name = requireField(body, "name", isString);
+    const from = requireField(body, "from", isString);
+    const scope = requireField(body, "scope", isString);
+    if (scope !== "project" && scope !== "local" && scope !== "user") {
+      throw new Error("`scope` doit valoir project, local ou user");
+    }
+    return { server: await new McpStore().copyToProject(root, { scope, root: from, name }) };
   },
 
   "/api/mcp/remove": async (_params, _context, body) => {
