@@ -1,4 +1,4 @@
-import { Bell, Cpu, History, Plug, Sparkles } from "lucide-react";
+import { Cpu, History } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
@@ -535,11 +535,3 @@ export function NotificationsPanel() {
     </Async>
   );
 }
-
-export const GLOBAL_TABS = [
-  { id: "processes", icon: Cpu, label: "Process" },
-  { id: "history", icon: History, label: "History" },
-  { id: "skills", icon: Sparkles, label: "Skills" },
-  { id: "mcp", icon: Plug, label: "MCP" },
-  { id: "notifications", icon: Bell, label: "Alertes" },
-] as const;

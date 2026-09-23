@@ -99,6 +99,20 @@ une action.
 
 Les fichiers cachés sont écartés de la liste, `node_modules` aussi.
 
+## Onglets du panneau global
+
+Neuf onglets ne tiennent pas dans la colonne de droite. Deux dispositions, au choix
+depuis le menu « ⋯ » :
+
+- **en ligne, en haut**, comme les outils de développement du navigateur : autant
+  d'onglets qu'en tient la largeur, le reste dans « ⋯ ». L'onglet ouvert reste
+  toujours sur la ligne, pour qu'on voie où l'on est ;
+- **en colonne, à droite**, comme les barres d'outils de WebStorm : la hauteur les
+  tient tous, et le panneau garde toute sa largeur de texte.
+
+Le même menu choisit les onglets affichés ; un onglet masqué reste accessible depuis
+« ⋯ ». Le choix est gardé avec les autres préférences de l'application.
+
 ## Thème
 
 Sombre par défaut, clair quand le système le demande, et un bouton dans la barre

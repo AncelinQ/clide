@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
+import { TabRail, TabRow } from "@/components/GlobalTabs";
 import { ChantiersPanel } from "@/components/panels/chantiers";
 import { CostsPanel } from "@/components/panels/costs";
 import { SearchPanel } from "@/components/panels/search";
@@ -112,72 +113,6 @@ export function ProjectColumn() {
 
 // ─── Colonne globale ────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: "processes", icon: Cpu, label: "Process" },
-  { id: "history", icon: History, label: "History" },
-  { id: "search", icon: Search, label: "Recherche" },
-  { id: "chantiers", icon: Layers, label: "Chantiers" },
-  { id: "skills", icon: Sparkles, label: "Skills" },
-  { id: "mcp", icon: Plug, label: "MCP" },
-  { id: "costs", icon: Coins, label: "Coûts" },
-  { id: "settings", icon: Settings, label: "Réglages" },
-  { id: "notifications", icon: Bell, label: "Alertes" },
-] as const;
-
-/**
- * Onglets du panneau global, icône au-dessus du libellé comme dans l'original.
- *
- * Ils défilent à l'horizontale quand la colonne ne les tient pas tous, libellés
- * entiers plutôt que tronqués. La molette verticale fait défiler aussi : sans
- * pavé tactile, une barre horizontale ne se ferait défiler qu'à la souris sur
- * son ascenseur. L'onglet actif est ramené dans la vue quand il change — depuis
- * la palette, par exemple.
- */
-function TabStrip({ current }: { current: string }) {
-  const nav = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    nav.current?.querySelector<HTMLElement>(`[data-tab="${current}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [current]);
-
-  useEffect(() => {
-    const element = nav.current;
-    if (!element) return;
-    const onWheel = (event: WheelEvent) => {
-      if (element.scrollWidth <= element.clientWidth || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-      event.preventDefault();
-      element.scrollLeft += event.deltaY;
-    };
-    // Non passif : sans quoi `preventDefault` n'empêcherait pas la page de défiler.
-    element.addEventListener("wheel", onWheel, { passive: false });
-    return () => element.removeEventListener("wheel", onWheel);
-  }, []);
-
-  return (
-    <nav
-      ref={nav}
-      className="flex shrink-0 gap-0.5 overflow-x-auto border-b px-1.5 py-2 [scrollbar-width:thin]"
-    >
-      {TABS.map((tab) => (
-        <button
-          key={tab.id}
-          data-tab={tab.id}
-          type="button"
-          onClick={() => setState({ globalTab: tab.id })}
-          className={cn(
-            "flex min-w-13 flex-1 shrink-0 flex-col items-center gap-1 rounded-lg border px-1.5 py-1.5 text-[10px] whitespace-nowrap transition-colors",
-            tab.id === current
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-          )}
-        >
-          <tab.icon className="size-4" />
-          {t(tab.label)}
-        </button>
-      ))}
-    </nav>
-  );
-}
 
 export function GlobalColumn() {
   const globalTab = useStore((state) => state.globalTab);
@@ -209,9 +144,10 @@ export function GlobalColumn() {
     }
   };
 
-  return (
-    <Island>
-      <TabStrip current={globalTab} />
+  const layout = useStore((state) => state.tabLayout);
+
+  const body = (
+    <>
 
       <div className="flex shrink-0 items-center gap-1.5 px-3 py-2">
         {searchable && (
@@ -237,6 +173,21 @@ export function GlobalColumn() {
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-3 pb-3">{panel()}</div>
       </ScrollArea>
+    </>
+  );
+
+  if (layout === "column") {
+    return (
+      <Island className="flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
+        <TabRail current={globalTab} />
+      </Island>
+    );
+  }
+  return (
+    <Island>
+      <TabRow current={globalTab} />
+      {body}
     </Island>
   );
 }

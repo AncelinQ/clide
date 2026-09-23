@@ -11,6 +11,9 @@ export interface Project {
 
 export type Theme = "auto" | "light" | "dark";
 
+/** Disposition des onglets du panneau global : une ligne en haut, ou une colonne à droite. */
+export type TabLayout = "row" | "column";
+
 /** Langue de l'interface ; `auto` suit celle du système. */
 export type Language = "auto" | "fr" | "en";
 
@@ -60,11 +63,17 @@ export interface State {
    */
   shortcuts: Record<string, string | null>;
   language: Language;
+  tabLayout: TabLayout;
+  /** Onglets du panneau global affichés hors du menu « ⋯ », dans l'ordre ; tous si `null`. */
+  visibleTabs: string[] | null;
 }
 
 const SAVED = "claude-ide.state";
 
-function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language"> {
+function restored(): Pick<
+  State,
+  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs"
+> {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
       roots?: string[];
@@ -73,6 +82,8 @@ function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminal
       terminalFont?: Partial<TerminalFont>;
       shortcuts?: Record<string, string | null>;
       language?: Language;
+      tabLayout?: TabLayout;
+      visibleTabs?: string[] | null;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
@@ -82,10 +93,12 @@ function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminal
       terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
       shortcuts: saved.shortcuts ?? {},
       language: saved.language ?? "auto",
+      tabLayout: saved.tabLayout ?? "row",
+      visibleTabs: saved.visibleTabs ?? null,
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto" };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null };
   }
 }
 
@@ -132,6 +145,8 @@ function persist(): void {
       terminalFont: state.terminalFont,
       shortcuts: state.shortcuts,
       language: state.language,
+      tabLayout: state.tabLayout,
+      visibleTabs: state.visibleTabs,
     }),
   );
 }
