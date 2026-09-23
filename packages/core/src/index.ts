@@ -131,3 +131,5 @@ export {
   LINKS_SETTINGS,
   type ProjectLink,
 } from "./links/store.js";
+
+export { sessionArtifacts, type SessionArtifact } from "./session/artifacts.js";

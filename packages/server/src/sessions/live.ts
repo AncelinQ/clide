@@ -91,6 +91,14 @@ export class LiveSessions {
     void this.tick();
   }
 
+  /** Vrai si un onglet suit ce transcript. */
+  follows(path: string): boolean {
+    const wanted = path.replace(/[\\/]+/g, "/").toLowerCase();
+    return [...this.#tracked.values()].some(
+      (tracked) => tracked.path?.replace(/[\\/]+/g, "/").toLowerCase() === wanted,
+    );
+  }
+
   /** États courants, pour un client qui se connecte en cours de route. */
   current(): { terminalId: string; session: LiveSession }[] {
     const out: { terminalId: string; session: LiveSession }[] = [];

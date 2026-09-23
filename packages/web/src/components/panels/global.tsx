@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
+import { SessionRemovalDialog } from "@/components/panels/session-removal";
 import { SettingsForm } from "@/components/panels/settings-form";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import { openTerminal } from "@/state/terminals";
 export function HistoryPanel({ filter }: { filter: string }) {
   const state = useAsync(() => api<{ sessions: SessionSummary[] }>("/api/sessions"), []);
   const [scope, setScope] = useState("all");
+  const [removing, setRemoving] = useState<string>();
   const { activeRoot, selectedSession } = useStore((store) => store);
 
   return (
@@ -80,6 +82,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                       .filter(Boolean)
                       .join("  ·  ")}
                     actions={
+                      <>
                       <ActionButton
                         onAction={() => {
                           // Reprendre est une action : elle ouvre le projet,
@@ -93,10 +96,24 @@ export function HistoryPanel({ filter }: { filter: string }) {
                       >
                         reprendre
                       </ActionButton>
+                      <ActionButton variant="ghost" onAction={() => setRemoving(session.sessionId)}>
+                        retirer
+                      </ActionButton>
+                      </>
                     }
                   />
                 ))}
               </Rows>
+            )}
+            {removing && (
+              <SessionRemovalDialog
+                sessionId={removing}
+                onClose={() => setRemoving(undefined)}
+                onRemoved={() => {
+                  if (selectedSession?.sessionId === removing) setState({ selectedSession: null });
+                  state.reload();
+                }}
+              />
             )}
           </>
         );

@@ -142,18 +142,19 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const token = options.token ?? randomBytes(24).toString("base64url");
   const manager = new PtyManager();
   const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());
+  const live = new LiveSessions();
   const context: ApiContext = {
     index: new SessionIndex(),
     processes: new ProcessLister(),
     terminals: manager,
     notifications,
+    live,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
   };
   await context.index.load();
   await notifications.start();
 
-  const live = new LiveSessions();
   live.start();
   // Un onglet fermé ne suit plus rien ; son transcript redevient disponible pour
   // un autre onglet du même dossier.

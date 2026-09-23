@@ -557,6 +557,26 @@ session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour 
 sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
 tour, ne dit rien des permissions.
 
+## Retirer une session
+
+Une session se retire depuis History, et part à la corbeille de Windows — jamais
+supprimée —, d'où elle se restaure à son emplacement. Elle emporte ce qu'elle a
+laissé : son transcript, le dossier de ses sous-agents, les sauvegardes de fichiers
+de Claude Code et son environnement. Quatre garde-fous :
+
+- **Les chemins sont composés par le serveur**, à partir de l'identifiant et du
+  dossier projet que connaît l'index, vérifiés, jamais reçus de la page.
+- **Une session suivie par un onglet est refusée**, et de même **une session qui a
+  écrit il y a moins de deux minutes** : elle tourne peut-être dans un autre
+  terminal.
+- **La page montre d'abord ce qui partira**, avec les tailles, et le bouton reste
+  inactif quand le serveur refuse, raison à l'appui.
+- **Les refus sont relus au moment d'écrire**, pas seulement à l'aperçu.
+
+La corbeille est atteinte par `Microsoft.VisualBasic.FileIO.FileSystem`, seule voie
+.NET qui y range fichiers et dossiers comme l'Explorateur ; c'est l'absence du
+fichier après coup qui fait foi, la corbeille ne rendant pas d'erreur fiable.
+
 ## Ce que le corpus vivant impose aux tests
 
 Les sessions Claude Code en cours écrivent pendant que les tests tournent. Un test

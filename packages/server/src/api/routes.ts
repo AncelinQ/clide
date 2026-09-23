@@ -1,3 +1,5 @@
+import { stat } from "node:fs/promises";
+
 import {
   FileHistoryResolver,
   LinkStore,
@@ -13,6 +15,7 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  sessionArtifacts,
   safeServerName,
   redactServer,
   restoreMasked,
@@ -33,6 +36,8 @@ import { addJsonArgs, removeArgs, runClaudeMcp, type CliScope } from "../platfor
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
+import type { LiveSessions } from "../sessions/live.js";
+import { moveToRecycleBin } from "../platform/trash.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
 
@@ -41,6 +46,7 @@ export interface ApiContext {
   processes: ProcessLister;
   terminals: PtyManager;
   notifications: NotificationWatcher;
+  live: LiveSessions;
   /**
    * Fichiers que les mutations modifient. Portés par le contexte plutôt que
    * résolus dans chaque route : ce sont les seuls endroits où l'application
@@ -94,6 +100,32 @@ function requireParam(params: URLSearchParams, name: string): string {
   return value;
 }
 
+/** En deçà, une session est peut-être en cours ailleurs : on ne la retire pas. */
+const RECENT_MS = 2 * 60 * 1000;
+
+/**
+ * Ce que retirer une session emporterait, et ce qui l'interdit.
+ *
+ * Tout est résolu par l'index à partir de l'identifiant : une session suivie par
+ * un onglet, ou écrite il y a moins de deux minutes — ouverte peut-être dans un
+ * autre terminal —, est refusée. Seule une session principale se retire ; ses
+ * sous-agents partent avec elle.
+ */
+async function removalPlan(id: string, { index, live }: ApiContext) {
+  await index.refresh();
+  const session = index.list({ kind: "session" }).find((entry) => entry.sessionId === id);
+  if (!session) throw new Error(`session ${id} introuvable`);
+  const artifacts = await sessionArtifacts(session.projectDir, id);
+  const transcript = artifacts.find((artifact) => artifact.role === "transcript");
+  let blocked: string | undefined;
+  if (!transcript) blocked = "transcript introuvable";
+  else if (live.follows(transcript.path)) blocked = "la session tourne dans un onglet";
+  else if (Date.now() - (await stat(transcript.path)).mtimeMs < RECENT_MS) {
+    blocked = "la session a écrit il y a moins de deux minutes : elle tourne peut-être ailleurs";
+  }
+  return { session, artifacts, ...(blocked ? { blocked } : {}) };
+}
+
 async function findSession(id: string): Promise<TranscriptRef> {
   const ref = (await discoverTranscripts()).find(
     (candidate) => candidate.sessionId === id && candidate.kind === "session",
@@ -120,6 +152,15 @@ export const routes: Record<string, Handler> = {
   "/api/session": async (params, { index }) => {
     const id = requireParam(params, "id");
     return { chain: index.chain(id), subagents: index.subagents(id) };
+  },
+
+  "/api/session/removal": async (params, context) => {
+    const { session, artifacts, blocked } = await removalPlan(requireParam(params, "id"), context);
+    return {
+      title: session.title,
+      artifacts: artifacts.map(({ role, size, path }) => ({ role, size, path })),
+      ...(blocked ? { blocked } : {}),
+    };
   },
 
   "/api/session/files": async (params) => {
@@ -335,6 +376,24 @@ export const mutations: Record<string, Mutation> = {
     const removed = await new SkillStore().remove(scope, directory, root);
     if (!removed) throw new Error(`skill ${directory} introuvable`);
     return { removed: directory };
+  },
+
+  /**
+   * Retire une session : à la corbeille de Windows, jamais supprimée, avec ses
+   * sous-agents, ses sauvegardes de fichiers et son environnement. Les refus de
+   * l'aperçu valent ici aussi, relus au moment de l'écriture.
+   */
+  "/api/sessions/delete": async (_params, context, body) => {
+    const id = requireField(body, "id", isString);
+    const { artifacts, blocked } = await removalPlan(id, context);
+    if (blocked) throw new Error(blocked);
+    await moveToRecycleBin(
+      artifacts.map((artifact) => artifact.path),
+      context.dataDir,
+    );
+    await context.index.refresh();
+    await context.index.save();
+    return { removed: id, trashed: artifacts.length };
   },
 
   /** Copie un skill d'une portée à l'autre. `root` sert aux deux côtés : c'est le projet ouvert. */
