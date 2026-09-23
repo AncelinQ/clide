@@ -93,6 +93,7 @@ export {
   safeDirectoryName,
   type SkillDraft,
   type Scope,
+  type SkillScope,
   type Skill,
   type SkillInvocation,
   type SlashCommand,

@@ -70,6 +70,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
 
+/**
+ * Portée d'écriture d'un skill, exigée telle quelle.
+ *
+ * Rabattre une valeur inconnue sur `user` ferait d'une demande visant un skill de
+ * plugin une suppression du skill personnel du même nom.
+ */
+function skillScope(value: unknown): Scope {
+  if (value !== "user" && value !== "project") throw new Error("`scope` doit valoir user ou project");
+  return value;
+}
+
 function requireCliScope(body: Record<string, unknown>): CliScope {
   const scope = body["scope"];
   if (scope !== "local" && scope !== "user") throw new Error("`scope` doit valoir local ou user");
@@ -150,7 +161,7 @@ export const routes: Record<string, Handler> = {
   "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),
 
   "/api/skill": async (params) => {
-    const scope: Scope = params.get("scope") === "project" ? "project" : "user";
+    const scope = skillScope(params.get("scope"));
     const directory = requireParam(params, "directory");
     const root = params.get("root") ?? undefined;
     return { raw: await new SkillStore().readRaw(scope, directory, root) };
@@ -303,7 +314,7 @@ export const mutations: Record<string, Mutation> = {
   },
 
   "/api/skills/save": async (_params, _context, body) => {
-    const scope: Scope = requireField(body, "scope", isString) === "project" ? "project" : "user";
+    const scope = skillScope(body["scope"]);
     const draft: SkillDraft = {
       scope,
       directory: requireField(body, "directory", isString),
@@ -317,7 +328,7 @@ export const mutations: Record<string, Mutation> = {
   },
 
   "/api/skills/remove": async (_params, _context, body) => {
-    const scope: Scope = requireField(body, "scope", isString) === "project" ? "project" : "user";
+    const scope = skillScope(body["scope"]);
     const directory = requireField(body, "directory", isString);
     const root = isString(body["root"]) ? body["root"] : undefined;
     const removed = await new SkillStore().remove(scope, directory, root);

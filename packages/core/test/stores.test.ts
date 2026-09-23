@@ -55,6 +55,23 @@ describe("parseFrontmatter", () => {
 });
 
 describe("SkillStore", () => {
+  it("liste les skills des plugins sous leur nom d'invocation, une seule fois par version", async () => {
+    await write("home/plugins/cache/officiel/revue/1.0.0/skills/relire/SKILL.md", "---\nname: relire\ndescription: v1\n---\n");
+    await write("home/plugins/cache/officiel/revue/1.1.0/skills/relire/SKILL.md", "---\nname: relire\ndescription: v1.1\n---\n");
+    await write("home/plugins/cache/officiel/revue/1.1.0/node_modules/x/skills/piege/SKILL.md", "---\nname: piege\n---\n");
+    await write("home/plugins/cache/officiel/outil/skills/lancer/SKILL.md", "---\nname: lancer\n---\n");
+
+    const skills = await new SkillStore(join(dir, "home")).listPluginSkills();
+    expect(skills.map((skill) => [skill.name, skill.scope, skill.plugin])).toEqual([
+      ["outil:lancer", "plugin", "outil"],
+      ["revue:relire", "plugin", "revue"],
+    ]);
+  });
+
+  it("n'échoue pas sans plugin installé", async () => {
+    expect(await new SkillStore(join(dir, "home")).listPluginSkills()).toEqual([]);
+  });
+
   it("retient le nom du frontmatter, pas celui du dossier", async () => {
     await write(
       "home/skills/git/SKILL.md",

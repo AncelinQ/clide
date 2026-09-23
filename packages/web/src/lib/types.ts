@@ -54,8 +54,10 @@ export interface Skill {
   directory: string;
   description?: string;
   invocation: "auto-and-slash" | "manual-only" | "auto-only";
-  scope: "user" | "project";
+  /** Un skill de plugin se lit seulement : il appartient à son plugin. */
+  scope: "user" | "project" | "plugin";
   path: string;
+  plugin?: string;
 }
 
 export interface SlashCommand {

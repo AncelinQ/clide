@@ -13,6 +13,9 @@ export type SkillInvocation = "auto-and-slash" | "manual-only" | "auto-only";
 
 export type Scope = "user" | "project";
 
+/** Portée d'un skill listé. Un skill de plugin se lit, il ne s'écrit pas : il appartient au plugin. */
+export type SkillScope = Scope | "plugin";
+
 export interface Skill {
   /** Nom déclaré dans le frontmatter, qui peut différer du nom du dossier. */
   name: string;
@@ -20,8 +23,10 @@ export interface Skill {
   description?: string;
   invocation: SkillInvocation;
   allowedTools?: string[];
-  scope: Scope;
+  scope: SkillScope;
   path: string;
+  /** Plugin qui livre le skill. */
+  plugin?: string;
 }
 
 export interface SlashCommand {
@@ -89,6 +94,36 @@ async function listDirectories(dir: string): Promise<string[]> {
   }
 }
 
+/**
+ * `SKILL.md` placés dans un dossier `skills/<nom>/`, cherchés sur quelques niveaux.
+ *
+ * Borné en profondeur : un plugin embarque parfois `node_modules`, qu'il n'y a
+ * aucune raison de parcourir en entier.
+ */
+async function walkSkillFiles(dir: string, out: string[], depth: number): Promise<void> {
+  if (depth > 6) return;
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const path = join(dir, entry.name);
+    if (basename(dir) === "skills") {
+      try {
+        await readFile(join(path, "SKILL.md"));
+        out.push(join(path, "SKILL.md"));
+      } catch {
+        // Un dossier sous `skills/` sans SKILL.md n'est pas un skill.
+      }
+      continue;
+    }
+    await walkSkillFiles(path, out, depth + 1);
+  }
+}
+
 async function walkMarkdown(dir: string, out: string[]): Promise<void> {
   let entries;
   try {
@@ -117,7 +152,7 @@ export class SkillStore {
     this.#home = home;
   }
 
-  async #readSkill(dir: string, directory: string, scope: Scope): Promise<Skill | undefined> {
+  async #readSkill(dir: string, directory: string, scope: SkillScope): Promise<Skill | undefined> {
     const path = join(dir, directory, "SKILL.md");
     let text: string;
     try {
@@ -159,6 +194,37 @@ export class SkillStore {
     return this.#listSkillsIn(join(projectRoot, ".claude", "skills"), "project");
   }
 
+  /**
+   * Skills livrés par les plugins installés.
+   *
+   * Claude Code garde chaque plugin dans `plugins/cache/<marketplace>/<plugin>/`,
+   * à une profondeur qui varie avec sa version ; le skill y est reconnu à sa
+   * position `skills/<nom>/SKILL.md`. Il s'invoque `/<plugin>:<nom>`, d'où son nom
+   * ici. Un même skill présent dans plusieurs versions n'est gardé qu'une fois.
+   */
+  async listPluginSkills(): Promise<Skill[]> {
+    const cache = join(this.#home, "plugins", "cache");
+    const files: string[] = [];
+    await walkSkillFiles(cache, files, 0);
+
+    const seen = new Set<string>();
+    const skills: Skill[] = [];
+    for (const path of files.sort()) {
+      const parts = relative(cache, path).split(sep);
+      const skillsIndex = parts.lastIndexOf("skills");
+      const directory = parts[skillsIndex + 1];
+      const plugin = parts[1];
+      if (skillsIndex < 0 || !directory || !plugin) continue;
+      const skill = await this.#readSkill(join(path, "..", ".."), directory, "plugin");
+      if (!skill) continue;
+      const name = `${plugin}:${skill.name}`;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      skills.push({ ...skill, name, plugin });
+    }
+    return skills.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async #listCommandsIn(dir: string, scope: Scope): Promise<SlashCommand[]> {
     const files: string[] = [];
     await walkMarkdown(dir, files);
@@ -190,15 +256,21 @@ export class SkillStore {
    * même nom qu'un skill personnel masque ce dernier, comme le fait Claude Code.
    */
   async listAll(projectRoot: string): Promise<{ skills: Skill[]; commands: SlashCommand[] }> {
-    const [userSkills, projectSkills, userCommands, projectCommands] = await Promise.all([
+    const [userSkills, projectSkills, userCommands, projectCommands, pluginSkills] = await Promise.all([
       this.listUserSkills(),
       this.listProjectSkills(projectRoot),
       this.listUserCommands(),
       this.listProjectCommands(projectRoot),
+      this.listPluginSkills(),
     ]);
 
     const shadowed = new Set(projectSkills.map((skill) => skill.name));
-    const skills = [...projectSkills, ...userSkills.filter((skill) => !shadowed.has(skill.name))];
+    const skills = [
+      ...projectSkills,
+      ...userSkills.filter((skill) => !shadowed.has(skill.name)),
+      // Préfixés du nom de leur plugin : ils ne masquent rien et rien ne les masque.
+      ...pluginSkills,
+    ];
 
     const takenCommands = new Set(projectCommands.map((command) => command.name));
     const commands = [

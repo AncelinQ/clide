@@ -271,6 +271,17 @@ tous couverts par des tests :
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
 
+## Skills
+
+Les skills se lisent sur trois portées : le projet (`.claude/skills`), le poste
+(`~/.claude/skills`) et les plugins installés. Ceux d'un plugin vivent dans
+`~/.claude/plugins/cache/<marketplace>/<plugin>/`, à une profondeur qui varie avec
+sa version ; ils sont reconnus à leur position `skills/<nom>/SKILL.md`, nommés
+`<plugin>:<nom>` comme leur invocation, et montrés sans édition : ils appartiennent
+au plugin. Les routes d'écriture exigent la portée telle quelle — la rabattre sur
+`user` ferait d'une demande visant un skill de plugin la suppression du skill
+personnel du même nom.
+
 ## L'état des serveurs MCP
 
 Les panneaux listent les serveurs depuis les fichiers de configuration, ce qui

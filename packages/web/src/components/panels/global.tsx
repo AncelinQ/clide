@@ -136,6 +136,9 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
           (skill) => skill.scope === "user" && match(`${skill.name} ${skill.description ?? ""}`),
         );
         const shown = commands.filter((command) => match(`${command.name} ${command.description ?? ""}`));
+        const plugins = skills.filter(
+          (skill) => skill.scope === "plugin" && match(`${skill.name} ${skill.description ?? ""}`),
+        );
 
         return (
           <>
@@ -163,6 +166,17 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
             >
               Nouveau skill
             </Button>
+
+            {plugins.length > 0 && (
+              <>
+                <Section>Plugins ({plugins.length})</Section>
+                <Rows>
+                  {plugins.map((skill) => (
+                    <SkillRow key={skill.path} skill={skill} root={root} onEdit={setEditing} onDone={state.reload} />
+                  ))}
+                </Rows>
+              </>
+            )}
 
             <Section>Commandes ({shown.length})</Section>
             <Rows>

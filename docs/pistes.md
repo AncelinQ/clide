@@ -235,7 +235,7 @@ sans la rejouer.
 Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
 **Ce qui n'y figure pas est porté** : fil d'ariane et menu contextuel du Finder,
 détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
-les trois modes d'invocation des skills, la progression du plan, les dossiers
+les trois modes d'invocation des skills, ceux des plugins, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
 l'édition d'un serveur, ceux des dossiers liés la reprise depuis un autre projet,
@@ -291,7 +291,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | History : supprimer une session | aucune route d'écriture. C'est une suppression de fichier dans `~/.claude/projects`, donc à traiter avec les mêmes précautions que la piste 7 |
-| Skills : plugins | les skills livrés par un plugin ne sont pas listés |
 | Réglages : formulaire | modèle, permissions, hooks, env, plugins, plutôt que du JSON brut. Les clés inconnues sont préservées des deux côtés |
 
 ### Skills

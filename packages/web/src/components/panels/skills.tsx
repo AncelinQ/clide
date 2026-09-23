@@ -35,18 +35,20 @@ export function SkillRow({
   onDone: () => void;
 }) {
   const scoped = skill.scope === "project" ? { root } : {};
+  const SCOPE_LABEL = { project: "projet", user: "perso", plugin: "plugin" } as const;
   return (
     <Row
       title={skill.name}
       sub={skill.description}
       badges={
         <>
-          <Badge variant="secondary">{skill.scope === "project" ? "projet" : "perso"}</Badge>
+          <Badge variant="secondary">{SCOPE_LABEL[skill.scope]}</Badge>
           <Badge variant="outline">{INVOCATION_LABEL[skill.invocation]}</Badge>
         </>
       }
       actions={
-        <>
+        skill.scope === "plugin" ? undefined : (
+          <>
           <ActionButton
             onAction={async () => {
               const { raw } = await api<{ raw: string }>("/api/skill", {
@@ -66,7 +68,8 @@ export function SkillRow({
               onDone();
             }}
           />
-        </>
+          </>
+        )
       }
     />
   );
