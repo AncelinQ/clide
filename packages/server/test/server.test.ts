@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -97,6 +97,29 @@ describe("serveur local", () => {
 
   it("n'écoute que sur la boucle locale", () => {
     expect(server.url).toContain("127.0.0.1");
+  });
+
+  it("enregistre une image brute et rend un chemin à taper dans le prompt", async () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const response = await fetch(`${base()}/api/attachments?token=jeton-de-test`, {
+      method: "POST",
+      headers: { "content-type": "image/png" },
+      body: png,
+    });
+    expect(response.status).toBe(200);
+    const { path } = (await response.json()) as { path: string };
+    expect(path.startsWith(join(scratch, "data", "drops"))).toBe(true);
+    expect(path.endsWith(".png")).toBe(true);
+    expect(await readFile(path)).toEqual(png);
+  });
+
+  it("refuse d'enregistrer ce qui n'est pas une image", async () => {
+    const response = await fetch(`${base()}/api/attachments?token=jeton-de-test`, {
+      method: "POST",
+      headers: { "content-type": "text/html" },
+      body: "<script></script>",
+    });
+    expect(response.status).toBe(400);
   });
 
   it("refuse une requête d'API sans jeton", async () => {

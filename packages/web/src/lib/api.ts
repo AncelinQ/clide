@@ -23,6 +23,19 @@ export async function api<T>(path: string, params: Params = {}, init?: RequestIn
   return body as T;
 }
 
+/**
+ * Enregistre une image côté serveur et rend son chemin, à taper dans le prompt.
+ * Elle part brute : encodée dans du JSON, elle dépasserait la limite des mutations.
+ */
+export async function saveImage(image: Blob): Promise<string> {
+  const { path } = await api<{ path: string }>("/api/attachments", {}, {
+    method: "POST",
+    headers: { "content-type": image.type || "image/png" },
+    body: image,
+  });
+  return path;
+}
+
 /** Appel d'une route qui écrit. Elles sont toutes réservées à POST. */
 export function post<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, {}, { method: "POST", body: JSON.stringify(body) });

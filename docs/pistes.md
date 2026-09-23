@@ -247,7 +247,8 @@ survol, la police du terminal,
 l'ouverture d'un fichier depuis le Finder et son aperçu rapide et son glisser
 sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode, le
 mode plan et les tokens dans la barre d'état et l'activité, et l'ouverture
-automatique du plan —, le plan rendu en markdown, l'intégration shell — un `claude` tapé dans un shell en fait un onglet Claude —, les worktrees.
+automatique du plan —, le plan rendu en markdown, l'intégration shell — un `claude` tapé dans un shell en fait un onglet Claude —, les
+images vers le prompt et le bouton Capture, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -256,7 +257,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | Raccourcis d'ouverture et de navigation | ⌘N nouveau projet, ⌘O ouvrir, ⇧⌘W fermer, ⌥⌘[ ] changer de projet — piste 5 |
-| Bouton Capture dans la barre d'onglets | déclenche une capture d'écran vers le prompt |
 
 ### Finder
 
@@ -278,7 +278,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | Raccourcis d'onglet | ⌘T shell, ⇧⌘T Claude, ⌘W fermer, ⇧⌘[ ] naviguer — piste 5 |
-| Images vers le prompt | glisser-déposer d'un fichier ou d'une image, capture d'écran (⌥⌘S), collage d'une image (⌘V). Tout devient un fichier dont le chemin est tapé dans le prompt |
 
 ### Bloc session
 

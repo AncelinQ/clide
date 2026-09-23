@@ -10,6 +10,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { mutations, routes, type ApiContext } from "./api/routes.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
+import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
@@ -186,6 +187,23 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         send(response, 401, { error: "jeton invalide" });
         return;
       }
+      // Une image arrive brute, hors du corps JSON des mutations : encodée en
+      // base64 elle dépasserait vite leur limite, pensée pour des réglages.
+      if (url.pathname === "/api/attachments") {
+        if (request.method !== "POST") {
+          send(response, 405, { error: "cette route exige POST" });
+          return;
+        }
+        try {
+          const bytes = await readRawBody(request);
+          const path = await saveAttachment(request.headers["content-type"] ?? "", bytes, context.dataDir);
+          send(response, 200, { path });
+        } catch (error) {
+          send(response, 400, { error: error instanceof Error ? error.message : String(error) });
+        }
+        return;
+      }
+
       const mutation = mutations[url.pathname];
       if (mutation) {
         if (request.method !== "POST") {

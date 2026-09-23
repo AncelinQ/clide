@@ -414,6 +414,22 @@ comme dans l'application de bureau. Glissé depuis l'Explorateur, il ne le fait 
 sous Electron : un navigateur livre le contenu d'un fichier déposé, jamais son
 emplacement.
 
+## Images vers le prompt
+
+Claude Code lit une image désignée par son chemin, pas un contenu collé. Une image
+collée dans un terminal, ou déposée sans fichier derrière elle — tirée d'une page
+web, ou n'importe quel fichier dans un navigateur, qui n'en livre jamais le chemin —
+est donc d'abord enregistrée dans le dossier `drops` de l'application, et c'est son
+chemin qui est tapé. Elle part brute, hors du corps JSON des autres routes, dont la
+limite est pensée pour des réglages ; seules les images passent, jusqu'à 20 Mo.
+
+Le bouton Capture de la barre d'onglets ouvre l'outil Capture d'écran de Windows
+(`ms-screenclip:`), qui dépose son image dans le presse-papiers et non dans un
+fichier. Le serveur relève le compteur de séquence du presse-papiers avant de
+l'ouvrir, puis attend qu'il change avec une image : une image copiée plus tôt ne
+passe pas pour la capture, une annulation se solde par un refus au bout de deux
+minutes, et rien n'est jamais écrit dans le presse-papiers.
+
 ## Lancer un script
 
 Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.

@@ -28,6 +28,7 @@ import {
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
+import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, type CliScope } from "../platform/claude-cli.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
@@ -419,6 +420,12 @@ export const mutations: Record<string, Mutation> = {
     if (!removed) throw new Error(`serveur ${name} absent de .mcp.json`);
     return { removed: name };
   },
+
+  /**
+   * Capture interactive d'une zone de l'écran. La requête attend la fin de la
+   * sélection, jusqu'à deux minutes, et rend le chemin de l'image.
+   */
+  "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
 
   "/api/files/open": async (_params, _context, body) => {
     // Borné au projet comme la liste des dossiers : cette route lance une

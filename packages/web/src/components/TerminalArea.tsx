@@ -1,5 +1,5 @@
-import { Activity, ClipboardList, FileDiff, Plus, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Activity, Camera, ClipboardList, FileDiff, Plus, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
@@ -9,7 +9,7 @@ import { cn } from "cn";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, mount, openTerminal, resize, typeInto } from "@/state/terminals";
-import { PATHS_MIME, quotePath } from "@/lib/api";
+import { PATHS_MIME, post, quotePath, saveImage } from "@/lib/api";
 import type { TerminalInfo } from "@/lib/types";
 
 /** Accueil affiché tant qu'aucun terminal n'est ouvert pour ce projet. */
@@ -44,6 +44,25 @@ function Welcome({ root }: { root?: string }) {
  * partout. Un fichier venu de l'Explorateur n'a de chemin que sous Electron : un
  * navigateur livre son contenu, jamais son emplacement.
  */
+/** Images d'un collage ou d'un dépôt qui n'ont pas de chemin sur le disque. */
+function imagesOf(files: Iterable<File>): File[] {
+  return [...files].filter((file) => file.type.startsWith("image/"));
+}
+
+/**
+ * Enregistre des images et tape leurs chemins dans le terminal.
+ *
+ * Claude Code lit une image désignée par son chemin : une image collée ou déposée
+ * sans fichier derrière elle — une capture dans le presse-papiers, une image tirée
+ * d'une page web, ou tout fichier déposé dans un navigateur — devient d'abord un
+ * fichier.
+ */
+async function typeImages(terminalId: string, images: File[]): Promise<void> {
+  const paths: string[] = [];
+  for (const image of images) paths.push(await saveImage(image));
+  if (paths.length > 0) typeInto(terminalId, `${paths.map(quotePath).join(" ")} `);
+}
+
 function droppedPaths(data: DataTransfer, desktop: Window["claudeIde"]): string[] {
   const internal = data.getData(PATHS_MIME);
   if (internal) {
@@ -83,15 +102,69 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
       ref={ref}
       className={cn("absolute inset-0 p-2", active ? "block" : "hidden")}
       onDragOver={(event) => {
-        if (desktop || event.dataTransfer.types.includes(PATHS_MIME)) event.preventDefault();
+        if (desktop || event.dataTransfer.types.includes(PATHS_MIME) || event.dataTransfer.types.includes("Files")) {
+          event.preventDefault();
+        }
       }}
       onDrop={(event) => {
         const paths = droppedPaths(event.dataTransfer, desktop);
-        if (paths.length === 0) return;
+        if (paths.length > 0) {
+          event.preventDefault();
+          typeInto(info.id, `${paths.map(quotePath).join(" ")} `);
+          return;
+        }
+        const images = imagesOf(event.dataTransfer.files);
+        if (images.length === 0) return;
         event.preventDefault();
-        typeInto(info.id, `${paths.map(quotePath).join(" ")} `);
+        void typeImages(info.id, images).catch((error: unknown) => console.error("[claude-ide]", error));
+      }}
+      // En phase de capture, avant que xterm ne colle : une image seule dans le
+      // presse-papiers n'a pas de texte à coller, elle devient un chemin.
+      onPasteCapture={(event) => {
+        const images = imagesOf(event.clipboardData.files);
+        if (images.length === 0 || event.clipboardData.getData("text/plain")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void typeImages(info.id, images).catch((error: unknown) => console.error("[claude-ide]", error));
       }}
     />
+  );
+}
+
+/**
+ * Capture d'une zone de l'écran, dont le chemin est tapé dans l'onglet actif.
+ *
+ * La capture est menée par l'outil de Windows ; la requête attend qu'elle soit
+ * faite. Pendant ce temps le bouton reste occupé, et un second clic n'en ouvre
+ * pas une deuxième.
+ */
+function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      disabled={!terminalId || busy}
+      title={error ?? "Capture d'écran vers le prompt"}
+      onClick={async () => {
+        if (!terminalId) return;
+        setBusy(true);
+        setError(undefined);
+        try {
+          const { path } = await post<{ path: string }>("/api/capture", {});
+          typeInto(terminalId, `${quotePath(path)} `);
+          focusTerminal(terminalId);
+        } catch (caught) {
+          setError((caught as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Camera className={busy ? "animate-pulse" : undefined} />
+    </Button>
   );
 }
 
@@ -216,6 +289,7 @@ export function TerminalArea() {
         >
           <Plus />
         </Button>
+        <CaptureButton terminalId={status?.id} />
         <Button
           variant="ghost"
           size="sm"
