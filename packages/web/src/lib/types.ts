@@ -86,6 +86,9 @@ export interface McpStatus {
 }
 
 export interface ProjectScripts {
+  /** Scripts des dossiers liés, chacun avec son propre gestionnaire. */
+  linked?: ProjectScripts[];
+  root: string;
   manager: string;
   managerDetected: boolean;
   sources: { directory: string; relativePath: string; packageName?: string; scripts: { name: string; command: string }[] }[];

@@ -194,7 +194,21 @@ export const routes: Record<string, Handler> = {
     status: await readMcpStatus(params.get("root") ?? undefined),
   }),
 
-  "/api/scripts": async (params) => new ScriptStore().read(requireParam(params, "root")),
+  /**
+   * Scripts du projet et de ses dossiers liés. Chaque dossier lié garde son
+   * gestionnaire : lancer ses scripts avec celui du projet réécrirait son arbre
+   * de dépendances.
+   */
+  "/api/scripts": async (params) => {
+    const root = requireParam(params, "root");
+    const store = new ScriptStore();
+    const links = await new LinkStore().read(root);
+    const linked = await Promise.all(links.map((link) => store.read(link.path).catch(() => undefined)));
+    return {
+      ...(await store.read(root)),
+      linked: linked.filter((item) => item !== undefined && item.sources.some((source) => source.scripts.length > 0)),
+    };
+  },
 
   "/api/links": async (params) => ({ links: await new LinkStore().read(requireParam(params, "root")) }),
 

@@ -388,6 +388,10 @@ s'il n'y en a aucun. La commande est précédée d'Échap, qui vide la ligne en 
 sous PSReadLine, et d'un `Set-Location` si le shell n'est pas déjà dans le bon
 dossier.
 
+Les scripts des dossiers liés sont listés à la suite, chacun avec le gestionnaire
+que désigne son propre lockfile : lancer les scripts d'un dépôt npm avec le `pnpm`
+du projet réécrirait son arbre de dépendances.
+
 ## Pourquoi le serveur exige un jeton
 
 Il n'écoute que sur `127.0.0.1`, et cela ne suffit pas : n'importe quelle page web

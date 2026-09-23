@@ -109,51 +109,75 @@ export function LinksPanel({ root }: { root: string }) {
 
 // ─── Scripts ────────────────────────────────────────────────────────────────
 
+/** Scripts d'un dossier, groupés par `package.json`, lancés avec son propre gestionnaire. */
+function ScriptGroups({ project, prefix }: { project: ProjectScripts; prefix?: string }) {
+  return (
+    <>
+      {project.sources
+        .filter((source) => source.scripts.length > 0)
+        .map((source) => (
+          <div key={source.directory}>
+            <Section>
+              {prefix ? `${prefix} · ` : ""}
+              {source.packageName ?? (source.relativePath || "racine")}
+            </Section>
+            <Rows>
+              {source.scripts.map((script) => (
+                <Row
+                  key={script.name}
+                  title={script.name}
+                  sub={script.command}
+                  actions={
+                    <ActionButton
+                      onAction={() =>
+                        runScript(
+                          script.name,
+                          source.directory,
+                          project.manager === "npm"
+                            ? `npm run ${script.name}`
+                            : `${project.manager} run ${script.name}`,
+                        )
+                      }
+                    >
+                      <Play className="size-3" /> lancer
+                    </ActionButton>
+                  }
+                />
+              ))}
+            </Rows>
+          </div>
+        ))}
+    </>
+  );
+}
+
 export function ScriptsPanel({ root }: { root: string }) {
   const state = useAsync(() => api<ProjectScripts>("/api/scripts", { root }), [root]);
 
   return (
     <Async state={state}>
       {(project) => {
-        const any = project.sources.some((source) => source.scripts.length > 0);
-        if (!any) return <Empty icon={Package}>Aucun script dans ce projet.</Empty>;
+        const own = project.sources.some((source) => source.scripts.length > 0);
+        const linked = project.linked ?? [];
+        if (!own && linked.length === 0) return <Empty icon={Package}>Aucun script dans ce projet.</Empty>;
         return (
           <>
-            <p className="text-[11px] text-muted-foreground">
-              {project.manager}
-              {project.managerDetected ? "" : " (défaut, aucun lockfile)"}
-            </p>
-            {project.sources
-              .filter((source) => source.scripts.length > 0)
-              .map((source) => (
-                <div key={source.directory}>
-                  <Section>{source.packageName ?? source.relativePath ?? "racine"}</Section>
-                  <Rows>
-                    {source.scripts.map((script) => (
-                      <Row
-                        key={script.name}
-                        title={script.name}
-                        sub={script.command}
-                        actions={
-                          <ActionButton
-                            onAction={() =>
-                              runScript(
-                                script.name,
-                                source.directory,
-                                project.manager === "npm"
-                                  ? `npm run ${script.name}`
-                                  : `${project.manager} run ${script.name}`,
-                              )
-                            }
-                          >
-                            <Play className="size-3" /> lancer
-                          </ActionButton>
-                        }
-                      />
-                    ))}
-                  </Rows>
-                </div>
-              ))}
+            {own && (
+              <>
+                <p className="text-[11px] text-muted-foreground">
+                  {project.manager}
+                  {project.managerDetected ? "" : " (défaut, aucun lockfile)"}
+                </p>
+                <ScriptGroups project={project} />
+              </>
+            )}
+            {linked.map((folder) => (
+              <ScriptGroups
+                key={folder.root}
+                project={folder}
+                prefix={`lié ${shortName(folder.root)} (${folder.manager})`}
+              />
+            ))}
           </>
         );
       }}

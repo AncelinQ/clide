@@ -241,7 +241,7 @@ serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
 l'édition d'un serveur, ceux des dossiers liés la reprise depuis un autre projet,
 l'écriture des portées user et local par la CLI, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
-des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
+des tâches, la réutilisation d'un shell inactif pour les scripts et ceux des dossiers liés, l'arrêt de processus au
 survol, la police du terminal,
 l'ouverture d'un fichier depuis le Finder et son aperçu rapide et son glisser
 sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode, le
@@ -266,7 +266,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Scripts des dossiers liés | seuls ceux du projet et de ses espaces de travail sont listés |
 
 ### MCP du projet
 
