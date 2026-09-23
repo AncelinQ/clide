@@ -61,31 +61,32 @@ function condense(text: string, max = 160): string {
  * retard : la règle générale prend le premier champ parlant de l'entrée, et seuls
  * quelques outils très fréquents méritent d'être nommés à part.
  */
-export function summarizeTool(name: string, input: Record<string, unknown> | undefined): string {
+export function summarizeTool(name: string, input: Record<string, unknown> | undefined, max = 160): string {
   const pick = (keys: string[]): string | undefined => firstString(input, keys);
 
   switch (name) {
     case "Bash":
     case "PowerShell":
-      return condense(pick(["command"]) ?? "");
+      return condense(pick(["command"]) ?? "", max);
     case "Read":
     case "Write":
     case "Edit":
     case "NotebookEdit":
-      return condense(pick(["file_path", "notebook_path"]) ?? "");
+      return condense(pick(["file_path", "notebook_path"]) ?? "", max);
     case "Grep":
-      return condense([pick(["pattern"]), pick(["path", "glob"])].filter(Boolean).join(" · "));
+      return condense([pick(["pattern"]), pick(["path", "glob"])].filter(Boolean).join(" · "), max);
     case "Glob":
-      return condense(pick(["pattern"]) ?? "");
+      return condense(pick(["pattern"]) ?? "", max);
     case "Agent":
     case "Task":
-      return condense(pick(["description", "prompt"]) ?? "");
+      return condense(pick(["description", "prompt"]) ?? "", max);
     case "Skill":
-      return condense(pick(["skill", "args"]) ?? "");
+      return condense(pick(["skill", "args"]) ?? "", max);
     default:
       return condense(
         pick(["description", "command", "file_path", "pattern", "url", "query", "prompt", "name"]) ??
           "",
+        max,
       );
   }
 }
@@ -107,8 +108,18 @@ const SYNTHETIC = /^\s*<(local-command-caveat|command-message|command-name|syste
  */
 export function buildActivity(
   events: Iterable<TranscriptEvent>,
-  options: { limit?: number } = {},
+  options: {
+    limit?: number;
+    /**
+     * Textes entiers plutôt que résumés, pour la recherche. Les entrées restent
+     * les mêmes et dans le même ordre : la position d'un résultat désigne la même
+     * ligne de l'activité affichée.
+     */
+    full?: boolean;
+  } = {},
 ): ActivityFeed {
+  const textMax = options.full ? 20_000 : 400;
+  const toolMax = options.full ? 4_000 : 160;
   const entries: ActivityEntry[] = [];
   const toolByUseId = new Map<string, ActivityEntry & { kind: "tool" }>();
 
@@ -123,7 +134,7 @@ export function buildActivity(
           continue;
         }
         if (block.type !== "text" || !block.text) continue;
-        const text = condense(block.text, 400);
+        const text = condense(block.text, textMax);
         entries.push(
           SYNTHETIC.test(block.text)
             ? { kind: "command", ...(at ? { at } : {}), text }
@@ -140,7 +151,7 @@ export function buildActivity(
           entries.push({
             kind: "answer",
             ...(at ? { at } : {}),
-            text: condense(block.text, 400),
+            text: condense(block.text, textMax),
             ...(model ? { model } : {}),
           });
         } else if (block.type === "tool_use" && block.name) {
@@ -148,7 +159,7 @@ export function buildActivity(
             kind: "tool",
             ...(at ? { at } : {}),
             name: block.name,
-            summary: summarizeTool(block.name, block.input),
+            summary: summarizeTool(block.name, block.input, toolMax),
           };
           if (block.id) toolByUseId.set(block.id, entry);
           entries.push(entry);

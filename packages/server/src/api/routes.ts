@@ -15,6 +15,7 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  SearchIndex,
   buildChantiers,
   ticketOfBranch,
   sessionArtifacts,
@@ -46,6 +47,7 @@ import type { PtyManager } from "../pty/manager.js";
 
 export interface ApiContext {
   index: SessionIndex;
+  search: SearchIndex;
   processes: ProcessLister;
   terminals: PtyManager;
   notifications: NotificationWatcher;
@@ -101,6 +103,21 @@ function requireParam(params: URLSearchParams, name: string): string {
   const value = params.get(name);
   if (!value) throw new Error(`paramètre \`${name}\` manquant`);
   return value;
+}
+
+let searchRefreshedAt = 0;
+let searchRefreshing: Promise<void> | undefined;
+
+async function refreshSearch(search: SearchIndex): Promise<void> {
+  if (Date.now() - searchRefreshedAt < 10_000) return;
+  searchRefreshing ??= (async () => {
+    await search.refresh();
+    await search.save();
+    searchRefreshedAt = Date.now();
+  })().finally(() => {
+    searchRefreshing = undefined;
+  });
+  await searchRefreshing;
 }
 
 /** En deçà, une session est peut-être en cours ailleurs : on ne la retire pas. */
@@ -227,8 +244,40 @@ export const routes: Record<string, Handler> = {
     const id = requireParam(params, "id");
     const ref = await findSession(id);
     const { events } = await TranscriptReader.fromRef(ref).poll();
+    const around = Number(params.get("around"));
+    // Une entrée trouvée par la recherche s'ouvre au milieu de son voisinage,
+    // quelle que soit sa place dans la session.
+    if (params.has("around") && Number.isInteger(around) && around >= 0) {
+      const { entries, total } = buildActivity(events, { limit: Number.MAX_SAFE_INTEGER });
+      const offset = Math.max(0, Math.min(around - 40, total - 80));
+      return { entries: entries.slice(offset, offset + 80), total, offset };
+    }
     const limit = Number(params.get("limit") ?? 400);
-    return buildActivity(events, { limit: Number.isFinite(limit) ? limit : 400 });
+    const feed = buildActivity(events, { limit: Number.isFinite(limit) ? limit : 400 });
+    return { ...feed, offset: feed.total - feed.entries.length };
+  },
+
+  /**
+   * Recherche plein texte dans les transcripts. L'index est rafraîchi au plus toutes
+   * les dix secondes : une frappe par requête relirait sinon, à chaque lettre, la
+   * session en cours d'écriture.
+   */
+  "/api/search": async (params, { search, index }) => {
+    const query = params.get("q") ?? "";
+    await refreshSearch(search);
+    const result = search.search(query);
+    const sessions = new Map(index.list({ kind: "session" }).map((session) => [session.sessionId, session]));
+    return {
+      ...result,
+      hits: result.hits.map((hit) => {
+        const session = sessions.get(hit.sessionId);
+        return {
+          ...hit,
+          ...(session?.title ? { title: session.title } : {}),
+          ...(session?.effectiveCwd ? { cwd: session.effectiveCwd } : {}),
+        };
+      }),
+    };
   },
 
   "/api/session/plan": async (params) => {

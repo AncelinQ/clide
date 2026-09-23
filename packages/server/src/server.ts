@@ -4,7 +4,7 @@ import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, normalize, resolve, sep } from "node:path";
 
-import { LinkStore, SessionIndex, appDataDir, settingsFile } from "@claude-ide/core";
+import { LinkStore, SessionIndex, appDataDir, settingsFile, SearchIndex } from "@claude-ide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
@@ -146,6 +146,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const live = new LiveSessions();
   const context: ApiContext = {
     index: new SessionIndex(),
+    search: new SearchIndex(),
     processes: new ProcessLister(),
     terminals: manager,
     notifications,

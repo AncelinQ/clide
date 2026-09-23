@@ -163,6 +163,11 @@ ajouter un index de texte est une extension, pas une refonte.
 **Critère.** Retrouver une commande tapée il y a trois semaines en moins de dix
 secondes, sans connaître la session.
 
+**État.** Fait : onglet Recherche, sur les prompts, réponses, commandes et appels
+d'outils en texte entier ; un résultat ouvre la session sur l'entrée trouvée. Le
+premier passage construit l'index en cinq secondes environ, une recherche prend
+ensuite quelques dizaines de millisecondes.
+
 ---
 
 ## Piste 5 — Raccourcis et palette de commandes

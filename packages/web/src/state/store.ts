@@ -48,6 +48,8 @@ export interface State {
   showRight: boolean;
   /** Bloc session replié sous le terminal. */
   sessionCollapsed: boolean;
+  /** Entrée d'activité à montrer, ouverte depuis la recherche. */
+  activityFocus: { sessionId: string; index: number } | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -111,6 +113,7 @@ let state: State = {
   showLeft: true,
   showRight: true,
   sessionCollapsed: false,
+  activityFocus: null,
   paletteOpen: false,
   addingProject: false,
   preferencesOpen: false,

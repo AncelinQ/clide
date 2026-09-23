@@ -1,4 +1,5 @@
 import { Activity, ClipboardList, FileDiff } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
@@ -8,6 +9,7 @@ import { api, formatDate } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
+import { setState, useStore } from "@/state/store";
 
 /**
  * Session montrée par le bloc. `refresh` change à chaque ajout au transcript
@@ -114,14 +116,24 @@ function Consumption({ session }: { session: ShownSession }) {
 }
 
 export function ActivityPanel({ session }: { session: ShownSession }) {
-  const state = useAsync(
-    () => api<{ entries: ActivityEntry[]; total: number }>("/api/session/activity", {
-      id: session.sessionId,
-      limit: 300,
-    }),
-    [session.sessionId],
-    session.refresh,
+  const focus = useStore((state) =>
+    state.activityFocus?.sessionId === session.sessionId ? state.activityFocus.index : undefined,
   );
+  const state = useAsync(
+    () =>
+      api<{ entries: ActivityEntry[]; total: number; offset: number }>("/api/session/activity", {
+        id: session.sessionId,
+        ...(focus !== undefined ? { around: focus } : { limit: 300 }),
+      }),
+    [session.sessionId, focus],
+    // Une entrée ouverte depuis la recherche reste en place : la session qui
+    // s'écrit ne la fait pas glisser.
+    focus === undefined ? session.refresh : undefined,
+  );
+  const focused = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    focused.current?.scrollIntoView({ block: "center" });
+  }, [state.data, focus]);
 
   return (
     <Async state={state}>
@@ -131,19 +143,40 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
         ) : (
           <>
             <Consumption session={session} />
-            {feed.total > feed.entries.length && (
-              <p className="py-1 text-[11px] text-muted-foreground">
-                {t("{count} dernières entrées sur {total}.", { count: feed.entries.length, total: feed.total })}
+            {focus !== undefined ? (
+              <p className="flex items-center gap-2 py-1 text-[11px] text-muted-foreground">
+                {t("Entrées {from} à {to} sur {total}, autour du résultat.", {
+                  from: feed.offset + 1,
+                  to: feed.offset + feed.entries.length,
+                  total: feed.total,
+                })}
+                <button
+                  type="button"
+                  className="text-primary underline-offset-2 hover:underline"
+                  onClick={() => setState({ activityFocus: null })}
+                >
+                  {t("revenir aux dernières")}
+                </button>
               </p>
+            ) : (
+              feed.total > feed.entries.length && (
+                <p className="py-1 text-[11px] text-muted-foreground">
+                  {t("{count} dernières entrées sur {total}.", { count: feed.entries.length, total: feed.total })}
+                </p>
+              )
             )}
             <ul className="m-0 list-none p-0 text-[12px]">
               {feed.entries.map((entry, index) => (
                 <li
-                  key={index}
+                  key={feed.offset + index}
+                  ref={feed.offset + index === focus ? focused : undefined}
                   title={formatDate(entry.at)}
-                  className="flex gap-2 border-b py-1.5 last:border-0"
+                  className={cn(
+                    "flex gap-2 border-b py-1.5 last:border-0",
+                    feed.offset + index === focus && "-mx-3 bg-primary/15 px-3",
+                  )}
                 >
-                  <span className="w-14 shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">
+                  <span className="w-16 shrink-0 truncate text-[10px] tracking-wide text-muted-foreground uppercase">
                     {entry.kind === "tool" ? entry.name : t(ACTIVITY_LABEL[entry.kind] ?? "")}
                   </span>
                   <span

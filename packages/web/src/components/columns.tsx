@@ -1,10 +1,11 @@
-import { Bell, Coins, Cpu, GitBranch, History, Layers, Link2, Package, Plug, RefreshCw, Settings, Sparkles } from "lucide-react";
+import { Bell, Coins, Cpu, GitBranch, History, Layers, Link2, Package, Plug, RefreshCw, Search, Settings, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { ChantiersPanel } from "@/components/panels/chantiers";
 import { CostsPanel } from "@/components/panels/costs";
+import { SearchPanel } from "@/components/panels/search";
 import {
   LinksPanel,
   ProjectMcpPanel,
@@ -114,6 +115,7 @@ export function ProjectColumn() {
 const TABS = [
   { id: "processes", icon: Cpu, label: "Process" },
   { id: "history", icon: History, label: "History" },
+  { id: "search", icon: Search, label: "Recherche" },
   { id: "chantiers", icon: Layers, label: "Chantiers" },
   { id: "skills", icon: Sparkles, label: "Skills" },
   { id: "mcp", icon: Plug, label: "MCP" },
@@ -181,7 +183,8 @@ export function GlobalColumn() {
   const globalTab = useStore((state) => state.globalTab);
   const [filter, setFilter] = useState("");
   const [nonce, setNonce] = useState(0);
-  const searchable = globalTab === "history" || globalTab === "skills" || globalTab === "chantiers";
+  const searchable =
+    globalTab === "history" || globalTab === "skills" || globalTab === "chantiers" || globalTab === "search";
 
   const panel = () => {
     switch (globalTab) {
@@ -199,6 +202,8 @@ export function GlobalColumn() {
         return <CostsPanel key={nonce} />;
       case "chantiers":
         return <ChantiersPanel key={nonce} filter={filter} />;
+      case "search":
+        return <SearchPanel key={nonce} query={filter} />;
       default:
         return <NotificationsPanel key={nonce} />;
     }

@@ -595,6 +595,25 @@ session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour 
 sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
 tour, ne dit rien des permissions.
 
+## Recherche
+
+L'onglet Recherche cherche dans tout ce qui s'est dit et tapé : prompts, réponses,
+commandes et appels d'outils, en texte entier — l'activité affichée les résume, la
+recherche non. Les mots sont cherchés tels quels, sans accents ni casse, tous
+présents ; un bout de commande ou un identifiant de ticket se trouve comme un mot.
+
+Le texte cherchable tient en quelques millions de caractères pour des centaines de
+Mo de transcripts, les résultats d'outils n'en faisant pas partie : un index inversé
+ne se justifie pas, un parcours en mémoire prend quelques millisecondes. Ce qui coûte
+est l'extraction, gardée dans `search-index.json` et refaite seulement pour les
+transcripts qui ont changé — cinq secondes au premier passage, un quart de seconde
+ensuite. Elle est rafraîchie au plus toutes les dix secondes, pour ne pas relire à
+chaque lettre la session en cours d'écriture.
+
+Un résultat ouvre sa session sur l'entrée trouvée : l'activité et la recherche
+produisent les mêmes entrées dans le même ordre, et la position d'un résultat
+désigne la même ligne.
+
 ## Chantiers
 
 Une journée de travail va d'un ticket à une branche, un worktree, des sessions et une

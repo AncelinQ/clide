@@ -13,9 +13,12 @@ function ScrollArea({
       className={cn("relative", className)}
       {...props}
     >
+      {/* Radix enveloppe le contenu dans un `display: table`, qui s'élargit au lieu
+          de laisser le texte passer à la ligne : ici tout défile à la verticale,
+          le contenu garde la largeur de la zone. */}
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 [&>div]:!block"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

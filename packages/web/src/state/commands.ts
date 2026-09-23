@@ -56,6 +56,7 @@ export function commands(): Command[] {
   const tabs: [string, string][] = [
     ["processes", "Process"],
     ["history", "History"],
+    ["search", "Recherche"],
     ["chantiers", "Chantiers"],
     ["skills", "Skills"],
     ["mcp", "MCP"],
