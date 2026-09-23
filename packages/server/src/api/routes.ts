@@ -23,6 +23,7 @@ import {
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { readMcpStatus } from "../platform/mcp.js";
+import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
@@ -280,6 +281,11 @@ export const mutations: Record<string, Mutation> = {
     const removed = await new McpStore().removeProjectServer(root, name);
     if (!removed) throw new Error(`serveur ${name} absent de .mcp.json`);
     return { removed: name };
+  },
+
+  "/api/files/open": async (_params, _context, body) => {
+    const path = requireField(body, "path", isString);
+    return { outcome: await openPath(path, body["reveal"] === true) };
   },
 
   "/api/worktrees/remove": async (_params, _context, body) => {

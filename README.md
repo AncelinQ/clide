@@ -338,6 +338,15 @@ Deux points méritent d'être dits :
   parce que ce travail-là ne se retrouve nulle part. Le dépôt principal et tout
   chemin hors du projet sont refusés de la même façon.
 
+## Ouvrir un fichier
+
+Dans le Finder, un clic sélectionne et un double-clic ouvre avec l'application
+par défaut ; le menu contextuel insère le chemin dans le prompt, montre le fichier
+dans l'Explorateur ou copie son chemin. Ce que Windows exécuterait au lieu de
+l'ouvrir — `.cmd`, `.ps1`, et `.js`, confié par défaut à Windows Script Host —
+est montré dans l'Explorateur à la place : un double-clic dans un dépôt ne lance
+rien. L'ouverture passe par `explorer.exe`, sans shell pour relire le chemin.
+
 ## Lancer un script
 
 Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.

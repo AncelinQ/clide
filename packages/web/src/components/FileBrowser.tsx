@@ -1,4 +1,5 @@
 import { ArrowUp, File, Folder } from "lucide-react";
+import { useState } from "react";
 
 import { Async, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,11 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/lib/api";
+import { api, post } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, updateProject, type Project } from "@/state/store";
 import { openTerminal, typeInto } from "@/state/terminals";
+import { cn } from "cn";
 
 /** Dossier parent d'un chemin relatif. La racine est sa propre limite. */
 function parentOf(relativePath: string): string {
@@ -28,7 +30,22 @@ function insertPath(path: string): void {
   typeInto(activeTerminalId, `${path.includes(" ") ? `"${path}"` : path} `);
 }
 
+/**
+ * Ouvre avec l'application par défaut, ou montre dans l'Explorateur.
+ *
+ * Le serveur montre au lieu d'ouvrir ce que Windows exécuterait : l'échec d'un
+ * geste aussi anodin qu'un double-clic ne vaut pas une alerte, il part en console.
+ */
+function openOnDisk(path: string, reveal = false): void {
+  post("/api/files/open", { path, reveal }).catch((error: unknown) => {
+    console.error("[claude-ide] ouverture impossible", path, error);
+  });
+}
+
 export function FileBrowser({ project }: { project: Project }) {
+  // Clic simple : sélection. Le double-clic ouvre ; insérer le chemin à chaque
+  // clic l'écrirait deux fois avant l'ouverture.
+  const [selected, setSelected] = useState<string>();
   const state = useAsync(
     () => api<DirectoryListing>("/api/files", { root: project.root, path: project.browsePath }),
     [project.root, project.browsePath],
@@ -89,8 +106,14 @@ export function FileBrowser({ project }: { project: Project }) {
                   <ContextMenuTrigger asChild>
                     <li
                       title={entry.path}
-                      onClick={() => (entry.directory ? goTo(entry.relativePath) : insertPath(entry.path))}
-                      className="flex cursor-pointer items-center gap-2 px-3 py-1 hover:bg-accent"
+                      onClick={() => (entry.directory ? goTo(entry.relativePath) : setSelected(entry.path))}
+                      onDoubleClick={() => {
+                        if (!entry.directory) openOnDisk(entry.path);
+                      }}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 px-3 py-1 hover:bg-accent",
+                        selected === entry.path && "bg-accent",
+                      )}
                     >
                       {entry.directory ? (
                         <Folder className="size-3.5 shrink-0 text-primary" />
@@ -103,6 +126,15 @@ export function FileBrowser({ project }: { project: Project }) {
                   <ContextMenuContent>
                     <ContextMenuItem onSelect={() => insertPath(entry.path)}>
                       Insérer le chemin
+                    </ContextMenuItem>
+                    {!entry.directory && (
+                      <ContextMenuItem onSelect={() => openOnDisk(entry.path)}>Ouvrir</ContextMenuItem>
+                    )}
+                    <ContextMenuItem onSelect={() => openOnDisk(entry.path, true)}>
+                      Afficher dans l'Explorateur
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(entry.path)}>
+                      Copier le chemin
                     </ContextMenuItem>
                     {entry.directory && (
                       <>
