@@ -5,6 +5,7 @@ interface ClaudeIdeBridge {
   desktop: true;
   pathForFile(file: File): string | undefined;
   setAttention(waiting: number): void;
+  focusWindow(): void;
 }
 
 interface Window {

@@ -3,6 +3,7 @@ import { Terminal } from "@xterm/xterm";
 
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
+import { notifySystem } from "@/state/notify";
 import { getState, setState } from "@/state/store";
 
 /**
@@ -77,6 +78,7 @@ function onMessage(message: ServerMessage): void {
             ? { ...current.attention, [terminalId]: notification.kind }
             : current.attention,
       }));
+      notifySystem(notification, terminalId, focusTerminal);
       break;
     }
     case "error":

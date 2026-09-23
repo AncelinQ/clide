@@ -358,6 +358,13 @@ Trois décisions de conception :
   des hooks posés à la main sur les mêmes événements ; une réinstallation remplace
   les nôtres sans toucher aux autres, et la désinstallation les laisse en place.
 
+Chaque événement allume la pastille de son onglet. Si la fenêtre n'a pas le
+focus, il devient aussi une notification système, une par onglet — la suivante
+remplace la précédente —, et la cliquer ramène la fenêtre sur cet onglet. Devant
+l'application, la pastille suffit. Sous Windows, l'application de bureau déclare
+son identifiant d'application : sans lui, les notifications d'une application
+absente du menu Démarrer ne s'affichent pas.
+
 ## Le plan d'une session
 
 `~/.claude/plans` n'existe pas sur cette version de Claude Code. Le plan n'est donc

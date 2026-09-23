@@ -74,10 +74,21 @@ ipcMain.on("claude-ide:attention", (_event, waiting: unknown) => {
   window_.flashFrame(typeof waiting === "number" && waiting > 0);
 });
 
+ipcMain.on("claude-ide:focus", () => {
+  if (!window_) return;
+  if (window_.isMinimized()) window_.restore();
+  window_.show();
+  window_.focus();
+});
+
 async function shutdown(): Promise<void> {
   await server?.close();
   server = undefined;
 }
+
+// Sans identifiant d'application, Windows n'affiche pas les notifications
+// d'une application qui n'a pas de raccourci dans le menu Démarrer.
+if (process.platform === "win32") app.setAppUserModelId("claude-ide");
 
 void app.whenReady().then(async () => {
   await createWindow();

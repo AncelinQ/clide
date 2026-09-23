@@ -208,8 +208,8 @@ Relevé exhaustif, README de l'original en main et vérifié contre le code d'ic
 détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
 les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
-serveurs MCP et les connecteurs claude.ai, le routage des notifications,
-l'intégration shell, les worktrees.
+serveurs MCP et les connecteurs claude.ai, le routage des notifications et
+leur affichage système, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -285,7 +285,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Notification système | la permission du navigateur est demandée, mais **aucune notification n'est jamais affichée** : il manque l'appel et le clic qui ramène sur l'onglet concerné |
 | Effacer quand la session repart | on efface quand l'onglet est montré ; l'original efface aussi quand Claude recommence à écrire, ce qui évite les pastilles périmées |
 | Incrustation sur l'icône | l'application fait clignoter le bouton de la barre des tâches (`flashFrame`) ; Windows sait aussi y poser un compteur (`setOverlayIcon`) |
 
