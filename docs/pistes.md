@@ -201,6 +201,35 @@ a changé depuis, et une sauvegarde de l'état courant avant d'écrire.
 
 ---
 
+## Piste 8 — Voir ce qui a été fait
+
+**Le besoin.** Le panneau Fichiers montre ce qui a changé en texte. Rien ne montre
+à quoi ça ressemble : le rendu d'un écran, la forme d'un flux côté serveur.
+
+**Ce qu'on a déjà.** Les transcripts portent **195 images** sur 17 sessions,
+surtout des captures prises par Claude en travaillant (70 par Playwright, 14 par
+chrome-devtools). Elles sont lues avec le reste et montrées nulle part.
+
+**Ce qu'on attend, par palier**
+
+1. **Les captures de la session**, à leur place dans l'activité. Lecture seule,
+   aucune configuration : c'est le pendant visuel de l'avant/après des fichiers.
+2. **L'aperçu du serveur de développement**, dans un panneau. L'application lance
+   déjà les scripts ; l'URL qu'affichent `vite` ou `next dev` au démarrage suffit
+   à l'ouvrir à côté de la session.
+3. **Un résumé visuel à la demande** : un diagramme Mermaid de ce que la session a
+   changé, rédigé par `claude -p`. Il coûte des tokens, donc jamais automatique.
+
+**Ce qui n'est pas demandé.** Isoler le rendu d'un composant, qui demande un
+harnais propre à chaque projet. Simuler l'usage par des interfaces factices : c'est
+de la génération de tests de bout en bout, et Claude le fait déjà avec Playwright
+— l'application en montre les traces, elle ne s'y substitue pas.
+
+**Critère.** Je vois à quoi ressemblait l'écran à chaque étape d'une session,
+sans la rejouer.
+
+---
+
 ## Ce qui n'est pas porté depuis ClaudeTerm
 
 Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
