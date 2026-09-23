@@ -9,6 +9,7 @@ import { cn } from "cn";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, mount, openTerminal, resize, typeInto } from "@/state/terminals";
+import { PATHS_MIME, quotePath } from "@/lib/api";
 import type { TerminalInfo } from "@/lib/types";
 
 /** Accueil affiché tant qu'aucun terminal n'est ouvert pour ce projet. */
@@ -37,6 +38,29 @@ function Welcome({ root }: { root?: string }) {
 }
 
 /**
+ * Chemins d'un dépôt sur le terminal.
+ *
+ * Un glisser depuis le Finder de l'application porte ses chemins et marche
+ * partout. Un fichier venu de l'Explorateur n'a de chemin que sous Electron : un
+ * navigateur livre son contenu, jamais son emplacement.
+ */
+function droppedPaths(data: DataTransfer, desktop: Window["claudeIde"]): string[] {
+  const internal = data.getData(PATHS_MIME);
+  if (internal) {
+    try {
+      const parsed: unknown = JSON.parse(internal);
+      if (Array.isArray(parsed)) return parsed.filter((path): path is string => typeof path === "string");
+    } catch {
+      // Charge illisible : on retombe sur les fichiers du système.
+    }
+  }
+  if (!desktop) return [];
+  return [...data.files]
+    .map((file) => desktop.pathForFile(file))
+    .filter((path): path is string => Boolean(path));
+}
+
+/**
  * Hôte d'une instance xterm.
  *
  * Les instances vivent hors de React et ne sont jamais détruites au rendu : ce
@@ -58,21 +82,15 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
     <div
       ref={ref}
       className={cn("absolute inset-0 p-2", active ? "block" : "hidden")}
-      onDragOver={desktop ? (event) => event.preventDefault() : undefined}
-      onDrop={
-        desktop
-          ? (event) => {
-              // Le chemin d'un fichier déposé n'est connu que sous Electron :
-              // un navigateur livre son contenu, jamais son emplacement.
-              event.preventDefault();
-              const paths = [...event.dataTransfer.files]
-                .map((file) => desktop.pathForFile(file))
-                .filter((path): path is string => Boolean(path))
-                .map((path) => (path.includes(" ") ? `"${path}"` : path));
-              if (paths.length > 0) typeInto(info.id, `${paths.join(" ")} `);
-            }
-          : undefined
-      }
+      onDragOver={(event) => {
+        if (desktop || event.dataTransfer.types.includes(PATHS_MIME)) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const paths = droppedPaths(event.dataTransfer, desktop);
+        if (paths.length === 0) return;
+        event.preventDefault();
+        typeInto(info.id, `${paths.map(quotePath).join(" ")} `);
+      }}
     />
   );
 }

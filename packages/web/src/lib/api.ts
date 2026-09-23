@@ -35,6 +35,14 @@ export function socketUrl(path: string): string {
   return url.toString();
 }
 
+/** Type des chemins glissés depuis le Finder de l'application. */
+export const PATHS_MIME = "application/x-claude-ide-paths";
+
+/** Chemin tel qu'on le tape dans un prompt : entre guillemets s'il porte des espaces. */
+export function quotePath(path: string): string {
+  return path.includes(" ") ? `"${path}"` : path;
+}
+
 /** Dernier segment d'un chemin, quel que soit le séparateur. */
 export function shortName(path: string): string {
   return path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? path;

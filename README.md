@@ -353,6 +353,11 @@ kilo-octets est tenu pour binaire, comme le fait git ; un SVG est montré en tex
 le rendre exécuterait ce qu'il contient. L'aperçu comme l'ouverture sont bornés à
 la racine du projet, comme la liste des dossiers.
 
+Un fichier glissé du Finder sur un terminal y écrit son chemin, dans le navigateur
+comme dans l'application de bureau. Glissé depuis l'Explorateur, il ne le fait que
+sous Electron : un navigateur livre le contenu d'un fichier déposé, jamais son
+emplacement.
+
 ## Lancer un script
 
 Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.

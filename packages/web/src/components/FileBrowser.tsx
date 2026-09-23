@@ -10,7 +10,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { api, post } from "@/lib/api";
+import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, updateProject, type Project } from "@/state/store";
 import { openTerminal, typeInto } from "@/state/terminals";
@@ -28,7 +28,7 @@ function parentOf(relativePath: string): string {
 function insertPath(path: string): void {
   const { activeTerminalId } = getState();
   if (!activeTerminalId) return;
-  typeInto(activeTerminalId, `${path.includes(" ") ? `"${path}"` : path} `);
+  typeInto(activeTerminalId, `${quotePath(path)} `);
 }
 
 /**
@@ -118,6 +118,12 @@ export function FileBrowser({ project }: { project: Project }) {
                   <ContextMenuTrigger asChild>
                     <li
                       title={entry.path}
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(PATHS_MIME, JSON.stringify([entry.path]));
+                        event.dataTransfer.setData("text/plain", entry.path);
+                        event.dataTransfer.effectAllowed = "copy";
+                      }}
                       onClick={() => (entry.directory ? goTo(entry.relativePath) : setSelected(entry.path))}
                       onDoubleClick={() => {
                         if (!entry.directory) openOnDisk(project.root, entry.path);
