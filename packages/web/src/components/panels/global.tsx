@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
+import { SettingsForm } from "@/components/panels/settings-form";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -330,6 +331,9 @@ export function SettingsPanel() {
           <p className="pb-2 text-[11px] text-muted-foreground">
             Une sauvegarde de l'original est posée avant la première modification.
           </p>
+          <SettingsForm value={document_.value} onChanged={() => { setDraft(null); state.reload(); }} />
+          <details>
+            <summary className="cursor-pointer py-2 text-[12px] text-muted-foreground">JSON brut</summary>
           <Textarea
             rows={18}
             className="font-mono text-[11px]"
@@ -356,6 +360,7 @@ export function SettingsPanel() {
               Recharger
             </ActionButton>
           </div>
+          </details>
         </>
       )}
     </Async>

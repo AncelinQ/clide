@@ -253,6 +253,14 @@ chacune couverte par un test :
 
 ## Ce que les panneaux écrivent
 
+Le panneau Réglages présente `settings.json` en formulaire — général, permissions,
+hooks, environnement, plugins — avec le JSON brut replié en dessous. Chaque champ
+s'écrit seul, par une édition chirurgicale : les clés que le formulaire ne connaît
+pas, et la mise en forme du fichier, restent telles quelles. Une valeur vidée retire
+sa clé plutôt que d'écrire une chaîne vide que Claude Code prendrait pour un réglage.
+Les écritures d'un même fichier sont enchaînées : deux champs enregistrés coup sur
+coup liraient sinon le même état, et le second effacerait le premier.
+
 Les magasins lisent et écrivent ; l'interface expose les deux. Quatre garde-fous,
 tous couverts par des tests :
 
