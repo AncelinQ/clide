@@ -347,6 +347,12 @@ l'ouvrir — `.cmd`, `.ps1`, et `.js`, confié par défaut à Windows Script Hos
 est montré dans l'Explorateur à la place : un double-clic dans un dépôt ne lance
 rien. L'ouverture passe par `explorer.exe`, sans shell pour relire le chemin.
 
+Espace, sur le fichier sélectionné, ouvre un aperçu : le texte tel quel, tronqué
+au-delà de 256 Ko, et les images. Un fichier portant un octet nul dans ses premiers
+kilo-octets est tenu pour binaire, comme le fait git ; un SVG est montré en texte,
+le rendre exécuterait ce qu'il contient. L'aperçu comme l'ouverture sont bornés à
+la racine du projet, comme la liste des dossiers.
+
 ## Lancer un script
 
 Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.

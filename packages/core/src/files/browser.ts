@@ -27,6 +27,21 @@ export interface DirectoryListing {
 const HIDDEN = new Set(["node_modules", "Thumbs.db"]);
 
 /**
+ * Résout un chemin demandé sous la racine d'un projet, ou refuse.
+ *
+ * Le chemin vient d'une requête HTTP : un `..`, ou un chemin absolu, y ramènerait
+ * n'importe quel fichier de la machine.
+ */
+export function resolveInside(root: string, requested: string): string {
+  const rootResolved = resolve(root);
+  const target = resolve(rootResolved, requested);
+  if (!samePath(target, rootResolved) && !isInside(rootResolved, target)) {
+    throw new Error("chemin hors du projet");
+  }
+  return target;
+}
+
+/**
  * Liste un dossier du projet.
  *
  * Le chemin demandé est borné à la racine du projet : il vient d'une requête
@@ -40,11 +55,7 @@ export async function listDirectory(
   options: { hidden?: boolean } = {},
 ): Promise<DirectoryListing> {
   const rootResolved = resolve(root);
-  const target = resolve(rootResolved, requested);
-
-  if (!samePath(target, rootResolved) && !isInside(rootResolved, target)) {
-    throw new Error("chemin hors du projet");
-  }
+  const target = resolveInside(rootResolved, requested);
 
   const names = await readdir(target, { withFileTypes: true });
   const entries: DirectoryEntry[] = [];

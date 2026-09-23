@@ -241,7 +241,7 @@ serveurs MCP et les connecteurs claude.ai, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
 des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
 survol, la police du terminal,
-l'ouverture d'un fichier depuis le Finder, l'intégration shell, les worktrees.
+l'ouverture d'un fichier depuis le Finder et son aperçu rapide, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -256,7 +256,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Aperçu rapide (Espace) | lire un fichier sans quitter l'application ni ouvrir d'éditeur |
 | Glisser un fichier sur le terminal | insère son chemin dans le prompt. Le glisser **interne** reste faisable ; celui qui vient de l'Explorateur ne l'est pas dans un navigateur, qui ne voit jamais le chemin réel |
 
 ### Scripts

@@ -13,6 +13,8 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  previewFile,
+  resolveInside,
   settingsFile,
   type Scope,
   type SkillDraft,
@@ -130,6 +132,9 @@ export const routes: Record<string, Handler> = {
     });
     return { ...listing, breadcrumb: breadcrumb(listing) };
   },
+
+  "/api/files/preview": async (params) =>
+    previewFile(requireParam(params, "root"), requireParam(params, "path")),
 
   "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),
 
@@ -284,7 +289,9 @@ export const mutations: Record<string, Mutation> = {
   },
 
   "/api/files/open": async (_params, _context, body) => {
-    const path = requireField(body, "path", isString);
+    // Borné au projet comme la liste des dossiers : cette route lance une
+    // application, elle ne doit pas atteindre n'importe quel fichier de la machine.
+    const path = resolveInside(requireField(body, "root", isString), requireField(body, "path", isString));
     return { outcome: await openPath(path, body["reveal"] === true) };
   },
 

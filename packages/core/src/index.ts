@@ -70,9 +70,11 @@ export { FileHistoryResolver, type FileDiff } from "./files/history.js";
 export {
   breadcrumb,
   listDirectory,
+  resolveInside,
   type DirectoryEntry,
   type DirectoryListing,
 } from "./files/browser.js";
+export { IMAGE_LIMIT, TEXT_LIMIT, previewFile, type FilePreview } from "./files/preview.js";
 
 export {
   SettingsEditor,

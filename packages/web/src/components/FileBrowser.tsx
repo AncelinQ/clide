@@ -14,6 +14,7 @@ import { api, post } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, updateProject, type Project } from "@/state/store";
 import { openTerminal, typeInto } from "@/state/terminals";
+import { FilePreviewDialog } from "@/components/FilePreview";
 import { cn } from "cn";
 
 /** Dossier parent d'un chemin relatif. La racine est sa propre limite. */
@@ -36,8 +37,8 @@ function insertPath(path: string): void {
  * Le serveur montre au lieu d'ouvrir ce que Windows exécuterait : l'échec d'un
  * geste aussi anodin qu'un double-clic ne vaut pas une alerte, il part en console.
  */
-function openOnDisk(path: string, reveal = false): void {
-  post("/api/files/open", { path, reveal }).catch((error: unknown) => {
+function openOnDisk(root: string, path: string, reveal = false): void {
+  post("/api/files/open", { root, path, reveal }).catch((error: unknown) => {
     console.error("[claude-ide] ouverture impossible", path, error);
   });
 }
@@ -46,6 +47,7 @@ export function FileBrowser({ project }: { project: Project }) {
   // Clic simple : sélection. Le double-clic ouvre ; insérer le chemin à chaque
   // clic l'écrirait deux fois avant l'ouverture.
   const [selected, setSelected] = useState<string>();
+  const [previewing, setPreviewing] = useState<string>();
   const state = useAsync(
     () => api<DirectoryListing>("/api/files", { root: project.root, path: project.browsePath }),
     [project.root, project.browsePath],
@@ -91,7 +93,17 @@ export function FileBrowser({ project }: { project: Project }) {
       <ScrollArea className="min-h-0 flex-1">
         <Async state={state}>
           {(listing) => (
-            <ul className="m-0 list-none py-1">
+            <ul
+              // Focalisable pour recevoir Espace : la touche n'agit que si la liste
+              // a le focus, jamais quand elle part au terminal.
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key !== " " || !selected) return;
+                event.preventDefault();
+                setPreviewing(selected);
+              }}
+              className="m-0 list-none py-1 outline-none"
+            >
               {listing.relativePath && (
                 <li
                   onClick={() => goTo(parentOf(project.browsePath))}
@@ -108,7 +120,7 @@ export function FileBrowser({ project }: { project: Project }) {
                       title={entry.path}
                       onClick={() => (entry.directory ? goTo(entry.relativePath) : setSelected(entry.path))}
                       onDoubleClick={() => {
-                        if (!entry.directory) openOnDisk(entry.path);
+                        if (!entry.directory) openOnDisk(project.root, entry.path);
                       }}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 px-3 py-1 hover:bg-accent",
@@ -128,9 +140,16 @@ export function FileBrowser({ project }: { project: Project }) {
                       Insérer le chemin
                     </ContextMenuItem>
                     {!entry.directory && (
-                      <ContextMenuItem onSelect={() => openOnDisk(entry.path)}>Ouvrir</ContextMenuItem>
+                      <>
+                        <ContextMenuItem onSelect={() => setPreviewing(entry.path)}>
+                          Aperçu (Espace)
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => openOnDisk(project.root, entry.path)}>
+                          Ouvrir
+                        </ContextMenuItem>
+                      </>
                     )}
-                    <ContextMenuItem onSelect={() => openOnDisk(entry.path, true)}>
+                    <ContextMenuItem onSelect={() => openOnDisk(project.root, entry.path, true)}>
                       Afficher dans l'Explorateur
                     </ContextMenuItem>
                     <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(entry.path)}>
@@ -158,6 +177,11 @@ export function FileBrowser({ project }: { project: Project }) {
           )}
         </Async>
       </ScrollArea>
+      <FilePreviewDialog
+        root={project.root}
+        path={previewing}
+        onClose={() => setPreviewing(undefined)}
+      />
     </div>
   );
 }

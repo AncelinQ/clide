@@ -144,6 +144,12 @@ export interface ClaudeNotification {
   message?: string;
 }
 
+export type FilePreview =
+  | { kind: "text"; path: string; size: number; text: string; truncated: boolean }
+  | { kind: "image"; path: string; size: number; mime: string; base64: string }
+  | { kind: "binary"; path: string; size: number }
+  | { kind: "too-large"; path: string; size: number };
+
 export interface HooksStatus {
   installed: boolean;
   kinds: NotificationKind[];
