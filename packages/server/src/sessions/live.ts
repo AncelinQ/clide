@@ -6,6 +6,7 @@ import {
   sessionCost,
   type Calibration,
   type CostState,
+  type QueuedPrompt,
   type SessionCost,
   type TokenUsage,
 } from "@claude-ide/core";
@@ -20,6 +21,8 @@ export interface LiveSession {
   cost?: CostState;
   /** Coût de la session : exact, estimé à partir des tarifs déduits, ou inconnu. */
   price?: SessionCost;
+  /** Prompts en attente, dans l'ordre où Claude les prendra. */
+  queue: QueuedPrompt[];
   lastActivityAt?: string;
 }
 
@@ -170,6 +173,7 @@ export class LiveSessions {
               }
             : {}),
           ...(projection.lastActivityAt ? { lastActivityAt: projection.lastActivityAt } : {}),
+          queue: projection.queue,
         };
       } catch {
         // Transcript illisible ou disparu : l'onglet garde son dernier état.

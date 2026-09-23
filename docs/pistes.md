@@ -54,10 +54,11 @@ piste 3 peut promettre.
 
 ### 3. La file d'attente est-elle reconstituable, ou seulement observable ?
 
-`queue-operation` décrit ce qui *a été* mis en file, pas ce qui y reste.
-Reconstituer l'état courant demande de rejouer les opérations, et rien ne dit
-qu'`enqueue` soit la seule. **À vérifier sur le corpus avant d'en promettre
-l'affichage** : une file fausse est pire qu'une file absente.
+**Tranchée : reconstituable.** Quatre opérations — `enqueue` avec le texte,
+`remove` avec le texte absorbé, `dequeue` qui prend le premier, `popAll` qui vide
+tout. Rejouées sur les 51 sessions du corpus qui en portent : aucun `remove` sans
+correspondance, aucun `dequeue` sur une file vide, et une seule session finit avec un
+prompt en attente, fermée avant de l'envoyer.
 
 ### 4. Quelle place pour l'écriture destructrice ?
 
@@ -110,6 +111,15 @@ de la file soit reconstituable depuis les events.
 
 **Critère.** Ce que montre le panneau correspond à ce que montre `claude` dans le
 terminal, sans décalage.
+
+**État.** Fait : la file se lit au-dessus du bloc session, et un prompt s'y ajoute
+en le tapant dans l'onglet Claude. Retirer n'est pas offert : Claude Code ne l'expose
+pas, et le simuler au clavier dans son interface pourrait viser le mauvais prompt.
+
+**Ce que l'usage en dit.** La file vit rarement plus de quelques secondes : sur 400
+mises en file, 327 sont absorbées par le tour en cours (`absorbed_mid_turn`), 57
+prises à la fin du tour, 15 vidées d'un coup. La piste vaut moins que ne le
+laissaient croire les 381 prompts relevés au départ.
 
 ---
 

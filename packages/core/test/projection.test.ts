@@ -258,4 +258,24 @@ describe("SessionProjector", () => {
     expect(projection.planMode).toBe(true);
     expect(projection.planFilePath).toBe("C:/Users/x/.claude/plans/ok.md");
   });
+
+  it("rejoue la file d'attente dans l'ordre où Claude la videra", () => {
+    const op = (operation: string, content?: string) => ({
+      type: "queue-operation",
+      operation,
+      ...(content ? { content } : {}),
+    });
+    const projection = projectEvents(SID, [
+      op("enqueue", "premier"),
+      op("enqueue", "deuxième"),
+      op("enqueue", "troisième"),
+      // Absorbé en cours de tour : retiré par son texte, où qu'il soit.
+      op("remove", "deuxième"),
+      // Pris par Claude : le premier sort.
+      op("dequeue"),
+      op("enqueue", "quatrième"),
+    ]);
+    expect(projection.queue.map((entry) => entry.text)).toEqual(["troisième", "quatrième"]);
+    expect(projectEvents(SID, [op("enqueue", "a"), op("enqueue", "b"), op("popAll", "a")]).queue).toEqual([]);
+  });
 });

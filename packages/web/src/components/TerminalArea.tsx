@@ -10,7 +10,7 @@ import { cn } from "cn";
 import { t } from "@/i18n";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
-import { closeTerminal, focusTerminal, mount, openTerminal, resize, typeInto } from "@/state/terminals";
+import { closeTerminal, focusTerminal, mount, openTerminal, resize, sendToClaude, typeInto } from "@/state/terminals";
 import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
 import { captureInto } from "@/state/commands";
 import type { TerminalInfo } from "@/lib/types";
@@ -40,13 +40,6 @@ function Welcome({ root }: { root?: string }) {
   );
 }
 
-/**
- * Chemins d'un dépôt sur le terminal.
- *
- * Un glisser depuis le Finder de l'application porte ses chemins et marche
- * partout. Un fichier venu de l'Explorateur n'a de chemin que sous Electron : un
- * navigateur livre son contenu, jamais son emplacement.
- */
 /** Images d'un collage ou d'un dépôt qui n'ont pas de chemin sur le disque. */
 function imagesOf(files: Iterable<File>): File[] {
   return [...files].filter((file) => file.type.startsWith("image/"));
@@ -66,6 +59,13 @@ async function typeImages(terminalId: string, images: File[]): Promise<void> {
   if (paths.length > 0) typeInto(terminalId, `${paths.map(quotePath).join(" ")} `);
 }
 
+/**
+ * Chemins d'un dépôt sur le terminal.
+ *
+ * Un glisser depuis le Finder de l'application porte ses chemins et marche
+ * partout. Un fichier venu de l'Explorateur n'a de chemin que sous Electron : un
+ * navigateur livre son contenu, jamais son emplacement.
+ */
 function droppedPaths(data: DataTransfer, desktop: Window["claudeIde"]): string[] {
   const internal = data.getData(PATHS_MIME);
   if (internal) {
@@ -166,6 +166,69 @@ function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
     >
       <Camera className={busy ? "animate-pulse" : undefined} />
     </Button>
+  );
+}
+
+/**
+ * Prompts mis en file dans l'onglet Claude regardé, dans l'ordre où Claude les
+ * prendra, et de quoi en ajouter un.
+ *
+ * Ajouter revient à taper dans l'onglet : Claude Code met lui-même en file ce qui
+ * arrive pendant qu'il travaille. Retirer n'est pas offert : Claude Code ne
+ * l'expose pas, et le simuler au clavier dans son interface pourrait viser le
+ * mauvais prompt.
+ */
+function QueueStrip({ queue }: { queue: { text: string; at?: string }[] }) {
+  const [draft, setDraft] = useState("");
+  const [adding, setAdding] = useState(false);
+  if (queue.length === 0 && !adding) {
+    return (
+      <div className="flex shrink-0 justify-end px-3 pt-1">
+        <button
+          type="button"
+          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => setAdding(true)}
+        >
+          {t("mettre un prompt en file")}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="mx-2 mt-1 shrink-0 rounded-md border px-2 py-1.5 text-[12px]">
+      {queue.length > 0 && (
+        <>
+          <div className="mb-1 text-[11px] text-muted-foreground">{t("En attente ({count})", { count: queue.length })}</div>
+          <ol className="m-0 grid list-decimal gap-0.5 pl-5">
+            {queue.map((entry, index) => (
+              <li key={`${index}|${entry.text}`} className="truncate" title={entry.text}>
+                {entry.text}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      <form
+        className="mt-1 flex gap-1"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const text = draft.trim();
+          if (!text) return;
+          // Une ligne : un retour à la ligne enverrait le prompt en morceaux.
+          if (sendToClaude(text.replace(/\s*\n\s*/g, " "))) setDraft("");
+        }}
+      >
+        <input
+          className="h-7 min-w-0 flex-1 rounded border bg-transparent px-2 text-[12px] outline-none focus:border-primary"
+          value={draft}
+          placeholder={t("prompt à mettre en file")}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <Button type="submit" variant="outline" size="sm" className="h-7 text-[11px]">
+          {t("ajouter")}
+        </Button>
+      </form>
+    </div>
   );
 }
 
@@ -336,6 +399,8 @@ export function TerminalArea() {
               .join("   ·   ")
           : ""}
       </footer>
+
+      {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
 
       <ModeBlock
         modes={modes}

@@ -195,6 +195,7 @@ export interface LiveSession {
   tokens?: TokenUsage;
   cost?: { totalCostUSD?: number };
   price?: SessionCost;
+  queue?: { text: string; at?: string }[];
   lastActivityAt?: string;
 }
 

@@ -19,6 +19,11 @@ export interface FileTrack {
   backups: FileBackupRef[];
 }
 
+export interface QueuedPrompt {
+  text: string;
+  at?: string;
+}
+
 /** Volume de tokens, par nature : c'est à ce grain que se fait la facturation. */
 export interface TokenCounts {
   input: number;
@@ -64,6 +69,14 @@ export interface SessionProjection {
   planMode?: boolean;
   /** Fichier où Claude Code écrit le plan en cours, annoncé en mode plan. */
   planFilePath?: string;
+  /**
+   * Prompts en attente, dans l'ordre où Claude les prendra.
+   *
+   * Rejoués depuis les `queue-operation` : `enqueue` ajoute, `remove` retire le
+   * texte absorbé en cours de tour, `dequeue` prend le premier, `popAll` vide
+   * tout. Sur le corpus de référence, ce rejeu ne rencontre aucune incohérence.
+   */
+  queue: QueuedPrompt[];
   startedAt?: string;
   lastActivityAt?: string;
   cost?: CostState;
@@ -99,7 +112,8 @@ export class SessionProjector {
   #lastUsage: { context: number; model?: string } | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
-  #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens">;
+  #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens" | "queue">;
+  #queue: QueuedPrompt[] = [];
 
   constructor(sessionId: string) {
     this.#state = { id: sessionId, messageCount: 0, eventCount: 0 };
@@ -187,6 +201,10 @@ export class SessionProjector {
         break;
       }
 
+      case "queue-operation":
+        this.#applyQueue(event);
+        break;
+
       case "cost-state": {
         const cost = readCostState(event);
         if (cost) {
@@ -261,6 +279,27 @@ export class SessionProjector {
         if (!isKnownEventType(event.type)) {
           this.#unknown.set(event.type, (this.#unknown.get(event.type) ?? 0) + 1);
         }
+    }
+  }
+
+  #applyQueue(event: TranscriptEvent): void {
+    const text = readString(event, "content");
+    const at = readString(event, "timestamp");
+    switch (event["operation"]) {
+      case "enqueue":
+        if (text) this.#queue.push({ text, ...(at ? { at } : {}) });
+        break;
+      case "remove": {
+        const index = this.#queue.findIndex((entry) => entry.text === text);
+        if (index >= 0) this.#queue.splice(index, 1);
+        break;
+      }
+      case "dequeue":
+        this.#queue.shift();
+        break;
+      case "popAll":
+        this.#queue = [];
+        break;
     }
   }
 
@@ -344,6 +383,7 @@ export class SessionProjector {
       ...this.#state,
       ...(this.#lastUsage ? { tokens: this.#tokens() } : {}),
       prLinks: [...this.#prLinks],
+      queue: [...this.#queue],
       files: [...this.#files.values()],
       unknownTypes: Object.fromEntries(this.#unknown),
     };

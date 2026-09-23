@@ -595,6 +595,16 @@ session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour 
 sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
 tour, ne dit rien des permissions.
 
+## La file d'attente
+
+Un prompt tapé pendant que Claude travaille part dans sa file. Elle se reconstitue en
+rejouant les `queue-operation` du transcript : `enqueue` ajoute le texte, `remove`
+retire celui qu'absorbe le tour en cours, `dequeue` prend le premier, `popAll` vide
+tout. La file de l'onglet regardé s'affiche au-dessus du bloc session, et un prompt
+s'y ajoute en le tapant dans l'onglet ; retirer n'est pas offert, Claude Code ne
+l'exposant pas. En pratique la file vit quelques secondes : la plupart des prompts
+sont absorbés par le tour en cours.
+
 ## Ce que coûtent les sessions
 
 Claude Code écrit le coût d'une session dans un event `cost-state`, cumulé et

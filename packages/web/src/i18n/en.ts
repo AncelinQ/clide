@@ -5,6 +5,9 @@
 export const EN: Record<string, string> = {
   Langue: "Language",
   "Coûts": "Costs",
+  "mettre un prompt en file": "queue a prompt",
+  "En attente ({count})": "Queued ({count})",
+  "prompt à mettre en file": "prompt to queue",
   "coût inconnu": "unknown cost",
   "Relevé par Claude Code.": "Recorded by Claude Code.",
   "Estimé à partir des tarifs déduits de tes sessions chiffrées.": "Estimated from the rates derived from your costed sessions.",

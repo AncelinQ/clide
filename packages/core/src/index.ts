@@ -41,6 +41,7 @@ export {
   SessionProjector,
   projectEvents,
   type FileTrack,
+  type QueuedPrompt,
   type SessionProjection,
   type TokenCounts,
   type TokenUsage,
