@@ -1,7 +1,11 @@
 import { stat } from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   FileHistoryResolver,
+  applyRestore,
+  lastSessionWrites,
+  planRestore,
   LinkStore,
   McpStore,
   ScriptStore,
@@ -146,6 +150,37 @@ async function removalPlan(id: string, { index, live }: ApiContext) {
   return { session, artifacts, ...(blocked ? { blocked } : {}) };
 }
 
+/**
+ * Plan de restauration d'un fichier touché par une session.
+ *
+ * Le fichier est désigné par son chemin de suivi, cherché parmi ceux de la
+ * session : on ne restaure que ce que ses sauvegardes couvrent. Une session qui
+ * tourne, dans un onglet ou ailleurs, est refusée, comme pour son retrait : elle
+ * pourrait réécrire le fichier juste après.
+ */
+async function restorePlan(id: string, trackingPath: string, { live }: ApiContext) {
+  const refs = (await discoverTranscripts()).filter((ref) => ref.sessionId === id);
+  const main = refs.find((ref) => ref.kind === "session");
+  if (!main) throw new Error(`session ${id} introuvable`);
+  const { events, projection } = await TranscriptReader.fromRef(main).poll();
+  const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
+  const track = projection.files.find((file) => file.trackingPath === trackingPath);
+  if (!root || !track) throw new Error(`${trackingPath} n'est pas un fichier de cette session`);
+
+  // Les écritures d'un sous-agent sont sauvegardées dans la session, mais ses
+  // appels d'outils sont dans son propre transcript.
+  const all = [...events];
+  for (const ref of refs.filter((candidate) => candidate.kind === "subagent")) {
+    all.push(...(await TranscriptReader.fromRef(ref).poll()).events);
+  }
+  const plan = await planRestore({ sessionId: id, track, root, writes: lastSessionWrites(all, root) });
+  if (!plan.blocked && live.follows(main.path)) plan.blocked = "la session tourne dans un onglet";
+  else if (!plan.blocked && Date.now() - (await stat(main.path)).mtimeMs < RECENT_MS) {
+    plan.blocked = "la session a écrit il y a moins de deux minutes : elle tourne peut-être ailleurs";
+  }
+  return plan;
+}
+
 /** Transcript d'un sous-agent, retrouvé par sa session et son identifiant. */
 async function findSubagent(sessionId: string, agentId: string): Promise<TranscriptRef> {
   const ref = (await discoverTranscripts()).find(
@@ -247,6 +282,11 @@ export const routes: Record<string, Handler> = {
 
     const diffs = await new FileHistoryResolver().diffSession(id, projection.files, root);
     return { root, diffs };
+  },
+
+  "/api/session/restore-plan": async (params, context) => {
+    const { before: _before, ...plan } = await restorePlan(requireParam(params, "id"), requireParam(params, "path"), context);
+    return plan;
   },
 
   "/api/session/activity": async (params) => {
@@ -502,6 +542,25 @@ export const mutations: Record<string, Mutation> = {
     await context.index.refresh();
     await context.index.save();
     return { removed: id, trashed: artifacts.length };
+  },
+
+  /**
+   * Ramène un fichier à son état d'avant la session. Le plan est relu au moment
+   * d'écrire, et l'empreinte vue dans l'aperçu doit correspondre au fichier : rien
+   * n'est écrasé qu'on n'ait vu. Le contenu remplacé est gardé dans `restores/`.
+   */
+  "/api/session/restore": async (_params, context, body) => {
+    const id = requireField(body, "id", isString);
+    const plan = await restorePlan(id, requireField(body, "path", isString), context);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return {
+      action: plan.action,
+      ...(await applyRestore(plan, {
+        expectedHash: requireField(body, "hash", isString),
+        backupDir: join(context.dataDir, "restores", id, stamp),
+        trash: (paths) => moveToRecycleBin(paths, context.dataDir),
+      })),
+    };
   },
 
   /** Copie un skill d'une portée à l'autre. `root` sert aux deux côtés : c'est le projet ouvert. */

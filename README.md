@@ -628,6 +628,30 @@ Un résultat ouvre sa session sur l'entrée trouvée : l'activité et la recherc
 produisent les mêmes entrées dans le même ordre, et la position d'un résultat
 désigne la même ligne.
 
+## Restaurer un fichier
+
+Dans l'onglet Fichiers d'une session, « restaurer » ramène un fichier à son état
+d'avant la session, tiré de la première sauvegarde que Claude Code en a prise
+(`~/.claude/file-history/<session>/`). La fenêtre montre d'abord ce qui sera
+perdu et ce qui revient ; rien ne s'écrit sans ce passage.
+
+Le serveur refuse :
+
+- un fichier modifié plus de cinq secondes après la dernière écriture de la
+  session — le délai laisse passer un formateur lancé par un hook, pas une
+  retouche à la main, qu'on perdrait ;
+- un fichier que la session n'a écrit par aucun outil d'édition réussi ;
+- une session qui tourne dans un onglet, ou qui a écrit il y a moins de deux
+  minutes ;
+- un fichier qui a changé depuis l'aperçu : l'empreinte qu'il a montrée doit être
+  celle qu'on écrase.
+
+Le contenu remplacé est copié dans `restores/<session>/<horodatage>/` des données
+de l'application ; un fichier créé par la session part à la corbeille de Windows.
+L'écriture passe par un fichier temporaire renommé : jamais de fichier à moitié
+écrit. Les écritures d'un sous-agent comptent : ses appels d'outils sont lus dans
+son transcript.
+
 ## Sous-agents
 
 Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un

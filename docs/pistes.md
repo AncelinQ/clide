@@ -64,6 +64,8 @@ distinctive de la base de code — et la seule qui puisse détruire du travail e
 cours. Soit on l'assume avec les garde-fous qui vont avec (piste 7), soit on s'en
 tient à la lecture, et le panneau Fichiers reste un panneau de constat.
 
+**Tranché** : on l'assume, avec les garde-fous de la piste 7.
+
 ---
 
 ## Piste 1 — Voir ce que ça coûte
@@ -228,6 +230,12 @@ distinctive de la base de code actuelle.
 **Le danger.** C'est une écriture destructrice sur le travail en cours. Elle
 demanderait au minimum : un aperçu de ce qui serait écrasé, un refus si le fichier
 a changé depuis, et une sauvegarde de l'état courant avant d'écrire.
+
+**État.** Fait, avec ces trois garde-fous et deux de plus : la session ne doit
+plus tourner (ni onglet, ni écriture depuis deux minutes), et l'empreinte du
+fichier vue dans l'aperçu doit être celle qu'on écrase. Seuls les fichiers écrits
+par Edit, Write, MultiEdit ou NotebookEdit se restaurent ; ce qu'a fait Bash n'a
+pas de sauvegarde.
 
 ---
 

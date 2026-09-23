@@ -1,8 +1,10 @@
-import { Activity, ChevronRight, ClipboardList, CornerDownRight, FileDiff } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Activity, ChevronRight, ClipboardList, CornerDownRight, FileDiff, Undo2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
+import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
@@ -35,6 +37,7 @@ export function FilesPanel({ session }: { session: ShownSession }) {
     [session.sessionId],
     session.refresh,
   );
+  const [restoring, setRestoring] = useState<string>();
 
   return (
     <Async state={state}>
@@ -43,6 +46,14 @@ export function FilesPanel({ session }: { session: ShownSession }) {
           <Empty icon={FileDiff}>{t("Aucun fichier touché.")}</Empty>
         ) : (
           <Rows>
+            {restoring && (
+              <FileRestoreDialog
+                sessionId={session.sessionId}
+                trackingPath={restoring}
+                onClose={() => setRestoring(undefined)}
+                onRestored={state.reload}
+              />
+            )}
             {diffs.map((diff) => (
               <Row
                 key={diff.trackingPath}
@@ -61,24 +72,23 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                     {diff.beforeMissing && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
                   </>
                 }
+                actions={
+                  !diff.beforeMissing &&
+                  (diff.unified || diff.binary || diff.created || diff.deleted) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px]"
+                      title={t("Ramener ce fichier à son état d'avant la session")}
+                      onClick={() => setRestoring(diff.trackingPath)}
+                    >
+                      <Undo2 />
+                      {t("restaurer")}
+                    </Button>
+                  )
+                }
               >
-                {diff.unified && (
-                  <pre className="mt-1 max-h-72 overflow-auto rounded-md border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed">
-                    {diff.unified.split("\n").map((line, index) => (
-                      <span
-                        key={index}
-                        className={cn(
-                          "block",
-                          line.startsWith("+") && "text-emerald-600 dark:text-emerald-400",
-                          line.startsWith("-") && "text-destructive",
-                          line.startsWith("@@") && "text-primary",
-                        )}
-                      >
-                        {line}
-                      </span>
-                    ))}
-                  </pre>
-                )}
+                {diff.unified && <DiffLines unified={diff.unified} className="mt-1 max-h-72" />}
               </Row>
             ))}
           </Rows>

@@ -8,6 +8,22 @@ export const EN: Record<string, string> = {
   Chantiers: "Workstreams",
   Recherche: "Search",
   remonter: "up",
+  "Restaurer le fichier": "Restore the file",
+  "Fichier restauré.": "File restored.",
+  "Le contenu remplacé est gardé dans {path}.": "The replaced content is kept in {path}.",
+  Fermer: "Close",
+  "Dernière écriture de la session : {date}.": "Last write by the session: {date}.",
+  "Fichier binaire : pas d'aperçu.": "Binary file: no preview.",
+  "En rouge ce qui sera perdu, en vert ce qui revient.": "In red what will be lost, in green what comes back.",
+  Restaurer: "Restore",
+  "Ramener ce fichier à son état d'avant la session": "Bring this file back to its state before the session",
+  restaurer: "restore",
+  "Le fichier reprend son contenu d'avant la session. Le contenu actuel est copié dans les données de l'application.":
+    "The file gets back its content from before the session. The current content is copied into the app's data.",
+  "Le fichier, disparu depuis, est réécrit tel qu'il était avant la session.":
+    "The file, gone since, is written back as it was before the session.",
+  "La session a créé ce fichier : il part à la corbeille de Windows.":
+    "The session created this file: it goes to the Windows Recycle Bin.",
   session: "session",
   ouvrir: "open",
   "Voir l'activité de ce sous-agent": "Show this subagent's activity",

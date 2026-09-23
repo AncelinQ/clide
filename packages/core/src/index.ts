@@ -83,6 +83,13 @@ export {
 } from "./session/session-index.js";
 
 export { FileHistoryResolver, type FileDiff } from "./files/history.js";
+export {
+  applyRestore,
+  lastSessionWrites,
+  planRestore,
+  type RestoreAction,
+  type RestorePlan,
+} from "./files/restore.js";
 
 export {
   breadcrumb,
