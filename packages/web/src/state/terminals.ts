@@ -228,11 +228,16 @@ export function claudeTabFor(root: string | null): string | undefined {
  * Sans Échap devant, contrairement aux shells : dans Claude Code, Échap
  * interrompt le tour en cours, et deux de suite ouvrent le retour arrière. Une
  * commande envoyée pendant que Claude travaille part dans sa file d'attente.
+ *
+ * Entrée part à part, un instant après : reçu dans le même bloc que le texte,
+ * Claude Code le lit comme un collage, où Entrée ajoute une ligne au lieu
+ * d'envoyer. Une commande courte passe, un prompt de trois lignes reste en saisie.
  */
 export function sendToClaude(command: string): boolean {
   const id = claudeTabFor(getState().activeRoot);
   if (!id) return false;
-  typeInto(id, `${command}\r`);
+  typeInto(id, command);
+  setTimeout(() => typeInto(id, "\r"), 150);
   focusTerminal(id);
   return true;
 }

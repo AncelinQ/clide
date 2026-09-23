@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { api, post } from "@/lib/api";
 import type { Skill } from "@/lib/types";
+import { useStore } from "@/state/store";
+import { claudeTabFor, sendToClaude } from "@/state/terminals";
 
 const INVOCATION_LABEL: Record<Skill["invocation"], string> = {
   "auto-and-slash": "auto + /",
@@ -108,6 +110,19 @@ export function SkillEditor({
   const [description, setDescription] = useState(skill.description ?? "");
   const [invocation, setInvocation] = useState<Skill["invocation"]>(skill.invocation ?? "auto-and-slash");
   const [body, setBody] = useState(skill.body ?? "");
+  const creating = !skill.directory;
+  const claudeTab = useStore((state) => claudeTabFor(state.activeRoot));
+
+  const save = (content: string) =>
+    post<{ skill: Skill }>("/api/skills/save", {
+      scope: skill.scope,
+      directory,
+      name,
+      description,
+      invocation,
+      body: content,
+      ...(skill.scope === "project" ? { root } : {}),
+    });
 
   return (
     <div className="flex flex-col gap-2">
@@ -143,20 +158,33 @@ export function SkillEditor({
         <ActionButton
           variant="default"
           onAction={async () => {
-            await post("/api/skills/save", {
-              scope: skill.scope,
-              directory,
-              name,
-              description,
-              invocation,
-              body,
-              ...(skill.scope === "project" ? { root } : {}),
-            });
+            await save(body);
             onDone();
           }}
         >
           Enregistrer
         </ActionButton>
+        {/* Le squelette est écrit d'abord : Claude reçoit un fichier existant à
+            compléter, avec l'en-tête voulu, plutôt qu'un emplacement à deviner. */}
+        {creating && (
+          <ActionButton
+            onAction={async () => {
+              if (!description.trim()) throw new Error("décris d'abord ce que le skill doit faire");
+              if (!claudeTab) throw new Error("ouvre un onglet Claude pour lui confier la rédaction");
+              const { skill: written } = await save(
+                body.trim() || "<!-- Instructions pour Claude : quand utiliser ce skill, étapes, contraintes. -->\n",
+              );
+              sendToClaude(
+                `Rédige le skill Claude Code ${written.path} : ${description.trim()}. Garde le frontmatter ` +
+                  "name/description, écris des instructions précises et actionnables (quand l'utiliser, étapes, " +
+                  "contraintes), en français.",
+              );
+              onDone();
+            }}
+          >
+            Rédiger avec Claude
+          </ActionButton>
+        )}
         <ActionButton onAction={onDone}>Annuler</ActionButton>
       </div>
     </div>

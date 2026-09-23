@@ -291,6 +291,16 @@ sous Electron par leur chemin, dossiers compris ; dans un navigateur, qui ne liv
 que le contenu, les seuls `.md`. Ni la copie ni l'import ne remplacent un skill
 existant.
 
+Un nouveau skill peut être rédigé par Claude : l'éditeur écrit le squelette — nom,
+description, invocation — puis envoie à l'onglet Claude du projet une consigne qui
+désigne ce fichier. Claude reçoit un fichier existant à compléter plutôt qu'un
+emplacement à deviner.
+
+Une commande envoyée à Claude Code part en deux temps : le texte, puis Entrée un
+instant après. Reçus d'un bloc, Claude Code les lit comme un collage, où Entrée
+ajoute une ligne : une commande courte passe, un prompt de trois lignes reste en
+saisie.
+
 Les routes d'écriture exigent la portée telle quelle — la rabattre sur
 `user` ferait d'une demande visant un skill de plugin la suppression du skill
 personnel du même nom.
