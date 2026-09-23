@@ -111,7 +111,51 @@ export function openTerminal(kind: TerminalKind, options: { command?: string; cw
   });
 }
 
+/** Script lancé dans chaque onglet, pour ne pas relancer celui qui tourne encore. */
+const scripts = new Map<string, string>();
+
+function samePath(a: string, b: string): boolean {
+  const clean = (path: string) => path.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase();
+  return clean(a) === clean(b);
+}
+
+/**
+ * Lance un script du projet.
+ *
+ * Le même script encore en cours est ramené au premier plan plutôt que lancé une
+ * seconde fois. Sinon, un shell du projet qui ne fait rien le reçoit, et un
+ * onglet n'est ouvert qu'à défaut : chaque lancement en ouvrirait un de plus.
+ *
+ * La saisie commence par Échap, qui vide la ligne en cours sous PSReadLine, pour
+ * ne pas coller la commande derrière ce qui y traînait.
+ */
+export function runScript(name: string, directory: string, command: string): void {
+  const { terminals, activeRoot } = getState();
+  if (!activeRoot) return;
+  const key = `${directory}|${name}`;
+  const shells = Object.values(terminals)
+    .filter((entry) => entry.owner === activeRoot && entry.info.kind === "shell" && !entry.info.exited)
+    .map((entry) => entry.info);
+
+  const running = shells.find((info) => info.state === "running" && scripts.get(info.id) === key);
+  if (running) {
+    focusTerminal(running.id);
+    return;
+  }
+
+  const idle = shells.find((info) => info.state !== "running");
+  if (!idle) {
+    openTerminal("shell", { cwd: directory, command });
+    return;
+  }
+  const move = samePath(idle.cwd, directory) ? "" : `Set-Location -LiteralPath '${directory.replace(/'/g, "''")}'; `;
+  scripts.set(idle.id, key);
+  typeInto(idle.id, `\u001b${move}${command}\r`);
+  focusTerminal(idle.id);
+}
+
 export function closeTerminal(id: string): void {
+  scripts.delete(id);
   send({ t: "close", id });
   attached.get(id)?.term.dispose();
   attached.delete(id);

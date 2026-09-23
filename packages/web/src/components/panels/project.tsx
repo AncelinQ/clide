@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, post } from "@/lib/api";
 import type { McpServer, ProjectLink, ProjectScripts, Skill, SlashCommand, Worktree } from "@/lib/types";
-import { openTerminal } from "@/state/terminals";
+import { openTerminal, runScript } from "@/state/terminals";
 
 // ─── Dossiers liés ──────────────────────────────────────────────────────────
 
@@ -136,13 +136,13 @@ export function ScriptsPanel({ root }: { root: string }) {
                         actions={
                           <ActionButton
                             onAction={() =>
-                              openTerminal("shell", {
-                                cwd: source.directory,
-                                command:
-                                  project.manager === "npm"
-                                    ? `npm run ${script.name}`
-                                    : `${project.manager} run ${script.name}`,
-                              })
+                              runScript(
+                                script.name,
+                                source.directory,
+                                project.manager === "npm"
+                                  ? `npm run ${script.name}`
+                                  : `${project.manager} run ${script.name}`,
+                              )
                             }
                           >
                             <Play className="size-3" /> lancer

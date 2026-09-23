@@ -210,7 +210,7 @@ les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP et les connecteurs claude.ai, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
-des tâches, l'intégration shell, les worktrees.
+des tâches, la réutilisation d'un shell inactif pour les scripts, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -234,7 +234,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | Scripts des dossiers liés | seuls ceux du projet et de ses espaces de travail sont listés |
-| Réutiliser un onglet inactif | `PtyManager.findIdle` existe et n'est appelé que par ses tests : chaque lancement ouvre un onglet de plus |
 
 ### MCP du projet
 

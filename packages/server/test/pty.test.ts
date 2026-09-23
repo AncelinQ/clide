@@ -127,13 +127,6 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
 
-  it("réutilise un terminal inactif plutôt que d'en ouvrir un autre", async () => {
-    const terminal = await manager.open({ projectRoot: scratch });
-    const idle = manager.findIdle(scratch);
-    expect(idle?.id).toBe(terminal.id);
-    manager.close(terminal.id);
-  }, 30_000);
-
   it("ne fait rien sur un identifiant inconnu", () => {
     expect(manager.write("inconnu", "x")).toBe(false);
     expect(manager.resize("inconnu", 80, 24)).toBe(false);

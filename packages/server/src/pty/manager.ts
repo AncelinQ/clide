@@ -227,17 +227,6 @@ export class PtyManager {
     return fallback;
   }
 
-  /** Terminal inactif réutilisable pour un projet, plutôt qu'en ouvrir un de plus. */
-  findIdle(projectRoot: string, kind: TerminalKind = "shell"): TerminalInfo | undefined {
-    for (const terminal of this.#terminals.values()) {
-      const { info } = terminal;
-      if (info.projectRoot === projectRoot && info.kind === kind && info.state === "idle") {
-        return { ...info };
-      }
-    }
-    return undefined;
-  }
-
   closeAll(): void {
     for (const id of [...this.#terminals.keys()]) this.close(id);
   }

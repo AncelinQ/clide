@@ -327,6 +327,14 @@ Deux points méritent d'être dits :
   parce que ce travail-là ne se retrouve nulle part. Le dépôt principal et tout
   chemin hors du projet sont refusés de la même façon.
 
+## Lancer un script
+
+Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.
+Sinon, un shell du projet qui ne fait rien le reçoit, et on n'ouvre un onglet que
+s'il n'y en a aucun. La commande est précédée d'Échap, qui vide la ligne en cours
+sous PSReadLine, et d'un `Set-Location` si le shell n'est pas déjà dans le bon
+dossier.
+
 ## Pourquoi le serveur exige un jeton
 
 Il n'écoute que sur `127.0.0.1`, et cela ne suffit pas : n'importe quelle page web
