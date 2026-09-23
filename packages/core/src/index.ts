@@ -53,6 +53,7 @@ export {
   type PlanProgress,
   type SessionPlan,
 } from "./session/plan.js";
+export { withPlanFile } from "./session/plan-file.js";
 
 export {
   buildActivity,

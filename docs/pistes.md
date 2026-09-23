@@ -244,7 +244,7 @@ survol, la police du terminal,
 l'ouverture d'un fichier depuis le Finder et son aperçu rapide et son glisser
 sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode, le
 mode plan et les tokens dans la barre d'état et l'activité, et l'ouverture
-automatique du plan —, l'intégration shell, les worktrees.
+automatique du plan —, le plan rendu en markdown, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -286,7 +286,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 
 | Manque | Détail |
 |---|---|
-| Rendu markdown du plan | le texte est affiché tel quel ; la progression, elle, est bien calculée |
 | Raccourci de repli | ⌥⌘3 chez l'original — piste 5 |
 
 ### Panneau droit

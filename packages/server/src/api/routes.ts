@@ -13,6 +13,7 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  withPlanFile,
   previewFile,
   resolveInside,
   settingsFile,
@@ -123,7 +124,7 @@ export const routes: Record<string, Handler> = {
     const id = requireParam(params, "id");
     const ref = await findSession(id);
     const { events } = await TranscriptReader.fromRef(ref).poll();
-    return extractPlan(events);
+    return withPlanFile(extractPlan(events));
   },
 
   "/api/files": async (params) => {

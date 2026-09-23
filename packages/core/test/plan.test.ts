@@ -46,14 +46,19 @@ describe("extractPlan", () => {
   });
 
   it("distingue « pas de plan » de « jamais passé en mode plan »", () => {
-    const sansPlan = extractPlan([{ type: "mode", mode: "normal" }]);
+    // `mode: normal` accompagne chaque tour sans rien dire des permissions.
+    const sansPlan = extractPlan([{ type: "mode", mode: "normal" }, { type: "permission-mode", permissionMode: "auto" }]);
     expect(sansPlan.plan).toBeUndefined();
-    expect(sansPlan.mode).toBe("normal");
+    expect(sansPlan.mode).toBe("auto");
     expect(sansPlan.planModeEntries).toBe(0);
 
-    const enPlan = extractPlan([{ type: "mode", mode: "plan" }, { type: "mode", mode: "normal" }]);
+    const enPlan = extractPlan([
+      { type: "permission-mode", permissionMode: "plan" },
+      { type: "mode", mode: "normal" },
+      { type: "permission-mode", permissionMode: "auto" },
+    ]);
     expect(enPlan.planModeEntries).toBe(1);
-    expect(enPlan.mode).toBe("normal");
+    expect(enPlan.mode).toBe("auto");
   });
 
   it("ignore un appel sans texte de plan", () => {
@@ -81,5 +86,21 @@ describe("extractPlan", () => {
 
   it("traverse un flux sans message sans lever", () => {
     expect(() => extractPlan([{ type: "assistant" }, { type: "system" }])).not.toThrow();
+  });
+});
+
+describe("extractPlan sur le format vivant", () => {
+  it("compte l'entrée en mode plan portée par le prompt, une fois par passage", () => {
+    const lookup = extractPlan([
+      { type: "permission-mode", permissionMode: "auto" },
+      { type: "user", permissionMode: "plan" },
+      { type: "attachment", attachment: { type: "plan_mode", planFilePath: "C:/x/.claude/plans/a.md" } },
+      { type: "mode", mode: "normal" },
+      { type: "user", permissionMode: "plan" },
+      { type: "user", permissionMode: "auto" },
+    ]);
+    expect(lookup.planModeEntries).toBe(1);
+    expect(lookup.mode).toBe("auto");
+    expect(lookup.planFilePath).toBe("C:/x/.claude/plans/a.md");
   });
 });

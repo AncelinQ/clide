@@ -1,6 +1,7 @@
 import { Activity, ClipboardList, FileDiff } from "lucide-react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
+import { Markdown } from "@/components/Markdown";
 import { Badge } from "@/components/ui/badge";
 import { api, formatDate } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, TokenUsage } from "@/lib/types";
@@ -188,9 +189,7 @@ export function PlanPanel({ session }: { session: ShownSession }) {
                 {plan.progress.done} sur {plan.progress.total} étapes cochées
               </p>
             )}
-            <pre className="overflow-auto rounded-md border bg-muted/40 p-3 text-[12px] leading-relaxed whitespace-pre-wrap">
-              {plan.text}
-            </pre>
+            <Markdown text={plan.text} className="rounded-md border bg-muted/20 px-3 py-2" />
           </>
         )
       }

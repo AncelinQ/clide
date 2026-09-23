@@ -446,16 +446,21 @@ Claude Code ne l'écrit qu'aux tours : un Maj+Tab n'apparaît qu'au prompt suiva
 
 ## Le plan d'une session
 
-`~/.claude/plans` n'existe pas sur cette version de Claude Code. Le plan n'est donc
-lu nulle part ailleurs que là où il est produit : l'appel à `ExitPlanMode`, dont
-l'entrée porte le texte soumis à validation. Le dernier l'emporte — une session peut
-repasser en mode plan et en proposer un autre.
+Le plan a deux sources. L'appel à `ExitPlanMode` porte le texte soumis à
+validation. En mode plan, Claude Code annonce aussi, par une pièce jointe
+`plan_mode`, le fichier de `~/.claude/plans` où il le rédige : le plus récent des
+deux l'emporte, et seul un fichier sous ce dossier est lu. Le dossier n'existe
+qu'une fois un plan écrit. Une session peut repasser en mode plan et en proposer un
+autre : le dernier décrit le travail en cours.
+
+Le plan est rendu en markdown, sans HTML brut : un texte produit par un modèle ne
+doit pas pouvoir injecter de balise dans la page.
 
 Le panneau distingue trois situations, parce qu'elles n'appellent pas la même
 réaction : un plan, une session passée en mode plan sans en soumettre, et une
-session qui n'y est jamais passée. Sur le corpus de référence, `mode` ne vaut
-`"normal"` que sur ses 5454 occurrences : le cas n'est pas rare, il est le seul
-observé.
+session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour et
+sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
+tour, ne dit rien des permissions.
 
 ## Ce que le corpus vivant impose aux tests
 

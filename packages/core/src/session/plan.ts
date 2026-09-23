@@ -18,6 +18,8 @@ export interface PlanLookup {
   mode?: string;
   /** Nombre de passages en mode plan repérés dans le transcript. */
   planModeEntries: number;
+  /** Fichier où Claude Code écrit le plan en mode plan, le dernier annoncé. */
+  planFilePath?: string;
 }
 
 interface Block {
@@ -51,9 +53,14 @@ export function planProgress(text: string): PlanProgress | undefined {
 /**
  * Retrouve le plan d'une session.
  *
- * Claude Code n'écrit plus de fichier de plan : `~/.claude/plans` n'existe pas
- * sur cette version. Le plan vit donc là où il est produit — l'appel à
- * `ExitPlanMode`, dont l'entrée porte le texte soumis à validation.
+ * Le texte soumis à validation est l'entrée de l'appel à `ExitPlanMode`. En mode
+ * plan, Claude Code annonce aussi par une pièce jointe `plan_mode` le fichier où il
+ * rédige le plan : c'est au lecteur de le lire, cette fonction ne touche pas au
+ * disque.
+ *
+ * Le mode d'un tour se lit sur son prompt (`user.permissionMode`) ; l'event
+ * `permission-mode`, écrit en fin de tour, est gardé pour les transcripts plus
+ * anciens. Un passage en mode plan est compté à l'entrée, pas à chaque tour.
  *
  * Le dernier plan l'emporte : une session peut repasser en mode plan et en
  * proposer un autre, et c'est celui-là qui décrit le travail en cours.
@@ -62,13 +69,43 @@ export function extractPlan(events: Iterable<TranscriptEvent>): PlanLookup {
   let plan: SessionPlan | undefined;
   let mode: string | undefined;
   let planModeEntries = 0;
+  let planFilePath: string | undefined;
+  let inPlan = false;
+
+  const observe = (value: string): void => {
+    mode = value;
+    if (value === "plan" && !inPlan) planModeEntries += 1;
+    inPlan = value === "plan";
+  };
 
   for (const event of events) {
-    if (event.type === "mode" || event.type === "permission-mode") {
-      const value = event["mode"] ?? event["permissionMode"];
-      if (typeof value === "string") {
-        mode = value;
-        if (value === "plan") planModeEntries += 1;
+    // `mode` vaut `normal` à chaque tour, sans rapport avec les permissions : il
+    // ne compte que s'il annonce le mode plan.
+    if (event.type === "mode") {
+      if (event["mode"] === "plan") observe("plan");
+      continue;
+    }
+
+    if (event.type === "permission-mode") {
+      const value = event["permissionMode"];
+      if (typeof value === "string") observe(value);
+      continue;
+    }
+
+    if (event.type === "user") {
+      const value = event["permissionMode"];
+      if (typeof value === "string") observe(value);
+      continue;
+    }
+
+    if (event.type === "attachment") {
+      const attachment = event["attachment"];
+      if (attachment && typeof attachment === "object") {
+        const record = attachment as Record<string, unknown>;
+        if (record["type"] === "plan_mode") {
+          observe("plan");
+          if (typeof record["planFilePath"] === "string") planFilePath = record["planFilePath"];
+        }
       }
       continue;
     }
@@ -84,5 +121,10 @@ export function extractPlan(events: Iterable<TranscriptEvent>): PlanLookup {
     }
   }
 
-  return { ...(plan ? { plan } : {}), ...(mode ? { mode } : {}), planModeEntries };
+  return {
+    ...(plan ? { plan } : {}),
+    ...(mode ? { mode } : {}),
+    planModeEntries,
+    ...(planFilePath ? { planFilePath } : {}),
+  };
 }
