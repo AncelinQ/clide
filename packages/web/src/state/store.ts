@@ -53,6 +53,8 @@ export interface State {
   sessionCollapsed: boolean;
   /** Entrée d'activité à montrer, ouverte depuis la recherche. */
   activityFocus: { sessionId: string; index: number } | null;
+  /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
+  activityAgents: { sessionId: string; path: { agentId: string; label: string }[] } | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -127,6 +129,7 @@ let state: State = {
   showRight: true,
   sessionCollapsed: false,
   activityFocus: null,
+  activityAgents: null,
   paletteOpen: false,
   addingProject: false,
   preferencesOpen: false,

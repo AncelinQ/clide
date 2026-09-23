@@ -140,7 +140,7 @@ export interface FileDiff {
 export type ActivityEntry =
   | { kind: "prompt" | "command" | "note"; at?: string; text: string }
   | { kind: "answer"; at?: string; text: string; model?: string }
-  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean };
+  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean; agentId?: string };
 
 export interface ProcessNode {
   pid: number;

@@ -146,6 +146,15 @@ async function removalPlan(id: string, { index, live }: ApiContext) {
   return { session, artifacts, ...(blocked ? { blocked } : {}) };
 }
 
+/** Transcript d'un sous-agent, retrouvé par sa session et son identifiant. */
+async function findSubagent(sessionId: string, agentId: string): Promise<TranscriptRef> {
+  const ref = (await discoverTranscripts()).find(
+    (candidate) => candidate.kind === "subagent" && candidate.sessionId === sessionId && candidate.agentId === agentId,
+  );
+  if (!ref) throw new Error(`sous-agent ${agentId} introuvable`);
+  return ref;
+}
+
 async function findSession(id: string): Promise<TranscriptRef> {
   const ref = (await discoverTranscripts()).find(
     (candidate) => candidate.sessionId === id && candidate.kind === "session",
@@ -242,7 +251,9 @@ export const routes: Record<string, Handler> = {
 
   "/api/session/activity": async (params) => {
     const id = requireParam(params, "id");
-    const ref = await findSession(id);
+    // `agent` descend dans le transcript d'un sous-agent de la session.
+    const agent = params.get("agent");
+    const ref = agent ? await findSubagent(id, agent) : await findSession(id);
     const { events } = await TranscriptReader.fromRef(ref).poll();
     const around = Number(params.get("around"));
     // Une entrée trouvée par la recherche s'ouvre au milieu de son voisinage,

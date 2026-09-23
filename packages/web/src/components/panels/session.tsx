@@ -1,4 +1,4 @@
-import { Activity, ClipboardList, FileDiff } from "lucide-react";
+import { Activity, ChevronRight, ClipboardList, CornerDownRight, FileDiff } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
@@ -115,17 +115,62 @@ function Consumption({ session }: { session: ShownSession }) {
   );
 }
 
+/** Chemin des sous-agents ouverts, de la session vers le plus profond. */
+function AgentTrail({ sessionId, path }: { sessionId: string; path: { agentId: string; label: string }[] }) {
+  const goTo = (depth: number) =>
+    setState({ activityAgents: depth === 0 ? null : { sessionId, path: path.slice(0, depth) } });
+  return (
+    <nav className="flex flex-wrap items-center gap-1 py-1 text-[11px] text-muted-foreground">
+      <button type="button" className="text-primary underline-offset-2 hover:underline" onClick={() => goTo(0)}>
+        {t("session")}
+      </button>
+      {path.map((step, depth) => (
+        <span key={step.agentId} className="flex min-w-0 items-center gap-1">
+          <ChevronRight className="size-3 shrink-0" />
+          {depth === path.length - 1 ? (
+            <span className="truncate text-foreground" title={step.label}>
+              {step.label}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="truncate text-primary underline-offset-2 hover:underline"
+              title={step.label}
+              onClick={() => goTo(depth + 1)}
+            >
+              {step.label}
+            </button>
+          )}
+        </span>
+      ))}
+      <button
+        type="button"
+        className="ml-auto text-primary underline-offset-2 hover:underline"
+        onClick={() => goTo(path.length - 1)}
+      >
+        {t("remonter")}
+      </button>
+    </nav>
+  );
+}
+
 export function ActivityPanel({ session }: { session: ShownSession }) {
+  // Les sous-agents ouverts ne valent que pour leur session : en changer revient en haut.
+  const path = useStore((state) =>
+    state.activityAgents?.sessionId === session.sessionId ? state.activityAgents.path : undefined,
+  );
+  const agent = path?.at(-1)?.agentId;
   const focus = useStore((state) =>
-    state.activityFocus?.sessionId === session.sessionId ? state.activityFocus.index : undefined,
+    !agent && state.activityFocus?.sessionId === session.sessionId ? state.activityFocus.index : undefined,
   );
   const state = useAsync(
     () =>
       api<{ entries: ActivityEntry[]; total: number; offset: number }>("/api/session/activity", {
         id: session.sessionId,
+        ...(agent ? { agent } : {}),
         ...(focus !== undefined ? { around: focus } : { limit: 300 }),
       }),
-    [session.sessionId, focus],
+    [session.sessionId, agent, focus],
     // Une entrée ouverte depuis la recherche reste en place : la session qui
     // s'écrit ne la fait pas glisser.
     focus === undefined ? session.refresh : undefined,
@@ -142,7 +187,7 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
           <Empty icon={Activity}>{t("Aucune activité.")}</Empty>
         ) : (
           <>
-            <Consumption session={session} />
+            {path ? <AgentTrail sessionId={session.sessionId} path={path} /> : <Consumption session={session} />}
             {focus !== undefined ? (
               <p className="flex items-center gap-2 py-1 text-[11px] text-muted-foreground">
                 {t("Entrées {from} à {to} sur {total}, autour du résultat.", {
@@ -188,6 +233,24 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                   >
                     {entry.kind === "tool" ? entry.summary : entry.text}
                   </span>
+                  {entry.kind === "tool" && entry.agentId && (
+                    <button
+                      type="button"
+                      className="flex shrink-0 items-start gap-0.5 text-[11px] text-primary underline-offset-2 hover:underline"
+                      title={t("Voir l'activité de ce sous-agent")}
+                      onClick={() =>
+                        setState({
+                          activityAgents: {
+                            sessionId: session.sessionId,
+                            path: [...(path ?? []), { agentId: entry.agentId!, label: entry.summary }],
+                          },
+                        })
+                      }
+                    >
+                      <CornerDownRight className="mt-0.5 size-3" />
+                      {t("ouvrir")}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

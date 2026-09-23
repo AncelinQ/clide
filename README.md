@@ -628,6 +628,18 @@ Un résultat ouvre sa session sur l'entrée trouvée : l'activité et la recherc
 produisent les mêmes entrées dans le même ordre, et la position d'un résultat
 désigne la même ligne.
 
+## Sous-agents
+
+Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un
+transcript porte « ouvrir ». Son activité remplace alors celle de la session, sous
+un fil « session › description du sous-agent » ; « remonter » revient d'un cran, et
+un sous-agent lancé par un sous-agent s'ouvre de la même façon.
+
+Le lien vient de `toolUseResult.agentId`, écrit sur le résultat de l'appel, et le
+transcript se retrouve sous `<session>/subagents/agent-<agentId>.jsonl`. Le client
+ne donne que la session et l'identifiant : le serveur cherche le transcript parmi
+ceux qu'il a découverts, jamais par un chemin reçu.
+
 ## Chantiers
 
 Une journée de travail va d'un ticket à une branche, un worktree, des sessions et une

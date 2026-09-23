@@ -109,4 +109,19 @@ describe("buildActivity", () => {
       buildActivity([{ type: "assistant" }, { type: "user", message: {} }, { type: "system" }]),
     ).not.toThrow();
   });
+
+  it("rattache à l'appel d'un sous-agent l'identifiant de son transcript", () => {
+    const { entries } = buildActivity([
+      {
+        type: "assistant",
+        message: { content: [{ type: "tool_use", id: "t1", name: "Agent", input: { description: "Explorer le dépôt" } }] },
+      },
+      {
+        type: "user",
+        toolUseResult: { isAsync: true, agentId: "a5214d858afa51b8b" },
+        message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "lancé" }] },
+      },
+    ]);
+    expect(entries[0]).toMatchObject({ kind: "tool", name: "Agent", agentId: "a5214d858afa51b8b" });
+  });
 });

@@ -4,7 +4,15 @@ export type ActivityEntry =
   | { kind: "prompt"; at?: string; text: string }
   | { kind: "command"; at?: string; text: string }
   | { kind: "answer"; at?: string; text: string; model?: string }
-  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean }
+  | {
+      kind: "tool";
+      at?: string;
+      name: string;
+      summary: string;
+      failed?: boolean;
+      /** Sous-agent lancé par cet appel, dont le transcript porte le détail. */
+      agentId?: string;
+    }
   | { kind: "note"; at?: string; text: string };
 
 export interface ActivityFeed {
@@ -127,10 +135,18 @@ export function buildActivity(
     const at = typeof event.timestamp === "string" ? event.timestamp : undefined;
 
     if (event.type === "user") {
+      // La réponse d'un appel à un sous-agent porte son identifiant, qui nomme son
+      // transcript : c'est le seul lien entre la session et le détail du sous-agent.
+      const result = event["toolUseResult"];
+      const agentId =
+        result && typeof result === "object" && typeof (result as Record<string, unknown>)["agentId"] === "string"
+          ? ((result as Record<string, unknown>)["agentId"] as string)
+          : undefined;
       for (const block of blocks(event)) {
         if (block.type === "tool_result") {
           const tool = block.tool_use_id ? toolByUseId.get(block.tool_use_id) : undefined;
           if (tool && block.is_error) tool.failed = true;
+          if (tool && agentId) tool.agentId = agentId;
           continue;
         }
         if (block.type !== "text" || !block.text) continue;

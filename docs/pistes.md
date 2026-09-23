@@ -208,6 +208,10 @@ sous-agent et remonter.
 
 **Coût faible** : la lecture est faite, il manque la navigation.
 
+**État.** Fait : un appel `Agent` de l'activité porte « ouvrir », qui montre
+l'activité du sous-agent sous un fil « session › description » ; « remonter »
+revient d'un cran, jusqu'à l'entrée d'où l'on était parti.
+
 ---
 
 ## Piste 7 — Annuler ce que Claude a fait
