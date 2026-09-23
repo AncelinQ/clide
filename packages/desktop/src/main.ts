@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 import { startServer, type RunningServer } from "@claude-ide/server";
-import { BrowserWindow, app, ipcMain, shell } from "electron";
+import { BrowserWindow, app, ipcMain, nativeImage, shell } from "electron";
 
 /**
  * Ce module est empaqueté en CommonJS par esbuild : `__dirname` existe, pas
@@ -63,15 +63,22 @@ async function createWindow(): Promise<void> {
 }
 
 /**
- * Signale qu'un onglet attend, quand la fenêtre n'est pas au premier plan.
+ * Signale au système les onglets qui attendent.
  *
- * `flashFrame` fait clignoter le bouton de la barre des tâches : c'est le seul
- * signal natif qui ne demande pas d'icône à dessiner, et le reprendre en main
- * l'éteint. Une fenêtre déjà regardée n'a rien à réclamer.
+ * Le compteur incrusté sur le bouton de la barre des tâches reste tant qu'un
+ * onglet attend, fenêtre au premier plan ou non : il se lit d'un coup d'œil,
+ * comme une pastille. Son image est dessinée par la page, seule à disposer d'un
+ * canevas. Le clignotement, lui, ne sert qu'à une fenêtre en arrière-plan, et la
+ * reprendre en main l'éteint.
  */
-ipcMain.on("claude-ide:attention", (_event, waiting: unknown) => {
-  if (!window_ || window_.isFocused()) return;
-  window_.flashFrame(typeof waiting === "number" && waiting > 0);
+ipcMain.on("claude-ide:attention", (_event, waiting: unknown, badge: unknown) => {
+  if (!window_) return;
+  const count = typeof waiting === "number" ? waiting : 0;
+  if (process.platform === "win32") {
+    const image = count > 0 && typeof badge === "string" ? nativeImage.createFromDataURL(badge) : null;
+    window_.setOverlayIcon(image, count > 0 ? `${count} onglet(s) en attente` : "");
+  }
+  if (!window_.isFocused()) window_.flashFrame(count > 0);
 });
 
 ipcMain.on("claude-ide:focus", () => {

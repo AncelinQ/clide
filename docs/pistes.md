@@ -209,7 +209,8 @@ détection du gestionnaire par le lockfile, espaces de travail, `.claude/command
 les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP et les connecteurs claude.ai, le routage des notifications,
-leur affichage système et leur effacement à la reprise, l'intégration shell, les worktrees.
+leur affichage système, leur effacement à la reprise et le compteur de la barre
+des tâches, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -280,12 +281,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Importer un `.md` ou un dossier | reprendre un skill venu d'ailleurs |
 | Glisser-déposer | même chose, au geste |
 | Copier entre projet et perso | promouvoir un skill de projet en skill personnel, et l'inverse |
-
-### Notifications
-
-| Manque | Détail |
-|---|---|
-| Incrustation sur l'icône | l'application fait clignoter le bouton de la barre des tâches (`flashFrame`) ; Windows sait aussi y poser un compteur (`setOverlayIcon`) |
 
 ### Application
 

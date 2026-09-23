@@ -25,9 +25,12 @@ contextBridge.exposeInMainWorld("claudeIde", {
     }
   },
 
-  /** Signale au système qu'un onglet attend une réponse. */
-  setAttention(waiting: number): void {
-    ipcRenderer.send("claude-ide:attention", waiting);
+  /**
+   * Signale au système combien d'onglets attendent une réponse. `badge` est
+   * l'image du compteur, en URL `data:` PNG.
+   */
+  setAttention(waiting: number, badge?: string): void {
+    ipcRenderer.send("claude-ide:attention", waiting, badge);
   },
 
   /** Ramène la fenêtre au premier plan, même réduite. */

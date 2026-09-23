@@ -58,3 +58,29 @@ export function dismissSystem(terminalId: string): void {
   shownFor.get(terminalId)?.close();
   shownFor.delete(terminalId);
 }
+
+/**
+ * Dessine le compteur incrusté sur l'icône de la barre des tâches.
+ *
+ * Rouge fixe plutôt qu'une couleur du thème : il se pose sur la barre des tâches,
+ * dont le fond ne suit pas l'application. Au-delà de 9, le chiffre ne tiendrait
+ * pas dans seize pixels.
+ */
+export function badgeImage(count: number): string {
+  const size = 32;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+  context.fillStyle = "#d93a2b";
+  context.beginPath();
+  context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "#ffffff";
+  context.font = "bold 20px 'Segoe UI', sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(count > 9 ? "9+" : String(count), size / 2, size / 2 + 1);
+  return canvas.toDataURL("image/png");
+}

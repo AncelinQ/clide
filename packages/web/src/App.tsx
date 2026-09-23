@@ -6,17 +6,19 @@ import { TitleBar } from "@/components/TitleBar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "cn";
 import { useStore } from "@/state/store";
+import { badgeImage } from "@/state/notify";
 import { resizeActive } from "@/state/terminals";
 
 export function App() {
   const { showLeft, showRight, attention } = useStore((state) => state);
 
   // Le titre de l'onglet est le seul endroit visible quand la fenêtre est en
-  // arrière-plan ; sous Electron, le bouton de la barre des tâches clignote aussi.
+  // arrière-plan ; sous Electron, le bouton de la barre des tâches clignote aussi
+  // et porte le compteur.
   useEffect(() => {
     const waiting = Object.keys(attention).length;
     document.title = waiting > 0 ? `(${waiting}) claude-ide` : "claude-ide";
-    window.claudeIde?.setAttention(waiting);
+    window.claudeIde?.setAttention(waiting, waiting > 0 ? badgeImage(waiting) : undefined);
   }, [attention]);
 
   useEffect(() => {

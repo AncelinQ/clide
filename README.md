@@ -373,6 +373,11 @@ chaque appel d'outil. Elle ne voit donc pas une session qui repart sans prompt.
 Une installation antérieure à ce hook apparaît comme partielle : il suffit de
 réinstaller.
 
+Sous Windows, le bouton de la barre des tâches porte le nombre d'onglets en
+attente, fenêtre au premier plan ou non, et clignote tant que la fenêtre est en
+arrière-plan. L'image du compteur est dessinée par la page : le processus
+principal n'a pas de canevas.
+
 ## Le plan d'une session
 
 `~/.claude/plans` n'existe pas sur cette version de Claude Code. Le plan n'est donc
