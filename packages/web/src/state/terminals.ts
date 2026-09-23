@@ -4,7 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { dismissSystem, notifySystem } from "@/state/notify";
-import { getState, setState } from "@/state/store";
+import { getState, setState, type TerminalFont } from "@/state/store";
 
 /**
  * Les instances xterm vivent hors de React.
@@ -193,7 +193,7 @@ export function typeInto(id: string, data: string): void {
   send({ t: "input", id, data });
 }
 
-export function resize(id: string): void {
+export function resize(id: string, options: { focus?: boolean } = {}): void {
   const entry = attached.get(id);
   if (!entry) return;
   try {
@@ -203,7 +203,7 @@ export function resize(id: string): void {
     return;
   }
   send({ t: "resize", id, cols: entry.term.cols, rows: entry.term.rows });
-  entry.term.focus();
+  if (options.focus !== false) entry.term.focus();
 }
 
 export function resizeActive(): void {
@@ -222,9 +222,10 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
     return;
   }
 
+  const { terminalFont } = getState();
   const term = new Terminal({
-    fontFamily: 'Consolas, "Cascadia Mono", monospace',
-    fontSize: 13,
+    fontFamily: fontStack(terminalFont.family),
+    fontSize: terminalFont.size,
     cursorBlink: true,
     theme,
   });
@@ -234,6 +235,30 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   term.onData((data) => send({ t: "input", id: info.id, data }));
   attached.set(info.id, { term, fit, host });
   requestAnimationFrame(() => resize(info.id));
+}
+
+const DEFAULT_STACK = 'Consolas, "Cascadia Mono", monospace';
+
+/** Pile de polices xterm : la famille choisie, puis la pile par défaut en secours. */
+export function fontStack(family: string): string {
+  return family ? `"${family.replace(/"/g, "")}", ${DEFAULT_STACK}` : DEFAULT_STACK;
+}
+
+/**
+ * Applique la police à tous les terminaux ouverts.
+ *
+ * Seul l'onglet visible est réajusté : un hôte masqué mesure zéro, et chaque
+ * onglet se réajuste de toute façon quand il reprend le premier plan.
+ */
+export function applyTerminalFont(font: TerminalFont): void {
+  for (const entry of attached.values()) {
+    entry.term.options.fontFamily = fontStack(font.family);
+    entry.term.options.fontSize = font.size;
+  }
+  // Sans reprendre le focus : le réglage se fait depuis un champ qu'il ne faut
+  // pas quitter à chaque chiffre tapé.
+  const { activeTerminalId } = getState();
+  if (activeTerminalId) resize(activeTerminalId, { focus: false });
 }
 
 export function applyTerminalTheme(theme: Record<string, string>): void {

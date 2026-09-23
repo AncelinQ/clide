@@ -1,6 +1,7 @@
-import { Contrast, Moon, PanelLeft, PanelRight, Plus, SquareDashed, Sun, X } from "lucide-react";
+import { Contrast, Moon, PanelLeft, PanelRight, Plus, Settings2, SquareDashed, Sun, X } from "lucide-react";
 import { useState } from "react";
 
+import { PreferencesDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export function TitleBar() {
     (state) => state,
   );
   const [adding, setAdding] = useState(false);
+  const [preferences, setPreferences] = useState(false);
   const [draft, setDraft] = useState("");
 
   const ThemeIcon = THEME_ICON[theme];
@@ -120,6 +122,16 @@ export function TitleBar() {
         </TooltipTrigger>
         <TooltipContent>{THEME_LABEL[theme]}</TooltipContent>
       </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPreferences(true)}>
+            <Settings2 />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Préférences</TooltipContent>
+      </Tooltip>
+      <PreferencesDialog open={preferences} onOpenChange={setPreferences} />
 
       <Tooltip>
         <TooltipTrigger asChild>

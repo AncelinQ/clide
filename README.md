@@ -111,6 +111,17 @@ palette lui est repassée à chaque changement. Sans cela, le jaune et le cyan
 réglés pour un fond noir deviennent illisibles sur blanc — c'est tout le terminal
 qui suit l'apparence, pas seulement son fond.
 
+
+## Préférences
+
+Le bouton de réglage de la barre de titre ouvre les préférences propres à
+l'application, rangées avec le thème dans sa configuration — jamais dans
+`settings.json`, qui appartient à Claude Code. Elles portent pour l'instant la
+police du terminal et sa taille, appliquées aussitôt aux terminaux ouverts.
+
+Une page ne peut pas lister les polices installées : la liste est faite de
+polices à chasse fixe courantes, dont on ne garde que celles qui changent la
+largeur d'un texte par rapport à deux polices proportionnelles.
 ## Deux façons de l'utiliser
 
 **En application de bureau.** `pnpm package` produit un installateur NSIS ; le

@@ -11,6 +11,14 @@ export interface Project {
 
 export type Theme = "auto" | "light" | "dark";
 
+export interface TerminalFont {
+  /** Famille choisie ; vide pour la pile par défaut. */
+  family: string;
+  size: number;
+}
+
+export const DEFAULT_TERMINAL_FONT: TerminalFont = { family: "", size: 13 };
+
 export interface State {
   projects: Project[];
   activeRoot: string | null;
@@ -25,28 +33,31 @@ export interface State {
   notifications: ClaudeNotification[];
   connected: boolean;
   theme: Theme;
+  terminalFont: TerminalFont;
   showLeft: boolean;
   showRight: boolean;
 }
 
 const SAVED = "claude-ide.state";
 
-function restored(): Pick<State, "projects" | "activeRoot" | "theme"> {
+function restored(): Pick<State, "projects" | "activeRoot" | "theme" | "terminalFont"> {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
       roots?: string[];
       active?: string;
       theme?: Theme;
+      terminalFont?: Partial<TerminalFont>;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
       projects,
       activeRoot: saved.active ?? projects[0]?.root ?? null,
       theme: saved.theme ?? "auto",
+      terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto" };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT };
   }
 }
 
@@ -83,6 +94,7 @@ function persist(): void {
       roots: state.projects.map((project) => project.root),
       active: state.activeRoot,
       theme: state.theme,
+      terminalFont: state.terminalFont,
     }),
   );
 }

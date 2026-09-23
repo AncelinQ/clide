@@ -240,7 +240,7 @@ liés au complet — règles `deny`, rôles et fichier de prompt —, l'état de
 serveurs MCP et les connecteurs claude.ai, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
 des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
-survol, l'intégration shell, les worktrees.
+survol, la police du terminal, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -315,7 +315,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | Localisation FR / EN | l'interface est en français seulement. L'original garde ses chaînes françaises en source et une table anglaise à côté |
-| Police du terminal | figée dans le code (`Consolas`), là où l'original en fait une préférence |
 
 ---
 
