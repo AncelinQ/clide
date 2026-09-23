@@ -147,3 +147,5 @@ export {
 } from "./links/store.js";
 
 export { sessionArtifacts, type SessionArtifact } from "./session/artifacts.js";
+export { TicketTracker, ticketOfBranch, type TicketTrace } from "./work/tickets.js";
+export { buildChantiers, type Chantier, type ChantierRelation, type ChantierSession } from "./work/chantiers.js";

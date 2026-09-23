@@ -595,6 +595,28 @@ session qui n'y est jamais passée. Le mode se lit sur le prompt de chaque tour 
 sur la pièce jointe `plan_mode` ; l'event `mode`, qui vaut `"normal"` à chaque
 tour, ne dit rien des permissions.
 
+## Chantiers
+
+Une journée de travail va d'un ticket à une branche, un worktree, des sessions et une
+MR. L'onglet Chantiers les regroupe, par ticket, et par branche quand elle n'en
+porte pas — le tronc (`main`, `develop`, `HEAD`) n'est le chantier de personne. Tout
+vient des transcripts, sans accès à Linear ni à GitLab :
+
+- le ticket d'une session se lit dans le **nom de sa branche** (`ancelin/hn-12528-…`
+  désigne HN-12528 ; un nombre suivi d'un autre groupe de chiffres est une date, pas
+  un ticket) et dans les **appels de Claude aux outils Linear**, qui nomment
+  l'identifiant exact ;
+- son titre, son lien et son **dernier état connu** viennent de la réponse de
+  `get_issue` ou de l'état fixé par `save_issue` — le plus récent, daté, et dit comme
+  tel : l'état du moment, seul Linear le connaît ;
+- une session est **travaillée** quand sa branche porte le ticket, **consultée**
+  quand Claude n'y a que lu ou modifié le ticket. Seules les MR des sessions
+  travaillées sont rattachées : une session qui consulte un ticket peut en avoir
+  ouvert d'autres, sans rapport.
+
+Beaucoup de tickets ne sont que consultés — lus en préparant d'autres chantiers : la
+liste montre d'abord ceux qui ont une branche ou une MR.
+
 ## La file d'attente
 
 Un prompt tapé pendant que Claude travaille part dans sa file. Elle se reconstitue en

@@ -10,6 +10,7 @@ import {
   type PrLink,
   type TranscriptEvent,
 } from "../transcript/events.js";
+import { TicketTracker, type TicketTrace } from "../work/tickets.js";
 
 /** Fichier touché par la session, avec ses états successifs. */
 export interface FileTrack {
@@ -77,6 +78,8 @@ export interface SessionProjection {
    * tout. Sur le corpus de référence, ce rejeu ne rencontre aucune incohérence.
    */
   queue: QueuedPrompt[];
+  /** Tickets que Claude a lus ou modifiés par les outils Linear, par identifiant. */
+  tickets: Record<string, TicketTrace>;
   startedAt?: string;
   lastActivityAt?: string;
   cost?: CostState;
@@ -112,7 +115,8 @@ export class SessionProjector {
   #lastUsage: { context: number; model?: string } | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
-  #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens" | "queue">;
+  #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
+  readonly #tickets = new TicketTracker();
   #queue: QueuedPrompt[] = [];
 
   constructor(sessionId: string) {
@@ -135,6 +139,8 @@ export class SessionProjector {
       s.startedAt ??= timestamp;
       s.lastActivityAt = timestamp;
     }
+
+    this.#tickets.apply(event);
 
     switch (event.type) {
       case "user": {
@@ -384,6 +390,7 @@ export class SessionProjector {
       ...(this.#lastUsage ? { tokens: this.#tokens() } : {}),
       prLinks: [...this.#prLinks],
       queue: [...this.#queue],
+      tickets: this.#tickets.snapshot(),
       files: [...this.#files.values()],
       unknownTypes: Object.fromEntries(this.#unknown),
     };

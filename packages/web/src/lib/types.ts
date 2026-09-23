@@ -40,6 +40,8 @@ export interface SessionSummary {
   fileCount: number;
   cost?: { totalCostUSD?: number; totalLinesAdded?: number; totalLinesRemoved?: number };
   price?: SessionCost;
+  /** Ticket porté par la branche de la session. */
+  ticket?: string;
   prLinks: { prUrl?: string; prNumber?: number }[];
 }
 

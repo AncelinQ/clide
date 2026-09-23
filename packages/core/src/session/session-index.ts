@@ -5,10 +5,11 @@ import { appDataDir, claudeHome } from "../paths.js";
 import { discoverTranscripts, type TranscriptKind, type TranscriptRef } from "../transcript/discover.js";
 import { TranscriptReader } from "../transcript/reader.js";
 import type { CostState, PrLink } from "../transcript/events.js";
+import type { TicketTrace } from "../work/tickets.js";
 import type { SessionProjection, TokenCounts } from "./projection.js";
 
 /** Version du format de l'index. Une valeur différente sur disque le fait repartir de zéro. */
-const INDEX_VERSION = 2;
+const INDEX_VERSION = 3;
 
 /** Résumé d'une session, suffisant pour peupler une liste sans relire son transcript. */
 export interface IndexedSession {
@@ -23,6 +24,8 @@ export interface IndexedSession {
   title?: string;
   lastPrompt?: string;
   effectiveCwd?: string;
+  /** Worktree où la session a travaillé, s'il y en a un. */
+  worktreePath?: string;
   gitBranch?: string;
   version?: string;
   startedAt?: string;
@@ -35,6 +38,8 @@ export interface IndexedSession {
   usage?: Record<string, TokenCounts>;
   /** Tokens écrits après le dernier `cost-state`, que son montant ne couvre pas. */
   usageAfterCost?: Record<string, TokenCounts>;
+  /** Tickets lus ou modifiés par Claude pendant la session. */
+  tickets?: Record<string, TicketTrace>;
   continuedInSessionId?: string;
   prLinks: PrLink[];
   unknownTypes: Record<string, number>;
@@ -70,6 +75,7 @@ function summarize(
     ...(projection.title ? { title: projection.title } : {}),
     ...(projection.lastPrompt ? { lastPrompt: projection.lastPrompt } : {}),
     ...(effectiveCwd ? { effectiveCwd } : {}),
+    ...(projection.worktreePath ? { worktreePath: projection.worktreePath } : {}),
     ...(projection.gitBranch ? { gitBranch: projection.gitBranch } : {}),
     ...(projection.version ? { version: projection.version } : {}),
     ...(projection.startedAt ? { startedAt: projection.startedAt } : {}),
@@ -80,6 +86,7 @@ function summarize(
     ...(projection.cost ? { cost: projection.cost } : {}),
     ...(projection.tokens ? { usage: projection.tokens.byModel } : {}),
     ...(projection.tokens?.afterCost ? { usageAfterCost: projection.tokens.afterCost } : {}),
+    ...(Object.keys(projection.tickets).length > 0 ? { tickets: projection.tickets } : {}),
     ...(projection.continuedInSessionId
       ? { continuedInSessionId: projection.continuedInSessionId }
       : {}),

@@ -1,8 +1,9 @@
-import { Bell, Coins, Cpu, GitBranch, History, Link2, Package, Plug, RefreshCw, Settings, Sparkles } from "lucide-react";
+import { Bell, Coins, Cpu, GitBranch, History, Layers, Link2, Package, Plug, RefreshCw, Settings, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
+import { ChantiersPanel } from "@/components/panels/chantiers";
 import { CostsPanel } from "@/components/panels/costs";
 import {
   LinksPanel,
@@ -113,6 +114,7 @@ export function ProjectColumn() {
 const TABS = [
   { id: "processes", icon: Cpu, label: "Process" },
   { id: "history", icon: History, label: "History" },
+  { id: "chantiers", icon: Layers, label: "Chantiers" },
   { id: "skills", icon: Sparkles, label: "Skills" },
   { id: "mcp", icon: Plug, label: "MCP" },
   { id: "costs", icon: Coins, label: "Coûts" },
@@ -179,7 +181,7 @@ export function GlobalColumn() {
   const globalTab = useStore((state) => state.globalTab);
   const [filter, setFilter] = useState("");
   const [nonce, setNonce] = useState(0);
-  const searchable = globalTab === "history" || globalTab === "skills";
+  const searchable = globalTab === "history" || globalTab === "skills" || globalTab === "chantiers";
 
   const panel = () => {
     switch (globalTab) {
@@ -195,6 +197,8 @@ export function GlobalColumn() {
         return <SettingsPanel key={nonce} />;
       case "costs":
         return <CostsPanel key={nonce} />;
+      case "chantiers":
+        return <ChantiersPanel key={nonce} filter={filter} />;
       default:
         return <NotificationsPanel key={nonce} />;
     }

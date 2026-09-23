@@ -43,14 +43,11 @@ ce qui reste dans un panneau qu'on ouvre.
 
 ### 2. L'application parle-t-elle à Linear et GitLab, ou seulement aux transcripts ?
 
-Les transcripts savent déjà beaucoup : numéro de MR, dépôt, URL, branche,
-worktree. Ils ne savent pas si la MR est passée, ni où en est le ticket.
-
-Aller le demander veut dire des jetons d'accès, donc **un stockage de secrets —
-ce que l'application n'a jamais fait, et pas par hasard**. Elle ne lit aujourd'hui
-que des fichiers déjà présents sur le poste, ce qui la rend inoffensive en cas de
-fuite. Franchir ce pas change sa nature ; s'en tenir à la lecture limite ce que la
-piste 3 peut promettre.
+**Tranchée : aux transcripts seuls.** Pas de jeton, pas de secret stocké. Les
+transcripts en savent plus que prévu : les appels de Claude aux outils Linear portent
+l'identifiant des tickets, leur titre, leur lien, et leur état — lu par `get_issue`,
+ou fixé par `save_issue`. L'application montre donc le dernier état connu, daté,
+sans l'état du moment, que seul Linear connaît.
 
 ### 3. La file d'attente est-elle reconstituable, ou seulement observable ?
 
@@ -142,6 +139,11 @@ et le MCP Linear côté Claude Code.
 reste muette sur les états.
 
 **Critère.** Depuis un ticket, je vois tout ce qui a été fait pour lui.
+
+**État.** Fait, depuis les transcripts seuls : un onglet Chantiers regroupe, par
+ticket et par branche sans ticket, les branches, worktrees, MR et sessions, avec le
+dernier état connu du ticket et le coût des sessions travaillées. Le ticket d'une
+session s'affiche aussi dans History.
 
 ---
 

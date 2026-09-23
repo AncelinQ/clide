@@ -74,7 +74,16 @@ export function HistoryPanel({ filter }: { filter: string }) {
                     selected={selectedSession?.sessionId === session.sessionId}
                     onClick={() => setState({ selectedSession: session, followLive: false })}
                     title={session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)}
-                    badges={session.prLinks.length > 0 && <Badge variant="outline">MR</Badge>}
+                    badges={
+                      <>
+                        {session.ticket && (
+                          <Badge variant="secondary" className="font-mono">
+                            {session.ticket}
+                          </Badge>
+                        )}
+                        {session.prLinks.length > 0 && <Badge variant="outline">MR</Badge>}
+                      </>
+                    }
                     sub={[
                       formatDate(session.lastActivityAt),
                       shortName(session.effectiveCwd ?? ""),

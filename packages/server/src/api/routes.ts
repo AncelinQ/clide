@@ -15,6 +15,8 @@ import {
   extractPlan,
   listDirectory,
   normalizePath,
+  buildChantiers,
+  ticketOfBranch,
   sessionArtifacts,
   safeServerName,
   redactServer,
@@ -151,7 +153,40 @@ export const routes: Record<string, Handler> = {
     return {
       sessions: index
         .list(projectDir ? { projectDir } : {})
-        .map((session) => ({ ...session, price: costOfSession(session, index, calibration) })),
+        .map((session) => {
+          const ticket = ticketOfBranch(session.gitBranch);
+          return { ...session, price: costOfSession(session, index, calibration), ...(ticket ? { ticket } : {}) };
+        }),
+    };
+  },
+
+  /**
+   * Chantiers : pour chaque ticket, et chaque branche qui n'en porte pas, les
+   * branches, worktrees, MR et sessions qui s'y rattachent, le dernier état connu
+   * du ticket et ce qu'ont coûté ses sessions travaillées.
+   */
+  "/api/chantiers": async (_params, { index }) => {
+    await index.refresh();
+    await index.save();
+    const calibration = calibrationOf(index);
+    const sessions = index.list({ kind: "session" });
+    const byId = new Map(sessions.map((session) => [session.sessionId, session]));
+    return {
+      chantiers: buildChantiers(sessions).map((chantier) => {
+        let usd = 0;
+        let partial = false;
+        for (const entry of chantier.sessions) {
+          if (entry.relation !== "travaillée") continue;
+          const session = byId.get(entry.sessionId);
+          const price = session ? costOfSession(session, index, calibration) : undefined;
+          if (!price || price.kind === "unknown") partial = true;
+          else {
+            usd += price.usd;
+            if (price.kind === "atLeast") partial = true;
+          }
+        }
+        return { ...chantier, cost: { usd, partial } };
+      }),
     };
   },
 
