@@ -124,6 +124,9 @@ export function DangerButton({ label, onConfirm }: { label: string; onConfirm: (
       variant="ghost"
       size="sm"
       className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+      // Signale au conteneur que le bouton attend une confirmation ou montre une
+      // erreur : un bouton révélé au survol doit rester visible dans ces deux cas.
+      data-armed={armed || error ? "" : undefined}
       onClick={async () => {
         if (!armed) {
           setArmed(true);

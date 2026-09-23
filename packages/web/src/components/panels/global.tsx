@@ -315,7 +315,7 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
     <ul className={root ? "m-0 list-none p-0" : "m-0 list-none border-l pl-3"}>
       {nodes.map((node) => (
         <li key={node.pid} className="py-1">
-          <div className="flex flex-wrap items-baseline gap-1.5">
+          <div className="group/process flex flex-wrap items-baseline gap-1.5">
             <Badge variant={node.link.kind === "owned" ? "default" : "outline"}>
               {node.link.kind === "owned"
                 ? "ce terminal"
@@ -327,13 +327,17 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
               {node.name} · {node.pid}
             </span>
             {node.link.kind !== "orphan" && (
-              <DangerButton
-                label="arrêter"
-                onConfirm={async () => {
-                  await api("/api/processes/stop", { pid: node.pid }, { method: "POST" });
-                  reload();
-                }}
-              />
+              // Révélé au survol de sa ligne : un bouton d'arrêt sur chaque
+              // processus en permanence noie l'arbre.
+              <span className="opacity-0 transition-opacity group-hover/process:opacity-100 focus-within:opacity-100 has-[[data-armed]]:opacity-100">
+                <DangerButton
+                  label="arrêter"
+                  onConfirm={async () => {
+                    await api("/api/processes/stop", { pid: node.pid }, { method: "POST" });
+                    reload();
+                  }}
+                />
+              </span>
             )}
           </div>
           <div className="text-[11px] text-muted-foreground">{node.memoryMB} Mo</div>

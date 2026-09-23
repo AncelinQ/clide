@@ -239,7 +239,8 @@ les trois modes d'invocation des skills, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP et les connecteurs claude.ai, le routage des notifications,
 leur affichage système, leur effacement à la reprise et le compteur de la barre
-des tâches, la réutilisation d'un shell inactif pour les scripts, l'intégration shell, les worktrees.
+des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
+survol, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -299,7 +300,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | MCP : écrire les portées user et local | lecture seule ici, et à raison : elles vivent dans `~/.claude.json`, qu'on ne réécrit pas. L'original passe par `claude mcp add` et `claude mcp remove` |
 | MCP : envoyer « /mcp » à l'onglet Claude | pour lancer l'authentification d'un serveur sans quitter l'application |
 | Réglages : formulaire | modèle, permissions, hooks, env, plugins, plutôt que du JSON brut. Les clés inconnues sont préservées des deux côtés |
-| Process : arrêt au survol | le bouton existe, il est simplement toujours visible |
 
 ### Skills
 
