@@ -1,5 +1,5 @@
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { basename, join, relative, sep } from "node:path";
+import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { basename, extname, join, relative, sep } from "node:path";
 
 import { claudeHome } from "../paths.js";
 
@@ -326,6 +326,88 @@ export class SkillStore {
   }
 
   /**
+   * Copie un skill d'une portée à l'autre, dossier compris : un skill porte
+   * parfois des scripts ou des modèles à côté de son `SKILL.md`.
+   *
+   * Une copie ne remplace jamais un skill existant : écraser le travail de
+   * l'autre portée sans le montrer serait une perte silencieuse.
+   */
+  async copy(
+    from: { scope: Scope; directory: string; projectRoot?: string },
+    to: { scope: Scope; projectRoot?: string },
+  ): Promise<Skill> {
+    const directory = safeDirectoryName(from.directory);
+    const source = join(this.#root(from.scope, from.projectRoot), directory);
+    const targetRoot = this.#root(to.scope, to.projectRoot);
+    const target = join(targetRoot, directory);
+    if (samePathLoose(source, target)) throw new Error("le skill est déjà à cet endroit");
+    await this.#refuseExisting(target, directory);
+    await mkdir(targetRoot, { recursive: true });
+    await cp(source, target, { recursive: true, errorOnExist: true, force: false });
+    return this.#mustRead(targetRoot, directory, to.scope);
+  }
+
+  /**
+   * Importe un skill venu d'ailleurs : un dossier qui porte un `SKILL.md`, ou un
+   * fichier `.md` seul, qui devient le `SKILL.md` d'un dossier à son nom.
+   *
+   * Rien d'autre n'est accepté : l'import lit un chemin donné par l'appelant, et
+   * s'en tenir à ces deux formes l'empêche de recopier n'importe quel fichier.
+   */
+  async importPath(sourcePath: string, to: { scope: Scope; projectRoot?: string }): Promise<Skill> {
+    const info = await stat(sourcePath);
+    if (info.isDirectory()) {
+      try {
+        await stat(join(sourcePath, "SKILL.md"));
+      } catch {
+        throw new Error("ce dossier ne contient pas de SKILL.md");
+      }
+      const directory = safeDirectoryName(basename(sourcePath));
+      const targetRoot = this.#root(to.scope, to.projectRoot);
+      const target = join(targetRoot, directory);
+      await this.#refuseExisting(target, directory);
+      await mkdir(targetRoot, { recursive: true });
+      await cp(sourcePath, target, { recursive: true, errorOnExist: true, force: false });
+      return this.#mustRead(targetRoot, directory, to.scope);
+    }
+    if (extname(sourcePath).toLowerCase() !== ".md") throw new Error("seul un fichier .md ou un dossier de skill s'importe");
+    const name = basename(sourcePath, extname(sourcePath));
+    return this.importText(name === "SKILL" ? basename(join(sourcePath, "..")) : name, await readFile(sourcePath, "utf8"), to);
+  }
+
+  /**
+   * Crée un skill depuis le texte d'un `.md`. Sans en-tête, il en reçoit un à son
+   * nom : Claude Code ignore un `SKILL.md` qui n'en a pas.
+   */
+  async importText(name: string, text: string, to: { scope: Scope; projectRoot?: string }): Promise<Skill> {
+    const directory = safeDirectoryName(name);
+    const targetRoot = this.#root(to.scope, to.projectRoot);
+    const target = join(targetRoot, directory);
+    await this.#refuseExisting(target, directory);
+    await mkdir(target, { recursive: true });
+    const content = text.replace(/^\uFEFF/, "").trimStart().startsWith("---")
+      ? text
+      : renderSkill({ scope: to.scope, directory, body: text });
+    await writeFile(join(target, "SKILL.md"), content, "utf8");
+    return this.#mustRead(targetRoot, directory, to.scope);
+  }
+
+  async #refuseExisting(target: string, directory: string): Promise<void> {
+    try {
+      await stat(target);
+    } catch {
+      return;
+    }
+    throw new Error(`un skill « ${directory} » existe déjà à cet endroit`);
+  }
+
+  async #mustRead(root: string, directory: string, scope: Scope): Promise<Skill> {
+    const skill = await this.#readSkill(root, directory, scope);
+    if (!skill) throw new Error(`skill ${directory} illisible après écriture`);
+    return skill;
+  }
+
+  /**
    * Supprime un skill, dossier compris.
    *
    * Le nom est validé avant toute chose : c'est une suppression récursive, et un
@@ -368,6 +450,11 @@ export function safeDirectoryName(name: string): string {
   if (trimmed === "." || trimmed === "..") throw new Error(`nom de skill invalide : ${trimmed}`);
   if (/[\\/:*?"<>|]/.test(trimmed)) throw new Error(`nom de skill invalide : ${trimmed}`);
   return trimmed;
+}
+
+function samePathLoose(a: string, b: string): boolean {
+  const clean = (path: string) => path.replace(/[\\/]+$/, "").split(/[\\/]/).join("/").toLowerCase();
+  return clean(a) === clean(b);
 }
 
 /** Sérialise un skill : en-tête régénéré, corps intouché. */

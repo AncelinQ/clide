@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
-import { SkillEditor, SkillRow } from "@/components/panels/skills";
+import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -214,29 +214,31 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
         const ownCommands = commands.filter((command) => command.scope === "project");
         return (
           <>
-            {own.length === 0 ? (
-              <Empty icon={Sparkles}>Les skills vivent dans .claude/skills/&lt;nom&gt;/SKILL.md.</Empty>
-            ) : (
-              <Rows>
-                {own.map((skill) => (
-                  <SkillRow
-                    key={skill.path}
-                    skill={skill}
-                    root={root}
-                    onEdit={setEditing}
-                    onDone={state.reload}
-                  />
-                ))}
-              </Rows>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 h-7"
-              onClick={() => setEditing({ directory: "", description: "" })}
-            >
-              Nouveau skill
-            </Button>
+            <SkillImport scope="project" root={root} onDone={state.reload}>
+              {own.length === 0 ? (
+                <Empty icon={Sparkles}>Les skills vivent dans .claude/skills/&lt;nom&gt;/SKILL.md.</Empty>
+              ) : (
+                <Rows>
+                  {own.map((skill) => (
+                    <SkillRow
+                      key={skill.path}
+                      skill={skill}
+                      root={root}
+                      onEdit={setEditing}
+                      onDone={state.reload}
+                    />
+                  ))}
+                </Rows>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-7"
+                onClick={() => setEditing({ directory: "", description: "" })}
+              >
+                Nouveau skill
+              </Button>
+            </SkillImport>
             {ownCommands.length > 0 && (
               <>
                 <Section>Commandes ({ownCommands.length})</Section>

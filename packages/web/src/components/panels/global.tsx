@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
-import { SkillEditor, SkillRow } from "@/components/panels/skills";
+import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -142,30 +142,32 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
 
         return (
           <>
-            <Section>Personnels</Section>
-            {personal.length === 0 ? (
-              <p className="py-2 text-muted-foreground">Aucun skill personnel.</p>
-            ) : (
-              <Rows>
-                {personal.map((skill) => (
-                  <SkillRow
-                    key={skill.path}
-                    skill={skill}
-                    root={root}
-                    onEdit={setEditing}
-                    onDone={state.reload}
-                  />
-                ))}
-              </Rows>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7"
-              onClick={() => setEditing({ directory: "", description: "" })}
-            >
-              Nouveau skill
-            </Button>
+            <SkillImport scope="user" root={root} onDone={state.reload}>
+              <Section>Personnels</Section>
+              {personal.length === 0 ? (
+                <p className="py-2 text-muted-foreground">Aucun skill personnel.</p>
+              ) : (
+                <Rows>
+                  {personal.map((skill) => (
+                    <SkillRow
+                      key={skill.path}
+                      skill={skill}
+                      root={root}
+                      onEdit={setEditing}
+                      onDone={state.reload}
+                    />
+                  ))}
+                </Rows>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7"
+                onClick={() => setEditing({ directory: "", description: "" })}
+              >
+                Nouveau skill
+              </Button>
+            </SkillImport>
 
             {plugins.length > 0 && (
               <>

@@ -278,7 +278,20 @@ Les skills se lisent sur trois portées : le projet (`.claude/skills`), le poste
 `~/.claude/plugins/cache/<marketplace>/<plugin>/`, à une profondeur qui varie avec
 sa version ; ils sont reconnus à leur position `skills/<nom>/SKILL.md`, nommés
 `<plugin>:<nom>` comme leur invocation, et montrés sans édition : ils appartiennent
-au plugin. Les routes d'écriture exigent la portée telle quelle — la rabattre sur
+au plugin.
+
+Un skill se copie du projet vers le poste et l'inverse, dossier compris — il porte
+parfois des scripts ou des modèles à côté de son `SKILL.md`. Il s'importe aussi
+depuis un chemin : un dossier qui porte un `SKILL.md`, ou un `.md` seul, qui devient
+le `SKILL.md` d'un dossier à son nom et reçoit un en-tête s'il n'en a pas — Claude
+Code ignore un `SKILL.md` qui en est dépourvu. Rien d'autre ne s'importe : l'import
+lit un chemin donné par l'appelant, et s'en tenir à ces deux formes l'empêche de
+recopier n'importe quel fichier. Déposer des fichiers sur le panneau fait de même :
+sous Electron par leur chemin, dossiers compris ; dans un navigateur, qui ne livre
+que le contenu, les seuls `.md`. Ni la copie ni l'import ne remplacent un skill
+existant.
+
+Les routes d'écriture exigent la portée telle quelle — la rabattre sur
 `user` ferait d'une demande visant un skill de plugin la suppression du skill
 personnel du même nom.
 

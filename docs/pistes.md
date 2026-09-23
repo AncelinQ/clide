@@ -235,7 +235,8 @@ sans la rejouer.
 Relevé exhaustif, README de l'original en main et vérifié contre le code d'ici.
 **Ce qui n'y figure pas est porté** : fil d'ariane et menu contextuel du Finder,
 détection du gestionnaire par le lockfile, espaces de travail, `.claude/commands`,
-les trois modes d'invocation des skills, ceux des plugins, la progression du plan, les dossiers
+les trois modes d'invocation des skills, ceux des plugins, leur
+import, leur dépôt et leur copie entre projet et perso, la progression du plan, les dossiers
 liés au complet — règles `deny`, rôles et fichier de prompt —, l'état des
 serveurs MCP, les connecteurs claude.ai l'envoi de `/mcp` pour les authentifier,
 l'édition d'un serveur, ceux des dossiers liés la reprise depuis un autre projet,
@@ -298,9 +299,6 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Manque | Détail |
 |---|---|
 | Création écrite par Claude | l'original sait créer un skill vide ou envoyer la demande à Claude, qui rédige le `SKILL.md` |
-| Importer un `.md` ou un dossier | reprendre un skill venu d'ailleurs |
-| Glisser-déposer | même chose, au geste |
-| Copier entre projet et perso | promouvoir un skill de projet en skill personnel, et l'inverse |
 
 ### Application
 

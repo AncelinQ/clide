@@ -336,6 +336,36 @@ export const mutations: Record<string, Mutation> = {
     return { removed: directory };
   },
 
+  /** Copie un skill d'une portée à l'autre. `root` sert aux deux côtés : c'est le projet ouvert. */
+  "/api/skills/copy": async (_params, _context, body) => {
+    const from = skillScope(body["scope"]);
+    const to = skillScope(body["to"]);
+    const directory = requireField(body, "directory", isString);
+    const root = isString(body["root"]) ? body["root"] : undefined;
+    const skill = await new SkillStore().copy(
+      { scope: from, directory, ...(root ? { projectRoot: root } : {}) },
+      { scope: to, ...(root ? { projectRoot: root } : {}) },
+    );
+    return { skill };
+  },
+
+  /** Importe un `.md` ou un dossier de skill désigné par son chemin — un dépôt sous Electron. */
+  "/api/skills/import": async (_params, _context, body) => {
+    const scope = skillScope(body["scope"]);
+    const path = requireField(body, "path", isString);
+    const root = isString(body["root"]) ? body["root"] : undefined;
+    return { skill: await new SkillStore().importPath(path, { scope, ...(root ? { projectRoot: root } : {}) }) };
+  },
+
+  /** Crée un skill depuis le texte d'un `.md` : ce qu'un navigateur livre d'un fichier déposé. */
+  "/api/skills/import-text": async (_params, _context, body) => {
+    const scope = skillScope(body["scope"]);
+    const name = requireField(body, "name", isString);
+    const text = requireField(body, "text", isString);
+    const root = isString(body["root"]) ? body["root"] : undefined;
+    return { skill: await new SkillStore().importText(name, text, { scope, ...(root ? { projectRoot: root } : {}) }) };
+  },
+
   "/api/mcp/save": async (_params, _context, body) => {
     const root = requireField(body, "root", isString);
     const name = requireField(body, "name", isString);
