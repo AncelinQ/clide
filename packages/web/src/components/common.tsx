@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
@@ -9,14 +9,23 @@ import { cn } from "cn";
  *
  * `reload` est rendu plutôt que déduit : après une écriture, un panneau doit
  * pouvoir se rafraîchir sans que l'appelant reconstruise ses dépendances.
+ *
+ * `refresh` relance le chargement **sans effacer** ce qui est affiché : un
+ * panneau qui suit une session vivante se relit à chaque ajout, et repasser par
+ * « chargement… » le ferait clignoter. Un changement de `deps`, lui, repart de
+ * zéro — les données précédentes décrivent autre chose.
  */
-export function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
+export function useAsync<T>(load: () => Promise<T>, deps: unknown[], refresh?: unknown) {
   const [state, setState] = useState<{ data?: T; error?: string; loading: boolean }>({ loading: true });
   const [nonce, setNonce] = useState(0);
+  const lastDeps = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
-    setState({ loading: true });
+    const signature = JSON.stringify(deps);
+    const same = lastDeps.current === signature;
+    lastDeps.current = signature;
+    setState((previous) => (same && previous.data !== undefined ? { ...previous, loading: true } : { loading: true }));
     load()
       .then((data) => alive && setState({ data, loading: false }))
       .catch((error: Error) => alive && setState({ error: error.message, loading: false }));
@@ -24,7 +33,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce]);
+  }, [...deps, nonce, refresh]);
 
   const reload = useCallback(() => setNonce((value) => value + 1), []);
   return { ...state, reload };
@@ -37,7 +46,7 @@ export function Async<T>({
   state: { data?: T; error?: string; loading: boolean };
   children: (data: T) => ReactNode;
 }) {
-  if (state.loading) return <p className="py-3 text-muted-foreground">chargement…</p>;
+  if (state.loading && state.data === undefined) return <p className="py-3 text-muted-foreground">chargement…</p>;
   if (state.error) return <p className="py-3 text-destructive">{state.error}</p>;
   if (state.data === undefined) return null;
   return <>{children(state.data)}</>;

@@ -66,7 +66,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                   <Row
                     key={session.sessionId}
                     selected={selectedSession?.sessionId === session.sessionId}
-                    onClick={() => setState({ selectedSession: session })}
+                    onClick={() => setState({ selectedSession: session, followLive: false })}
                     title={session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)}
                     badges={session.prLinks.length > 0 && <Badge variant="outline">MR</Badge>}
                     sub={[

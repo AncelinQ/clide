@@ -169,4 +169,66 @@ describe("SessionProjector", () => {
     expect(projection.files).toHaveLength(0);
     expect(projection.unknownTypes).toEqual({});
   });
+
+  it("compte chaque réponse une fois, même écrite en plusieurs events", () => {
+    const usage = (input: number, output: number) => ({
+      input_tokens: input,
+      output_tokens: output,
+      cache_read_input_tokens: 1000,
+      cache_creation_input_tokens: 10,
+    });
+    const projection = projectEvents(SID, [
+      // Deux blocs de la même réponse : même identifiant, même consommation.
+      { type: "assistant", message: { id: "msg_1", model: "claude-opus-5-5", usage: usage(5, 40) } },
+      { type: "assistant", message: { id: "msg_1", model: "claude-opus-5-5", usage: usage(5, 40) } },
+      { type: "assistant", message: { id: "msg_2", model: "claude-opus-5-5", usage: usage(3, 60) } },
+    ]);
+
+    expect(projection.tokens).toEqual({
+      input: 8,
+      output: 100,
+      cacheRead: 2000,
+      cacheCreation: 20,
+      context: 1013,
+      model: "claude-opus-5-5",
+    });
+  });
+
+  it("n'invente pas de consommation sans réponse chiffrée", () => {
+    expect(projectEvents(SID, [{ type: "assistant", message: { id: "msg_1" } }]).tokens).toBeUndefined();
+  });
+
+  it("suit l'entrée et la sortie du mode plan, par l'outil comme par la permission", () => {
+    const tool = (name: string) => ({
+      type: "assistant",
+      message: { id: name, content: [{ type: "tool_use", name, input: {} }] },
+    });
+
+    expect(projectEvents(SID, [tool("EnterPlanMode")]).planMode).toBe(true);
+    expect(projectEvents(SID, [tool("EnterPlanMode"), tool("ExitPlanMode")]).planMode).toBe(false);
+    expect(projectEvents(SID, [{ type: "permission-mode", permissionMode: "plan" }]).planMode).toBe(true);
+    expect(
+      projectEvents(SID, [
+        { type: "permission-mode", permissionMode: "plan" },
+        { type: "permission-mode", permissionMode: "auto" },
+      ]).planMode,
+    ).toBe(false);
+    expect(projectEvents(SID, [{ type: "mode", mode: "normal" }]).planMode).toBeUndefined();
+  });
+
+  it("lit le mode plan sur le prompt du tour, pas sur l'event de fin de tour", () => {
+    // Ordre réel d'un transcript : l'event `permission-mode` du tour précédent,
+    // puis le prompt envoyé en mode plan et la pièce jointe qui l'annonce.
+    const projection = projectEvents(SID, [
+      { type: "permission-mode", permissionMode: "auto" },
+      { type: "user", permissionMode: "plan", message: { role: "user", content: "OK" } },
+      {
+        type: "attachment",
+        attachment: { type: "plan_mode", planFilePath: "C:/Users/x/.claude/plans/ok.md", planExists: false },
+      },
+    ]);
+    expect(projection.permissionMode).toBe("plan");
+    expect(projection.planMode).toBe(true);
+    expect(projection.planFilePath).toBe("C:/Users/x/.claude/plans/ok.md");
+  });
 });

@@ -1,4 +1,5 @@
 import type { ClaudeNotification } from "./notifications/watcher.js";
+import type { LiveSession } from "./sessions/live.js";
 import type { TerminalInfo, TerminalKind } from "./pty/manager.js";
 
 /** Messages du client vers le serveur, sur la connexion WebSocket. */
@@ -17,6 +18,7 @@ export type ServerMessage =
   | { t: "exit"; id: string; exitCode: number }
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
   | { t: "resume"; terminalId: string }
+  | { t: "live"; terminalId: string; session: LiveSession }
   | { t: "error"; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

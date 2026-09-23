@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import type { ClaudeNotification, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 
 export interface Project {
   root: string;
@@ -28,6 +28,13 @@ export interface State {
   /** Onglets qui réclament un regard, et à quel titre. */
   attention: Record<string, NotificationKind>;
   selectedSession: SessionSummary | null;
+  /** Session vivante de chaque onglet Claude, par identifiant d'onglet. */
+  live: Record<string, LiveSession>;
+  /**
+   * Le bloc session suit l'onglet actif. Choisir une session dans History l'en
+   * détache jusqu'au prochain changement d'onglet.
+   */
+  followLive: boolean;
   sessionMode: string;
   globalTab: string;
   notifications: ClaudeNotification[];
@@ -76,6 +83,8 @@ let state: State = {
   activeTerminalId: null,
   attention: {},
   selectedSession: null,
+  live: {},
+  followLive: true,
   sessionMode: "files",
   globalTab: "history",
   notifications: [],

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { Island } from "@/components/columns";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
-import { ActivityPanel, FilesPanel, PlanPanel } from "@/components/panels/session";
+import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { activeProject, setState, useStore } from "@/state/store";
@@ -96,13 +96,33 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
 }
 
 export function TerminalArea() {
-  const { terminals, activeTerminalId, attention, activeRoot, selectedSession, sessionMode } = useStore(
-    (state) => state,
-  );
+  const { terminals, activeTerminalId, attention, activeRoot, selectedSession, sessionMode, live, followLive } =
+    useStore((state) => state);
   const project = useStore(activeProject);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
+  const current = status ? live[status.id] : undefined;
+
+  // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
+  const shown: (ShownSession & { title?: string }) | undefined =
+    followLive && current
+      ? {
+          sessionId: current.sessionId,
+          ...(current.title ? { title: current.title } : {}),
+          ...(current.lastActivityAt ? { refresh: current.lastActivityAt } : {}),
+          ...(current.tokens ? { tokens: current.tokens } : {}),
+          ...(current.cost?.totalCostUSD !== undefined ? { costUSD: current.cost.totalCostUSD } : {}),
+        }
+      : selectedSession
+        ? {
+            sessionId: selectedSession.sessionId,
+            ...(selectedSession.title ? { title: selectedSession.title } : {}),
+            ...(selectedSession.cost?.totalCostUSD !== undefined
+              ? { costUSD: selectedSession.cost.totalCostUSD }
+              : {}),
+          }
+        : undefined;
 
   const modes: Mode[] = [
     {
@@ -110,14 +130,14 @@ export function TerminalArea() {
       icon: ClipboardList,
       title: "Plan",
       about: "Le plan soumis en sortant du mode plan, avec sa progression s'il porte des cases.",
-      render: () => (selectedSession ? <PlanPanel session={selectedSession} /> : null),
+      render: () => (shown ? <PlanPanel session={shown} /> : null),
     },
     {
       id: "activity",
       icon: Activity,
       title: "Activité",
       about: "Le déroulé de la session : prompts, réponses et appels d'outils.",
-      render: () => (selectedSession ? <ActivityPanel session={selectedSession} /> : null),
+      render: () => (shown ? <ActivityPanel session={shown} /> : null),
     },
     {
       id: "files",
@@ -126,11 +146,11 @@ export function TerminalArea() {
       about:
         "Ce que la session a changé, avec le diff exact. L'état « avant » vient des sauvegardes de Claude Code, pas de git.",
       render: () =>
-        selectedSession ? (
-          <FilesPanel session={selectedSession} />
+        shown ? (
+          <FilesPanel session={shown} />
         ) : (
           <p className="py-6 text-center text-muted-foreground">
-            Choisis une session dans History, à droite.
+            Lance Claude dans un onglet, ou choisis une session dans History.
           </p>
         ),
     },
@@ -216,7 +236,14 @@ export function TerminalArea() {
 
       <footer className="shrink-0 overflow-x-auto px-3 py-1.5 text-[11px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]">
         {status
-          ? [status.cwd, status.kind, status.state, status.lastExitCode !== undefined ? `sortie ${status.lastExitCode}` : ""]
+          ? [
+              status.cwd,
+              status.kind,
+              status.state,
+              status.lastExitCode !== undefined ? `sortie ${status.lastExitCode}` : "",
+              current?.planMode ? "mode plan" : current?.permissionMode ? `permissions ${current.permissionMode}` : "",
+              current?.tokens ? `contexte ${formatTokens(current.tokens.context)}` : "",
+            ]
               .filter(Boolean)
               .join("   ·   ")
           : ""}
@@ -226,7 +253,7 @@ export function TerminalArea() {
         modes={modes}
         current={sessionMode}
         onPick={(id) => setState({ sessionMode: id })}
-        header={selectedSession?.title}
+        header={shown?.title}
         className="max-h-[38%]"
       />
     </Island>

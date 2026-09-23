@@ -242,7 +242,9 @@ leur affichage système, leur effacement à la reprise et le compteur de la barr
 des tâches, la réutilisation d'un shell inactif pour les scripts, l'arrêt de processus au
 survol, la police du terminal,
 l'ouverture d'un fichier depuis le Finder et son aperçu rapide et son glisser
-sur le terminal, l'intégration shell, les worktrees.
+sur le terminal, le bloc session qui suit l'onglet Claude actif — avec le mode, le
+mode plan et les tokens dans la barre d'état et l'activité, et l'ouverture
+automatique du plan —, l'intégration shell, les worktrees.
 
 Les manques renvoyés à une piste y sont déjà traités.
 
@@ -279,15 +281,12 @@ Les manques renvoyés à une piste y sont déjà traités.
 | Taper `claude` bascule l'onglet en mode Claude | le mode est décidé à l'ouverture ; un `claude` lancé à la main dans un shell reste un shell, donc sans plan, activité ni fichiers |
 | Raccourcis d'onglet | ⌘T shell, ⇧⌘T Claude, ⌘W fermer, ⇧⌘[ ] naviguer — piste 5 |
 | Images vers le prompt | glisser-déposer d'un fichier ou d'une image, capture d'écran (⌥⌘S), collage d'une image (⌘V). Tout devient un fichier dont le chemin est tapé dans le prompt |
-| Barre d'état : mode de permission, plan, tokens | elle montre le dossier, le type d'onglet, l'état et le code de sortie |
 
 ### Bloc session
 
 | Manque | Détail |
 |---|---|
-| Ouverture automatique du plan | l'original bascule sur Plan quand Claude entre en mode plan ; ici il faut y aller |
 | Rendu markdown du plan | le texte est affiché tel quel ; la progression, elle, est bien calculée |
-| Tokens dans l'activité | le flux montre messages, outils et fichiers, sans coût ni volume |
 | Raccourci de repli | ⌥⌘3 chez l'original — piste 5 |
 
 ### Panneau droit

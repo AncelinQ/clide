@@ -417,6 +417,33 @@ attente, fenêtre au premier plan ou non, et clignote tant que la fenêtre est e
 arrière-plan. L'image du compteur est dessinée par la page : le processus
 principal n'a pas de canevas.
 
+## La session d'un onglet
+
+Le bloc session suit l'onglet Claude actif ; choisir une session dans History l'en
+détache jusqu'au prochain changement d'onglet. Le serveur relie chaque onglet
+Claude à son transcript, puis le lit par ajouts :
+
+- **par les hooks**, quand ils sont installés : ils donnent la session et son
+  transcript, et suivent un `/clear` ou une reprise ;
+- **sinon, par le fichier créé** dans le dossier du projet après l'ouverture de
+  l'onglet, hors de ceux qu'un autre onglet suit. La date de modification ne sert
+  pas : toute session active dans le même dossier, lancée ailleurs, écrit sans
+  cesse dans le sien, et serait prise avant que la nouvelle ait créé son fichier ;
+- **par la commande**, pour `claude --resume <id>` : le transcript nommé est suivi.
+  Son mode n'est montré qu'une fois la reprise repartie, le transcript décrivant
+  jusque-là la séance précédente.
+
+La barre d'état porte le mode de permission, le mode plan et la taille du
+contexte ; l'activité, la consommation de la session. Une réponse s'écrit en
+plusieurs events qui répètent le même `message.id` et le même `usage` : les tokens
+sont comptés une fois par réponse. Le bloc bascule sur Plan quand l'onglet regardé
+entre en mode plan.
+
+Deux faits du format vivant. Le mode d'un tour est porté par son prompt
+(`user.permissionMode`) : l'event `permission-mode` est écrit à la fin du tour
+précédent, et dit encore `auto` quand le prompt qui suit part en mode plan. Et
+Claude Code ne l'écrit qu'aux tours : un Maj+Tab n'apparaît qu'au prompt suivant.
+
 ## Le plan d'une session
 
 `~/.claude/plans` n'existe pas sur cette version de Claude Code. Le plan n'est donc

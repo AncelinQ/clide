@@ -9,6 +9,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
+import { LiveSessions } from "./sessions/live.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
@@ -151,6 +152,19 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   await context.index.load();
   await notifications.start();
 
+  const live = new LiveSessions();
+  live.start();
+  // Un onglet fermé ne suit plus rien ; son transcript redevient disponible pour
+  // un autre onglet du même dossier.
+  manager.on("exit", (id) => live.forget(id));
+  // Un hook porte la session et son transcript : c'est le rattachement exact,
+  // qui prime sur la recherche par date.
+  notifications.on((notification) => {
+    if (!notification.cwd || !notification.transcriptPath || !notification.sessionId) return;
+    const terminal = manager.findByCwd(notification.cwd);
+    if (terminal?.kind === "claude") live.bind(terminal.id, notification.transcriptPath, notification.sessionId);
+  });
+
   const http: Server = createServer((request, response) => {
     void handleRequest(request, response);
   });
@@ -229,6 +243,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       manager.on("data", (id, data) => post({ t: "data", id, data })),
       manager.on("state", (terminal) => post({ t: "state", terminal })),
       manager.on("exit", (id, exitCode) => post({ t: "exit", id, exitCode })),
+      live.on((terminalId, session) => post({ t: "live", terminalId, session })),
       notifications.on((notification) => {
         // Claude Code annonce le dossier de la session, pas l'onglet : le
         // rattachement se fait sur ce dossier, et reste absent s'il ne
@@ -243,6 +258,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     ];
 
     post({ t: "hello", terminals: manager.list() });
+    for (const { terminalId, session } of live.current()) post({ t: "live", terminalId, session });
 
     socket.on("message", (raw) => {
       const message = parseClientMessage(raw.toString());
@@ -281,6 +297,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             ...(message.rows !== undefined ? { rows: message.rows } : {}),
             ...(message.initialCommand ? { initialCommand: message.initialCommand } : {}),
           });
+          if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, message.initialCommand);
           post({ t: "opened", terminal });
           break;
         }
@@ -304,6 +321,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     port,
     token,
     async close() {
+      live.stop();
       notifications.stop();
       manager.closeAll();
       // `http.close()` attend la fin des connexions en cours : une WebSocket

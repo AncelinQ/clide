@@ -51,6 +51,9 @@ function onMessage(message: ServerMessage): void {
       setState((current) => ({
         terminals: { ...current.terminals, [message.terminal.id]: { info: message.terminal, owner } },
         activeTerminalId: message.terminal.id,
+        // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
+        // reprend une session choisie dans History.
+        followLive: true,
       }));
       break;
     }
@@ -89,6 +92,22 @@ function onMessage(message: ServerMessage): void {
         const attention = { ...current.attention };
         delete attention[message.terminalId];
         return { attention };
+      });
+      break;
+    case "live":
+      setState((current) => {
+        const previous = current.live[message.terminalId];
+        // Le bloc bascule sur le plan quand l'onglet qu'on regarde entre en mode
+        // plan : c'est là que la suite se décide.
+        const entering =
+          message.session.planMode === true &&
+          previous?.planMode !== true &&
+          message.terminalId === current.activeTerminalId &&
+          current.followLive;
+        return {
+          live: { ...current.live, [message.terminalId]: message.session },
+          ...(entering ? { sessionMode: "plan" } : {}),
+        };
       });
       break;
     case "error":
@@ -164,10 +183,13 @@ export function closeTerminal(id: string): void {
     delete terminals[id];
     const attention = { ...current.attention };
     delete attention[id];
+    const live = { ...current.live };
+    delete live[id];
     const remaining = Object.values(terminals).filter((entry) => entry.owner === current.activeRoot);
     return {
       terminals,
       attention,
+      live,
       activeTerminalId:
         current.activeTerminalId === id ? (remaining[0]?.info.id ?? null) : current.activeTerminalId,
     };
@@ -183,7 +205,7 @@ export function focusTerminal(id: string): void {
     delete attention[id];
     // Regarder un terminal d'un autre projet suit ce projet : la colonne de
     // gauche doit décrire ce qu'on regarde.
-    return { activeTerminalId: id, attention, activeRoot: entry.owner };
+    return { activeTerminalId: id, attention, activeRoot: entry.owner, followLive: true };
   });
   requestAnimationFrame(() => resize(id));
 }

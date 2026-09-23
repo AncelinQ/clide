@@ -42,7 +42,9 @@ export {
   projectEvents,
   type FileTrack,
   type SessionProjection,
+  type TokenUsage,
 } from "./session/projection.js";
+export { findLiveTranscript, resumedSessionId, type TranscriptMatch } from "./transcript/live.js";
 
 export {
   extractPlan,

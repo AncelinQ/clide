@@ -3,13 +3,32 @@ import { Activity, ClipboardList, FileDiff } from "lucide-react";
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Badge } from "@/components/ui/badge";
 import { api, formatDate } from "@/lib/api";
-import type { ActivityEntry, FileDiff as Diff, SessionSummary } from "@/lib/types";
+import type { ActivityEntry, FileDiff as Diff, TokenUsage } from "@/lib/types";
 import { cn } from "cn";
 
-export function FilesPanel({ session }: { session: SessionSummary }) {
+/**
+ * Session montrée par le bloc. `refresh` change à chaque ajout au transcript
+ * quand la session est vivante, pour que les panneaux se relisent.
+ */
+export interface ShownSession {
+  sessionId: string;
+  refresh?: string;
+  tokens?: TokenUsage;
+  costUSD?: number;
+}
+
+/** « 12,3 k » : un volume de tokens se lit en ordre de grandeur. */
+export function formatTokens(count: number): string {
+  if (count < 1000) return String(count);
+  if (count < 1_000_000) return `${(count / 1000).toFixed(1).replace(".", ",")} k`;
+  return `${(count / 1_000_000).toFixed(2).replace(".", ",")} M`;
+}
+
+export function FilesPanel({ session }: { session: ShownSession }) {
   const state = useAsync(
     () => api<{ diffs: Diff[] }>("/api/session/files", { id: session.sessionId }),
     [session.sessionId],
+    session.refresh,
   );
 
   return (
@@ -72,13 +91,32 @@ const ACTIVITY_LABEL: Record<string, string> = {
   note: "note",
 };
 
-export function ActivityPanel({ session }: { session: SessionSummary }) {
+/** Volume et coût de la session, en tête de son activité. */
+function Consumption({ session }: { session: ShownSession }) {
+  const { tokens, costUSD } = session;
+  if (!tokens && costUSD === undefined) return null;
+  const parts = [
+    tokens && `contexte ${formatTokens(tokens.context)}`,
+    tokens && `${formatTokens(tokens.output)} en sortie`,
+    tokens && `${formatTokens(tokens.input + tokens.cacheCreation)} en entrée`,
+    tokens && tokens.cacheRead > 0 && `${formatTokens(tokens.cacheRead)} lus en cache`,
+    costUSD !== undefined && `${costUSD.toFixed(2).replace(".", ",")} $`,
+  ].filter(Boolean);
+  return (
+    <p className="py-1 text-[11px] text-muted-foreground" title={tokens?.model}>
+      {parts.join("  ·  ")}
+    </p>
+  );
+}
+
+export function ActivityPanel({ session }: { session: ShownSession }) {
   const state = useAsync(
     () => api<{ entries: ActivityEntry[]; total: number }>("/api/session/activity", {
       id: session.sessionId,
       limit: 300,
     }),
     [session.sessionId],
+    session.refresh,
   );
 
   return (
@@ -88,6 +126,7 @@ export function ActivityPanel({ session }: { session: SessionSummary }) {
           <Empty icon={Activity}>Aucune activité.</Empty>
         ) : (
           <>
+            <Consumption session={session} />
             {feed.total > feed.entries.length && (
               <p className="py-1 text-[11px] text-muted-foreground">
                 {feed.entries.length} dernières entrées sur {feed.total}.
@@ -122,7 +161,7 @@ export function ActivityPanel({ session }: { session: SessionSummary }) {
   );
 }
 
-export function PlanPanel({ session }: { session: SessionSummary }) {
+export function PlanPanel({ session }: { session: ShownSession }) {
   const state = useAsync(
     () =>
       api<{ plan?: { text: string; progress?: { done: number; total: number } }; mode?: string; planModeEntries: number }>(
@@ -130,6 +169,7 @@ export function PlanPanel({ session }: { session: SessionSummary }) {
         { id: session.sessionId },
       ),
     [session.sessionId],
+    session.refresh,
   );
 
   return (

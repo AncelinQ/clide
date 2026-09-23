@@ -162,6 +162,26 @@ export interface SettingsDocument {
   value: Record<string, unknown>;
 }
 
+export interface TokenUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheCreation: number;
+  context: number;
+  model?: string;
+}
+
+/** Session qui tourne dans un onglet Claude, suivie en direct par le serveur. */
+export interface LiveSession {
+  sessionId: string;
+  title?: string;
+  permissionMode?: string;
+  planMode?: boolean;
+  tokens?: TokenUsage;
+  cost?: { totalCostUSD?: number };
+  lastActivityAt?: string;
+}
+
 /** Messages poussés par le serveur sur la connexion des terminaux. */
 export type ServerMessage =
   | { t: "hello"; terminals: TerminalInfo[] }
@@ -171,4 +191,5 @@ export type ServerMessage =
   | { t: "exit"; id: string; exitCode: number }
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
   | { t: "resume"; terminalId: string }
+  | { t: "live"; terminalId: string; session: LiveSession }
   | { t: "error"; message: string };
