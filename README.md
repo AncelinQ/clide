@@ -681,6 +681,25 @@ redessine au lancement, est écartée : `curl http://localhost:3000` n'annonce r
 L'aperçu est un cadre : un serveur qui interdit l'affichage en cadre
 (`X-Frame-Options`) s'ouvre avec le bouton « ouvrir dans le navigateur ».
 
+## Schéma de la session
+
+Le mode Schéma du bloc session fait dessiner par `claude -p` un diagramme Mermaid
+de ce que la session a changé : chaque nœud nomme un changement, et les liens
+disent comment ils s'articulent. Rien ne part sans un clic — l'appel coûte des
+tokens, environ 0,15 $ pour une session de cent fichiers — et le schéma obtenu est
+gardé dans `diagrams/<session>.json` des données de l'application jusqu'à ce qu'on
+le refasse.
+
+Claude lit un résumé de la session : ses demandes, la liste des fichiers changés
+et leurs diffs, le tout plafonné à 60 000 caractères, chaque diff réduit à sa part
+pour qu'un gros fichier n'efface pas les autres. Le schéma dit quand ce résumé a
+dû couper.
+
+L'appel est isolé : ni outil, ni serveur MCP, ni réglage — donc aucun hook —, pas
+de session enregistrée qui encombrerait History, le modèle Sonnet et une dépense
+plafonnée à 1 $. Le rendu se fait en `securityLevel: "strict"`, et la
+bibliothèque Mermaid ne se charge qu'au premier schéma montré.
+
 ## Sous-agents
 
 Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un

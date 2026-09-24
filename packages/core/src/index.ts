@@ -84,6 +84,7 @@ export {
 } from "./session/session-index.js";
 
 export { FileHistoryResolver, type FileDiff } from "./files/history.js";
+export { DIGEST_MAX, diagramInstructions, extractMermaid, sessionDigest, type SessionDigest } from "./session/diagram.js";
 export {
   applyRestore,
   lastSessionWrites,

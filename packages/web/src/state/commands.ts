@@ -140,6 +140,7 @@ export function commands(): Command[] {
         ["activity", "Activité"],
         ["captures", "Captures"],
         ["files", "Fichiers"],
+        ["diagram", "Schéma"],
       ] as const
     ).map(([mode, label]) => ({
       id: `session.${mode}`,

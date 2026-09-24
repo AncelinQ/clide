@@ -269,7 +269,9 @@ sans la rejouer.
 **État.** Palier 1 fait : les images s'affichent en vignettes sous leur entrée de
 l'activité, et un onglet Captures les rassemble dans l'ordre du temps, sous-agents
 compris. Palier 2 fait : l'adresse qu'annonce une commande du shell s'ouvre dans
-un aperçu à côté du terminal. Palier 3 à faire.
+un aperçu à côté du terminal. Palier 3 fait : le mode Schéma fait dessiner par
+`claude -p` un diagramme Mermaid de la session, à la demande — environ 0,15 $ pour
+une session de 94 fichiers.
 
 ---
 

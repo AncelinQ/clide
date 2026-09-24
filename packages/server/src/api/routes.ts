@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -15,6 +15,9 @@ import {
   TranscriptReader,
   breadcrumb,
   buildActivity,
+  diagramInstructions,
+  extractMermaid,
+  sessionDigest,
   discoverTranscripts,
   extractPlan,
   listDirectory,
@@ -40,7 +43,7 @@ import {
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
-import { addJsonArgs, removeArgs, runClaudeMcp, type CliScope } from "../platform/claude-cli.js";
+import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
@@ -199,6 +202,68 @@ async function findSession(id: string): Promise<TranscriptRef> {
   return ref;
 }
 
+/** Schéma d'une session, rédigé par `claude -p` et gardé tant qu'on ne le refait pas. */
+interface SessionDiagram {
+  mermaid: string;
+  at: string;
+  costUsd?: number;
+  model?: string;
+  /** Le résumé envoyé a dû être coupé : le schéma ne voit pas toute la session. */
+  truncated: boolean;
+}
+
+/** Modèle des schémas : assez bon pour lire un diff, sans le prix d'Opus. */
+const DIAGRAM_MODEL = "sonnet";
+
+/** Un identifiant de session devient un nom de fichier : il ne doit rien porter d'autre. */
+function diagramFile(dataDir: string, id: string): string {
+  if (!/^[0-9a-f-]{8,64}$/i.test(id)) throw new Error("identifiant de session invalide");
+  return join(dataDir, "diagrams", `${id}.json`);
+}
+
+async function readDiagram(dataDir: string, id: string): Promise<SessionDiagram | null> {
+  try {
+    return JSON.parse(await readFile(diagramFile(dataDir, id), "utf8")) as SessionDiagram;
+  } catch {
+    return null;
+  }
+}
+
+/** Rédactions en cours, une par session : un second clic attend la première. */
+const drawing = new Map<string, Promise<SessionDiagram>>();
+
+async function drawDiagram(dataDir: string, id: string, language: "fr" | "en"): Promise<SessionDiagram> {
+  const ref = await findSession(id);
+  const { events, projection } = await TranscriptReader.fromRef(ref).poll();
+  const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
+  const diffs = root ? await new FileHistoryResolver().diffSession(id, projection.files, root) : [];
+  const prompts = buildActivity(events, { limit: Number.MAX_SAFE_INTEGER, full: true }).entries.flatMap((entry) =>
+    entry.kind === "prompt" ? [entry.text] : [],
+  );
+  if (prompts.length === 0 && diffs.length === 0) throw new Error("rien à dessiner : la session n'a ni demande ni fichier changé");
+
+  const digest = sessionDigest({ ...(projection.title ? { title: projection.title } : {}), prompts, diffs });
+  const answer = await runClaudePrint(digest.text, {
+    instructions: diagramInstructions(language),
+    model: DIAGRAM_MODEL,
+    cwd: dataDir,
+  });
+  const mermaid = extractMermaid(answer.text);
+  if (!mermaid) throw new Error(`la réponse ne contient pas de diagramme : ${answer.text.slice(0, 200)}`);
+
+  const diagram: SessionDiagram = {
+    mermaid,
+    at: new Date().toISOString(),
+    ...(answer.costUsd !== undefined ? { costUsd: answer.costUsd } : {}),
+    ...(answer.model ? { model: answer.model } : {}),
+    truncated: digest.truncated,
+  };
+  const file = diagramFile(dataDir, id);
+  await mkdir(join(dataDir, "diagrams"), { recursive: true });
+  await writeFile(file, JSON.stringify(diagram, null, 2), "utf8");
+  return diagram;
+}
+
 /**
  * Routes de lecture.
  *
@@ -345,6 +410,11 @@ export const routes: Record<string, Handler> = {
     const entry = buildActivity(events, { limit: Number.MAX_SAFE_INTEGER, images: true }).entries[index];
     return { images: entry && (entry.kind === "tool" || entry.kind === "prompt") ? (entry.imageData ?? []) : [] };
   },
+
+  /** Schéma déjà rédigé pour la session ; `null` tant qu'on ne l'a pas demandé. */
+  "/api/session/diagram": async (params, { dataDir }) => ({
+    diagram: await readDiagram(dataDir, requireParam(params, "id")),
+  }),
 
   "/api/session/activity": async (params) => {
     const id = requireParam(params, "id");
@@ -606,6 +676,21 @@ export const mutations: Record<string, Mutation> = {
    * d'écrire, et l'empreinte vue dans l'aperçu doit correspondre au fichier : rien
    * n'est écrasé qu'on n'ait vu. Le contenu remplacé est gardé dans `restores/`.
    */
+  /**
+   * Fait rédiger le schéma de la session par `claude -p`. Payant : seulement à la
+   * demande, jamais au passage dans le panneau.
+   */
+  "/api/session/diagram/draw": async (_params, { dataDir }, body) => {
+    const id = requireField(body, "id", isString);
+    const language = body["language"] === "en" ? "en" : "fr";
+    let pending = drawing.get(id);
+    if (!pending) {
+      pending = drawDiagram(dataDir, id, language).finally(() => drawing.delete(id));
+      drawing.set(id, pending);
+    }
+    return { diagram: await pending };
+  },
+
   "/api/session/restore": async (_params, context, body) => {
     const id = requireField(body, "id", isString);
     const plan = await restorePlan(id, requireField(body, "path", isString), context);

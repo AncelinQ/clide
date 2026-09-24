@@ -8,6 +8,7 @@ import {
   Plus,
   Sparkles,
   Terminal as TerminalIcon,
+  Workflow,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +18,7 @@ import { DevPreview, devServers } from "@/components/DevPreview";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
+import { DiagramPanel } from "@/components/panels/diagram";
 import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
@@ -334,6 +336,13 @@ export function TerminalArea() {
             {t("Lance Claude dans un onglet, ou choisis une session dans History.")}
           </p>
         ),
+    },
+    {
+      id: "diagram",
+      icon: Workflow,
+      title: t("Schéma"),
+      about: t("Un diagramme de ce que la session a changé, rédigé à la demande par claude -p : il coûte des tokens."),
+      render: () => (shown ? <DiagramPanel session={shown} /> : null),
     },
   ];
 

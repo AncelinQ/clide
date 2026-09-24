@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addJsonArgs, removeArgs } from "../src/platform/claude-cli.js";
+import { addJsonArgs, parsePrintOutput, printArgs, removeArgs } from "../src/platform/claude-cli.js";
 
 describe("arguments de claude mcp", () => {
   it("passe toute la configuration en un seul argument JSON", () => {
@@ -13,5 +13,33 @@ describe("arguments de claude mcp", () => {
 
   it("retire dans la portée demandée", () => {
     expect(removeArgs("local", "outil")).toEqual(["mcp", "remove", "-s", "local", "outil"]);
+  });
+});
+
+describe("claude -p", () => {
+  it("coupe outils, MCP, réglages et enregistrement de la session", () => {
+    const args = printArgs("consigne", "sonnet");
+    expect(args).toEqual(expect.arrayContaining(["-p", "--no-session-persistence", "--strict-mcp-config"]));
+    expect(args[args.indexOf("--tools") + 1]).toBe("");
+    expect(args[args.indexOf("--setting-sources") + 1]).toBe("");
+    expect(args[args.indexOf("--system-prompt") + 1]).toBe("consigne");
+  });
+
+  it("lit la réponse, son coût et son modèle", () => {
+    const out = JSON.stringify({
+      subtype: "success",
+      is_error: false,
+      result: "```mermaid\ngraph TD\n```",
+      total_cost_usd: 0.04,
+      modelUsage: { "claude-sonnet-5": { costUSD: 0.04 } },
+    });
+    expect(parsePrintOutput(out)).toEqual({ text: "```mermaid\ngraph TD\n```", costUsd: 0.04, model: "claude-sonnet-5" });
+  });
+
+  it("dit pourquoi un appel a échoué", () => {
+    expect(() => parsePrintOutput(JSON.stringify({ subtype: "error_max_budget_usd", is_error: true }))).toThrow(
+      "error_max_budget_usd",
+    );
+    expect(() => parsePrintOutput("Not logged in")).toThrow("Not logged in");
   });
 });
