@@ -18,6 +18,8 @@ export interface TerminalInfo {
   lastExitCode?: number;
   title: string;
   exited: boolean;
+  /** Adresse locale annoncée par la commande en cours : un serveur de développement. */
+  devUrl?: string;
 }
 
 /** Coût d'une session, avec ce qu'il vaut : relevé, estimé, plancher ou inconnu. */

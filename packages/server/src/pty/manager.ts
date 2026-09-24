@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { normalizePath } from "@claude-ide/core";
 import { spawn, type IPty } from "node-pty";
 
+import { DevUrlScanner } from "./dev-url.js";
 import { OscScanner, type ShellEvent } from "./osc.js";
 import { installShellProfile, type ShellProfile } from "./shell-profile.js";
 
@@ -25,6 +26,8 @@ export interface TerminalInfo {
   lastExitCode?: number;
   title: string;
   exited: boolean;
+  /** Adresse locale annoncée par la commande en cours : un serveur de développement. */
+  devUrl?: string;
 }
 
 export interface SpawnOptions {
@@ -48,6 +51,7 @@ interface Terminal {
   info: TerminalInfo;
   pty: IPty;
   scanner: OscScanner;
+  urls: DevUrlScanner;
 }
 
 const DEFAULT_SHELL = "pwsh.exe";
@@ -103,6 +107,7 @@ export class PtyManager {
     const terminal: Terminal = {
       pty,
       scanner: new OscScanner(),
+      urls: new DevUrlScanner(),
       info: {
         id,
         kind,
@@ -119,6 +124,7 @@ export class PtyManager {
       const { text, events } = terminal.scanner.push(chunk);
       if (text.length > 0) this.#emit("data", id, text);
       if (events.length > 0) this.#applyShellEvents(terminal, events);
+      if (text.length > 0) this.#watchDevUrl(terminal, text);
     });
 
     pty.onExit(({ exitCode }) => {
@@ -138,10 +144,33 @@ export class PtyManager {
     return { ...terminal.info };
   }
 
+  /**
+   * Relève l'adresse qu'annonce une commande du shell, la première seulement.
+   *
+   * La sortie de Claude n'est pas lue : une adresse citée dans une réponse n'est
+   * pas un serveur qui tourne.
+   */
+  #watchDevUrl(terminal: Terminal, text: string): void {
+    const { info } = terminal;
+    if (info.kind !== "shell" || info.state !== "running" || info.devUrl) return;
+    const url = terminal.urls.push(text);
+    if (!url) return;
+    info.devUrl = url;
+    this.#emit("state", { ...info });
+  }
+
   #applyShellEvents(terminal: Terminal, events: readonly ShellEvent[]): void {
     let changed = false;
     const claude: (string | undefined)[] = [];
     for (const event of events) {
+      // La commande qui avait annoncé l'adresse est finie, ou n'est plus lue.
+      if (event.kind === "command-start" || event.kind === "command-end" || event.kind === "claude-start") {
+        terminal.urls.reset({ skipLine: event.kind === "command-start" });
+        if (terminal.info.devUrl) {
+          delete terminal.info.devUrl;
+          changed = true;
+        }
+      }
       switch (event.kind) {
         case "cwd":
           if (terminal.info.cwd !== event.path) {

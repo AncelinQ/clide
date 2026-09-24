@@ -162,6 +162,13 @@ export function commands(): Command[] {
       shortcut: "Ctrl+Shift+E",
       run: () => setState((current) => ({ showRight: !current.showRight })),
     },
+    {
+      id: "view.preview",
+      group: t("Affichage"),
+      label: t("Aperçu du serveur de développement"),
+      shortcut: "Ctrl+Shift+U",
+      run: () => setState((current) => ({ previewOpen: !current.previewOpen })),
+    },
     ...tabs.map(([id, label]) => ({
       id: `panel.${id}`,
       group: t("Affichage"),

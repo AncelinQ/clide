@@ -1,7 +1,19 @@
-import { Activity, Camera, ClipboardList, FileDiff, Images, Plus, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
+import {
+  Activity,
+  Camera,
+  ClipboardList,
+  FileDiff,
+  Images,
+  MonitorPlay,
+  Plus,
+  Sparkles,
+  Terminal as TerminalIcon,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
+import { DevPreview, devServers } from "@/components/DevPreview";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -11,7 +23,16 @@ import { cn } from "cn";
 import { t } from "@/i18n";
 import { activeProject, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
-import { closeTerminal, focusTerminal, mount, openTerminal, resize, sendToClaude, typeInto } from "@/state/terminals";
+import {
+  closeTerminal,
+  focusTerminal,
+  mount,
+  openTerminal,
+  resize,
+  resizeActive,
+  sendToClaude,
+  typeInto,
+} from "@/state/terminals";
 import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
 import { captureInto } from "@/state/commands";
 import type { TerminalInfo } from "@/lib/types";
@@ -244,12 +265,19 @@ export function TerminalArea() {
     live,
     followLive,
     sessionCollapsed,
+    previewOpen,
   } = useStore((state) => state);
   const project = useStore(activeProject);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
   const current = status ? live[status.id] : undefined;
+  const serving = devServers(own.map((entry) => entry.info)).length > 0;
+
+  // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
+  useEffect(() => {
+    requestAnimationFrame(resizeActive);
+  }, [previewOpen]);
 
   // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
   const shown: (ShownSession & { title?: string }) | undefined =
@@ -372,6 +400,16 @@ export function TerminalArea() {
         <CaptureButton terminalId={status?.id} />
         <Button
           variant="ghost"
+          size="icon"
+          className={cn("size-7", previewOpen && "bg-accent", serving && !previewOpen && "text-primary")}
+          disabled={!project}
+          onClick={() => setState({ previewOpen: !previewOpen })}
+          title={serving ? t("Aperçu du serveur de développement") : t("Aperçu : aucun serveur de développement ne tourne")}
+        >
+          <MonitorPlay />
+        </Button>
+        <Button
+          variant="ghost"
           size="sm"
           className="h-7 text-primary"
           disabled={!project}
@@ -381,11 +419,14 @@ export function TerminalArea() {
         </Button>
       </div>
 
-      <div className="relative mx-2 min-h-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
-        {own.length === 0 && <Welcome root={project?.root} />}
-        {Object.values(terminals).map(({ info }) => (
-          <TerminalHost key={info.id} info={info} active={info.id === activeTerminalId} />
-        ))}
+      <div className="mx-2 flex min-h-0 flex-1 gap-1">
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
+          {own.length === 0 && <Welcome root={project?.root} />}
+          {Object.values(terminals).map(({ info }) => (
+            <TerminalHost key={info.id} info={info} active={info.id === activeTerminalId} />
+          ))}
+        </div>
+        {previewOpen && project && <DevPreview terminals={own.map((entry) => entry.info)} />}
       </div>
 
       <footer className="shrink-0 overflow-x-auto px-3 py-1.5 text-[11px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]">

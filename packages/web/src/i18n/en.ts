@@ -8,6 +8,13 @@ export const EN: Record<string, string> = {
   Chantiers: "Workstreams",
   Recherche: "Search",
   remonter: "up",
+  Aperçu: "Preview",
+  "Aperçu du serveur de développement": "Dev server preview",
+  "Aperçu : aucun serveur de développement ne tourne": "Preview: no dev server running",
+  "Ouvrir dans le navigateur": "Open in the browser",
+  "Fermer l'aperçu": "Close the preview",
+  "Aucun serveur de développement ne tourne. Lance un script comme dev : l'adresse qu'il annonce s'ouvre ici.":
+    "No dev server is running. Start a script such as dev: the address it announces opens here.",
   "capture {n}": "screenshot {n}",
   Capture: "Screenshot",
   Captures: "Screenshots",

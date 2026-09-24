@@ -139,6 +139,27 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
 
+  it("relève l'adresse qu'annonce une commande, et l'oublie quand elle se termine", async () => {
+    const terminal = await manager.open({ projectRoot: scratch });
+    const urls: (string | undefined)[] = [];
+    manager.on("state", (info) => info.id === terminal.id && urls.push(info.devUrl));
+    await waitFor(() => urls.length > 0, 15000);
+
+    // Le port affiché est calculé par le shell, et la ligne tapée porte une autre
+    // adresse : le shell la redessine au lancement, elle ne doit pas être prise.
+    manager.write(
+      terminal.id,
+      "Write-Host ('  Local:   http://localhost:' + (5000 + 173) + '/'); Start-Sleep 1 # http://localhost:9999/\r",
+    );
+    await waitFor(() => urls.includes("http://localhost:5173/"), 15000);
+    expect(urls).not.toContain("http://localhost:9999/");
+    await waitFor(() => manager.get(terminal.id)?.state === "idle", 15000);
+
+    expect(manager.get(terminal.id)?.devUrl).toBeUndefined();
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
+
   it("retrouve un terminal par son dossier, quel que soit le style de séparateur", async () => {
     // C'est ce rattachement qui dirige une notification de hook vers un onglet :
     // Claude Code annonce un dossier, pas un terminal.

@@ -664,6 +664,23 @@ Seuls les PNG, JPEG, GIF et WebP sont montrés. Le flux d'activité ne porte que
 nombre : le contenu, souvent des centaines de Ko en base64, se charge par entrée
 quand la vignette approche de l'écran.
 
+## Aperçu du serveur de développement
+
+Une commande du shell qui annonce une adresse locale en démarrant — la ligne
+`Local: http://localhost:5173/` de `vite`, `next dev` et consorts — la fait
+connaître à l'onglet : le bouton d'aperçu de la barre des onglets s'allume, et
+l'ouvre à côté du terminal (`Ctrl+Maj+U`). Plusieurs serveurs se choisissent dans
+l'en-tête de l'aperçu ; l'adresse s'oublie quand la commande se termine.
+
+Le serveur lit la sortie des onglets shell pendant qu'une commande tourne, jamais
+celle de Claude : une adresse citée dans une réponse n'est pas un serveur. Seules
+comptent les adresses de la machine avec un port (`localhost`, `127.0.0.1`, et
+`0.0.0.0` qui s'ouvre par `localhost`), et la ligne tapée, que PowerShell
+redessine au lancement, est écartée : `curl http://localhost:3000` n'annonce rien.
+
+L'aperçu est un cadre : un serveur qui interdit l'affichage en cadre
+(`X-Frame-Options`) s'ouvre avec le bouton « ouvrir dans le navigateur ».
+
 ## Sous-agents
 
 Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un

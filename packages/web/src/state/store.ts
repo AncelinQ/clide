@@ -51,6 +51,8 @@ export interface State {
   showRight: boolean;
   /** Bloc session replié sous le terminal. */
   sessionCollapsed: boolean;
+  /** Aperçu du serveur de développement ouvert à côté du terminal. */
+  previewOpen: boolean;
   /** Entrée d'activité à montrer, ouverte depuis la recherche. */
   activityFocus: { sessionId: string; index: number; agentId?: string } | null;
   /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
@@ -128,6 +130,7 @@ let state: State = {
   showLeft: true,
   showRight: true,
   sessionCollapsed: false,
+  previewOpen: false,
   activityFocus: null,
   activityAgents: null,
   paletteOpen: false,
