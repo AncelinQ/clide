@@ -27,6 +27,8 @@ export const EN: Record<string, string> = {
   "Aperçu : aucun serveur de développement ne tourne": "Preview: no dev server running",
   "Ouvrir dans le navigateur": "Open in the browser",
   "Fermer l'aperçu": "Close the preview",
+  "Ce serveur refuse d'être affiché dans un cadre (X-Frame-Options ou frame-ancestors).":
+    "This server refuses to be shown in a frame (X-Frame-Options or frame-ancestors).",
   "Aucun serveur de développement ne tourne. Lance un script comme dev : l'adresse qu'il annonce s'ouvre ici.":
     "No dev server is running. Start a script such as dev: the address it announces opens here.",
   "capture {n}": "screenshot {n}",

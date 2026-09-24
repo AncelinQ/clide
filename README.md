@@ -678,8 +678,11 @@ comptent les adresses de la machine avec un port (`localhost`, `127.0.0.1`, et
 `0.0.0.0` qui s'ouvre par `localhost`), et la ligne tapée, que PowerShell
 redessine au lancement, est écartée : `curl http://localhost:3000` n'annonce rien.
 
-L'aperçu est un cadre : un serveur qui interdit l'affichage en cadre
-(`X-Frame-Options`) s'ouvre avec le bouton « ouvrir dans le navigateur ».
+L'aperçu est un cadre, et un cadre refusé ne s'annonce pas à la page qui le
+contient : le serveur de l'application lit donc les en-têtes de l'adresse —
+`X-Frame-Options`, ou un `frame-ancestors` qui n'admet pas toute origine. Un
+serveur qui refuse le cadre le dit dans l'aperçu, avec un bouton pour l'ouvrir
+dans le navigateur. Seules les adresses de la machine sont sondées.
 
 ## Schéma de la session
 

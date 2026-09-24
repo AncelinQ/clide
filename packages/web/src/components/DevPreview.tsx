@@ -1,10 +1,11 @@
 import { ExternalLink, MonitorPlay, RotateCw, X } from "lucide-react";
 import { useState } from "react";
 
-import { Empty } from "@/components/common";
+import { Empty, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { t } from "@/i18n";
+import { api } from "@/lib/api";
 import { setState } from "@/state/store";
 import type { TerminalInfo } from "@/lib/types";
 
@@ -30,6 +31,13 @@ export function DevPreview({ terminals }: { terminals: TerminalInfo[] }) {
   const [reloads, setReloads] = useState(0);
   // Le dernier serveur lancé, tant qu'on n'en a pas choisi un qui tourne encore.
   const url = servers.find((server) => server.url === picked)?.url ?? servers.at(-1)?.url;
+  // Un cadre refusé ne s'annonce pas à la page qui le contient : le serveur lit
+  // les en-têtes à sa place. Faute de réponse, le cadre est tenté.
+  const probe = useAsync(
+    () => (url ? api<{ reachable: boolean; framable: boolean }>("/api/preview/probe", { url }) : Promise.resolve(undefined)),
+    [url, reloads],
+  );
+  const refused = probe.data?.framable === false;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-background">
@@ -80,7 +88,18 @@ export function DevPreview({ terminals }: { terminals: TerminalInfo[] }) {
           <X />
         </Button>
       </div>
-      {url ? (
+      {url && refused ? (
+        <div className="grid flex-1 place-content-center justify-items-center gap-2 p-4">
+          <Empty icon={MonitorPlay}>
+            {t("Ce serveur refuse d'être affiché dans un cadre (X-Frame-Options ou frame-ancestors).")}
+          </Empty>
+          <Button variant="outline" size="sm" asChild>
+            <a href={url} target="_blank" rel="noreferrer">
+              <ExternalLink /> {t("Ouvrir dans le navigateur")}
+            </a>
+          </Button>
+        </div>
+      ) : url ? (
         <iframe key={`${url}|${reloads}`} src={url} title={t("Aperçu")} className="min-h-0 flex-1 border-0 bg-white" />
       ) : (
         <Empty icon={MonitorPlay}>

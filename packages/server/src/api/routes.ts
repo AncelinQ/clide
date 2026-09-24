@@ -44,6 +44,7 @@ import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
+import { probeFrame } from "../platform/frame-probe.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
@@ -415,6 +416,9 @@ export const routes: Record<string, Handler> = {
   "/api/session/diagram": async (params, { dataDir }) => ({
     diagram: await readDiagram(dataDir, requireParam(params, "id")),
   }),
+
+  /** Le serveur de développement répond-il, et accepte-t-il l'aperçu en cadre ? */
+  "/api/preview/probe": async (params) => probeFrame(requireParam(params, "url")),
 
   "/api/session/activity": async (params) => {
     const id = requireParam(params, "id");
