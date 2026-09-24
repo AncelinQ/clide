@@ -59,6 +59,7 @@ export function ProjectColumn() {
   const modes: Mode[] = [
     {
       id: "links",
+      doc: "projet#dossiers-lies",
       icon: Link2,
       title: t("Dossiers liés"),
       about: t(
@@ -68,6 +69,7 @@ export function ProjectColumn() {
     },
     {
       id: "scripts",
+      doc: "projet#lancer-un-script",
       icon: Package,
       title: "Scripts",
       about: t("Scripts du package.json, espaces de travail compris. Le gestionnaire vient du lockfile."),
@@ -75,6 +77,7 @@ export function ProjectColumn() {
     },
     {
       id: "skills",
+      doc: "projet#skills",
       icon: Sparkles,
       title: t("Skills du projet"),
       about: t(
@@ -84,6 +87,7 @@ export function ProjectColumn() {
     },
     {
       id: "mcp",
+      doc: "projet#l-etat-des-serveurs-mcp",
       icon: Plug,
       title: t("MCP du projet"),
       about: t("Serveurs déclarés dans .mcp.json, à la racine du dépôt, partagés par l'équipe."),
@@ -91,6 +95,7 @@ export function ProjectColumn() {
     },
     {
       id: "worktrees",
+      doc: "git#worktrees",
       icon: GitBranch,
       title: "Worktrees",
       about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),

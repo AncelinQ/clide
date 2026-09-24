@@ -29,9 +29,12 @@ function openBrowser(url: string): void {
 const here = dirname(fileURLToPath(import.meta.url));
 // Le client est construit par Vite : on sert son `dist`, pas ses sources.
 const webRoot = resolve(here, "..", "..", "web", "dist");
+// Le guide est construit par VitePress, dans son propre dossier.
+const docsRoot = resolve(here, "..", "..", "..", "docs", "guide", ".vitepress", "dist");
 
 const server = await startServer({
   webRoot,
+  docsRoot,
   ...(process.env["CLAUDE_IDE_PORT"] ? { port: Number(process.env["CLAUDE_IDE_PORT"]) } : {}),
   // Un jeton fixe sert au développement et aux tests de bout en bout ;
   // sans lui, il est tiré au hasard à chaque démarrage.

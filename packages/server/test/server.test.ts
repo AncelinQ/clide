@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -315,3 +315,52 @@ class TestClient {
     this.socket.close();
   }
 }
+
+describe("guide sous /docs/", () => {
+  let scratch: string;
+  let withDocs: RunningServer;
+  let withoutDocs: RunningServer;
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "claude-ide-docs-"));
+    const docs = join(scratch, "docs");
+    await mkdir(docs, { recursive: true });
+    await writeFile(join(docs, "index.html"), "<h1>accueil du guide</h1>");
+    await writeFile(join(docs, "git.html"), "<h1>git</h1>");
+    await writeFile(join(docs, "404.html"), "<h1>page absente du guide</h1>");
+    await writeFile(join(scratch, "secret.txt"), "hors du guide");
+    const common = { webRoot: WEB_ROOT, token: "jeton-de-test", dataDir: join(scratch, "data") };
+    withDocs = await startServer({ ...common, docsRoot: docs });
+    withoutDocs = await startServer(common);
+  });
+
+  afterAll(async () => {
+    await withDocs.close();
+    await withoutDocs.close();
+    await rm(scratch, { recursive: true, force: true });
+  });
+
+  it("sert ses pages sans jeton, et renvoie /docs vers /docs/", async () => {
+    const base = `http://127.0.0.1:${withDocs.port}`;
+    const redirect = await fetch(`${base}/docs`, { redirect: "manual" });
+    expect(redirect.status).toBe(302);
+    expect(redirect.headers.get("location")).toBe("/docs/");
+    expect(await (await fetch(`${base}/docs/`)).text()).toContain("accueil du guide");
+    expect(await (await fetch(`${base}/docs/git.html`)).text()).toContain("git");
+  });
+
+  it("rend la 404 du guide pour une page absente, et ne sort pas de sa racine", async () => {
+    const base = `http://127.0.0.1:${withDocs.port}`;
+    const missing = await fetch(`${base}/docs/inconnue.html`);
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).toContain("page absente du guide");
+    const escape = await fetch(`${base}/docs/..%2Fsecret.txt`);
+    expect(await escape.text()).not.toContain("hors du guide");
+  });
+
+  it("dit comment le construire quand il ne l'est pas", async () => {
+    const response = await fetch(`http://127.0.0.1:${withoutDocs.port}/docs/`);
+    expect(response.status).toBe(503);
+    expect(await response.text()).toContain("pnpm docs:build");
+  });
+});

@@ -19,6 +19,8 @@ import { parseClientMessage, type ServerMessage } from "./protocol.js";
 export interface ServerOptions {
   /** Racine des fichiers statiques du client. */
   webRoot: string;
+  /** Guide d'utilisation construit par VitePress, servi sous `/docs/`. */
+  docsRoot?: string;
   /** Fichiers servis sous `/vendor/`, par nom de fichier. */
   vendor?: Record<string, string>;
   port?: number;
@@ -112,11 +114,11 @@ function isAllowedOrigin(request: IncomingMessage, port: number): boolean {
   return origin === `http://127.0.0.1:${port}` || origin === `http://localhost:${port}`;
 }
 
-async function serveFile(response: ServerResponse, target: string): Promise<boolean> {
+async function serveFile(response: ServerResponse, target: string, status = 200): Promise<boolean> {
   try {
     const info = await stat(target);
     if (!info.isFile()) return false;
-    response.writeHead(200, {
+    response.writeHead(status, {
       "content-type": MIME[extname(target).toLowerCase()] ?? "application/octet-stream",
       "cache-control": "no-store",
     });
@@ -131,12 +133,39 @@ async function serveStatic(
   response: ServerResponse,
   root: string,
   requestPath: string,
+  status = 200,
 ): Promise<boolean> {
   const relative = normalize(decodeURIComponent(requestPath)).replace(/^([\\/])+/, "");
   const target = resolve(root, relative);
   // Un `..` dans l'URL ne doit pas sortir de la racine servie.
   if (target !== resolve(root) && !target.startsWith(resolve(root) + sep)) return false;
-  return serveFile(response, target);
+  return serveFile(response, target, status);
+}
+
+/** Page servie à la place du guide tant qu'il n'a pas été construit. */
+const DOCS_MISSING = `<!doctype html><meta charset="utf-8"><title>claude-ide — documentation</title>
+<body style="font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem;line-height:1.6">
+<h1>Documentation non construite</h1>
+<p>Le guide se construit avec <code>pnpm docs:build</code> ; <code>pnpm start</code> le fait à chaque lancement.
+Ses sources se lisent aussi telles quelles dans <code>docs/guide/</code>.</p>`;
+
+/**
+ * Sert le guide VitePress. Il est construit pour vivre sous `/docs/` : ses liens
+ * et ses ressources portent ce préfixe, retiré ici avant de lire le disque. Le
+ * guide n'est pas un secret : comme le client, il se sert sans jeton.
+ */
+async function serveDocs(response: ServerResponse, root: string | undefined, rest: string): Promise<void> {
+  if (rest === "") {
+    response.writeHead(302, { location: "/docs/" });
+    response.end();
+    return;
+  }
+  const path = rest.endsWith("/") ? `${rest}index.html` : rest;
+  if (root && (await serveStatic(response, root, path))) return;
+  // Une page du guide qui n'existe pas : la 404 du guide, dans son thème.
+  if (root && (await serveStatic(response, root, "404.html", 404))) return;
+  response.writeHead(root ? 404 : 503, { "content-type": MIME[".html"] ?? "text/html" });
+  response.end(DOCS_MISSING);
 }
 
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
@@ -243,6 +272,11 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       const file = options.vendor?.[url.pathname.slice("/vendor/".length)];
       if (file && (await serveFile(response, file))) return;
       send(response, 404, { error: "ressource inconnue" });
+      return;
+    }
+
+    if (url.pathname === "/docs" || url.pathname.startsWith("/docs/")) {
+      await serveDocs(response, options.docsRoot, url.pathname.slice("/docs".length));
       return;
     }
 

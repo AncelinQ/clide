@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/main.cjs",
   "scripts": {
-    "build": "pnpm --filter @claude-ide/web build && node build.mjs",
+    "build": "pnpm --filter @claude-ide/web build && pnpm -w docs:build && node build.mjs",
     "typecheck": "tsc --noEmit",
     "start": "electron .",
     "package": "node build.mjs && electron-builder --win --config electron-builder.yml",

@@ -10,16 +10,19 @@
     "typecheck": "pnpm -r typecheck",
     "fixtures": "node tools/make-fixtures.mjs",
     "replay": "node tools/replay.mjs",
-    "start": "pnpm --filter @claude-ide/web build && tsx packages/server/src/main.ts",
-    "build": "pnpm --filter @claude-ide/web build",
+    "start": "pnpm --filter @claude-ide/web build && pnpm docs:build && tsx packages/server/src/main.ts",
+    "build": "pnpm --filter @claude-ide/web build && pnpm docs:build",
     "desktop": "pnpm --filter @claude-ide/desktop start",
-    "package": "pnpm --filter @claude-ide/desktop package"
+    "package": "pnpm --filter @claude-ide/desktop package",
+    "docs:dev": "vitepress dev docs/guide --port 5175",
+    "docs:build": "vitepress build docs/guide"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
     "lucide-static": "^1.47.0",
     "tsx": "^4.23.15",
     "typescript": "^5.6.0",
+    "vitepress": "^1.6.4",
     "vitest": "^2.1.0"
   }
 }

@@ -313,6 +313,7 @@ export function TerminalArea() {
   const modes: Mode[] = [
     {
       id: "plan",
+      doc: "session#le-plan-d-une-session",
       icon: ClipboardList,
       title: "Plan",
       about: t("Le plan soumis en sortant du mode plan, avec sa progression s'il porte des cases."),
@@ -320,6 +321,7 @@ export function TerminalArea() {
     },
     {
       id: "activity",
+      doc: "session#la-session-d-un-onglet",
       icon: Activity,
       title: t("Activité"),
       about: t("Le déroulé de la session : prompts, réponses et appels d'outils."),
@@ -327,6 +329,7 @@ export function TerminalArea() {
     },
     {
       id: "captures",
+      doc: "session#captures",
       icon: Images,
       title: t("Captures"),
       about: t("Les images de la session, sous-agents compris : captures prises par Claude, images collées."),
@@ -334,6 +337,7 @@ export function TerminalArea() {
     },
     {
       id: "files",
+      doc: "session#restaurer-un-fichier",
       icon: FileDiff,
       title: t("Fichiers"),
       about: t(
@@ -350,6 +354,7 @@ export function TerminalArea() {
     },
     {
       id: "diagram",
+      doc: "session#schema-de-la-session",
       icon: Workflow,
       title: t("Schéma"),
       about: t("Un diagramme de ce que la session a changé, rédigé à la demande par claude -p : il coûte des tokens."),
@@ -357,6 +362,7 @@ export function TerminalArea() {
     },
     {
       id: "writeup",
+      doc: "session#message-de-commit-et-description-de-mr",
       icon: PenLine,
       title: t("Rédaction"),
       about: t("Un message de commit ou une description de MR pour la session, rédigé à la demande par claude -p : il coûte des tokens."),
