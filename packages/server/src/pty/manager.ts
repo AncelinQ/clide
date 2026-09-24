@@ -28,6 +28,12 @@ export interface TerminalInfo {
   exited: boolean;
   /** Adresse locale annoncée par la commande en cours : un serveur de développement. */
   devUrl?: string;
+  /**
+   * Projet de l'interface qui l'a ouvert. Il diffère du dossier pour un onglet
+   * ouvert dans un worktree, et c'est lui qui range l'onglet quand la page se
+   * recharge.
+   */
+  owner?: string;
 }
 
 export interface SpawnOptions {
@@ -37,6 +43,7 @@ export interface SpawnOptions {
   rows?: number;
   /** Commande envoyée dès l'ouverture, `claude` pour un onglet Claude. */
   initialCommand?: string;
+  owner?: string;
 }
 
 export interface TerminalEvents {
@@ -52,7 +59,15 @@ interface Terminal {
   pty: IPty;
   scanner: OscScanner;
   urls: DevUrlScanner;
+  /** Fin de la sortie, rejouée dans un terminal qui se rattache après un rechargement. */
+  backlog: string;
 }
+
+/**
+ * Taille de la sortie gardée par terminal. Assez pour retrouver l'écran et un peu
+ * d'historique après un rechargement de la page, pas pour tenir un long journal.
+ */
+const BACKLOG_MAX = 256 * 1024;
 
 const DEFAULT_SHELL = "pwsh.exe";
 
@@ -108,6 +123,7 @@ export class PtyManager {
       pty,
       scanner: new OscScanner(),
       urls: new DevUrlScanner(),
+      backlog: "",
       info: {
         id,
         kind,
@@ -116,13 +132,17 @@ export class PtyManager {
         state: "idle",
         title: kind === "claude" ? "claude" : "shell",
         exited: false,
+        ...(options.owner ? { owner: options.owner } : {}),
       },
     };
     this.#terminals.set(id, terminal);
 
     pty.onData((chunk) => {
       const { text, events } = terminal.scanner.push(chunk);
-      if (text.length > 0) this.#emit("data", id, text);
+      if (text.length > 0) {
+        terminal.backlog = (terminal.backlog + text).slice(-BACKLOG_MAX);
+        this.#emit("data", id, text);
+      }
       if (events.length > 0) this.#applyShellEvents(terminal, events);
       if (text.length > 0) this.#watchDevUrl(terminal, text);
     });
@@ -234,6 +254,11 @@ export class PtyManager {
       // Processus déjà parti : le nettoyage suit dans onExit.
     }
     return true;
+  }
+
+  /** Fin de la sortie d'un terminal, telle qu'elle est partie vers le client. */
+  backlog(id: string): string {
+    return this.#terminals.get(id)?.backlog ?? "";
   }
 
   get(id: string): TerminalInfo | undefined {

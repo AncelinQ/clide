@@ -92,6 +92,10 @@ droite = ce qui ne dépend d'aucun projet.**
 Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
 Les blocs à modes se replient (`˅`) et expliquent le mode courant (`ⓘ`).
 
+Les terminaux vivent dans le serveur, pas dans la page : un rechargement les
+retrouve, rangés dans leur projet — y compris un onglet ouvert dans un worktree —,
+avec les 256 derniers Ko de leur sortie rejoués.
+
 La session regardée vient de **History**, à droite, et ne déplace pas le projet
 courant : c'est une lecture, pas un déplacement. La reprendre — bouton
 « reprendre », qui lance `claude --resume` — ouvre son projet, parce que là c'est

@@ -102,6 +102,8 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
 
     manager.write(terminal.id, "Write-Host BONJOUR-CLAUDE-IDE\r");
     await waitFor(() => output.join("").includes("BONJOUR-CLAUDE-IDE"), 15000);
+    // Ce qui est parti vers le client se rejoue après un rechargement de la page.
+    expect(manager.backlog(terminal.id)).toContain("BONJOUR-CLAUDE-IDE");
 
     manager.write(terminal.id, "cette-commande-nexiste-pas\r");
     await waitFor(() => states.some((state) => state.state === "failed"), 15000);

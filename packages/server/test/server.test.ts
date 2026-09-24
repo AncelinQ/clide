@@ -46,6 +46,14 @@ describe("parseClientMessage", () => {
     });
   });
 
+  it("garde le projet auquel l'onglet appartient", () => {
+    expect(parseClientMessage('{"t":"open","projectRoot":"C:/x-wt","owner":"C:/x"}')).toEqual({
+      t: "open",
+      projectRoot: "C:/x-wt",
+      owner: "C:/x",
+    });
+  });
+
   it("rejette une ouverture sans dossier", () => {
     expect(parseClientMessage('{"t":"open"}')).toBeUndefined();
   });
@@ -188,6 +196,7 @@ describe("serveur local", () => {
     const hello = await client.next();
     expect(hello["t"]).toBe("hello");
     expect(Array.isArray(hello["terminals"])).toBe(true);
+    expect(typeof hello["backlogs"]).toBe("object");
     client.close();
   });
 

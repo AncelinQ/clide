@@ -308,10 +308,6 @@ avec des modifications non commitées — refuser, ou proposer un stash ?
 
 ## Constats en passant
 
-- **Un rechargement de la page perd les onglets.** Le client ignore les terminaux
-  que le serveur lui annonce à la connexion (`hello`) : les onglets disparaissent
-  de l'interface mais leurs processus — shells, Claude, serveurs lancés — tournent
-  toujours, invisibles jusqu'à l'arrêt du serveur.
 - **Le démarrage est déjà rapide** : interface prête en 180 ms, 430 ms avec le
   processeur ralenti quatre fois (2026-09-24). Charger le Markdown à la demande
   retirait 15 % du bundle principal sans gain mesurable, le morceau étant chargé

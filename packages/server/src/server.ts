@@ -287,7 +287,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       }),
     ];
 
-    post({ t: "hello", terminals: manager.list() });
+    const terminals = manager.list();
+    post({
+      t: "hello",
+      terminals,
+      backlogs: Object.fromEntries(terminals.map((terminal) => [terminal.id, manager.backlog(terminal.id)])),
+    });
     for (const { terminalId, session } of live.current()) post({ t: "live", terminalId, session });
 
     socket.on("message", (raw) => {
@@ -326,6 +331,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             ...(message.cols !== undefined ? { cols: message.cols } : {}),
             ...(message.rows !== undefined ? { rows: message.rows } : {}),
             ...(message.initialCommand ? { initialCommand: message.initialCommand } : {}),
+            ...(message.owner ? { owner: message.owner } : {}),
           });
           if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, message.initialCommand);
           post({ t: "opened", terminal });

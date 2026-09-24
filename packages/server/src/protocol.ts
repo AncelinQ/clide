@@ -4,14 +4,24 @@ import type { TerminalInfo, TerminalKind } from "./pty/manager.js";
 
 /** Messages du client vers le serveur, sur la connexion WebSocket. */
 export type ClientMessage =
-  | { t: "open"; projectRoot: string; kind?: TerminalKind; cols?: number; rows?: number; initialCommand?: string }
+  | {
+      t: "open";
+      projectRoot: string;
+      kind?: TerminalKind;
+      cols?: number;
+      rows?: number;
+      initialCommand?: string;
+      /** Projet de l'interface auquel l'onglet appartient. */
+      owner?: string;
+    }
   | { t: "input"; id: string; data: string }
   | { t: "resize"; id: string; cols: number; rows: number }
   | { t: "close"; id: string };
 
 /** Messages du serveur vers le client. */
 export type ServerMessage =
-  | { t: "hello"; terminals: TerminalInfo[] }
+  /** Terminaux ouverts, avec la fin de leur sortie à rejouer. */
+  | { t: "hello"; terminals: TerminalInfo[]; backlogs: Record<string, string> }
   | { t: "opened"; terminal: TerminalInfo }
   | { t: "data"; id: string; data: string }
   | { t: "state"; terminal: TerminalInfo }
@@ -54,6 +64,7 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
       const cols = num("cols");
       const rows = num("rows");
       const initialCommand = str("initialCommand");
+      const owner = str("owner");
       return {
         t: "open",
         projectRoot,
@@ -61,6 +72,7 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
         ...(cols !== undefined ? { cols } : {}),
         ...(rows !== undefined ? { rows } : {}),
         ...(initialCommand ? { initialCommand } : {}),
+        ...(owner ? { owner } : {}),
       };
     }
     case "input": {

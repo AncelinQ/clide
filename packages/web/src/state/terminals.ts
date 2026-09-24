@@ -21,6 +21,11 @@ interface Attached {
 }
 
 const attached = new Map<string, Attached>();
+/**
+ * Sortie reçue pour un terminal dont l'instance n'existe pas encore : après un
+ * rechargement, la fin de sa sortie arrive avant que React n'ait monté son hôte.
+ */
+const pending = new Map<string, string>();
 let socket: WebSocket | undefined;
 /** Projet auquel rattacher le prochain terminal ouvert. */
 let pendingOwner: string | null = null;
@@ -44,6 +49,7 @@ function send(message: unknown): void {
 function onMessage(message: ServerMessage): void {
   switch (message.t) {
     case "hello":
+      adopt(message.terminals, message.backlogs);
       break;
     case "opened": {
       const owner = pendingOwner ?? getState().activeRoot;
@@ -58,9 +64,12 @@ function onMessage(message: ServerMessage): void {
       }));
       break;
     }
-    case "data":
-      attached.get(message.id)?.term.write(message.data);
+    case "data": {
+      const entry = attached.get(message.id);
+      if (entry) entry.term.write(message.data);
+      else if (getState().terminals[message.id]) pending.set(message.id, (pending.get(message.id) ?? "") + message.data);
       break;
+    }
     case "state":
       setState((current) => {
         const existing = current.terminals[message.terminal.id];
@@ -121,12 +130,58 @@ function onMessage(message: ServerMessage): void {
   }
 }
 
+/**
+ * Reprend les terminaux que le serveur fait tourner, à la connexion.
+ *
+ * Après un rechargement de la page, les onglets n'existent plus que côté serveur :
+ * ils sont rattachés à leur projet et leur sortie récente est rejouée. Après un
+ * redémarrage du serveur, c'est l'inverse : les onglets que le client croyait
+ * ouverts n'ont plus de processus, ils sont retirés.
+ */
+function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): void {
+  const current = getState();
+  const roots = current.projects.map((project) => project.root);
+  const alive = new Set(terminals.map((info) => info.id));
+  for (const [id, entry] of attached) {
+    if (alive.has(id)) continue;
+    entry.term.dispose();
+    attached.delete(id);
+  }
+  const next: typeof current.terminals = {};
+  for (const info of terminals) {
+    const known = current.terminals[info.id];
+    if (known) {
+      next[info.id] = { ...known, info };
+      continue;
+    }
+    // Un terminal ouvert avant que le serveur ne retienne son projet se range par
+    // son dossier ; à défaut, dans le projet ouvert.
+    const owner =
+      info.owner ??
+      roots.find((root) => info.projectRoot.toLowerCase().startsWith(root.toLowerCase())) ??
+      current.activeRoot;
+    if (!owner) continue;
+    next[info.id] = { info, owner };
+    const backlog = backlogs[info.id];
+    if (backlog) pending.set(info.id, backlog);
+  }
+  const own = Object.values(next).filter((entry) => entry.owner === current.activeRoot);
+  setState({
+    terminals: next,
+    activeTerminalId:
+      current.activeTerminalId && next[current.activeTerminalId]
+        ? current.activeTerminalId
+        : (own.at(-1)?.info.id ?? null),
+  });
+}
+
 export function openTerminal(kind: TerminalKind, options: { command?: string; cwd?: string } = {}): void {
   const { activeRoot } = getState();
   if (!activeRoot) return;
   pendingOwner = activeRoot;
   send({
     t: "open",
+    owner: activeRoot,
     projectRoot: options.cwd ?? activeRoot,
     kind,
     cols: 100,
@@ -180,6 +235,7 @@ export function runScript(name: string, directory: string, command: string): voi
 
 export function closeTerminal(id: string): void {
   scripts.delete(id);
+  pending.delete(id);
   send({ t: "close", id });
   attached.get(id)?.term.dispose();
   attached.delete(id);
@@ -298,6 +354,11 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   term.open(host);
   term.onData((data) => send({ t: "input", id: info.id, data }));
   attached.set(info.id, { term, fit, host });
+  const backlog = pending.get(info.id);
+  if (backlog) {
+    term.write(backlog);
+    pending.delete(info.id);
+  }
   requestAnimationFrame(() => resize(info.id));
 }
 

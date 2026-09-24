@@ -20,6 +20,8 @@ export interface TerminalInfo {
   exited: boolean;
   /** Adresse locale annoncée par la commande en cours : un serveur de développement. */
   devUrl?: string;
+  /** Projet de l'interface qui l'a ouvert, même quand l'onglet vit dans un worktree. */
+  owner?: string;
 }
 
 /** Coût d'une session, avec ce qu'il vaut : relevé, estimé, plancher ou inconnu. */
@@ -206,7 +208,7 @@ export interface LiveSession {
 
 /** Messages poussés par le serveur sur la connexion des terminaux. */
 export type ServerMessage =
-  | { t: "hello"; terminals: TerminalInfo[] }
+  | { t: "hello"; terminals: TerminalInfo[]; backlogs: Record<string, string> }
   | { t: "opened"; terminal: TerminalInfo }
   | { t: "data"; id: string; data: string }
   | { t: "state"; terminal: TerminalInfo }
