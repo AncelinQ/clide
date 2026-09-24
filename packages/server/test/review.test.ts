@@ -4,7 +4,7 @@ import { forgeOf, parseGhPr, parseGlabMr } from "../src/platform/review.js";
 
 describe("forgeOf", () => {
   it("reconnaît la forge à l'adresse du dépôt distant", () => {
-    expect(forgeOf("https://github.com/AncelinQ/claude-ide.git")).toBe("github");
+    expect(forgeOf("https://github.com/AncelinQ/clide.git")).toBe("github");
     expect(forgeOf("git@gitlab.com:happyneuron/platforms/hn-os-platform.git")).toBe("gitlab");
     expect(forgeOf("https://git.exemple.fr/depot.git")).toBeUndefined();
   });

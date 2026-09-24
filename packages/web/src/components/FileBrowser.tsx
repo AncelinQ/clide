@@ -40,7 +40,7 @@ function insertPath(path: string): void {
  */
 function openOnDisk(root: string, path: string, reveal = false): void {
   post("/api/files/open", { root, path, reveal }).catch((error: unknown) => {
-    console.error("[claude-ide] ouverture impossible", path, error);
+    console.error("[clide] ouverture impossible", path, error);
   });
 }
 

@@ -14,6 +14,7 @@ import {
   hookScriptPath,
   hooksStatus,
   installHooks,
+  migrateHooks,
   uninstallHooks,
 } from "../src/notifications/hook.js";
 import {
@@ -34,7 +35,7 @@ let dataDir: string;
 let settings: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-notif-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-notif-"));
   dataDir = join(dir, "data");
   settings = join(dir, "settings.json");
 });
@@ -428,5 +429,25 @@ describe("définitions", () => {
       "stop",
       "resume",
     ]);
+  });
+});
+
+describe("migrateHooks", () => {
+  it("repointe vers le nouveau dossier les hooks posés sous l'ancien", async () => {
+    const legacyDir = join(dir, "ancien");
+    await writeFile(settings, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mon-outil" }] }] } }));
+    await installHooks(legacyDir, settings);
+
+    expect(await migrateHooks(legacyDir, dataDir, settings)).toBe(true);
+    expect((await hooksStatus(dataDir, settings)).installed).toBe(true);
+    expect((await hooksStatus(legacyDir, settings)).kinds).toEqual([]);
+    // Le hook posé à la main sur le même événement reste là.
+    expect(await readFile(settings, "utf8")).toContain("mon-outil");
+  });
+
+  it("ne pose rien là où rien n'était installé", async () => {
+    await writeFile(settings, "{}");
+    expect(await migrateHooks(join(dir, "ancien"), dataDir, settings)).toBe(false);
+    expect((await hooksStatus(dataDir, settings)).kinds).toEqual([]);
   });
 });

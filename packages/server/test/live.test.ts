@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { encodeProjectPath } from "@claude-ide/core";
+import { encodeProjectPath } from "@clide/core";
 
 import { LiveSessions, type LiveSession } from "../src/sessions/live.js";
 
@@ -12,7 +12,7 @@ let home: string;
 let directory: string;
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), "claude-ide-live-"));
+  home = await mkdtemp(join(tmpdir(), "clide-live-"));
   directory = join(home, "projects", encodeProjectPath(CWD));
   await mkdir(directory, { recursive: true });
 });

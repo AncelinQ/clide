@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { appDataDir } from "@claude-ide/core";
+import { appDataDir } from "@clide/core";
 
 import { attachmentsDir } from "./attachments.js";
 
@@ -27,13 +27,13 @@ export const CAPTURE_TIMEOUT_S = 120;
 export function captureScript(): string {
   return `param([string] $Out, [int] $Timeout = ${CAPTURE_TIMEOUT_S})
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-Add-Type -Namespace ClaudeIde -Name Clipboard -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();'
-$before = [ClaudeIde.Clipboard]::GetClipboardSequenceNumber()
+Add-Type -Namespace Clide -Name Clipboard -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();'
+$before = [Clide.Clipboard]::GetClipboardSequenceNumber()
 Start-Process 'ms-screenclip:'
 $deadline = (Get-Date).AddSeconds($Timeout)
 while ((Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 300
-  if ([ClaudeIde.Clipboard]::GetClipboardSequenceNumber() -ne $before -and [System.Windows.Forms.Clipboard]::ContainsImage()) {
+  if ([Clide.Clipboard]::GetClipboardSequenceNumber() -ne $before -and [System.Windows.Forms.Clipboard]::ContainsImage()) {
     $image = [System.Windows.Forms.Clipboard]::GetImage()
     $image.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
     Write-Output $Out

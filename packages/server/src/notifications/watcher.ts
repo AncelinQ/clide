@@ -2,7 +2,7 @@ import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 
-import { appDataDir } from "@claude-ide/core";
+import { appDataDir } from "@clide/core";
 
 import { eventsDir, type NotificationKind } from "./hook.js";
 

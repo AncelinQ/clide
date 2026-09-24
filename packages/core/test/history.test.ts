@@ -13,7 +13,7 @@ let project: string;
 let resolver: FileHistoryResolver;
 
 beforeEach(async () => {
-  const root = await mkdtemp(join(tmpdir(), "claude-ide-history-"));
+  const root = await mkdtemp(join(tmpdir(), "clide-history-"));
   home = join(root, ".claude");
   project = join(root, "projet");
   await mkdir(join(home, "file-history", SESSION), { recursive: true });

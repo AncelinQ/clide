@@ -96,7 +96,7 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
   };
 
   beforeAll(async () => {
-    scratch = await mkdtemp(join(tmpdir(), "claude-ide-git-"));
+    scratch = await mkdtemp(join(tmpdir(), "clide-git-"));
     remote = join(scratch, "remote.git");
     mine = join(scratch, "mine");
     theirs = join(scratch, "theirs");

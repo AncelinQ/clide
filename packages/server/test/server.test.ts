@@ -21,8 +21,8 @@ describe("shellProfileScript", () => {
   });
 
   it("capture le prompt existant avant de le remplacer", () => {
-    expect(script).toContain("$global:__claudeIdeInner = $function:prompt");
-    expect(script).toContain("& $global:__claudeIdeInner");
+    expect(script).toContain("$global:__clideInner = $function:prompt");
+    expect(script).toContain("& $global:__clideInner");
   });
 
   it("lit $? avant toute autre commande", () => {
@@ -85,7 +85,7 @@ describe("serveur local", () => {
   let scratch: string;
 
   beforeAll(async () => {
-    scratch = await mkdtemp(join(tmpdir(), "claude-ide-srv-"));
+    scratch = await mkdtemp(join(tmpdir(), "clide-srv-"));
     // Les routes qui écrivent visent des fichiers du bac à sable : aucun test
     // ne doit toucher à la configuration de la machine.
     server = await startServer({
@@ -165,7 +165,7 @@ describe("serveur local", () => {
   it("sert la page du client", async () => {
     const response = await fetch(`${base()}/`);
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain("claude-ide");
+    expect(await response.text()).toContain("Clide");
   });
 
   it("ne sort pas de la racine servie", async () => {
@@ -322,7 +322,7 @@ describe("guide sous /docs/", () => {
   let withoutDocs: RunningServer;
 
   beforeAll(async () => {
-    scratch = await mkdtemp(join(tmpdir(), "claude-ide-docs-"));
+    scratch = await mkdtemp(join(tmpdir(), "clide-docs-"));
     const docs = join(scratch, "docs");
     await mkdir(docs, { recursive: true });
     await writeFile(join(docs, "index.html"), "<h1>accueil du guide</h1>");

@@ -42,7 +42,7 @@ import {
   type ActivityEntry,
   type SkillInvocation,
   type TranscriptRef,
-} from "@claude-ide/core";
+} from "@clide/core";
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";

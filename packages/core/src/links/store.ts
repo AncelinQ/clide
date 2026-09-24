@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { SettingsEditor, type SettingsEdit } from "../settings/editor.js";
@@ -14,8 +14,15 @@ export interface ProjectLink {
 
 /** Fichiers écrits par le magasin, relatifs à la racine du projet. */
 export const LINKS_SETTINGS = join(".claude", "settings.local.json");
-export const LINKS_ROLES = join(".claude", "claude-ide.json");
-export const LINKS_PROMPT = join(".claude", "claude-ide-prompt.md");
+export const LINKS_ROLES = join(".claude", "clide.json");
+export const LINKS_PROMPT = join(".claude", "clide-prompt.md");
+
+/**
+ * Noms que portaient ces fichiers avant le nom Clide. Ils sont encore lus, et
+ * remplacés par les nouveaux à la première écriture dans le projet.
+ */
+const LEGACY_ROLES = join(".claude", "claude-ide.json");
+const LEGACY_PROMPT = join(".claude", "claude-ide-prompt.md");
 
 /** Chemin du fichier de prompt d'un projet. */
 export function promptPath(projectRoot: string): string {
@@ -68,7 +75,7 @@ function stringList(value: unknown): string[] {
  *
  * Les chemins vont dans `permissions.additionalDirectories` de
  * `.claude/settings.local.json`, mécanisme natif de Claude Code ; les rôles, qui
- * n'ont pas d'équivalent natif, vivent à part dans `.claude/claude-ide.json`.
+ * n'ont pas d'équivalent natif, vivent à part dans `.claude/clide.json`.
  * Les deux fichiers sont édités chirurgicalement : `settings.local.json` porte
  * aussi la liste des permissions accordées au fil des sessions, qu'une
  * réécriture complète perdrait.
@@ -95,7 +102,8 @@ export class LinkStore {
 
   async #readRoles(projectRoot: string): Promise<Record<string, string>> {
     try {
-      const parsed: unknown = JSON.parse(await readFile(join(projectRoot, LINKS_ROLES), "utf8"));
+      const file = (await exists(join(projectRoot, LINKS_ROLES))) ? LINKS_ROLES : LEGACY_ROLES;
+      const parsed: unknown = JSON.parse(await readFile(join(projectRoot, file), "utf8"));
       const roles = asRecord(asRecord(parsed)?.["roles"]);
       if (!roles) return {};
       return Object.fromEntries(
@@ -104,6 +112,19 @@ export class LinkStore {
     } catch {
       return {};
     }
+  }
+
+  /**
+   * Passe un projet des anciens noms de fichiers aux nouveaux : les rôles
+   * changent de nom, le prompt généré disparaît — il est réécrit sous son nouveau
+   * nom, et l'ancien décrirait des liens que plus rien ne tient à jour.
+   */
+  async #migrate(projectRoot: string): Promise<void> {
+    const legacy = join(projectRoot, LEGACY_ROLES);
+    if ((await exists(legacy)) && !(await exists(join(projectRoot, LINKS_ROLES)))) {
+      await rename(legacy, join(projectRoot, LINKS_ROLES));
+    }
+    await rm(join(projectRoot, LEGACY_PROMPT), { force: true });
   }
 
   /**
@@ -138,6 +159,7 @@ export class LinkStore {
     const roles = Object.fromEntries(
       links.filter((link) => link.role).map((link) => [link.path, link.role as string]),
     );
+    await this.#migrate(projectRoot);
     await this.#editor.update(join(projectRoot, LINKS_ROLES), [{ path: ["roles"], value: roles }]);
 
     await this.writePrompt(projectRoot);
@@ -175,6 +197,7 @@ export class LinkStore {
    * jamais.
    */
   async writePrompt(projectRoot: string): Promise<string | undefined> {
+    await this.#migrate(projectRoot);
     const path = promptPath(projectRoot);
     const text = LinkStore.describe(await this.read(projectRoot));
     if (text.length === 0) {
@@ -187,5 +210,9 @@ export class LinkStore {
   }
 }
 
+async function exists(path: string): Promise<boolean> {
+  return !!(await stat(path).catch(() => undefined));
+}
+
 const PROMPT_HEADER =
-  "<!-- Généré par claude-ide depuis .claude/claude-ide.json. Toute modification sera écrasée. -->";
+  "<!-- Généré par Clide depuis .claude/clide.json. Toute modification sera écrasée. -->";

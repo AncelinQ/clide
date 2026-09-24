@@ -12,7 +12,7 @@ let indexFile: string;
 const PROJECT = "C--Projets-projet-a";
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "claude-ide-index-"));
+  root = await mkdtemp(join(tmpdir(), "clide-index-"));
   home = join(root, ".claude");
   indexFile = join(root, "index.json");
   await mkdir(join(home, "projects", PROJECT), { recursive: true });

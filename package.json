@@ -1,5 +1,5 @@
 {
-  "name": "claude-ide",
+  "name": "clide",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,10 +10,10 @@
     "typecheck": "pnpm -r typecheck",
     "fixtures": "node tools/make-fixtures.mjs",
     "replay": "node tools/replay.mjs",
-    "start": "pnpm --filter @claude-ide/web build && pnpm docs:build && tsx packages/server/src/main.ts",
-    "build": "pnpm --filter @claude-ide/web build && pnpm docs:build",
-    "desktop": "pnpm --filter @claude-ide/desktop start",
-    "package": "pnpm --filter @claude-ide/desktop package",
+    "start": "pnpm --filter @clide/web build && pnpm docs:build && tsx packages/server/src/main.ts",
+    "build": "pnpm --filter @clide/web build && pnpm docs:build",
+    "desktop": "pnpm --filter @clide/desktop start",
+    "package": "pnpm --filter @clide/desktop package",
     "docs:dev": "vitepress dev docs/guide --port 5175",
     "docs:build": "vitepress build docs/guide"
   },

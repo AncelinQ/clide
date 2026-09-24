@@ -26,7 +26,7 @@ describe.skipIf(!hasCorpus)("corpus réel — index et diffs", () => {
   it(
     "liste les sessions en moins de 150 ms à chaud",
     async () => {
-      scratch = await mkdtemp(join(tmpdir(), "claude-ide-bench-"));
+      scratch = await mkdtemp(join(tmpdir(), "clide-bench-"));
       const indexFile = join(scratch, "session-index.json");
 
       const coldStart = Date.now();
@@ -157,7 +157,7 @@ describe.skipIf(!hasCorpus)("corpus réel — index et diffs", () => {
 
 describe("écriture atomique de l'index", () => {
   it("laisse l'index précédent intact si l'écriture ne va pas au bout", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "claude-ide-atomic-"));
+    const dir = await mkdtemp(join(tmpdir(), "clide-atomic-"));
     const home = join(dir, ".claude");
     await mkdir(join(home, "projects", "C--x"), { recursive: true });
     await writeFile(join(home, "projects", "C--x", "s.jsonl"), '{"type":"user"}\n', "utf8");

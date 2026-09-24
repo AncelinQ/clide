@@ -7,7 +7,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
  * comme dans un navigateur. N'y sont exposées que les capacités qui
  * justifiaient l'emballage.
  */
-contextBridge.exposeInMainWorld("claudeIde", {
+contextBridge.exposeInMainWorld("clide", {
   desktop: true,
 
   /**
@@ -30,11 +30,11 @@ contextBridge.exposeInMainWorld("claudeIde", {
    * l'image du compteur, en URL `data:` PNG.
    */
   setAttention(waiting: number, badge?: string): void {
-    ipcRenderer.send("claude-ide:attention", waiting, badge);
+    ipcRenderer.send("clide:attention", waiting, badge);
   },
 
   /** Ramène la fenêtre au premier plan, même réduite. */
   focusWindow(): void {
-    ipcRenderer.send("claude-ide:focus");
+    ipcRenderer.send("clide:focus");
   },
 });

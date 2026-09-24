@@ -11,7 +11,7 @@ let home: string;
 let directory: string;
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), "claude-ide-live-"));
+  home = await mkdtemp(join(tmpdir(), "clide-live-"));
   directory = join(home, "projects", encodeProjectPath(CWD));
   await mkdir(directory, { recursive: true });
 });

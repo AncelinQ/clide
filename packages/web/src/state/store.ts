@@ -83,14 +83,16 @@ export interface Widths {
 
 export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
-const SAVED = "claude-ide.state";
+const SAVED = "clide.state";
+/** Clé des versions antérieures au nom Clide, relue tant que la nouvelle n'existe pas. */
+const LEGACY_SAVED = "claude-ide.state";
 
 function restored(): Pick<
   State,
   "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "widths"
 > {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
+    const saved = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}") as {
       roots?: string[];
       active?: string;
       theme?: Theme;

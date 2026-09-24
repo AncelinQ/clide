@@ -64,7 +64,7 @@ export function socketUrl(path: string): string {
 }
 
 /** Type des chemins glissés depuis le Finder de l'application. */
-export const PATHS_MIME = "application/x-claude-ide-paths";
+export const PATHS_MIME = "application/x-clide-paths";
 
 /** Chemin tel qu'on le tape dans un prompt : entre guillemets s'il porte des espaces. */
 export function quotePath(path: string): string {

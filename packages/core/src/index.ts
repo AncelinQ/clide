@@ -1,5 +1,7 @@
 export {
   appDataDir,
+  legacyAppDataDir,
+  migrateAppData,
   claudeHome,
   isInside,
   normalizePath,

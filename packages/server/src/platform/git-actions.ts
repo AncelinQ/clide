@@ -256,7 +256,7 @@ export async function switchBranch(
   const dirty = status.changed > 0;
   if (dirty && !options.stash) throw new DirtyTreeError(status.changed);
   if (dirty) {
-    await git(root, ["stash", "push", "--include-untracked", "-m", `claude-ide : avant de passer de ${status.branch ?? status.head ?? "?"} à ${name}`]);
+    await git(root, ["stash", "push", "--include-untracked", "-m", `Clide : avant de passer de ${status.branch ?? status.head ?? "?"} à ${name}`]);
   }
   try {
     await git(root, ["switch", name]);

@@ -1,3 +1,4 @@
+import { mkdir, readdir, rename, rm, rmdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -62,11 +63,71 @@ export function isInside(parent: string, child: string): boolean {
 
 /**
  * Dossier de données de l'application, distinct de `~/.claude` : ce qui est
- * écrit ici appartient à claude-ide et peut être supprimé sans toucher à la
+ * écrit ici appartient à Clide et peut être supprimé sans toucher à la
  * configuration de Claude Code.
  */
 export function appDataDir(env: NodeJS.ProcessEnv = process.env): string {
-  const base = env["LOCALAPPDATA"] ?? env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache");
-  return join(base, "claude-ide");
+  return join(dataBase(env), "clide");
+}
+
+function dataBase(env: NodeJS.ProcessEnv): string {
+  return env["LOCALAPPDATA"] ?? env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache");
+}
+
+/** Dossier de données des installations antérieures au nom Clide. */
+export function legacyAppDataDir(env: NodeJS.ProcessEnv = process.env): string {
+  return join(dataBase(env), "claude-ide");
+}
+
+/**
+ * Reprend les données écrites sous l'ancien nom : index, schémas, rédactions,
+ * sauvegardes de restauration, profil PowerShell.
+ *
+ * Chaque entrée de l'ancien dossier absente du nouveau y est déplacée ; une
+ * entrée que le nouveau a déjà reste où elle est, jamais écrasée. Le nouveau
+ * dossier peut en effet exister avant la migration — un premier lancement, une
+ * suite de tests y régénèrent le profil PowerShell — sans rien porter de ce qui
+ * compte. L'ancien dossier disparaît une fois vide.
+ *
+ * Un déplacement impossible — un ancien processus garde un fichier ouvert — est
+ * rendu à l'appelant plutôt que levé : l'application démarre quand même, et ce
+ * qui n'a pas suivi se reconstruit ou reste à reprendre au lancement suivant.
+ */
+/**
+ * Entrées que l'application recrée à chaque lancement : le profil PowerShell et
+ * le dossier où les hooks déposent leurs événements. Déjà présentes dans le
+ * nouveau dossier, leur ancienne copie n'a plus rien à apporter.
+ */
+const REGENERATED = new Set(["pwsh", "hook-events"]);
+
+export async function migrateAppData(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<{ moved: string[]; kept: string[]; from: string; to: string; error?: string }> {
+  const from = legacyAppDataDir(env);
+  const to = appDataDir(env);
+  const moved: string[] = [];
+  const kept: string[] = [];
+  let entries: string[];
+  try {
+    entries = await readdir(from);
+  } catch {
+    return { moved, kept, from, to };
+  }
+  try {
+    await mkdir(to, { recursive: true });
+    for (const entry of entries) {
+      if (await stat(join(to, entry)).catch(() => undefined)) {
+        if (REGENERATED.has(entry)) await rm(join(from, entry), { recursive: true, force: true });
+        else kept.push(entry);
+        continue;
+      }
+      await rename(join(from, entry), join(to, entry));
+      moved.push(entry);
+    }
+    if (kept.length === 0) await rmdir(from);
+    return { moved, kept, from, to };
+  } catch (error) {
+    return { moved, kept, from, to, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 

@@ -1,5 +1,5 @@
-appId: fr.claudeide.app
-productName: claude-ide
+appId: fr.clide.app
+productName: Clide
 copyright: Ancelin Quinton
 
 directories:
@@ -34,6 +34,6 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: claude-ide
+  shortcutName: Clide
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { LINKS_PROMPT, appDataDir } from "@claude-ide/core";
+import { LINKS_PROMPT, appDataDir } from "@clide/core";
 
 import { OSC_CODE } from "./osc.js";
 
@@ -30,13 +30,13 @@ const PROMPT_SEGMENTS = LINKS_PROMPT.split(/[\\/]/)
  * générateur, le fichier et l'analyseur PowerShell finit par se perdre en route.
  */
 export function shellProfileScript(oscCode: number = OSC_CODE): string {
-  return `# claude-ide — intégration shell. Fichier généré, toute modification sera écrasée.
+  return `# Clide — intégration shell. Fichier généré, toute modification sera écrasée.
 
-if (-not $global:__claudeIdeInner) {
-  $global:__claudeIdeInner = $function:prompt
+if (-not $global:__clideInner) {
+  $global:__clideInner = $function:prompt
 }
 
-function global:__claudeIdeEmit([string] $payload) {
+function global:__clideEmit([string] $payload) {
   [Console]::Write([char]27 + ']${oscCode};' + $payload + [char]7)
 }
 
@@ -53,9 +53,9 @@ function global:prompt {
     # Un fournisseur non-fichier (Cert:, HKLM:) n'a pas d'URI : pas de dossier à signaler.
   }
 
-  __claudeIdeEmit ('END;' + $code)
+  __clideEmit ('END;' + $code)
 
-  if ($global:__claudeIdeInner) { & $global:__claudeIdeInner } else { 'PS ' + $PWD.Path + '> ' }
+  if ($global:__clideInner) { & $global:__clideInner } else { 'PS ' + $PWD.Path + '> ' }
 }
 
 # Marqueur de début de commande. PSReadLine peut être absent ou déjà pourvu d'un
@@ -64,7 +64,7 @@ function global:prompt {
 try {
   Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
     param($key, $arg)
-    __claudeIdeEmit 'START'
+    __clideEmit 'START'
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
   }
 } catch {
@@ -74,12 +74,12 @@ try {
 # appelé par son nom depuis cette fonction, il s'appellerait elle. Sans
 # exécutable trouvé, aucune fonction n'est posée et la commande échoue comme
 # elle l'aurait fait sans nous.
-$global:__claudeIdeClaude = (
+$global:__clideClaude = (
   Get-Command claude -CommandType Application, ExternalScript -ErrorAction SilentlyContinue |
     Select-Object -First 1
 ).Source
 
-if ($global:__claudeIdeClaude) {
+if ($global:__clideClaude) {
   function global:claude {
     $promptFile = Join-Path $PWD.Path ${PROMPT_SEGMENTS}
 
@@ -91,15 +91,15 @@ if ($global:__claudeIdeClaude) {
     # commande pour reconnaître une reprise. Les caractères de contrôle sont
     # retirés : un BEL dans un argument fermerait la séquence avant son terme.
     $line = -join (('claude ' + ($args -join ' ')).ToCharArray() | Where-Object { [int] $_ -ge 32 })
-    __claudeIdeEmit ('CLAUDE_START;' + $line)
+    __clideEmit ('CLAUDE_START;' + $line)
     try {
       if ((Test-Path -LiteralPath $promptFile -PathType Leaf) -and $own.Count -eq 0) {
-        & $global:__claudeIdeClaude --append-system-prompt-file $promptFile @args
+        & $global:__clideClaude --append-system-prompt-file $promptFile @args
       } else {
-        & $global:__claudeIdeClaude @args
+        & $global:__clideClaude @args
       }
     } finally {
-      __claudeIdeEmit 'CLAUDE_END'
+      __clideEmit 'CLAUDE_END'
     }
   }
 }
@@ -113,7 +113,7 @@ export interface ShellProfile {
 }
 
 export function profilePath(dataDir: string = appDataDir()): string {
-  return join(dataDir, "pwsh", "claude-ide-profile.ps1");
+  return join(dataDir, "pwsh", "clide-profile.ps1");
 }
 
 /**

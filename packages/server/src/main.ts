@@ -35,19 +35,19 @@ const docsRoot = resolve(here, "..", "..", "..", "docs", "guide", ".vitepress", 
 const server = await startServer({
   webRoot,
   docsRoot,
-  ...(process.env["CLAUDE_IDE_PORT"] ? { port: Number(process.env["CLAUDE_IDE_PORT"]) } : {}),
+  ...(process.env["CLIDE_PORT"] ? { port: Number(process.env["CLIDE_PORT"]) } : {}),
   // Un jeton fixe sert au développement et aux tests de bout en bout ;
   // sans lui, il est tiré au hasard à chaque démarrage.
-  ...(process.env["CLAUDE_IDE_TOKEN"] ? { token: process.env["CLAUDE_IDE_TOKEN"] } : {}),
+  ...(process.env["CLIDE_TOKEN"] ? { token: process.env["CLIDE_TOKEN"] } : {}),
 });
 
-console.log(`claude-ide écoute sur ${server.url}`);
+console.log(`Clide écoute sur ${server.url}`);
 
 // Le lancement par raccourci n'a pas de terminal où lire l'URL : sans ouverture
 // automatique, l'application démarrerait sans que rien n'apparaisse.
-if (process.env["CLAUDE_IDE_NO_OPEN"] !== "1") {
+if (process.env["CLIDE_NO_OPEN"] !== "1") {
   openBrowser(server.url);
-  console.log("Navigateur ouvert. CLAUDE_IDE_NO_OPEN=1 pour ne pas l'ouvrir.");
+  console.log("Navigateur ouvert. CLIDE_NO_OPEN=1 pour ne pas l'ouvrir.");
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

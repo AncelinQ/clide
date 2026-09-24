@@ -1,10 +1,10 @@
-# claude-ide
+# Clide
 
 Un poste de travail Windows pour mener plusieurs chantiers Claude Code de front. Les terminaux sont dans l'application ; les panneaux, eux, ne demandent rien à Claude : ils relisent les fichiers qu'il laisse derrière lui.
 
 ## Lancer
 
-Double-cliquer **`claude-ide.cmd`** : il installe les dépendances au premier
+Double-cliquer **`clide.cmd`** : il installe les dépendances au premier
 lancement, démarre le serveur et ouvre le navigateur sur la bonne URL. Fermer la
 fenêtre arrête le serveur et les terminaux qu'il a ouverts.
 
@@ -13,8 +13,8 @@ En ligne de commande :
 ```
 pnpm install
 pnpm start                  # démarre et ouvre le navigateur
-CLAUDE_IDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
-CLAUDE_IDE_PORT=7790 …      # port fixe plutôt qu'un port libre
+CLIDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
+CLIDE_PORT=7790 …      # port fixe plutôt qu'un port libre
 ```
 
 ## Deux façons de l'utiliser
@@ -35,7 +35,7 @@ Ce que la fenêtre native ajoute, et qui justifiait l'emballage :
 Le pont passe par `contextBridge` : la page n'a pas accès à Node, exactement comme
 dans un navigateur, et n'expose que ces deux capacités.
 
-**Dans un navigateur.** `claude-ide.cmd` ou `pnpm start` : même application, sans
+**Dans un navigateur.** `clide.cmd` ou `pnpm start` : même application, sans
 fenêtre native ni glisser-déposer externe. Rien n'est dupliqué entre les deux.
 
 L'installateur **n'est pas signé** : SmartScreen avertit au premier lancement.

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { normalizePath } from "@claude-ide/core";
+import { normalizePath } from "@clide/core";
 import { spawn, type IPty } from "node-pty";
 
 import { DevUrlScanner } from "./dev-url.js";

@@ -8,7 +8,7 @@ import { breadcrumb, listDirectory } from "../src/files/browser.js";
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "claude-ide-browser-"));
+  root = await mkdtemp(join(tmpdir(), "clide-browser-"));
   await mkdir(join(root, "src", "pages"), { recursive: true });
   await mkdir(join(root, "node_modules", "paquet"), { recursive: true });
   await mkdir(join(root, ".git"), { recursive: true });

@@ -9,7 +9,7 @@ import {
   type QueuedPrompt,
   type SessionCost,
   type TokenUsage,
-} from "@claude-ide/core";
+} from "@clide/core";
 
 /** Ce que le client montre de la session qui tourne dans un onglet. */
 export interface LiveSession {

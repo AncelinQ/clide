@@ -12,7 +12,7 @@ let file: string;
 let editor: SettingsEditor;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-settings-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-settings-"));
   file = join(dir, "settings.json");
   editor = new SettingsEditor();
 });

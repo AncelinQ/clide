@@ -9,7 +9,7 @@ let dir: string;
 let file: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-jsonl-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-jsonl-"));
   file = join(dir, "session.jsonl");
 });
 

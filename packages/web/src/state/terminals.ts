@@ -125,7 +125,7 @@ function onMessage(message: ServerMessage): void {
       });
       break;
     case "error":
-      console.error("[claude-ide]", message.message);
+      console.error("[clide]", message.message);
       break;
   }
 }

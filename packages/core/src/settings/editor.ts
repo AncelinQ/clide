@@ -111,7 +111,7 @@ export class SettingsEditor {
 
   /** Chemin de la sauvegarde posée avant la première modification d'un fichier. */
   static backupPath(file: string): string {
-    return join(dirname(file), `${file.split(/[\\/]/).pop() ?? "settings.json"}.claude-ide.bak`);
+    return join(dirname(file), `${file.split(/[\\/]/).pop() ?? "settings.json"}.clide.bak`);
   }
 
   /**

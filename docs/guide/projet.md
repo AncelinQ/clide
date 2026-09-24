@@ -11,8 +11,8 @@ servent. Trois fichiers y suffisent, tous écrits dans le projet :
 | Fichier | Rôle |
 |---|---|
 | `.claude/settings.local.json` | les chemins dans `permissions.additionalDirectories`, et une règle `deny` par dossier en lecture seule |
-| `.claude/claude-ide.json` | les rôles, qui n'ont pas d'équivalent natif |
-| `.claude/claude-ide-prompt.md` | le texte décrivant les liens, passé à Claude en `--append-system-prompt-file` |
+| `.claude/clide.json` | les rôles, qui n'ont pas d'équivalent natif |
+| `.claude/clide-prompt.md` | le texte décrivant les liens, passé à Claude en `--append-system-prompt-file` |
 
 Trois choses méritent d'être dites :
 

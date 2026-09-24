@@ -1,5 +1,5 @@
 /**
- * Code OSC privé de claude-ide.
+ * Code OSC privé de Clide.
  *
  * Les codes voisins sont pris : 133 par FinalTerm, 633 par VS Code, 1337 par
  * iTerm2, 7770 par ClaudeTerm. En choisir un déjà utilisé ferait interpréter nos

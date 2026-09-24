@@ -92,7 +92,7 @@ export function PreferencesDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("Préférences")}</DialogTitle>
-          <DialogDescription>{t("Propres à claude-ide, sans effet sur Claude Code.")}</DialogDescription>
+          <DialogDescription>{t("Propres à Clide, sans effet sur Claude Code.")}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">

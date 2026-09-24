@@ -20,7 +20,7 @@ const bash = (command: string, timestamp: string) =>
   });
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), "claude-ide-search-"));
+  home = await mkdtemp(join(tmpdir(), "clide-search-"));
   await mkdir(join(home, "projects", "C--Projets-app"), { recursive: true });
   file = join(home, "projects", "C--Projets-app", `${SID}.jsonl`);
   await writeFile(

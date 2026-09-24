@@ -345,7 +345,7 @@ interface HookRow {
  * Hooks de `settings.json`, à plat : un événement, un filtre, une commande.
  *
  * Retirer un hook réécrit la liste de son événement ; le reste de l'arbre, y
- * compris les hooks posés par claude-ide pour ses notifications, ne bouge pas.
+ * compris les hooks posés par Clide pour ses notifications, ne bouge pas.
  */
 function HooksEditor({ hooks, write }: { hooks: Json; write: (path: Path, value: unknown) => Promise<void> }) {
   const [event, setEvent] = useState("PreToolUse");

@@ -261,7 +261,7 @@ export const EN: Record<string, string> = {
   "Le dossier racine du dépôt. Ses terminaux, ses fichiers et ses réglages en dépendent.": "The root folder of the repository. Its terminals, files and settings depend on it.",
   "Annuler": "Cancel",
   "C:\\Projets\\mon-projet": "C:\\Projects\\my-project",
-  "Propres à claude-ide, sans effet sur Claude Code.": "Specific to claude-ide, with no effect on Claude Code.",
+  "Propres à Clide, sans effet sur Claude Code.": "Specific to Clide, with no effect on Claude Code.",
   "Police du terminal": "Terminal font",
   "Par défaut (Consolas)": "Default (Consolas)",
   "{family} (introuvable)": "{family} (not found)",

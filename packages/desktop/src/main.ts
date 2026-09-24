@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import { startServer, type RunningServer } from "@claude-ide/server";
+import { startServer, type RunningServer } from "@clide/server";
 import { BrowserWindow, app, ipcMain, nativeImage, shell } from "electron";
 
 /**
@@ -34,7 +34,7 @@ async function createWindow(): Promise<void> {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: "#16181d",
-    title: "claude-ide",
+    title: "Clide",
     // L'exécutable empaqueté porte déjà l'icône ; `electron .` en développement, non.
     icon: join(here, "icon.png"),
     autoHideMenuBar: true,
@@ -55,7 +55,7 @@ async function createWindow(): Promise<void> {
 
   // L'URL sort sur la console : elle permet d'ouvrir la même application dans un
   // navigateur, et de diagnostiquer un démarrage qui n'affiche rien.
-  console.log(`claude-ide écoute sur ${server.url}`);
+  console.log(`Clide écoute sur ${server.url}`);
 
   window_.on("focus", () => window_?.flashFrame(false));
   window_.on("closed", () => {
@@ -74,7 +74,7 @@ async function createWindow(): Promise<void> {
  * canevas. Le clignotement, lui, ne sert qu'à une fenêtre en arrière-plan, et la
  * reprendre en main l'éteint.
  */
-ipcMain.on("claude-ide:attention", (_event, waiting: unknown, badge: unknown) => {
+ipcMain.on("clide:attention", (_event, waiting: unknown, badge: unknown) => {
   if (!window_) return;
   const count = typeof waiting === "number" ? waiting : 0;
   if (process.platform === "win32") {
@@ -84,7 +84,7 @@ ipcMain.on("claude-ide:attention", (_event, waiting: unknown, badge: unknown) =>
   if (!window_.isFocused()) window_.flashFrame(count > 0);
 });
 
-ipcMain.on("claude-ide:focus", () => {
+ipcMain.on("clide:focus", () => {
   if (!window_) return;
   if (window_.isMinimized()) window_.restore();
   window_.show();
@@ -98,7 +98,7 @@ async function shutdown(): Promise<void> {
 
 // Sans identifiant d'application, Windows n'affiche pas les notifications
 // d'une application qui n'a pas de raccourci dans le menu Démarrer.
-if (process.platform === "win32") app.setAppUserModelId("claude-ide");
+if (process.platform === "win32") app.setAppUserModelId("fr.clide.app");
 
 void app.whenReady().then(async () => {
   await createWindow();

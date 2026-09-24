@@ -96,7 +96,7 @@ async function typeImages(terminalId: string, images: File[]): Promise<void> {
  * partout. Un fichier venu de l'Explorateur n'a de chemin que sous Electron : un
  * navigateur livre son contenu, jamais son emplacement.
  */
-function droppedPaths(data: DataTransfer, desktop: Window["claudeIde"]): string[] {
+function droppedPaths(data: DataTransfer, desktop: Window["clide"]): string[] {
   const internal = data.getData(PATHS_MIME);
   if (internal) {
     try {
@@ -120,7 +120,7 @@ function droppedPaths(data: DataTransfer, desktop: Window["claudeIde"]): string[
  */
 function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const desktop = window.claudeIde;
+  const desktop = window.clide;
 
   useEffect(() => {
     if (ref.current) mount(info, ref.current, terminalTheme());
@@ -149,7 +149,7 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         const images = imagesOf(event.dataTransfer.files);
         if (images.length === 0) return;
         event.preventDefault();
-        void typeImages(info.id, images).catch((error: unknown) => console.error("[claude-ide]", error));
+        void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
       // En phase de capture, avant que xterm ne colle : une image seule dans le
       // presse-papiers n'a pas de texte à coller, elle devient un chemin.
@@ -158,7 +158,7 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         if (images.length === 0 || event.clipboardData.getData("text/plain")) return;
         event.preventDefault();
         event.stopPropagation();
-        void typeImages(info.id, images).catch((error: unknown) => console.error("[claude-ide]", error));
+        void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
     />
   );

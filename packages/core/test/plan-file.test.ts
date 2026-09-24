@@ -8,7 +8,7 @@ import { withPlanFile } from "../src/session/plan-file.js";
 let home: string;
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), "claude-ide-plan-"));
+  home = await mkdtemp(join(tmpdir(), "clide-plan-"));
   await mkdir(join(home, "plans"), { recursive: true });
 });
 

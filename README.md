@@ -1,4 +1,4 @@
-# <img src="logo.png" alt="" width="36" align="top"> claude-ide
+# <img src="assets/brand/logo.png" alt="" width="36" align="top"> Clide
 
 Un poste de travail Windows pour mener plusieurs chantiers Claude Code de front.
 Les terminaux sont dans l'application ; les panneaux, eux, ne demandent rien à
@@ -50,7 +50,7 @@ Pistes pour la suite : [`docs/pistes.md`](docs/pistes.md).
 | C5 | Panneau Process, arbre Claude, arrêt gardé | fait |
 | C6 | Notifications : hooks, file d'événements, pastille d'onglet | fait |
 | C7 | Panneau Plan : lu dans l'appel à `ExitPlanMode` | fait |
-| C8 | Démarrage en un clic, `claude-ide.cmd` | fait |
+| C8 | Démarrage en un clic, `clide.cmd` | fait |
 | — | Panneau Worktrees : état git, sessions rattachées, retrait gardé | fait |
 | B6 | Emballage Electron : fenêtre native, installateur NSIS | fait |
 
@@ -58,7 +58,7 @@ Le plan est bouclé.
 
 ## Lancer
 
-Double-cliquer **`claude-ide.cmd`** : il installe les dépendances au premier
+Double-cliquer **`clide.cmd`** : il installe les dépendances au premier
 lancement, démarre le serveur et ouvre le navigateur sur la bonne URL. Fermer la
 fenêtre arrête le serveur et les terminaux qu'il a ouverts.
 
@@ -67,8 +67,8 @@ En ligne de commande :
 ```
 pnpm install
 pnpm start                  # démarre et ouvre le navigateur
-CLAUDE_IDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
-CLAUDE_IDE_PORT=7790 …      # port fixe plutôt qu'un port libre
+CLIDE_NO_OPEN=1 …      # démarre sans ouvrir le navigateur
+CLIDE_PORT=7790 …      # port fixe plutôt qu'un port libre
 ```
 
 ## Documentation
@@ -120,9 +120,11 @@ du processus principal d'Electron avec le `PATH` de la session Windows : rien à
 configurer de plus que pour la version navigateur. **Il n'est pas signé** :
 SmartScreen avertira au premier lancement.
 
-Le logo a pour source `logo.webp` (960 px). Ses déclinaisons — `logo.png`, l'icône
-multi-tailles `packages/desktop/build/icon.ico` de l'exécutable et de
-l'installateur, les favicons du client et du guide — en sont tirées ; elles se
+Le logo a pour source `assets/brand/logo.webp` (580 × 510). Ses déclinaisons en
+sont tirées, centrées sur un carré transparent sans être déformées :
+`assets/brand/logo.png` (512 px), l'icône multi-tailles
+`packages/desktop/build/icon.ico` de l'exécutable et de l'installateur, et les
+favicons et logos des dossiers `public/` du client et du guide. Elles se
 régénèrent à la main si la source change.
 
 Mesures sur le corpus local (77 transcripts, 240 Mo), cache système chaud :

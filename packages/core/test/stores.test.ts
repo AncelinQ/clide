@@ -13,7 +13,7 @@ import { SettingsEditor } from "../src/settings/editor.js";
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-stores-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-stores-"));
 });
 
 afterEach(async () => {

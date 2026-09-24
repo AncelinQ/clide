@@ -1,12 +1,12 @@
 import { defineConfig } from "vitepress";
 
-// Guide d'utilisation de claude-ide, servi par l'application elle-même sous `/docs/` :
+// Guide d'utilisation de Clide, servi par l'application elle-même sous `/docs/` :
 //   pnpm docs:dev      — prévisualisation, http://localhost:5175/docs/
 //   pnpm docs:build    — site statique dans docs/guide/.vitepress/dist, que le serveur sert
 // Aucun déploiement, aucun appel extérieur : la recherche est locale.
 export default defineConfig({
-  title: "claude-ide",
-  description: "Guide d'utilisation de claude-ide, poste de travail Windows pour Claude Code.",
+  title: "Clide",
+  description: "Guide d'utilisation de Clide, poste de travail Windows pour Claude Code.",
   lang: "fr-FR",
   base: "/docs/",
   // `head` ne suit pas `base` : le chemin de l'icône le porte lui-même.

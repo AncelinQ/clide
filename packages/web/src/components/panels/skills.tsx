@@ -203,7 +203,7 @@ type WriteScope = "user" | "project";
  */
 async function importDropped(files: File[], scope: WriteScope, root: string): Promise<void> {
   const target = { scope, ...(scope === "project" ? { root } : {}) };
-  const desktop = window.claudeIde;
+  const desktop = window.clide;
   for (const file of files) {
     const path = desktop?.pathForFile(file);
     if (path) {

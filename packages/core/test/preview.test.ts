@@ -8,7 +8,7 @@ import { TEXT_LIMIT, previewFile } from "../src/files/preview.js";
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "claude-ide-preview-"));
+  root = await mkdtemp(join(tmpdir(), "clide-preview-"));
 });
 
 afterEach(async () => {

@@ -10,7 +10,7 @@ let home: string;
 let project: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-skills-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-skills-"));
   home = join(dir, "home");
   project = join(dir, "app");
   await mkdir(join(project, ".claude", "skills", "relire"), { recursive: true });

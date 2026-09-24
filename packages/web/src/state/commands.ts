@@ -124,7 +124,7 @@ export function commands(): Command[] {
       shortcut: "Ctrl+Shift+S",
       run: () => {
         const id = activeTab();
-        if (id) void captureInto(id).catch((error: unknown) => console.error("[claude-ide]", error));
+        if (id) void captureInto(id).catch((error: unknown) => console.error("[clide]", error));
       },
     },
 

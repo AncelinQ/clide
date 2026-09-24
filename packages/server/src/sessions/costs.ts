@@ -10,7 +10,7 @@ import {
   type SessionCost,
   type SessionIndex,
   type TokenCounts,
-} from "@claude-ide/core";
+} from "@clide/core";
 
 /** Tarifs déduits des relevés de l'index, recalculés à chaque lecture. */
 export function calibrationOf(index: SessionIndex): Map<string, Calibration> {

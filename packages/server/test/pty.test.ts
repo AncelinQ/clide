@@ -3,22 +3,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { normalizePath } from "@claude-ide/core";
+import { normalizePath } from "@clide/core";
 
 import { PtyManager, cleanEnvironment, type TerminalInfo } from "../src/pty/manager.js";
 import { shellProfileScript } from "../src/pty/shell-profile.js";
 
 describe("normalizePath", () => {
   it("rend identiques les trois façons d'écrire un dossier Windows", () => {
-    const expected = "c:/projets/perso/claude-ide";
-    expect(normalizePath("C:\\Projets\\perso\\claude-ide")).toBe(expected);
-    expect(normalizePath("C:/Projets/perso/claude-ide")).toBe(expected);
-    expect(normalizePath("C:\\Projets\\perso\\claude-ide\\")).toBe(expected);
-    expect(normalizePath("c:/PROJETS/Perso/Claude-IDE")).toBe(expected);
+    const expected = "c:/projets/perso/clide";
+    expect(normalizePath("C:\\Projets\\perso\\clide")).toBe(expected);
+    expect(normalizePath("C:/Projets/perso/clide")).toBe(expected);
+    expect(normalizePath("C:\\Projets\\perso\\clide\\")).toBe(expected);
+    expect(normalizePath("c:/PROJETS/Perso/Clide")).toBe(expected);
   });
 
   it("ne confond pas deux dossiers voisins", () => {
-    expect(normalizePath("C:\\Projets\\perso")).not.toBe(normalizePath("C:\\Projets\\perso\\claude-ide"));
+    expect(normalizePath("C:\\Projets\\perso")).not.toBe(normalizePath("C:\\Projets\\perso\\clide"));
   });
 
   it("garde un chemin UNC reconnaissable", () => {
@@ -47,7 +47,7 @@ describe("shellProfileScript", () => {
 
   it("recompose le chemin du fichier de prompt segment par segment", () => {
     const script = shellProfileScript();
-    expect(script).toContain("Join-Path $PWD.Path '.claude' 'claude-ide-prompt.md'");
+    expect(script).toContain("Join-Path $PWD.Path '.claude' 'clide-prompt.md'");
     expect(script).toContain("--append-system-prompt-file");
   });
 
@@ -76,7 +76,7 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
   let scratch: string;
 
   beforeAll(async () => {
-    scratch = await mkdtemp(join(tmpdir(), "claude-ide-pty-"));
+    scratch = await mkdtemp(join(tmpdir(), "clide-pty-"));
     manager = new PtyManager();
   });
 
@@ -100,10 +100,10 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     // Laisser PowerShell charger les profils avant de lui parler.
     await waitFor(() => states.length > 0, 15000);
 
-    manager.write(terminal.id, "Write-Host BONJOUR-CLAUDE-IDE\r");
-    await waitFor(() => output.join("").includes("BONJOUR-CLAUDE-IDE"), 15000);
+    manager.write(terminal.id, "Write-Host BONJOUR-CLIDE\r");
+    await waitFor(() => output.join("").includes("BONJOUR-CLIDE"), 15000);
     // Ce qui est parti vers le client se rejoue après un rechargement de la page.
-    expect(manager.backlog(terminal.id)).toContain("BONJOUR-CLAUDE-IDE");
+    expect(manager.backlog(terminal.id)).toContain("BONJOUR-CLIDE");
 
     manager.write(terminal.id, "cette-commande-nexiste-pas\r");
     await waitFor(() => states.some((state) => state.state === "failed"), 15000);
@@ -131,7 +131,7 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
 
     // La fonction `claude` du profil émet ces marqueurs ; on les émet ici sans
     // lancer Claude Code pour de vrai.
-    manager.write(terminal.id, "__claudeIdeEmit 'CLAUDE_START;claude --resume x'; __claudeIdeEmit 'CLAUDE_END'\r");
+    manager.write(terminal.id, "__clideEmit 'CLAUDE_START;claude --resume x'; __clideEmit 'CLAUDE_END'\r");
     await waitFor(() => claude.length === 2, 15000);
 
     expect(claude).toEqual(["claude --resume x", undefined]);

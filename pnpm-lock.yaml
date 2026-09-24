@@ -42,13 +42,13 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
     devDependencies:
-      '@claude-ide/core':
+      '@clide/core':
         specifier: workspace:*
         version: link:../core
-      '@claude-ide/server':
+      '@clide/server':
         specifier: workspace:*
         version: link:../server
-      '@claude-ide/web':
+      '@clide/web':
         specifier: workspace:*
         version: link:../web
       electron:
@@ -63,7 +63,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@claude-ide/core':
+      '@clide/core':
         specifier: workspace:*
         version: link:../core
       '@xterm/addon-fit':

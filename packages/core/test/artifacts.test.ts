@@ -9,7 +9,7 @@ const ID = "0350d6a5-5bec-4df4-ba51-45df51df60f7";
 let home: string;
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), "claude-ide-artifacts-"));
+  home = await mkdtemp(join(tmpdir(), "clide-artifacts-"));
   await mkdir(join(home, "projects", "C--Projets-app", ID, "subagents"), { recursive: true });
   await writeFile(join(home, "projects", "C--Projets-app", `${ID}.jsonl`), "{}\n", "utf8");
   await writeFile(join(home, "projects", "C--Projets-app", ID, "subagents", "agent-a.jsonl"), "{}\n", "utf8");

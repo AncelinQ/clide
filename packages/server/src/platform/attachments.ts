@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 
-import { appDataDir } from "@claude-ide/core";
+import { appDataDir } from "@clide/core";
 
 /** Une capture d'écran en haute définition tient en quelques mégaoctets. */
 export const ATTACHMENT_LIMIT = 20 * 1024 * 1024;

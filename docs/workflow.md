@@ -80,7 +80,7 @@ La voie A porte la valeur et le risque. La voie B est du câblage déjà prototy
 | ID | Tâche | Dép. | Fait quand |
 |---|---|---|---|
 | T0.1 | Accord de Jérôme sur la licence PolyForm | — | **obtenu** |
-| T0.2 | Repo, pnpm workspace, TS strict, vitest | — | fait — 54 tests, `./claude-ide` |
+| T0.2 | Repo, pnpm workspace, TS strict, vitest | — | fait — 54 tests, `./clide` |
 | T0.3 | Code OSC privé | — | fait — **OSC 7771** (1337 iTerm2, 633 VS Code, 133 FinalTerm, 7770 ClaudeTerm sont pris) |
 
 T0.1 était le **prérequis non technique** du projet : il est levé. L'analyse a par ailleurs
@@ -143,7 +143,7 @@ Le profil capture `$function:prompt` et le rappelle, il ne le remplace pas.
 | C5 | Panneau Processes, `Win32_Process`, liens `owned` / `inferred` | C1 | fait — 5 racines Claude, 214 processus ; arrêt refusé hors arbre |
 | C6 | Notifications : hooks `Notification` / `Stop`, pastille d'onglet | C1, A7 | fait — routage par dossier, notification système cliquable |
 | C7 | Panneau Plan | C1 | fait — plan lu dans `ExitPlanMode` ; le mode plan n'apparaît nulle part dans le corpus |
-| C8 | Démarrage en un clic | C2–C6 | fait — `claude-ide.cmd`, ouverture du navigateur comprise |
+| C8 | Démarrage en un clic | C2–C6 | fait — `clide.cmd`, ouverture du navigateur comprise |
 
 ## 5. Ordre d'exécution
 

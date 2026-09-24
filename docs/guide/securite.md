@@ -40,3 +40,21 @@ tous couverts par des tests :
 
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
+
+## Dossier de données, et reprise d'une installation antérieure
+
+Ce que l'application garde pour elle — index des sessions et de la recherche,
+schémas, rédactions, sauvegardes des fichiers restaurés, profil PowerShell,
+événements des hooks — vit dans `%LOCALAPPDATA%\clide`. Rien n'y est nécessaire
+à Claude Code : le dossier peut être supprimé, il se reconstruit.
+
+Une installation antérieure au nom Clide, qui s'appelait claude-ide, est reprise
+au premier lancement, sans rien écraser :
+
+- `%LOCALAPPDATA%\claude-ide` : chaque entrée absente du nouveau dossier y est
+  déplacée, et l'ancien dossier disparaît une fois vide ;
+- les hooks de notification qui pointaient vers l'ancien dossier sont repointés ;
+- dans chaque projet, `.claude/claude-ide.json` devient `.claude/clide.json` à la
+  première ouverture d'un terminal, et l'ancien prompt généré est retiré ;
+- les préférences et les projets ouverts du navigateur sont relus sous l'ancienne
+  clé tant que la nouvelle n'existe pas.

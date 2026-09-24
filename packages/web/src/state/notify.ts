@@ -40,7 +40,7 @@ export function notifySystem(
   shown.onclick = () => {
     // Sous Electron, `window.focus()` ne ramène pas une fenêtre réduite : il faut
     // le processus principal.
-    if (window.claudeIde) window.claudeIde.focusWindow();
+    if (window.clide) window.clide.focusWindow();
     else window.focus();
     if (terminalId && getState().terminals[terminalId]) focus(terminalId);
     shown.close();

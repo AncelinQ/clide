@@ -9,7 +9,7 @@ let dir: string;
 let file: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "claude-ide-settings-"));
+  dir = await mkdtemp(join(tmpdir(), "clide-settings-"));
   file = join(dir, "settings.json");
   await writeFile(file, '{\n  "model": "opus"\n}\n', "utf8");
 });

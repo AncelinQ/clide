@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { SettingsEditor, appDataDir, settingsFile, type SettingsEdit } from "@claude-ide/core";
+import { SettingsEditor, appDataDir, settingsFile, type SettingsEdit } from "@clide/core";
 
 /**
  * Ce que l'application sait faire d'un événement de hook.
@@ -56,7 +56,7 @@ export function hookScriptPath(dataDir: string = appDataDir()): string {
  */
 export function hookScript(): string {
   return `#!/usr/bin/env node
-// Généré par claude-ide. Déverse la charge utile d'un hook dans un dossier surveillé.
+// Généré par Clide. Déverse la charge utile d'un hook dans un dossier surveillé.
 // Toute modification sera écrasée à la prochaine installation.
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -180,6 +180,24 @@ export async function installHooks(
 
   await editor.update(file, edits);
   return hooksStatus(dataDir, file);
+}
+
+/**
+ * Réinstalle les hooks posés sous l'ancien nom : leurs commandes pointent vers le
+ * script de l'ancien dossier de données, qui a été déplacé. Les entrées sont
+ * reconnues à ce chemin, retirées, et reposées vers le nouveau dossier — les
+ * types installés restent les mêmes. Rien n'est posé là où rien ne l'était.
+ */
+export async function migrateHooks(
+  legacyDataDir: string,
+  dataDir: string = appDataDir(),
+  file: string = settingsFile(),
+): Promise<boolean> {
+  const legacy = await hooksStatus(legacyDataDir, file);
+  if (legacy.kinds.length === 0) return false;
+  await uninstallHooks(legacyDataDir, file);
+  await installHooks(dataDir, file);
+  return true;
 }
 
 /** Retire nos entrées et laisse le reste intact. Une clé vidée est supprimée. */

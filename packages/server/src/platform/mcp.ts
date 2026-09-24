@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { parseMcpStatus, type McpStatus } from "@claude-ide/core";
+import { parseMcpStatus, type McpStatus } from "@clide/core";
 
 const run = promisify(execFile);
 

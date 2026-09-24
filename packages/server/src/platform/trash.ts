@@ -3,7 +3,7 @@ import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { appDataDir } from "@claude-ide/core";
+import { appDataDir } from "@clide/core";
 
 const run = promisify(execFile);
 

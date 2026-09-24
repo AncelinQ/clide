@@ -17,7 +17,7 @@ let project: string;
 let resolver: FileHistoryResolver;
 
 beforeEach(async () => {
-  base = await mkdtemp(join(tmpdir(), "claude-ide-restore-"));
+  base = await mkdtemp(join(tmpdir(), "clide-restore-"));
   home = join(base, ".claude");
   project = join(base, "projet");
   await mkdir(join(home, "file-history", SESSION), { recursive: true });

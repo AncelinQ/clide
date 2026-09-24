@@ -4,10 +4,19 @@ import { stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, normalize, resolve, sep } from "node:path";
 
-import { LinkStore, SessionIndex, appDataDir, settingsFile, SearchIndex } from "@claude-ide/core";
+import {
+  LinkStore,
+  SessionIndex,
+  appDataDir,
+  legacyAppDataDir,
+  migrateAppData,
+  settingsFile,
+  SearchIndex,
+} from "@clide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
+import { migrateHooks } from "./notifications/hook.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
 import { calibrationOf } from "./sessions/costs.js";
@@ -146,7 +155,7 @@ async function serveStatic(
 }
 
 /** Page servie à la place du guide tant qu'il n'a pas été construit. */
-const DOCS_MISSING = `<!doctype html><meta charset="utf-8"><title>claude-ide — documentation</title>
+const DOCS_MISSING = `<!doctype html><meta charset="utf-8"><title>Clide — documentation</title>
 <body style="font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem;line-height:1.6">
 <h1>Documentation non construite</h1>
 <p>Le guide se construit avec <code>pnpm docs:build</code> ; <code>pnpm start</code> le fait à chaque lancement.
@@ -171,7 +180,25 @@ async function serveDocs(response: ServerResponse, root: string | undefined, res
   response.end(DOCS_MISSING);
 }
 
+/**
+ * Reprend l'état laissé sous l'ancien nom, claude-ide. Seulement quand le dossier
+ * de données est celui par défaut : un dossier imposé — les tests — n'a pas
+ * d'histoire à reprendre.
+ */
+async function migrateLegacyState(settingsPath: string): Promise<void> {
+  const data = await migrateAppData();
+  if (data.error) console.warn(`anciennes données laissées dans ${data.from} : ${data.error}`);
+  if (data.kept.length > 0) {
+    console.warn(`déjà présents dans ${data.to}, laissés dans ${data.from} : ${data.kept.join(", ")}`);
+  }
+  if (data.moved.length === 0) return;
+  console.log(`données reprises de ${data.from} : ${data.moved.join(", ")}`);
+  // Les hooks lisent leur script dans l'ancien dossier, qui vient d'être déplacé.
+  if (await migrateHooks(legacyAppDataDir(), appDataDir(), settingsPath)) console.log("hooks de notification repointés");
+}
+
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
+  if (!options.dataDir) await migrateLegacyState(options.settingsPath ?? settingsFile());
   const token = options.token ?? randomBytes(24).toString("base64url");
   const manager = new PtyManager();
   const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());

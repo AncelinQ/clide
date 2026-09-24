@@ -75,7 +75,7 @@ describe("GitWorktrees sur un dépôt réel", () => {
   let available = true;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), "claude-ide-git-"));
+    dir = await mkdtemp(join(tmpdir(), "clide-git-"));
     main = join(dir, "depot");
     worktree = join(main, ".claude", "worktrees", "chantier");
     try {

@@ -1,6 +1,6 @@
 # Pistes
 
-Exploration de ce que claude-ide pourrait faire ensuite. Ce document décrit des
+Exploration de ce que Clide pourrait faire ensuite. Ce document décrit des
 besoins et des critères, pas des solutions : l'architecture se décide après.
 
 ## Ce que l'usage réel dit

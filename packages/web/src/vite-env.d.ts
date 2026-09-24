@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 /** Pont exposé par l'application de bureau. Absent dans un navigateur. */
-interface ClaudeIdeBridge {
+interface ClideBridge {
   desktop: true;
   pathForFile(file: File): string | undefined;
   setAttention(waiting: number, badge?: string): void;
@@ -9,5 +9,5 @@ interface ClaudeIdeBridge {
 }
 
 interface Window {
-  claudeIde?: ClaudeIdeBridge;
+  clide?: ClideBridge;
 }

@@ -31,8 +31,8 @@ export function App() {
   // et porte le compteur.
   useEffect(() => {
     const waiting = Object.keys(attention).length;
-    document.title = waiting > 0 ? `(${waiting}) claude-ide` : "claude-ide";
-    window.claudeIde?.setAttention(waiting, waiting > 0 ? badgeImage(waiting) : undefined);
+    document.title = waiting > 0 ? `(${waiting}) Clide` : "Clide";
+    window.clide?.setAttention(waiting, waiting > 0 ? badgeImage(waiting) : undefined);
   }, [attention]);
 
   useEffect(() => {
