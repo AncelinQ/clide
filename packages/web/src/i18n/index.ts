@@ -22,6 +22,12 @@ export function t(french: string, values: Record<string, string | number> = {}):
   return text.replace(/\{(\w+)\}/g, (whole, key: string) => (key in values ? String(values[key]) : whole));
 }
 
+/** Nombre à virgule, avec le séparateur décimal de la langue : `0,15` ou `0.15`. */
+export function decimal(value: number, digits: number): string {
+  const fixed = value.toFixed(digits);
+  return resolvedLanguage() === "fr" ? fixed.replace(".", ",") : fixed;
+}
+
 /** Réabonne un composant à la langue : le changer redessine ce qui s'en sert. */
 export function useLanguage(): "fr" | "en" {
   return resolvedLanguage(useStore((state) => state.language));

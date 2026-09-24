@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { t } from "@/i18n";
+import { decimal, t } from "@/i18n";
 import { api, post } from "@/lib/api";
 
 interface RemovalPlan {
@@ -28,8 +28,8 @@ const ROLE_LABEL: Record<RemovalPlan["artifacts"][number]["role"], string> = {
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return t("{size} o", { size: bytes });
-  if (bytes < 1024 * 1024) return t("{size} Ko", { size: (bytes / 1024).toFixed(1).replace(".", ",") });
-  return t("{size} Mo", { size: (bytes / 1024 / 1024).toFixed(1).replace(".", ",") });
+  if (bytes < 1024 * 1024) return t("{size} Ko", { size: decimal(bytes / 1024, 1) });
+  return t("{size} Mo", { size: decimal(bytes / 1024 / 1024, 1) });
 }
 
 /**

@@ -88,7 +88,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                       formatDate(session.lastActivityAt),
                       shortName(session.effectiveCwd ?? ""),
                       session.gitBranch,
-                      t("{count} fichiers", { count: session.fileCount }),
+                      t(session.fileCount === 1 ? "{count} fichier" : "{count} fichiers", { count: session.fileCount }),
                       formatSessionCost(session.price),
                     ]
                       .filter(Boolean)

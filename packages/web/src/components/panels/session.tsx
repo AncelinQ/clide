@@ -7,7 +7,7 @@ import { Thumbnails } from "@/components/panels/captures";
 import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { t } from "@/i18n";
+import { decimal, t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
@@ -28,8 +28,8 @@ export interface ShownSession {
 /** « 12,3 k » : un volume de tokens se lit en ordre de grandeur. */
 export function formatTokens(count: number): string {
   if (count < 1000) return String(count);
-  if (count < 1_000_000) return `${(count / 1000).toFixed(1).replace(".", ",")} k`;
-  return `${(count / 1_000_000).toFixed(2).replace(".", ",")} M`;
+  if (count < 1_000_000) return `${decimal(count / 1000, 1)} k`;
+  return `${decimal(count / 1_000_000, 2)} M`;
 }
 
 export function FilesPanel({ session }: { session: ShownSession }) {

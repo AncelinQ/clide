@@ -320,6 +320,7 @@ export const EN: Record<string, string> = {
   "Ce projet": "This project",
   "Aucune session.": "No session.",
   "{count} fichiers": "{count} files",
+  "{count} fichier": "{count} file",
   "Personnels": "Personal",
   "Aucun skill personnel.": "No personal skill.",
   "Locaux à ce projet": "Local to this project",

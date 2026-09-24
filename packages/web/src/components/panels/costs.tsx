@@ -1,7 +1,7 @@
 import { Coins } from "lucide-react";
 
 import { Async, Empty, Section, useAsync } from "@/components/common";
-import { t } from "@/i18n";
+import { decimal, t } from "@/i18n";
 import { api, shortName } from "@/lib/api";
 import type { SessionCost } from "@/lib/types";
 
@@ -17,7 +17,7 @@ interface CostReport {
 
 /** « 12,34 $ » : le montant seul, deux décimales. */
 export function formatUsd(usd: number): string {
-  return t("{cost} $", { cost: usd.toFixed(2).replace(".", ",") });
+  return t("{cost} $", { cost: decimal(usd, 2) });
 }
 
 /**
@@ -147,7 +147,7 @@ export function CostsPanel() {
                   <span className="min-w-0 flex-1 truncate">{entry.model}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {t("{price} $/M en entrée · {count} relevés", {
-                      price: entry.inputPerMillion.toFixed(2).replace(".", ","),
+                      price: decimal(entry.inputPerMillion, 2),
                       count: entry.samples,
                     })}
                   </span>
