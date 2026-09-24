@@ -275,6 +275,50 @@ une session de 94 fichiers.
 
 ---
 
+## Piste 9 — Git et worktrees depuis l'application
+
+**Le besoin.** Savoir sur quelle branche on est, et faire les gestes courants —
+fetch, pull, push, changer ou créer une branche, créer un worktree et y lancer
+Claude — sans quitter l'application ni passer par un outil tiers.
+
+**Ce qu'on a déjà.** Le panneau Worktrees lit la branche, les changements non
+commités et l'avance ou le retard sur l'amont de chaque worktree, ouvre un
+terminal dedans et retire un worktree. History et Chantiers montrent la branche
+des sessions, et les liens de MR lus dans les transcripts. Aucune action git, et
+aucune connexion à GitHub ou GitLab : la piste 3 a tranché « transcripts seuls,
+pas de secret ».
+
+**Ce qu'on attend, par palier**
+
+1. **La branche toujours visible**, avec l'avance et le retard, et fetch / pull /
+   push par le `git` local — qui passe par le gestionnaire d'identifiants de
+   Windows : l'application ne stocke rien.
+2. **Changer ou créer une branche, créer un worktree** et y ouvrir un onglet
+   Claude en un geste ; montrer le navigateur de fichiers et les panneaux du
+   worktree sans l'ouvrir comme un projet à part.
+3. **L'état des MR et de la CI**, par les CLI `gh` et `glab` quand elles sont
+   installées : elles gardent leur propre connexion, la règle « pas de secret »
+   tient.
+
+**Questions ouvertes.** Un push depuis un bouton est un geste sortant : faut-il
+une confirmation qui montre ce qui part ? Que faire d'un changement de branche
+avec des modifications non commitées — refuser, ou proposer un stash ?
+
+---
+
+## Constats en passant
+
+- **Un rechargement de la page perd les onglets.** Le client ignore les terminaux
+  que le serveur lui annonce à la connexion (`hello`) : les onglets disparaissent
+  de l'interface mais leurs processus — shells, Claude, serveurs lancés — tournent
+  toujours, invisibles jusqu'à l'arrêt du serveur.
+- **Le démarrage est déjà rapide** : interface prête en 180 ms, 430 ms avec le
+  processeur ralenti quatre fois (2026-09-24). Charger le Markdown à la demande
+  retirait 15 % du bundle principal sans gain mesurable, le morceau étant chargé
+  au démarrage de toute façon : non retenu.
+
+---
+
 ## Portage depuis ClaudeTerm
 
 Relevé fait README de l'original en main et vérifié contre le code d'ici : **tout
