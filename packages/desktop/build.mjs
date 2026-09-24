@@ -51,6 +51,9 @@ await build({
 // Le client est servi depuis le dossier du bundle, à côté de lui.
 await cp(join(here, "..", "web", "dist"), join(dist, "web"), { recursive: true });
 
+// L'icône de la fenêtre, lue au lancement par `BrowserWindow`.
+await cp(join(here, "build", "icon.png"), join(dist, "icon.png"));
+
 // Le guide aussi, s'il a été construit : sans lui, le lien « Documentation »
 // l'explique plutôt que d'échouer.
 const docs = join(here, "..", "..", "docs", "guide", ".vitepress", "dist");

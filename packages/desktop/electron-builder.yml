@@ -21,6 +21,9 @@ asarUnpack:
   - "**/node_modules/node-pty/**"
 
 win:
+  # Icône de l'exécutable, de la barre des tâches et des raccourcis ; un .ico
+  # multi-tailles, pour qu'aucune taille ne soit réduite à la volée par Windows.
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -32,3 +35,5 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: claude-ide
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico

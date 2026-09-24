@@ -1,4 +1,4 @@
-# claude-ide
+# <img src="logo.png" alt="" width="36" align="top"> claude-ide
 
 Un poste de travail Windows pour mener plusieurs chantiers Claude Code de front.
 Les terminaux sont dans l'application ; les panneaux, eux, ne demandent rien à
@@ -117,8 +117,13 @@ L'installateur pèse ~120 Mo, dont l'essentiel est le runtime Electron ; l'appli
 elle-même tient en 38 Mo, dont 10 pour node-pty et ses binaires. Tout ce qui passe
 par une commande du système — `git`, `gh`, `glab`, `netstat`, `claude -p` — part
 du processus principal d'Electron avec le `PATH` de la session Windows : rien à
-configurer de plus que pour la version navigateur. **Il n'est pas signé** : SmartScreen avertira au premier
-lancement. Aucune icône n'est fournie non plus — celle d'Electron est utilisée.
+configurer de plus que pour la version navigateur. **Il n'est pas signé** :
+SmartScreen avertira au premier lancement.
+
+Le logo a pour source `logo.webp` (960 px). Ses déclinaisons — `logo.png`, l'icône
+multi-tailles `packages/desktop/build/icon.ico` de l'exécutable et de
+l'installateur, les favicons du client et du guide — en sont tirées ; elles se
+régénèrent à la main si la source change.
 
 Mesures sur le corpus local (77 transcripts, 240 Mo), cache système chaud :
 

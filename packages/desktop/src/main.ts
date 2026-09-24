@@ -35,6 +35,8 @@ async function createWindow(): Promise<void> {
     minHeight: 600,
     backgroundColor: "#16181d",
     title: "claude-ide",
+    // L'exécutable empaqueté porte déjà l'icône ; `electron .` en développement, non.
+    icon: join(here, "icon.png"),
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(here, "preload.cjs"),

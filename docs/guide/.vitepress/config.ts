@@ -9,9 +9,12 @@ export default defineConfig({
   description: "Guide d'utilisation de claude-ide, poste de travail Windows pour Claude Code.",
   lang: "fr-FR",
   base: "/docs/",
+  // `head` ne suit pas `base` : le chemin de l'icône le porte lui-même.
+  head: [["link", { rel: "icon", type: "image/png", href: "/docs/favicon.png" }]],
   // Le serveur de l'application sert des fichiers : `session.html`, pas `session`.
   cleanUrls: false,
   themeConfig: {
+    logo: "/logo.png",
     nav: [
       { text: "Présentation", link: "/" },
       { text: "La session", link: "/session" },
