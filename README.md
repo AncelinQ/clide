@@ -204,8 +204,11 @@ pour Node comme pour Electron — vérifié en ouvrant un vrai terminal ConPTY d
 l'application empaquetée. C'est ce qui a permis de reporter l'emballage sans
 s'interdire d'y venir.
 
-L'installateur pèse ~111 Mo, dont l'essentiel est le runtime Electron ; l'application
-elle-même tient en 17 Mo. **Il n'est pas signé** : SmartScreen avertira au premier
+L'installateur pèse ~120 Mo, dont l'essentiel est le runtime Electron ; l'application
+elle-même tient en 38 Mo, dont 10 pour node-pty et ses binaires. Tout ce qui passe
+par une commande du système — `git`, `gh`, `glab`, `netstat`, `claude -p` — part
+du processus principal d'Electron avec le `PATH` de la session Windows : rien à
+configurer de plus que pour la version navigateur. **Il n'est pas signé** : SmartScreen avertira au premier
 lancement. Aucune icône n'est fournie non plus — celle d'Electron est utilisée.
 
 Mesures sur le corpus local (77 transcripts, 240 Mo), cache système chaud :
