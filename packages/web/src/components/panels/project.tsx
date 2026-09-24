@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
 import type { McpServer, ProjectLink, ProjectScripts, Skill, SlashCommand, Worktree } from "@/lib/types";
+import { openProject } from "@/state/store";
 import { openTerminal, runScript } from "@/state/terminals";
 
 // ─── Dossiers liés ──────────────────────────────────────────────────────────
@@ -420,6 +421,12 @@ export function WorktreesPanel({ root }: { root: string }) {
                     <ActionButton onAction={() => openTerminal("shell", { cwd: worktree.path })}>
                       {t("terminal ici")}
                     </ActionButton>
+                    <ActionButton onAction={() => openTerminal("claude", { cwd: worktree.path, command: "claude" })}>
+                      {t("Claude ici")}
+                    </ActionButton>
+                    {!worktree.main && (
+                      <ActionButton onAction={() => openProject(worktree.path)}>{t("ouvrir comme projet")}</ActionButton>
+                    )}
                     {!worktree.main && (
                       <DangerButton
                         label={t("retirer")}

@@ -50,7 +50,20 @@ import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
-import { gitFetch, gitPull, gitPush, gitStatus, pushPlan } from "../platform/git-actions.js";
+import {
+  DirtyTreeError,
+  createBranch,
+  createWorktree,
+  gitFetch,
+  gitPull,
+  gitPush,
+  gitStatus,
+  listBranches,
+  pushPlan,
+  stashCount,
+  stashPop,
+  switchBranch,
+} from "../platform/git-actions.js";
 import { discoverServers, listListening } from "../platform/listening.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
@@ -479,7 +492,14 @@ export const routes: Record<string, Handler> = {
   }),
 
   /** Branche, amont, écart et fichiers touchés ; `null` hors d'un dépôt git. */
-  "/api/git/status": async (params) => ({ status: await gitStatus(requireParam(params, "root")) }),
+  "/api/git/status": async (params) => {
+    const root = requireParam(params, "root");
+    const status = await gitStatus(root);
+    return { status, stashes: status ? await stashCount(root) : 0 };
+  },
+
+  /** Branches locales, puis celles qui ne sont que distantes, les plus récentes d'abord. */
+  "/api/git/branches": async (params) => ({ branches: await listBranches(requireParam(params, "root")) }),
 
   /** Ce qu'un push enverrait — commits, branche distante, amont à créer —, sans rien envoyer. */
   "/api/git/push-plan": async (params) => pushPlan(requireParam(params, "root")),
@@ -799,6 +819,37 @@ export const mutations: Record<string, Mutation> = {
     }
     return { writeup: await pending };
   },
+
+  /**
+   * Change de branche. Des modifications en cours ne font pas échouer la requête :
+   * la réponse `needsStash` dit combien de fichiers sont en jeu, pour que
+   * l'interface propose de les mettre de côté.
+   */
+  "/api/git/switch": async (_params, _context, body) => {
+    try {
+      return await switchBranch(requireField(body, "root", isString), requireField(body, "branch", isString), {
+        stash: body["stash"] === true,
+      });
+    } catch (error) {
+      if (error instanceof DirtyTreeError) return { needsStash: error.changed };
+      throw error;
+    }
+  },
+
+  "/api/git/create-branch": async (_params, _context, body) => {
+    await createBranch(requireField(body, "root", isString), requireField(body, "name", isString));
+    return { ok: true };
+  },
+
+  "/api/git/stash-pop": async (_params, _context, body) => {
+    await stashPop(requireField(body, "root", isString));
+    return { ok: true };
+  },
+
+  /** Crée un worktree pour une branche, neuve ou existante, et rend son chemin. */
+  "/api/git/worktree": async (_params, _context, body) => ({
+    path: await createWorktree(requireField(body, "root", isString), requireField(body, "branch", isString)),
+  }),
 
   "/api/git/fetch": async (_params, _context, body) => {
     await gitFetch(requireField(body, "root", isString));

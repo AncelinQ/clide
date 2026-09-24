@@ -1,11 +1,26 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { gitPull, gitPush, gitStatus, parseStatusV2, pushPlan } from "../src/platform/git-actions.js";
+import {
+  DirtyTreeError,
+  createBranch,
+  createWorktree,
+  gitPull,
+  gitPush,
+  gitStatus,
+  listBranches,
+  parseBranches,
+  parseStatusV2,
+  pushPlan,
+  stashCount,
+  stashPop,
+  switchBranch,
+  worktreeFolder,
+} from "../src/platform/git-actions.js";
 
 const run = promisify(execFile);
 const git = (cwd: string, ...args: string[]) => run("git", args, { cwd, windowsHide: true });
@@ -41,6 +56,29 @@ describe("parseStatusV2", () => {
       changed: 0,
       conflicted: 0,
     });
+  });
+});
+
+describe("parseBranches", () => {
+  it("met les branches locales d'abord, puis celles qui ne sont que distantes, sans l'alias HEAD", () => {
+    const refs = [
+      "refs/heads/main\t2026-09-20T10:00:00+02:00",
+      "refs/heads/aqn/feat/x\t2026-09-24T10:00:00+02:00",
+      "refs/remotes/origin/HEAD\t2026-09-20T10:00:00+02:00",
+      "refs/remotes/origin/main\t2026-09-20T10:00:00+02:00",
+      "refs/remotes/origin/collegue/y\t2026-09-23T10:00:00+02:00",
+    ].join("\n");
+    expect(parseBranches(refs, "main").map((branch) => [branch.name, branch.remoteOnly, branch.current])).toEqual([
+      ["aqn/feat/x", false, false],
+      ["main", false, true],
+      ["collegue/y", true, false],
+    ]);
+  });
+});
+
+describe("worktreeFolder", () => {
+  it("fait un nom de dossier d'un nom de branche", () => {
+    expect(worktreeFolder("aqn/feat/hn-12 x")).toBe("aqn-feat-hn-12-x");
   });
 });
 
@@ -111,5 +149,55 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     expect(plan.blocked).toContain("retard");
     await gitPull(mine);
     expect(await gitStatus(mine)).toMatchObject({ ahead: 0, behind: 0 });
+  }, 30_000);
+
+  it("refuse de changer de branche avec des modifications, puis les met de côté si on le demande", async () => {
+    await writeFile(join(mine, "a.txt"), "modifié");
+    await expect(switchBranch(mine, "aqn/feat/neuve")).rejects.toBeInstanceOf(DirtyTreeError);
+    expect((await gitStatus(mine))?.branch).toBe("main");
+
+    expect(await switchBranch(mine, "aqn/feat/neuve", { stash: true })).toEqual({ stashed: true });
+    expect(await gitStatus(mine)).toMatchObject({ branch: "aqn/feat/neuve", changed: 0 });
+    expect(await stashCount(mine)).toBe(1);
+
+    await switchBranch(mine, "main");
+    await stashPop(mine);
+    expect(await readFile(join(mine, "a.txt"), "utf8")).toBe("modifié");
+    expect(await stashCount(mine)).toBe(0);
+    await git(mine, "checkout", "--", "a.txt");
+  }, 30_000);
+
+  it("passe sur une branche qui n'existe que sur le dépôt distant", async () => {
+    await git(theirs, "checkout", "-b", "collegue/y");
+    await commit(theirs, "y.txt", "y");
+    await git(theirs, "push", "-u", "origin", "collegue/y");
+    await git(mine, "fetch");
+    expect((await listBranches(mine)).find((branch) => branch.name === "collegue/y")?.remoteOnly).toBe(true);
+    await switchBranch(mine, "collegue/y");
+    expect(await gitStatus(mine)).toMatchObject({ branch: "collegue/y", upstream: "origin/collegue/y" });
+    await switchBranch(mine, "main");
+  }, 30_000);
+
+  it("crée une branche en gardant les modifications, et refuse un nom invalide", async () => {
+    await writeFile(join(mine, "g.txt"), "en cours");
+    await createBranch(mine, "aqn/feat/g");
+    expect(await gitStatus(mine)).toMatchObject({ branch: "aqn/feat/g", changed: 1 });
+    await expect(createBranch(mine, "nom invalide..")).rejects.toThrow("pas un nom de branche valide");
+    await rm(join(mine, "g.txt"));
+    await switchBranch(mine, "main");
+  }, 30_000);
+
+  it("crée un worktree sous .claude/worktrees pour une branche neuve", async () => {
+    const path = await createWorktree(mine, "aqn/feat/ailleurs");
+    expect(path.replace(/\\/g, "/")).toMatch(/\.claude\/worktrees\/aqn-feat-ailleurs$/);
+    expect((await stat(path)).isDirectory()).toBe(true);
+    expect((await gitStatus(path))?.branch).toBe("aqn/feat/ailleurs");
+    // Rangé dans le dépôt, le worktree ne doit pas y compter comme une modification.
+    expect((await gitStatus(mine))?.changed).toBe(0);
+    await createWorktree(mine, "aqn/feat/encore");
+    const exclude = await readFile(join(mine, ".git", "info", "exclude"), "utf8");
+    expect(exclude.split("\n").filter((line) => line === "/.claude/worktrees/")).toHaveLength(1);
+    await git(mine, "worktree", "remove", path);
+    await git(mine, "worktree", "remove", join(mine, ".claude", "worktrees", "aqn-feat-encore"));
   }, 30_000);
 });

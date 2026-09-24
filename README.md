@@ -458,6 +458,23 @@ en terminal (`GIT_TERMINAL_PROMPT=0`).
   branche a bougé depuis cet aperçu, ou si elle est en retard sur son amont ; il
   ne force jamais.
 
+« Branches et worktrees… » liste les branches locales, puis celles qui n'existent
+que sur un dépôt distant — les choisir crée la branche locale qui les suit.
+
+- **Changer de branche** avec des modifications non commitées ne se fait pas en
+  silence : la fenêtre dit combien de fichiers sont en jeu et propose de les
+  mettre de côté (`git stash push --include-untracked`, sous un message qui dit de
+  quelle branche ils viennent). « Réappliquer le dernier stash » apparaît dans le
+  menu tant qu'il en reste un. Si le changement échoue, le stash est réappliqué.
+- **Créer une branche** part de HEAD et garde les modifications en cours.
+- **Ouvrir dans un worktree** crée le worktree sous `.claude/worktrees/`, là où
+  Claude Code range les siens, et y lance un onglet Claude. Le dossier est exclu
+  dans `.git/info/exclude`, propre au clone : sans cela il compterait parmi les
+  modifications du dépôt principal.
+
+Le panneau Worktrees ouvre aussi Claude dans un worktree, ou le worktree comme un
+projet à part entière, avec son navigateur de fichiers et ses panneaux.
+
 ## Worktrees
 
 Le panneau lit `git worktree list --porcelain`, puis l'état de chacun : fichiers

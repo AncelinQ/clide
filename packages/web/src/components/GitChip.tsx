@@ -1,6 +1,7 @@
-import { ArrowDown, ArrowUp, CloudDownload, GitBranch, RefreshCw, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ArchiveRestore, CloudDownload, GitBranch, GitBranchPlus, RefreshCw, Upload } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { BranchDialog } from "@/components/BranchDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,11 +49,11 @@ interface PushPlan {
  * cliquer.
  */
 export function useGitStatus(root: string | undefined) {
-  const [status, setStatus] = useState<GitStatus | null>(null);
+  const [status, setStatus] = useState<(GitStatus & { stashes: number }) | null>(null);
   const refresh = useCallback(() => {
     if (!root) return Promise.resolve();
-    return api<{ status: GitStatus | null }>("/api/git/status", { root })
-      .then((result) => setStatus(result.status))
+    return api<{ status: GitStatus | null; stashes: number }>("/api/git/status", { root })
+      .then((result) => setStatus(result.status ? { ...result.status, stashes: result.stashes } : null))
       .catch(() => setStatus(null));
   }, [root]);
   useEffect(() => {
@@ -165,6 +166,7 @@ export function GitChip({ root }: { root: string }) {
   const [busy, setBusy] = useState<string>();
   const [message, setMessage] = useState<{ text: string; error: boolean }>();
   const [pushing, setPushing] = useState(false);
+  const [branching, setBranching] = useState(false);
 
   if (!status) return null;
 
@@ -241,8 +243,28 @@ export function GitChip({ root }: { root: string }) {
           <DropdownMenuItem disabled={!!busy || !status.branch} onSelect={() => setPushing(true)}>
             <Upload /> {t("Push…")}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled={!!busy} onSelect={() => setBranching(true)}>
+            <GitBranchPlus /> {t("Branches et worktrees…")}
+          </DropdownMenuItem>
+          {status.stashes > 0 && (
+            <DropdownMenuItem disabled={!!busy} onSelect={() => void act(t("Stash réappliqué"), "/api/git/stash-pop")}>
+              <ArchiveRestore /> {t("Réappliquer le dernier stash ({count})", { count: status.stashes })}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {branching && (
+        <BranchDialog
+          root={root}
+          {...(status.branch ? { current: status.branch } : {})}
+          onClose={() => setBranching(false)}
+          onDone={(text) => {
+            setMessage({ text, error: false });
+            void refresh();
+          }}
+        />
+      )}
       {pushing && (
         <PushDialog
           root={root}
