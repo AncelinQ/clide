@@ -27,7 +27,13 @@ describe("probeFrame", () => {
   beforeAll(async () => {
     server = createServer((request, response) => {
       if (request.url === "/refuse") response.setHeader("X-Frame-Options", "DENY");
-      response.end("ok");
+      if (request.url === "/json") {
+        response.setHeader("Content-Type", "application/json");
+        response.end("{}");
+        return;
+      }
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      response.end("<p>ok</p>");
     });
     await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -36,8 +42,9 @@ describe("probeFrame", () => {
   afterAll(() => new Promise<void>((done) => server.close(() => done())));
 
   it("dit si un serveur local accepte le cadre", async () => {
-    expect(await probeFrame(`${base}/`)).toEqual({ reachable: true, framable: true });
-    expect(await probeFrame(`${base}/refuse`)).toEqual({ reachable: true, framable: false });
+    expect(await probeFrame(`${base}/`)).toEqual({ reachable: true, framable: true, html: true });
+    expect(await probeFrame(`${base}/refuse`)).toMatchObject({ reachable: true, framable: false });
+    expect(await probeFrame(`${base}/json`)).toMatchObject({ html: false });
   });
 
   it("signale un serveur qui ne répond pas", async () => {
@@ -45,7 +52,7 @@ describe("probeFrame", () => {
     await new Promise<void>((done) => closed.listen(0, "127.0.0.1", done));
     const port = (closed.address() as AddressInfo).port;
     await new Promise<void>((done) => closed.close(() => done()));
-    expect(await probeFrame(`http://127.0.0.1:${port}/`)).toEqual({ reachable: false, framable: true });
+    expect(await probeFrame(`http://127.0.0.1:${port}/`)).toEqual({ reachable: false, framable: true, html: false });
   });
 
   it("ne sonde rien hors de la machine", async () => {

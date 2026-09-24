@@ -6,6 +6,8 @@ export interface FrameProbe {
   reachable: boolean;
   /** Le serveur accepte d'être affiché dans un cadre venu d'une autre origine. */
   framable: boolean;
+  /** La page est du HTML : un débogueur ou une API qui répond en JSON n'a rien à montrer. */
+  html: boolean;
 }
 
 /**
@@ -37,8 +39,12 @@ export async function probeFrame(url: string): Promise<FrameProbe> {
   try {
     const response = await fetch(parsed, { redirect: "follow", signal: AbortSignal.timeout(3000) });
     await response.body?.cancel();
-    return { reachable: true, framable: framableFrom(response.headers) };
+    return {
+      reachable: true,
+      framable: framableFrom(response.headers),
+      html: (response.headers.get("content-type") ?? "").includes("text/html"),
+    };
   } catch {
-    return { reachable: false, framable: true };
+    return { reachable: false, framable: true, html: false };
   }
 }

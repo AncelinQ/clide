@@ -45,6 +45,7 @@ import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
+import { discoverServers, listListening } from "../platform/listening.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
@@ -419,6 +420,25 @@ export const routes: Record<string, Handler> = {
 
   /** Le serveur de développement répond-il, et accepte-t-il l'aperçu en cadre ? */
   "/api/preview/probe": async (params) => probeFrame(requireParam(params, "url")),
+
+  /**
+   * Pages servies par les descendants des onglets du projet, qu'ils aient été
+   * lancés à la main ou par Claude en arrière-plan : leur sortie ne passe pas
+   * toujours par l'onglet, mais leur port se voit. Seul ce qui répond en HTML
+   * compte.
+   */
+  "/api/preview/servers": async (params, { processes, terminals }) => {
+    const root = normalizePath(requireParam(params, "root"));
+    const own = new Set(
+      terminals.list().filter((info) => normalizePath(info.projectRoot) === root).map((info) => info.id),
+    );
+    const pids = new Map([...terminals.ownedPids()].filter(([, id]) => own.has(id)));
+    if (pids.size === 0) return { servers: [] };
+    const [sockets, list] = await Promise.all([listListening(), processes.list()]);
+    const found = discoverServers(sockets, list, pids);
+    const probed = await Promise.all(found.map(async (server) => ({ server, probe: await probeFrame(server.url) })));
+    return { servers: probed.filter(({ probe }) => probe.html).map(({ server }) => server) };
+  },
 
   "/api/session/activity": async (params) => {
     const id = requireParam(params, "id");

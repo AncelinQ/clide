@@ -14,7 +14,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
-import { DevPreview, devServers } from "@/components/DevPreview";
+import { DevPreview, useDevServers } from "@/components/DevPreview";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -274,7 +274,8 @@ export function TerminalArea() {
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
   const current = status ? live[status.id] : undefined;
-  const serving = devServers(own.map((entry) => entry.info)).length > 0;
+  const servers = useDevServers(project?.root, own.map((entry) => entry.info), previewOpen);
+  const serving = servers.length > 0;
 
   // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
   useEffect(() => {
@@ -435,7 +436,7 @@ export function TerminalArea() {
             <TerminalHost key={info.id} info={info} active={info.id === activeTerminalId} />
           ))}
         </div>
-        {previewOpen && project && <DevPreview terminals={own.map((entry) => entry.info)} />}
+        {previewOpen && project && <DevPreview servers={servers} />}
       </div>
 
       <footer className="shrink-0 overflow-x-auto px-3 py-1.5 text-[11px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]">

@@ -672,6 +672,14 @@ connaître à l'onglet : le bouton d'aperçu de la barre des onglets s'allume, e
 l'ouvre à côté du terminal (`Ctrl+Maj+U`). Plusieurs serveurs se choisissent dans
 l'en-tête de l'aperçu ; l'adresse s'oublie quand la commande se termine.
 
+Un serveur que Claude lance lui-même en arrière-plan n'écrit rien dans l'onglet :
+il est retrouvé à son port. Le serveur de l'application relève les sockets en
+écoute (`netstat -ano`) et garde ceux des processus qui descendent des onglets du
+projet, qu'ils répondent en HTML — un débogueur ou une API en JSON n'ont rien à
+montrer — et qu'ils ne soient pas un serveur MCP de Claude. Le relevé passe toutes
+les cinq secondes aperçu ouvert, toutes les trente sinon ; l'en-tête nomme chaque
+serveur par sa commande.
+
 Le serveur lit la sortie des onglets shell pendant qu'une commande tourne, jamais
 celle de Claude : une adresse citée dans une réponse n'est pas un serveur. Seules
 comptent les adresses de la machine avec un port (`localhost`, `127.0.0.1`, et
