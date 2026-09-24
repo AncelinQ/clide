@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
 import { DevPreview, useDevServers } from "@/components/DevPreview";
+import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -23,7 +24,7 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { activeProject, setState, useStore } from "@/state/store";
+import { DEFAULT_WIDTHS, activeProject, getState, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import {
   closeTerminal,
@@ -38,6 +39,9 @@ import {
 import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
 import { captureInto } from "@/state/commands";
 import type { TerminalInfo } from "@/lib/types";
+
+/** Largeur que l'aperçu laisse toujours au terminal, en pixels. */
+const TERMINAL_MIN = 240;
 
 /** Accueil affiché tant qu'aucun terminal n'est ouvert pour ce projet. */
 function Welcome({ root }: { root?: string }) {
@@ -268,6 +272,7 @@ export function TerminalArea() {
     followLive,
     sessionCollapsed,
     previewOpen,
+    widths,
   } = useStore((state) => state);
   const project = useStore(activeProject);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
@@ -280,7 +285,10 @@ export function TerminalArea() {
   // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
   useEffect(() => {
     requestAnimationFrame(resizeActive);
-  }, [previewOpen]);
+  }, [previewOpen, widths.preview]);
+
+  const zone = useRef<HTMLDivElement>(null);
+  const previewStart = useRef(0);
 
   // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
   const shown: (ShownSession & { title?: string }) | undefined =
@@ -429,14 +437,34 @@ export function TerminalArea() {
         </Button>
       </div>
 
-      <div className="mx-2 flex min-h-0 flex-1 gap-1">
+      <div ref={zone} className="mx-2 flex min-h-0 flex-1">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
           {own.length === 0 && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost key={info.id} info={info} active={info.id === activeTerminalId} />
           ))}
         </div>
-        {previewOpen && project && <DevPreview servers={servers} />}
+        {previewOpen && project && (
+          <>
+            <Splitter
+              onStart={() => (previewStart.current = getState().widths.preview)}
+              onDrag={(dx) => {
+                const width = zone.current?.clientWidth ?? 1;
+                // Le terminal garde de quoi lire une ligne ; l'aperçu, de quoi montrer une page.
+                const max = 1 - TERMINAL_MIN / width;
+                setState((current) => ({
+                  widths: { ...current.widths, preview: clamp(previewStart.current - dx / width, 0.2, max) },
+                }));
+              }}
+              onReset={() =>
+                setState((current) => ({ widths: { ...current.widths, preview: DEFAULT_WIDTHS.preview } }))
+              }
+            />
+            <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ width: `${widths.preview * 100}%`, maxWidth: `calc(100% - ${TERMINAL_MIN}px)` }}>
+              <DevPreview servers={servers} />
+            </div>
+          </>
+        )}
       </div>
 
       <footer className="shrink-0 overflow-x-auto px-3 py-1.5 text-[11px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]">

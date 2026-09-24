@@ -95,7 +95,7 @@ export function DevPreview({ servers }: { servers: DevServer[] }) {
   const refused = probe.data?.framable === false;
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-background">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border bg-background">
       <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">
         <MonitorPlay className="size-3.5 shrink-0 text-muted-foreground" />
         {servers.length > 1 && url ? (

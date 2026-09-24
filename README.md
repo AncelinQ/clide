@@ -664,6 +664,15 @@ Seuls les PNG, JPEG, GIF et WebP sont montrés. Le flux d'activité ne porte que
 nombre : le contenu, souvent des centaines de Ko en base64, se charge par entrée
 quand la vignette approche de l'écran.
 
+## Largeur des colonnes
+
+Les poignées entre les colonnes se tirent à la souris, et un double-clic rend la
+largeur par défaut (290 px pour le projet, 340 pour le panneau global). La
+poignée entre le terminal et l'aperçu règle la part de l'aperçu. Les largeurs
+sont gardées d'une ouverture à l'autre ; le terminal garde toujours 420 px entre
+les colonnes, et 240 à côté de l'aperçu, et une fenêtre qui rétrécit prend sur
+les colonnes latérales plutôt que sur lui.
+
 ## Aperçu du serveur de développement
 
 Une commande du shell qui annonce une adresse locale en démarrant — la ligne

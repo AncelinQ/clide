@@ -9,6 +9,8 @@ export const EN: Record<string, string> = {
   Recherche: "Search",
   remonter: "up",
   Aperçu: "Preview",
+  "Tirer pour redimensionner, double-clic pour revenir à la largeur par défaut":
+    "Drag to resize, double-click to go back to the default width",
   Schéma: "Diagram",
   "Un diagramme de ce que la session a changé, rédigé à la demande par claude -p : il coûte des tokens.":
     "A diagram of what the session changed, drawn on request by claude -p: it costs tokens.",

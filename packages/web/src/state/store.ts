@@ -70,13 +70,24 @@ export interface State {
   tabLayout: TabLayout;
   /** Onglets du panneau global affichés hors du menu « ⋯ », dans l'ordre ; tous si `null`. */
   visibleTabs: string[] | null;
+  /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
+  widths: Widths;
 }
+
+export interface Widths {
+  left: number;
+  right: number;
+  /** Part de la zone du terminal laissée à l'aperçu, entre 0 et 1. */
+  preview: number;
+}
+
+export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
 const SAVED = "claude-ide.state";
 
 function restored(): Pick<
   State,
-  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs"
+  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "widths"
 > {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? "{}") as {
@@ -88,6 +99,7 @@ function restored(): Pick<
       language?: Language;
       tabLayout?: TabLayout;
       visibleTabs?: string[] | null;
+      widths?: Partial<Widths>;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
@@ -99,10 +111,11 @@ function restored(): Pick<
       language: saved.language ?? "auto",
       tabLayout: saved.tabLayout ?? "row",
       visibleTabs: saved.visibleTabs ?? null,
+      widths: { ...DEFAULT_WIDTHS, ...saved.widths },
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, widths: DEFAULT_WIDTHS };
   }
 }
 
@@ -153,6 +166,7 @@ function persist(): void {
       language: state.language,
       tabLayout: state.tabLayout,
       visibleTabs: state.visibleTabs,
+      widths: state.widths,
     }),
   );
 }
