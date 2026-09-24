@@ -1,6 +1,7 @@
 import { Contrast, Moon, PanelLeft, PanelRight, Plus, Settings2, SquareDashed, Sun, X } from "lucide-react";
 import { useState } from "react";
 
+import { GitChip } from "@/components/GitChip";
 import { PreferencesDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,8 @@ export function TitleBar() {
         </TooltipTrigger>
         <TooltipContent>{t("Ouvrir un projet")}</TooltipContent>
       </Tooltip>
+
+      {activeRoot && <GitChip key={activeRoot} root={activeRoot} />}
 
       <span
         className={cn("ml-auto text-[11px]", connected ? "text-muted-foreground" : "text-destructive")}

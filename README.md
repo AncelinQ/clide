@@ -441,6 +441,23 @@ Trois choses méritent d'être dites :
   outils qui en font ; un `Write` visant un chemin reste sans effet et se fait
   signaler au démarrage de chaque session.
 
+## Branche, fetch, pull, push
+
+La barre de titre montre la branche du projet ouvert, son avance (↑) et son
+retard (↓) sur l'amont, et le nombre de fichiers touchés (●), relevés toutes les
+dix secondes et au retour sur la fenêtre. Son menu fait les gestes courants par le
+`git` local, qui passe par le gestionnaire d'identifiants de Windows : l'application
+ne stocke aucun secret, et git ne s'arrête jamais sur une demande de mot de passe
+en terminal (`GIT_TERMINAL_PROMPT=0`).
+
+- **Fetch** (`--prune`).
+- **Pull** en avance rapide seulement : une fusion ou un rebase décidés par un
+  bouton réécriraient l'historique sans qu'on l'ait regardé.
+- **Push** montre d'abord ce qui partira — branche distante, commits, amont créé
+  pour une branche neuve — et ne part qu'une fois validé. Le serveur refuse si la
+  branche a bougé depuis cet aperçu, ou si elle est en retard sur son amont ; il
+  ne force jamais.
+
 ## Worktrees
 
 Le panneau lit `git worktree list --porcelain`, puis l'état de chacun : fichiers

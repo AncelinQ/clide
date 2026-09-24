@@ -50,6 +50,7 @@ import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
+import { gitFetch, gitPull, gitPush, gitStatus, pushPlan } from "../platform/git-actions.js";
 import { discoverServers, listListening } from "../platform/listening.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
@@ -477,6 +478,12 @@ export const routes: Record<string, Handler> = {
     diagram: await readDiagram(dataDir, requireParam(params, "id")),
   }),
 
+  /** Branche, amont, écart et fichiers touchés ; `null` hors d'un dépôt git. */
+  "/api/git/status": async (params) => ({ status: await gitStatus(requireParam(params, "root")) }),
+
+  /** Ce qu'un push enverrait — commits, branche distante, amont à créer —, sans rien envoyer. */
+  "/api/git/push-plan": async (params) => pushPlan(requireParam(params, "root")),
+
   /** Le serveur de développement répond-il, et accepte-t-il l'aperçu en cadre ? */
   "/api/preview/probe": async (params) => probeFrame(requireParam(params, "url")),
 
@@ -792,6 +799,24 @@ export const mutations: Record<string, Mutation> = {
     }
     return { writeup: await pending };
   },
+
+  "/api/git/fetch": async (_params, _context, body) => {
+    await gitFetch(requireField(body, "root", isString));
+    return { ok: true };
+  },
+
+  "/api/git/pull": async (_params, _context, body) => {
+    await gitPull(requireField(body, "root", isString));
+    return { ok: true };
+  },
+
+  /**
+   * Pousse la branche courante. `head` est le commit montré dans l'aperçu : un
+   * push ne part que si c'est encore lui, pour que ce qu'on a validé soit ce qui
+   * est envoyé.
+   */
+  "/api/git/push": async (_params, _context, body) =>
+    gitPush(requireField(body, "root", isString), requireField(body, "head", isString)),
 
   "/api/session/restore": async (_params, context, body) => {
     const id = requireField(body, "id", isString);
