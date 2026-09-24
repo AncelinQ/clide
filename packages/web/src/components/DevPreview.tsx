@@ -45,13 +45,17 @@ function shortCommand(command: string): string {
  * les cinq secondes aperçu ouvert, toutes les trente sinon, juste assez pour
  * allumer le bouton.
  */
-export function useDevServers(root: string | undefined, terminals: TerminalInfo[], open: boolean): DevServer[] {
+export function useDevServers(terminals: TerminalInfo[], open: boolean): DevServer[] {
   const [discovered, setDiscovered] = useState<Discovered[]>([]);
+  const ids = terminals.map((info) => info.id).join(",");
   useEffect(() => {
-    if (!root) return;
+    if (!ids) {
+      setDiscovered([]);
+      return;
+    }
     let alive = true;
     const poll = () =>
-      api<{ servers: Discovered[] }>("/api/preview/servers", { root })
+      api<{ servers: Discovered[] }>("/api/preview/servers", { terminals: ids })
         .then((result) => alive && setDiscovered(result.servers))
         .catch(() => alive && setDiscovered([]));
     void poll();
@@ -60,7 +64,7 @@ export function useDevServers(root: string | undefined, terminals: TerminalInfo[
       alive = false;
       clearInterval(timer);
     };
-  }, [root, open]);
+  }, [ids, open]);
 
   const byPort = new Map<string, DevServer>();
   for (const info of terminals) {

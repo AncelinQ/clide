@@ -422,16 +422,16 @@ export const routes: Record<string, Handler> = {
   "/api/preview/probe": async (params) => probeFrame(requireParam(params, "url")),
 
   /**
-   * Pages servies par les descendants des onglets du projet, qu'ils aient été
-   * lancés à la main ou par Claude en arrière-plan : leur sortie ne passe pas
-   * toujours par l'onglet, mais leur port se voit. Seul ce qui répond en HTML
-   * compte.
+   * Pages servies par les descendants des onglets donnés, qu'ils aient été lancés
+   * à la main ou par Claude en arrière-plan : leur sortie ne passe pas toujours par
+   * l'onglet, mais leur port se voit. Seul ce qui répond en HTML compte.
+   *
+   * Les onglets sont nommés par le client, qui sait à quel projet chacun
+   * appartient : un onglet ouvert dans un worktree a ce worktree pour dossier, pas
+   * le projet.
    */
   "/api/preview/servers": async (params, { processes, terminals }) => {
-    const root = normalizePath(requireParam(params, "root"));
-    const own = new Set(
-      terminals.list().filter((info) => normalizePath(info.projectRoot) === root).map((info) => info.id),
-    );
+    const own = new Set(requireParam(params, "terminals").split(","));
     const pids = new Map([...terminals.ownedPids()].filter(([, id]) => own.has(id)));
     if (pids.size === 0) return { servers: [] };
     const [sockets, list] = await Promise.all([listListening(), processes.list()]);

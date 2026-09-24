@@ -274,7 +274,7 @@ export function TerminalArea() {
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
   const current = status ? live[status.id] : undefined;
-  const servers = useDevServers(project?.root, own.map((entry) => entry.info), previewOpen);
+  const servers = useDevServers(own.map((entry) => entry.info), previewOpen);
   const serving = servers.length > 0;
 
   // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
