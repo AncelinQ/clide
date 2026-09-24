@@ -1,4 +1,5 @@
 import { t } from "@/i18n";
+import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
 import { closeProject, getState, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
@@ -163,6 +164,13 @@ export function commands(): Command[] {
       label: t("Panneau global"),
       shortcut: "Ctrl+Shift+E",
       run: () => setState((current) => ({ showRight: !current.showRight })),
+    },
+    {
+      id: "help.docs",
+      group: t("Application"),
+      label: t("Documentation"),
+      shortcut: "Ctrl+Shift+H",
+      run: () => openDoc(),
     },
     {
       id: "view.preview",

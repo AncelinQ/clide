@@ -51,4 +51,13 @@ await build({
 // Le client est servi depuis le dossier du bundle, à côté de lui.
 await cp(join(here, "..", "web", "dist"), join(dist, "web"), { recursive: true });
 
+// Le guide aussi, s'il a été construit : sans lui, le lien « Documentation »
+// l'explique plutôt que d'échouer.
+const docs = join(here, "..", "..", "docs", "guide", ".vitepress", "dist");
+try {
+  await cp(docs, join(dist, "docs"), { recursive: true });
+} catch {
+  console.warn("guide non construit (pnpm docs:build) : l'application empaquetée ne l'aura pas");
+}
+
 console.log("empaqueté dans", dist);

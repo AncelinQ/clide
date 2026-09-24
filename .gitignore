@@ -7,3 +7,6 @@ release/
 
 # Configuration locale du MCP Serena, propre à la machine.
 .serena/
+
+# Cache de VitePress, régénéré à chaque construction du guide.
+.vitepress/cache/

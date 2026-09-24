@@ -6,12 +6,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 import { t } from "@/i18n";
+import { docUrl } from "@/lib/api";
 
 export interface Mode {
   id: string;
   icon: LucideIcon;
   title: string;
   about: string;
+  /** Section du guide qui détaille le mode : `session#captures`. */
+  doc?: string;
   render: () => ReactNode;
 }
 
@@ -93,7 +96,24 @@ export function ModeBlock({
       {!collapsed && (
         <ScrollArea className="min-h-0 flex-1">
           <div className="px-3 pb-3">
-            {about && <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{mode.about}</p>}
+            {about && (
+              <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">
+                {mode.about}
+                {mode.doc && (
+                  <>
+                    {" "}
+                    <a
+                      href={docUrl(mode.doc)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      {t("En savoir plus")}
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
             {mode.render()}
           </div>
         </ScrollArea>

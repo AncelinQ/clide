@@ -1,4 +1,4 @@
-import { Contrast, Moon, PanelLeft, PanelRight, Plus, Settings2, SquareDashed, Sun, X } from "lucide-react";
+import { BookOpen, Contrast, Moon, PanelLeft, PanelRight, Plus, Settings2, SquareDashed, Sun, X } from "lucide-react";
 import { useState } from "react";
 
 import { GitChip } from "@/components/GitChip";
@@ -17,6 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 import { t } from "@/i18n";
+import { openDoc } from "@/lib/api";
 import { closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal } from "@/state/terminals";
@@ -119,6 +120,15 @@ export function TitleBar() {
       >
         {connected ? t("connecté") : t("déconnecté…")}
       </span>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => openDoc()}>
+            <BookOpen />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("Documentation")}</TooltipContent>
+      </Tooltip>
 
       <Tooltip>
         <TooltipTrigger asChild>

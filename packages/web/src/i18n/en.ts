@@ -9,6 +9,8 @@ export const EN: Record<string, string> = {
   Recherche: "Search",
   remonter: "up",
   Aperçu: "Preview",
+  "Documentation": "Documentation",
+  "En savoir plus": "Learn more",
   "CI verte": "CI passed",
   "CI en échec": "CI failed",
   "CI en cours": "CI running",

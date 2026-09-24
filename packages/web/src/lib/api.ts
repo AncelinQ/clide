@@ -37,6 +37,21 @@ export async function saveImage(image: Blob): Promise<string> {
 }
 
 /** Appel d'une route qui écrit. Elles sont toutes réservées à POST. */
+/**
+ * Adresse d'une page du guide, servi par le serveur de l'application sous `/docs/`.
+ * `page` est le nom du fichier sans extension, suivi au besoin d'une ancre :
+ * `session#captures`. Le guide se sert sans jeton, il n'en porte donc pas.
+ */
+export function docUrl(page = ""): string {
+  const [file = "", anchor] = page.split("#");
+  return `/docs/${file ? `${file}.html` : ""}${anchor ? `#${anchor}` : ""}`;
+}
+
+/** Ouvre le guide à côté de l'application : un onglet du navigateur, ou le navigateur du système sous Electron. */
+export function openDoc(page?: string): void {
+  window.open(docUrl(page), "_blank", "noreferrer");
+}
+
 export function post<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, {}, { method: "POST", body: JSON.stringify(body) });
 }

@@ -25,6 +25,7 @@ let window_: BrowserWindow | undefined;
 async function createWindow(): Promise<void> {
   server ??= await startServer({
     webRoot: join(here, "web"),
+    docsRoot: join(here, "docs"),
   });
 
   window_ = new BrowserWindow({
