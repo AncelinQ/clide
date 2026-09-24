@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
+import { Thumbnails } from "@/components/panels/captures";
 import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,7 +172,9 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
   );
   const agent = path?.at(-1)?.agentId;
   const focus = useStore((state) =>
-    !agent && state.activityFocus?.sessionId === session.sessionId ? state.activityFocus.index : undefined,
+    state.activityFocus?.sessionId === session.sessionId && state.activityFocus.agentId === agent
+      ? state.activityFocus.index
+      : undefined,
   );
   const state = useAsync(
     () =>
@@ -242,6 +245,14 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                     )}
                   >
                     {entry.kind === "tool" ? entry.summary : entry.text}
+                    {(entry.kind === "tool" || entry.kind === "prompt") && entry.images ? (
+                      <Thumbnails
+                        sessionId={session.sessionId}
+                        index={feed.offset + index}
+                        count={entry.images}
+                        {...(agent ? { agentId: agent } : {})}
+                      />
+                    ) : null}
                   </span>
                   {entry.kind === "tool" && entry.agentId && (
                     <button

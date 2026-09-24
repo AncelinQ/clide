@@ -1,10 +1,23 @@
 import type { TranscriptEvent } from "../transcript/events.js";
 
+/** Image portée par une entrée : une capture rendue par un outil, ou collée dans un prompt. */
+export interface ActivityImage {
+  mediaType: string;
+  /** Contenu en base64. */
+  data: string;
+}
+
+/** Nombre d'images d'une entrée ; leur contenu n'est rendu qu'avec `images: true`. */
+interface Pictured {
+  images?: number;
+  imageData?: ActivityImage[];
+}
+
 export type ActivityEntry =
-  | { kind: "prompt"; at?: string; text: string }
+  | ({ kind: "prompt"; at?: string; text: string } & Pictured)
   | { kind: "command"; at?: string; text: string }
   | { kind: "answer"; at?: string; text: string; model?: string }
-  | {
+  | ({
       kind: "tool";
       at?: string;
       name: string;
@@ -12,7 +25,7 @@ export type ActivityEntry =
       failed?: boolean;
       /** Sous-agent lancé par cet appel, dont le transcript porte le détail. */
       agentId?: string;
-    }
+    } & Pictured)
   | { kind: "note"; at?: string; text: string };
 
 export interface ActivityFeed {
@@ -38,6 +51,29 @@ function blocks(event: TranscriptEvent): Block[] {
   const content = (message as Record<string, unknown>)["content"];
   if (typeof content === "string") return [{ type: "text", text: content }];
   return Array.isArray(content) ? (content as Block[]) : [];
+}
+
+/** Types d'image rendus tels quels ; un autre type n'est pas montré. */
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+
+function imagesIn(content: unknown): ActivityImage[] {
+  if (!Array.isArray(content)) return [];
+  const out: ActivityImage[] = [];
+  for (const block of content as Record<string, unknown>[]) {
+    const source = block?.["type"] === "image" ? (block["source"] as Record<string, unknown> | undefined) : undefined;
+    const mediaType = source?.["media_type"];
+    const data = source?.["data"];
+    if (typeof mediaType === "string" && IMAGE_TYPES.has(mediaType) && typeof data === "string") {
+      out.push({ mediaType, data });
+    }
+  }
+  return out;
+}
+
+function picture(entry: Pictured, found: ActivityImage[], keep: boolean): void {
+  if (found.length === 0) return;
+  entry.images = (entry.images ?? 0) + found.length;
+  if (keep) entry.imageData = [...(entry.imageData ?? []), ...found];
 }
 
 function modelOf(event: TranscriptEvent): string | undefined {
@@ -124,6 +160,8 @@ export function buildActivity(
      * ligne de l'activité affichée.
      */
     full?: boolean;
+    /** Contenu des images en plus de leur nombre : lourd, réservé à qui les montre. */
+    images?: boolean;
   } = {},
 ): ActivityFeed {
   const textMax = options.full ? 20_000 : 400;
@@ -142,21 +180,27 @@ export function buildActivity(
         result && typeof result === "object" && typeof (result as Record<string, unknown>)["agentId"] === "string"
           ? ((result as Record<string, unknown>)["agentId"] as string)
           : undefined;
+      let prompt: (ActivityEntry & { kind: "prompt" }) | undefined;
       for (const block of blocks(event)) {
         if (block.type === "tool_result") {
           const tool = block.tool_use_id ? toolByUseId.get(block.tool_use_id) : undefined;
           if (tool && block.is_error) tool.failed = true;
           if (tool && agentId) tool.agentId = agentId;
+          if (tool) picture(tool, imagesIn(block.content), options.images === true);
           continue;
         }
         if (block.type !== "text" || !block.text) continue;
         const text = condense(block.text, textMax);
-        entries.push(
-          SYNTHETIC.test(block.text)
-            ? { kind: "command", ...(at ? { at } : {}), text }
-            : { kind: "prompt", ...(at ? { at } : {}), text },
-        );
+        if (SYNTHETIC.test(block.text)) {
+          entries.push({ kind: "command", ...(at ? { at } : {}), text });
+        } else {
+          prompt = { kind: "prompt", ...(at ? { at } : {}), text };
+          entries.push(prompt);
+        }
       }
+      // Une image collée accompagne le texte du prompt, dans le même message : elle
+      // s'y rattache plutôt que de faire une entrée à elle seule.
+      if (prompt) picture(prompt, imagesIn(blocks(event)), options.images === true);
       continue;
     }
 

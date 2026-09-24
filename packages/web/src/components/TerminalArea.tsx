@@ -1,9 +1,10 @@
-import { Activity, Camera, ClipboardList, FileDiff, Plus, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
+import { Activity, Camera, ClipboardList, FileDiff, Images, Plus, Sparkles, Terminal as TerminalIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
+import { CapturesPanel } from "@/components/panels/captures";
 import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
@@ -282,6 +283,13 @@ export function TerminalArea() {
       title: t("Activité"),
       about: t("Le déroulé de la session : prompts, réponses et appels d'outils."),
       render: () => (shown ? <ActivityPanel session={shown} /> : null),
+    },
+    {
+      id: "captures",
+      icon: Images,
+      title: t("Captures"),
+      about: t("Les images de la session, sous-agents compris : captures prises par Claude, images collées."),
+      render: () => (shown ? <CapturesPanel session={shown} /> : null),
     },
     {
       id: "files",

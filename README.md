@@ -652,6 +652,18 @@ L'écriture passe par un fichier temporaire renommé : jamais de fichier à moit
 écrit. Les écritures d'un sous-agent comptent : ses appels d'outils sont lus dans
 son transcript.
 
+## Captures
+
+Les images que porte un transcript — une capture qu'un outil a rendue
+(`browser_take_screenshot`, un `Read` sur un PNG), une image collée dans un prompt
+— s'affichent en vignettes sous leur entrée de l'activité ; un clic les montre en
+grand. L'onglet Captures les rassemble dans l'ordre du temps, sous-agents compris,
+et chacune s'ouvre à sa place dans l'activité.
+
+Seuls les PNG, JPEG, GIF et WebP sont montrés. Le flux d'activité ne porte que leur
+nombre : le contenu, souvent des centaines de Ko en base64, se charge par entrée
+quand la vignette approche de l'écran.
+
 ## Sous-agents
 
 Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un

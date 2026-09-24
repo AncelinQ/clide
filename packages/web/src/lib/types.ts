@@ -138,9 +138,10 @@ export interface FileDiff {
 }
 
 export type ActivityEntry =
-  | { kind: "prompt" | "command" | "note"; at?: string; text: string }
+  | { kind: "prompt"; at?: string; text: string; images?: number }
+  | { kind: "command" | "note"; at?: string; text: string }
   | { kind: "answer"; at?: string; text: string; model?: string }
-  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean; agentId?: string };
+  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean; agentId?: string; images?: number };
 
 export interface ProcessNode {
   pid: number;

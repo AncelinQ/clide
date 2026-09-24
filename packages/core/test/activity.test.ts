@@ -124,4 +124,42 @@ describe("buildActivity", () => {
     ]);
     expect(entries[0]).toMatchObject({ kind: "tool", name: "Agent", agentId: "a5214d858afa51b8b" });
   });
+
+  it("compte les captures rendues par un outil, et n'en donne le contenu qu'à la demande", () => {
+    const events: TranscriptEvent[] = [
+      { type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "browser_take_screenshot", input: {} }] } },
+      {
+        type: "user",
+        message: {
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: "t1",
+              content: [
+                { type: "text", text: "capture" },
+                { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBOR" } },
+                { type: "image", source: { type: "base64", media_type: "image/svg+xml", data: "PHN2Zz4" } },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    expect(buildActivity(events).entries[0]).toMatchObject({ images: 1 });
+    expect(buildActivity(events).entries[0]).not.toHaveProperty("imageData");
+    expect(buildActivity(events, { images: true }).entries[0]).toMatchObject({
+      imageData: [{ mediaType: "image/png", data: "iVBOR" }],
+    });
+  });
+
+  it("rattache une image collée au texte de son prompt", () => {
+    const { entries } = buildActivity([
+      user([
+        { type: "text", text: "[Image #1] regarde ça" },
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/" } },
+      ]),
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ kind: "prompt", images: 1 });
+  });
 });

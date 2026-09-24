@@ -74,6 +74,7 @@ export {
   summarizeTool,
   type ActivityEntry,
   type ActivityFeed,
+  type ActivityImage,
 } from "./session/activity.js";
 
 export {

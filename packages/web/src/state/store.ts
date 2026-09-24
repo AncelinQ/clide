@@ -52,7 +52,7 @@ export interface State {
   /** Bloc session replié sous le terminal. */
   sessionCollapsed: boolean;
   /** Entrée d'activité à montrer, ouverte depuis la recherche. */
-  activityFocus: { sessionId: string; index: number } | null;
+  activityFocus: { sessionId: string; index: number; agentId?: string } | null;
   /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
   activityAgents: { sessionId: string; path: { agentId: string; label: string }[] } | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */

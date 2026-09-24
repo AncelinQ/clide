@@ -32,6 +32,7 @@ import {
   settingsFile,
   type Scope,
   type SkillDraft,
+  type ActivityEntry,
   type SkillInvocation,
   type TranscriptRef,
 } from "@claude-ide/core";
@@ -287,6 +288,62 @@ export const routes: Record<string, Handler> = {
   "/api/session/restore-plan": async (params, context) => {
     const { before: _before, ...plan } = await restorePlan(requireParam(params, "id"), requireParam(params, "path"), context);
     return plan;
+  },
+
+  /**
+   * Toutes les entrées porteuses d'images de la session et de ses sous-agents,
+   * dans l'ordre du temps, sans leur contenu : la galerie charge chaque image à
+   * part, quand elle devient visible.
+   */
+  "/api/session/gallery": async (params) => {
+    const id = requireParam(params, "id");
+    const refs = (await discoverTranscripts()).filter((ref) => ref.sessionId === id);
+    const main = refs.find((ref) => ref.kind === "session");
+    if (!main) throw new Error(`session ${id} introuvable`);
+    const mainEntries = buildActivity((await TranscriptReader.fromRef(main).poll()).events, {
+      limit: Number.MAX_SAFE_INTEGER,
+    }).entries;
+    // Un sous-agent se nomme par la description de l'appel qui l'a lancé.
+    const labels = new Map(
+      mainEntries.flatMap((entry) => (entry.kind === "tool" && entry.agentId ? [[entry.agentId, entry.summary]] : [])),
+    );
+    const sources: { agentId?: string; entries: ActivityEntry[] }[] = [{ entries: mainEntries }];
+    for (const ref of refs) {
+      if (ref.kind !== "subagent" || !ref.agentId) continue;
+      const { events } = await TranscriptReader.fromRef(ref).poll();
+      sources.push({ agentId: ref.agentId, entries: buildActivity(events, { limit: Number.MAX_SAFE_INTEGER }).entries });
+    }
+    const items = sources.flatMap(({ agentId, entries }) =>
+      entries.flatMap((entry, index) =>
+        (entry.kind === "tool" || entry.kind === "prompt") && entry.images
+          ? [
+              {
+                ...(agentId ? { agentId, agentLabel: labels.get(agentId) ?? agentId } : {}),
+                index,
+                kind: entry.kind,
+                ...(entry.at ? { at: entry.at } : {}),
+                label: entry.kind === "tool" ? entry.name : undefined,
+                text: entry.kind === "tool" ? entry.summary : entry.text,
+                images: entry.images,
+              },
+            ]
+          : [],
+      ),
+    );
+    items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+    return { items };
+  },
+
+  /** Contenu des images d'une entrée de l'activité, désignée par sa position. */
+  "/api/session/images": async (params) => {
+    const id = requireParam(params, "id");
+    const agent = params.get("agent");
+    const index = Number(requireParam(params, "index"));
+    if (!Number.isInteger(index) || index < 0) throw new Error("index invalide");
+    const ref = agent ? await findSubagent(id, agent) : await findSession(id);
+    const { events } = await TranscriptReader.fromRef(ref).poll();
+    const entry = buildActivity(events, { limit: Number.MAX_SAFE_INTEGER, images: true }).entries[index];
+    return { images: entry && (entry.kind === "tool" || entry.kind === "prompt") ? (entry.imageData ?? []) : [] };
   },
 
   "/api/session/activity": async (params) => {

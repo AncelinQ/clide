@@ -138,6 +138,7 @@ export function commands(): Command[] {
       [
         ["plan", "Plan"],
         ["activity", "Activité"],
+        ["captures", "Captures"],
         ["files", "Fichiers"],
       ] as const
     ).map(([mode, label]) => ({

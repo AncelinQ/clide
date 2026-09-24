@@ -8,6 +8,13 @@ export const EN: Record<string, string> = {
   Chantiers: "Workstreams",
   Recherche: "Search",
   remonter: "up",
+  "capture {n}": "screenshot {n}",
+  Capture: "Screenshot",
+  Captures: "Screenshots",
+  "Aucune image dans cette session.": "No image in this session.",
+  "Ouvrir dans l'activité": "Open in the activity",
+  "Les images de la session, sous-agents compris : captures prises par Claude, images collées.":
+    "The session's images, subagents included: screenshots taken by Claude, pasted images.",
   "Restaurer le fichier": "Restore the file",
   "Fichier restauré.": "File restored.",
   "Le contenu remplacé est gardé dans {path}.": "The replaced content is kept in {path}.",

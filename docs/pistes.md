@@ -266,6 +266,10 @@ de la génération de tests de bout en bout, et Claude le fait déjà avec Playw
 **Critère.** Je vois à quoi ressemblait l'écran à chaque étape d'une session,
 sans la rejouer.
 
+**État.** Palier 1 fait : les images s'affichent en vignettes sous leur entrée de
+l'activité, et un onglet Captures les rassemble dans l'ordre du temps, sous-agents
+compris. Paliers 2 et 3 à faire.
+
 ---
 
 ## Portage depuis ClaudeTerm
