@@ -60,11 +60,13 @@ import {
   gitStatus,
   listBranches,
   pushPlan,
+  remoteUrl,
   stashCount,
   stashPop,
   switchBranch,
 } from "../platform/git-actions.js";
 import { discoverServers, listListening } from "../platform/listening.js";
+import { reviewFor } from "../platform/review.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
@@ -496,6 +498,23 @@ export const routes: Record<string, Handler> = {
     const root = requireParam(params, "root");
     const status = await gitStatus(root);
     return { status, stashes: status ? await stashCount(root) : 0 };
+  },
+
+  /**
+   * MR ou PR de la branche courante et l'état de sa CI, par `gh` ou `glab`.
+   * Une CLI absente ou déconnectée revient en `error`, que l'interface montre.
+   */
+  "/api/git/review": async (params) => {
+    const root = requireParam(params, "root");
+    const status = await gitStatus(root);
+    if (!status?.branch) return { review: null };
+    const url = await remoteUrl(root).catch(() => undefined);
+    if (!url) return { review: null };
+    try {
+      return { review: await reviewFor(root, status.branch, url) };
+    } catch (error) {
+      return { review: null, error: error instanceof Error ? error.message : String(error) };
+    }
   },
 
   /** Branches locales, puis celles qui ne sont que distantes, les plus récentes d'abord. */

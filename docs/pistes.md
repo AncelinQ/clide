@@ -300,9 +300,12 @@ pas de secret ».
    installées : elles gardent leur propre connexion, la règle « pas de secret »
    tient.
 
-**Questions ouvertes.** Un push depuis un bouton est un geste sortant : faut-il
-une confirmation qui montre ce qui part ? Que faire d'un changement de branche
-avec des modifications non commitées — refuser, ou proposer un stash ?
+**Tranché** : un push demande confirmation en montrant ce qui part ; un
+changement de branche avec des modifications non commitées propose un stash.
+
+**État.** Fait, les trois paliers : la branche dans la barre de titre avec fetch,
+pull en avance rapide et push confirmé ; les branches, le stash proposé, les
+worktrees ouverts avec Claude ; la MR ou la PR et sa CI par `glab` et `gh`.
 
 ---
 

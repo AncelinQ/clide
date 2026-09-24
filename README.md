@@ -475,6 +475,15 @@ que sur un dépôt distant — les choisir crée la branche locale qui les suit.
 Le panneau Worktrees ouvre aussi Claude dans un worktree, ou le worktree comme un
 projet à part entière, avec son navigateur de fichiers et ses panneaux.
 
+**La MR ou la PR de la branche** s'affiche à côté d'elle — `!196` sur GitLab,
+`#12` sur GitHub — avec un point qui dit l'état de la CI. Le menu l'ouvre, ainsi
+que son pipeline, et dit si elle est ouverte, en brouillon, fusionnée ou fermée,
+et la décision des relecteurs sur GitHub. La forge se lit dans l'adresse du dépôt
+distant ; l'état vient de `glab mr view` ou de `gh pr view`, qui gardent leur
+propre connexion : l'application ne voit aucun jeton. Chaque appel coûte une
+seconde, la réponse est gardée une minute. Une CLI absente ou déconnectée le dit
+dans le menu.
+
 ## Worktrees
 
 Le panneau lit `git worktree list --porcelain`, puis l'état de chacun : fichiers

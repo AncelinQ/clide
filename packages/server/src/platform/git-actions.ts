@@ -202,6 +202,15 @@ export async function listBranches(root: string): Promise<Branch[]> {
   return parseBranches(refs, status?.branch);
 }
 
+/** Adresse du dépôt distant que suit la branche, à défaut `origin`, à défaut le premier. */
+export async function remoteUrl(root: string): Promise<string | undefined> {
+  const status = await gitStatus(root);
+  const remotes = (await git(root, ["remote"], 15_000)).split(/\r?\n/).filter(Boolean);
+  const remote = status?.upstream?.split("/")[0] ?? (remotes.includes("origin") ? "origin" : remotes[0]);
+  if (!remote) return undefined;
+  return (await git(root, ["remote", "get-url", remote], 15_000)).trim();
+}
+
 /** Nombre d'entrées de `git stash list`. */
 export async function stashCount(root: string): Promise<number> {
   try {

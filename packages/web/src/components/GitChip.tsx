@@ -1,4 +1,15 @@
-import { ArrowDown, ArrowUp, ArchiveRestore, CloudDownload, GitBranch, GitBranchPlus, RefreshCw, Upload } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArchiveRestore,
+  CloudDownload,
+  ExternalLink,
+  GitBranch,
+  GitBranchPlus,
+  GitPullRequest,
+  RefreshCw,
+  Upload,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
@@ -68,6 +79,74 @@ export function useGitStatus(root: string | undefined) {
   }, [refresh]);
   return [status, refresh] as const;
 }
+
+interface Review {
+  forge: "github" | "gitlab";
+  number: number;
+  title: string;
+  state: "open" | "draft" | "merged" | "closed";
+  url: string;
+  ci?: "success" | "failed" | "running" | "pending" | "canceled" | "skipped";
+  ciUrl?: string;
+  review?: "approved" | "changes_requested" | "review_required";
+}
+
+/**
+ * MR ou PR de la branche, relevée à la minute : le serveur la tient d'une CLI qui
+ * interroge la forge, et garde sa réponse le même temps.
+ */
+function useReview(root: string, branch: string | undefined) {
+  const [state, setState] = useState<{ review: Review | null; error?: string }>({ review: null });
+  useEffect(() => {
+    if (!branch) {
+      setState({ review: null });
+      return;
+    }
+    let alive = true;
+    const poll = () =>
+      api<{ review: Review | null; error?: string }>("/api/git/review", { root })
+        .then((result) => alive && setState(result))
+        .catch(() => alive && setState({ review: null }));
+    void poll();
+    const timer = setInterval(poll, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [root, branch]);
+  return state;
+}
+
+const CI_DOT: Record<NonNullable<Review["ci"]>, string> = {
+  success: "bg-emerald-500",
+  failed: "bg-destructive",
+  running: "animate-pulse bg-amber-500",
+  pending: "bg-muted-foreground",
+  canceled: "bg-muted-foreground",
+  skipped: "bg-muted-foreground",
+};
+
+const CI_LABEL: Record<NonNullable<Review["ci"]>, string> = {
+  success: "CI verte",
+  failed: "CI en échec",
+  running: "CI en cours",
+  pending: "CI en attente",
+  canceled: "CI annulée",
+  skipped: "CI ignorée",
+};
+
+const STATE_LABEL: Record<Review["state"], string> = {
+  open: "ouverte",
+  draft: "brouillon",
+  merged: "fusionnée",
+  closed: "fermée",
+};
+
+const REVIEW_LABEL: Record<NonNullable<Review["review"]>, string> = {
+  approved: "approuvée",
+  changes_requested: "changements demandés",
+  review_required: "relecture attendue",
+};
 
 /**
  * Ce qu'un push enverrait, à valider avant qu'il ne parte : un push est un geste
@@ -167,8 +246,10 @@ export function GitChip({ root }: { root: string }) {
   const [message, setMessage] = useState<{ text: string; error: boolean }>();
   const [pushing, setPushing] = useState(false);
   const [branching, setBranching] = useState(false);
+  const { review, error: reviewError } = useReview(root, status?.branch);
 
   if (!status) return null;
+  const tag = review ? `${review.forge === "github" ? "#" : "!"}${review.number}` : undefined;
 
   const act = async (label: string, path: string) => {
     setBusy(label);
@@ -211,6 +292,13 @@ export function GitChip({ root }: { root: string }) {
                 {status.behind}
               </span>
             )}
+            {review && tag && (
+              <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
+                <GitPullRequest className="size-3" />
+                {tag}
+                {review.ci && <span className={cn("size-1.5 rounded-full", CI_DOT[review.ci])} />}
+              </span>
+            )}
             {status.changed + status.conflicted > 0 && (
               <span
                 className={cn("tabular-nums", status.conflicted > 0 ? "text-destructive" : "text-muted-foreground")}
@@ -230,6 +318,30 @@ export function GitChip({ root }: { root: string }) {
               {message.text}
             </div>
           )}
+          {review && tag && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => window.open(review.url, "_blank", "noreferrer")}>
+                <GitPullRequest />
+                <span className="min-w-0 flex-1 truncate" title={review.title}>
+                  {tag} · {t(STATE_LABEL[review.state])}
+                  {review.review ? ` · ${t(REVIEW_LABEL[review.review])}` : ""}
+                </span>
+                <ExternalLink className="opacity-60" />
+              </DropdownMenuItem>
+              {review.ci && (
+                <DropdownMenuItem
+                  disabled={!review.ciUrl && review.forge === "gitlab"}
+                  onSelect={() => window.open(review.ciUrl ?? `${review.url}/checks`, "_blank", "noreferrer")}
+                >
+                  <span className={cn("mx-1 size-2 rounded-full", CI_DOT[review.ci])} />
+                  <span className="flex-1">{t(CI_LABEL[review.ci])}</span>
+                  <ExternalLink className="opacity-60" />
+                </DropdownMenuItem>
+              )}
+            </>
+          )}
+          {reviewError && <div className="px-2 pb-1 text-[11px] text-muted-foreground">{reviewError}</div>}
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled={!!busy} onSelect={() => void act(t("Fetch"), "/api/git/fetch")}>
             <RefreshCw /> {t("Fetch")}
