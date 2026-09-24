@@ -12,6 +12,20 @@ export const EN: Record<string, string> = {
   "Tirer pour redimensionner, double-clic pour revenir à la largeur par défaut":
     "Drag to resize, double-click to go back to the default width",
   Schéma: "Diagram",
+  Rédaction: "Write-up",
+  "Un message de commit ou une description de MR pour la session, rédigé à la demande par claude -p : il coûte des tokens.":
+    "A commit message or MR description for the session, drafted on request by claude -p: it costs tokens.",
+  "Message de commit": "Commit message",
+  "Description de MR": "MR description",
+  "Un message de commit pour ce que la session a changé, dans la convention des derniers commits du dépôt. Rédigé par claude -p (Sonnet) : quelques centimes, à la demande. Rien n'est commité.":
+    "A commit message for what the session changed, following the convention of the repository's latest commits. Drafted by claude -p (Sonnet): a few cents, on request. Nothing is committed.",
+  "Une description de merge request — pourquoi, ce qui change, comment tester — rédigée par claude -p (Sonnet) à partir de la session : quelques centimes, à la demande.":
+    "A merge request description — why, what changes, how to test — drafted by claude -p (Sonnet) from the session: a few cents, on request.",
+  Rédiger: "Draft",
+  "Claude rédige…": "Claude is writing…",
+  Copier: "Copy",
+  Copié: "Copied",
+  rendu: "rendered",
   "Un diagramme de ce que la session a changé, rédigé à la demande par claude -p : il coûte des tokens.":
     "A diagram of what the session changed, drawn on request by claude -p: it costs tokens.",
   "Un diagramme de ce que la session a changé, rédigé par claude -p (Sonnet) à partir de ses demandes et de ses diffs. Il coûte quelques centimes, jamais plus d'un dollar, et n'est fait qu'à la demande.":

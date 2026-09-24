@@ -5,6 +5,7 @@ import {
   FileDiff,
   Images,
   MonitorPlay,
+  PenLine,
   Plus,
   Sparkles,
   Terminal as TerminalIcon,
@@ -20,6 +21,7 @@ import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
+import { WriteupPanel } from "@/components/panels/writeup";
 import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession } from "@/components/panels/session";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
@@ -352,6 +354,13 @@ export function TerminalArea() {
       title: t("Schéma"),
       about: t("Un diagramme de ce que la session a changé, rédigé à la demande par claude -p : il coûte des tokens."),
       render: () => (shown ? <DiagramPanel session={shown} /> : null),
+    },
+    {
+      id: "writeup",
+      icon: PenLine,
+      title: t("Rédaction"),
+      about: t("Un message de commit ou une description de MR pour la session, rédigé à la demande par claude -p : il coûte des tokens."),
+      render: () => (shown ? <WriteupPanel session={shown} /> : null),
     },
   ];
 

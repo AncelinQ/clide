@@ -15,7 +15,11 @@ import {
   TranscriptReader,
   breadcrumb,
   buildActivity,
+  commitInstructions,
   diagramInstructions,
+  mrInstructions,
+  unfence,
+  type WriteupKind,
   extractMermaid,
   sessionDigest,
   discoverTranscripts,
@@ -45,6 +49,7 @@ import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
+import { recentSubjects } from "../platform/git.js";
 import { discoverServers, listListening } from "../platform/listening.js";
 import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
@@ -214,13 +219,17 @@ interface SessionDiagram {
   truncated: boolean;
 }
 
-/** Modèle des schémas : assez bon pour lire un diff, sans le prix d'Opus. */
-const DIAGRAM_MODEL = "sonnet";
+/** Modèle des rédactions — schéma, commit, MR : assez bon pour lire un diff, sans le prix d'Opus. */
+const SUMMARY_MODEL = "sonnet";
 
 /** Un identifiant de session devient un nom de fichier : il ne doit rien porter d'autre. */
-function diagramFile(dataDir: string, id: string): string {
+function fileSafeId(id: string): string {
   if (!/^[0-9a-f-]{8,64}$/i.test(id)) throw new Error("identifiant de session invalide");
-  return join(dataDir, "diagrams", `${id}.json`);
+  return id;
+}
+
+function diagramFile(dataDir: string, id: string): string {
+  return join(dataDir, "diagrams", `${fileSafeId(id)}.json`);
 }
 
 async function readDiagram(dataDir: string, id: string): Promise<SessionDiagram | null> {
@@ -234,7 +243,8 @@ async function readDiagram(dataDir: string, id: string): Promise<SessionDiagram 
 /** Rédactions en cours, une par session : un second clic attend la première. */
 const drawing = new Map<string, Promise<SessionDiagram>>();
 
-async function drawDiagram(dataDir: string, id: string, language: "fr" | "en"): Promise<SessionDiagram> {
+/** Résumé d'une session pour `claude -p` : ses demandes, ses fichiers et leurs diffs. */
+async function digestOf(id: string) {
   const ref = await findSession(id);
   const { events, projection } = await TranscriptReader.fromRef(ref).poll();
   const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
@@ -242,12 +252,15 @@ async function drawDiagram(dataDir: string, id: string, language: "fr" | "en"): 
   const prompts = buildActivity(events, { limit: Number.MAX_SAFE_INTEGER, full: true }).entries.flatMap((entry) =>
     entry.kind === "prompt" ? [entry.text] : [],
   );
-  if (prompts.length === 0 && diffs.length === 0) throw new Error("rien à dessiner : la session n'a ni demande ni fichier changé");
+  if (prompts.length === 0 && diffs.length === 0) throw new Error("rien à lire : la session n'a ni demande ni fichier changé");
+  return { root, digest: sessionDigest({ ...(projection.title ? { title: projection.title } : {}), prompts, diffs }) };
+}
 
-  const digest = sessionDigest({ ...(projection.title ? { title: projection.title } : {}), prompts, diffs });
+async function drawDiagram(dataDir: string, id: string, language: "fr" | "en"): Promise<SessionDiagram> {
+  const { digest } = await digestOf(id);
   const answer = await runClaudePrint(digest.text, {
     instructions: diagramInstructions(language),
-    model: DIAGRAM_MODEL,
+    model: SUMMARY_MODEL,
     cwd: dataDir,
   });
   const mermaid = extractMermaid(answer.text);
@@ -264,6 +277,52 @@ async function drawDiagram(dataDir: string, id: string, language: "fr" | "en"): 
   await mkdir(join(dataDir, "diagrams"), { recursive: true });
   await writeFile(file, JSON.stringify(diagram, null, 2), "utf8");
   return diagram;
+}
+
+/** Message de commit ou description de MR rédigé à partir d'une session. */
+interface SessionWriteup {
+  text: string;
+  at: string;
+  costUsd?: number;
+  model?: string;
+  truncated: boolean;
+}
+
+function writeupFile(dataDir: string, id: string, kind: WriteupKind): string {
+  return join(dataDir, "writeups", `${fileSafeId(id)}-${kind}.json`);
+}
+
+async function readWriteup(dataDir: string, id: string, kind: WriteupKind): Promise<SessionWriteup | null> {
+  try {
+    return JSON.parse(await readFile(writeupFile(dataDir, id, kind), "utf8")) as SessionWriteup;
+  } catch {
+    return null;
+  }
+}
+
+const writing = new Map<string, Promise<SessionWriteup>>();
+
+async function draftWriteup(dataDir: string, id: string, kind: WriteupKind, language: "fr" | "en"): Promise<SessionWriteup> {
+  const { root, digest } = await digestOf(id);
+  const instructions = kind === "commit" ? commitInstructions(root ? await recentSubjects(root) : []) : mrInstructions(language);
+  const answer = await runClaudePrint(digest.text, { instructions, model: SUMMARY_MODEL, cwd: dataDir });
+  const text = unfence(answer.text);
+  if (!text) throw new Error("réponse vide de claude -p");
+  const writeup: SessionWriteup = {
+    text,
+    at: new Date().toISOString(),
+    ...(answer.costUsd !== undefined ? { costUsd: answer.costUsd } : {}),
+    ...(answer.model ? { model: answer.model } : {}),
+    truncated: digest.truncated,
+  };
+  await mkdir(join(dataDir, "writeups"), { recursive: true });
+  await writeFile(writeupFile(dataDir, id, kind), JSON.stringify(writeup, null, 2), "utf8");
+  return writeup;
+}
+
+function writeupKind(value: unknown): WriteupKind {
+  if (value !== "commit" && value !== "mr") throw new Error("`kind` doit valoir commit ou mr");
+  return value;
 }
 
 /**
@@ -439,6 +498,11 @@ export const routes: Record<string, Handler> = {
     const probed = await Promise.all(found.map(async (server) => ({ server, probe: await probeFrame(server.url) })));
     return { servers: probed.filter(({ probe }) => probe.html).map(({ server }) => server) };
   },
+
+  /** Message de commit ou description de MR déjà rédigé ; `null` tant qu'on ne l'a pas demandé. */
+  "/api/session/writeup": async (params, { dataDir }) => ({
+    writeup: await readWriteup(dataDir, requireParam(params, "id"), writeupKind(params.get("kind"))),
+  }),
 
   "/api/session/activity": async (params) => {
     const id = requireParam(params, "id");
@@ -713,6 +777,20 @@ export const mutations: Record<string, Mutation> = {
       drawing.set(id, pending);
     }
     return { diagram: await pending };
+  },
+
+  /** Fait rédiger par `claude -p` un message de commit ou une description de MR. Payant : à la demande. */
+  "/api/session/writeup/draft": async (_params, { dataDir }, body) => {
+    const id = requireField(body, "id", isString);
+    const kind = writeupKind(body["kind"]);
+    const language = body["language"] === "en" ? "en" : "fr";
+    const key = `${id}|${kind}`;
+    let pending = writing.get(key);
+    if (!pending) {
+      pending = draftWriteup(dataDir, id, kind, language).finally(() => writing.delete(key));
+      writing.set(key, pending);
+    }
+    return { writeup: await pending };
   },
 
   "/api/session/restore": async (_params, context, body) => {

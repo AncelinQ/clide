@@ -91,6 +91,19 @@ async function git(cwd: string, args: string[]): Promise<string> {
 }
 
 /**
+ * Sujets des derniers commits d'un dépôt, du plus récent au plus ancien : un
+ * message rédigé pour ce dépôt en reprend la langue et la convention. Un dossier
+ * hors de git n'en a pas.
+ */
+export async function recentSubjects(cwd: string, count = 15): Promise<string[]> {
+  try {
+    return (await git(cwd, ["log", `-${count}`, "--format=%s"])).split(/\r?\n/).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Forme canonique d'un chemin sur le disque.
  *
  * Git rend toujours sa propre résolution : un dossier atteint par un nom court

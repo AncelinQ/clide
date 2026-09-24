@@ -720,6 +720,21 @@ de session enregistrée qui encombrerait History, le modèle Sonnet et une dépe
 plafonnée à 1 $. Le rendu se fait en `securityLevel: "strict"`, et la
 bibliothèque Mermaid ne se charge qu'au premier schéma montré.
 
+## Message de commit et description de MR
+
+Le mode Rédaction fait rédiger par `claude -p`, sur le même résumé et avec le même
+isolement que le schéma, un message de commit ou une description de merge
+request. Le message de commit suit la convention des quinze derniers commits du
+dépôt — type, portée, langue — ; la description de MR, dans la langue de
+l'interface, donne pourquoi, ce qui change et comment tester. Environ 0,15 $
+chacun pour une session de cent fichiers, gardés dans `writeups/` jusqu'à ce qu'on
+les refasse.
+
+Rien n'est écrit dans git : le texte se copie et se relit avant de commiter. Comme
+dans l'onglet Fichiers, l'état « après » d'un fichier est son contenu actuel sur le
+disque : rédigé pour une session ancienne, le brouillon compte aussi ce qui a
+changé depuis. Il sert d'abord à la session en cours, avant son commit.
+
 ## Sous-agents
 
 Dans l'activité d'une session, un appel `Agent` dont le sous-agent a laissé un

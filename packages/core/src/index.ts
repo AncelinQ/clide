@@ -85,6 +85,7 @@ export {
 
 export { FileHistoryResolver, type FileDiff } from "./files/history.js";
 export { DIGEST_MAX, diagramInstructions, extractMermaid, sessionDigest, type SessionDigest } from "./session/diagram.js";
+export { commitInstructions, mrInstructions, unfence, type WriteupKind } from "./session/writeup.js";
 export {
   applyRestore,
   lastSessionWrites,
