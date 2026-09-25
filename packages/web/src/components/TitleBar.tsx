@@ -17,7 +17,7 @@ import { useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
 import { FolderInput } from "@/components/FolderInput";
-import { GitChip } from "@/components/GitChip";
+import { GitChip, RepoMarks } from "@/components/GitChip";
 import { PullReportDialog, pullRepositories, usePullRunning } from "@/components/GitSync";
 import { PreferencesDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +113,7 @@ export function TitleBar() {
                 >
                   <SquareDashed className="size-3.5 shrink-0" />
                   <span className="truncate">{project.name}</span>
+                  <RepoMarks root={project.root} />
                   {waiting > 0 && (
                     <Badge className="h-4 min-w-4 justify-center rounded-full px-1 text-[10px] tabular-nums">
                       {waiting}

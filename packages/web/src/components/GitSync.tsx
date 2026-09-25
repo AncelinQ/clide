@@ -9,7 +9,7 @@ import { post, shortName } from "@/lib/api";
 export type PullOutcome =
   | { root: string; outcome: "updated"; branch: string; commits: number }
   | { root: string; outcome: "up-to-date"; branch: string }
-  | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" }
+  | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" | "upstream-gone" }
   | { root: string; outcome: "error"; message: string };
 
 interface PullState {
@@ -69,6 +69,7 @@ const SKIP_REASON: Record<Extract<PullOutcome, { outcome: "skipped" }>["reason"]
   "not-a-repo": "pas un dépôt git",
   detached: "HEAD détaché",
   "no-upstream": "branche sans amont",
+  "upstream-gone": "la branche distante a été supprimée (MR fusionnée ?) : repasser sur la branche principale",
 };
 
 function OutcomeLine({ result }: { result: PullOutcome }) {

@@ -963,7 +963,12 @@ export const mutations: Record<string, Mutation> = {
    * est envoyé.
    */
   "/api/git/push": async (_params, _context, body) =>
-    gitPush(requireField(body, "root", isString), requireField(body, "head", isString)),
+    gitPush(
+      requireField(body, "root", isString),
+      requireField(body, "head", isString),
+      // Un push forcé nomme le commit distant qu'il accepte d'écraser.
+      isString(body["forceOver"]) ? { remoteHead: body["forceOver"] } : undefined,
+    ),
 
   "/api/session/restore": async (_params, context, body) => {
     const id = requireField(body, "id", isString);
