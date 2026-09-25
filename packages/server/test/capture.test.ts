@@ -20,6 +20,12 @@ describe("captureScript", () => {
     expect(script).not.toMatch(/SetImage|SetText|SetData|Set-Clipboard|Clear\(/);
   });
 
+  it("repère une annulation aux processus de l'outil apparus après son ouverture", () => {
+    // Ceux qui tournaient déjà sont relevés avant : ils ne disent rien de cette capture.
+    expect(script.indexOf("$known = ")).toBeLessThan(script.indexOf("Start-Process"));
+    expect(script).toContain("exit 3");
+  });
+
   it("sort sur un code distinct quand rien n'est capturé", () => {
     expect(script.trimEnd().endsWith("exit 2")).toBe(true);
   });

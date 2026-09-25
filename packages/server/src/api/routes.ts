@@ -46,7 +46,8 @@ import {
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
-import { captureScreen } from "../platform/capture.js";
+import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
+import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
 import { installStatusline, readUsage, refreshApiUsage, uninstallStatusline } from "../platform/usage.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
@@ -766,6 +767,8 @@ export const routes: Record<string, Handler> = {
     recent: notifications.recent(),
   }),
 
+  /** Modèles qu'on peut choisir pour une session, depuis le catalogue de Claude Code. */
+  "/api/models": async () => listModels(),
 
   /** Limites de l'abonnement et usage des sessions, tels que les deux sources les ont relevés. */
   "/api/usage": async (_params, { dataDir, settingsPath }) => readUsage(dataDir, settingsPath),
@@ -1085,7 +1088,18 @@ export const mutations: Record<string, Mutation> = {
     return { ok: true };
   },
 
-  "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
+  "/api/capture": async (_params, { dataDir }) => {
+    try {
+      return { path: await captureScreen(dataDir) };
+    } catch (error) {
+      // Annuler n'est pas échouer : la page n'a rien à signaler.
+      if (error instanceof CaptureCancelled) return { cancelled: true };
+      throw error;
+    }
+  },
+
+  /** Interrompt la capture en cours : son outil peut rester ouvert, ou ne jamais rien rendre. */
+  "/api/capture/cancel": async () => ({ cancelled: cancelCapture() }),
 
   /**
    * Ouvre la fenêtre de sélection de Windows sur le poste — un dossier, ou un

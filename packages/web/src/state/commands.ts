@@ -38,7 +38,9 @@ function activeTab(): string | undefined {
  * Partagée par le bouton de la barre d'onglets et la commande.
  */
 export async function captureInto(terminalId: string): Promise<void> {
-  const { path } = await post<{ path: string }>("/api/capture", {});
+  const { path } = await post<{ path?: string; cancelled?: boolean }>("/api/capture", {});
+  // Annulée dans l'outil ou depuis l'application : rien à insérer.
+  if (!path) return;
   typeInto(terminalId, `${quotePath(path)} `);
   focusTerminal(terminalId);
 }
