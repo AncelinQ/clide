@@ -64,14 +64,19 @@ export interface DirectoryListing {
 }
 
 export interface Skill {
+  /** Nom d'invocation, celui de `/nom` : le nom du dossier. */
   name: string;
+  /** `name` du frontmatter, quand il diffère du dossier. */
+  declaredName?: string;
   directory: string;
   description?: string;
   invocation: "auto-and-slash" | "manual-only" | "auto-only";
-  /** Un skill de plugin se lit seulement : il appartient à son plugin. */
-  scope: "user" | "project" | "plugin";
+  /** Un skill de plugin ou synchronisé se lit seulement : il ne vit pas sur ce poste. */
+  scope: "user" | "project" | "plugin" | "synced";
   path: string;
   plugin?: string;
+  /** Fournisseur d'un skill synchronisé depuis claude.ai. */
+  origin?: "anthropic" | "organisation";
 }
 
 export interface SlashCommand {

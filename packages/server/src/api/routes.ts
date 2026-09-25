@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -47,6 +47,7 @@ import {
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
+import { pickPath } from "../platform/picker.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
@@ -59,6 +60,7 @@ import {
   gitPush,
   gitStatus,
   listBranches,
+  pullMany,
   pushPlan,
   remoteUrl,
   stashCount,
@@ -135,6 +137,20 @@ function requireParam(params: URLSearchParams, name: string): string {
   if (!value) throw new Error(`paramètre \`${name}\` manquant`);
   return value;
 }
+
+/**
+ * État de l'interface : projets ouverts, thème, largeurs des colonnes…
+ *
+ * Gardé par le serveur plutôt que par le seul `localStorage` : celui-ci est
+ * propre à une origine, et le serveur change de port d'un lancement à l'autre —
+ * la page rouvrirait chaque fois sans rien.
+ */
+function uiStateFile(dataDir: string): string {
+  return join(dataDir, "ui-state.json");
+}
+
+/** Borne l'état reçu : il s'écrit sur le disque à chaque changement. */
+const UI_STATE_MAX_BYTES = 256 * 1024;
 
 let searchRefreshedAt = 0;
 let searchRefreshing: Promise<void> | undefined;
@@ -609,7 +625,15 @@ export const routes: Record<string, Handler> = {
   "/api/files/preview": async (params) =>
     previewFile(requireParam(params, "root"), requireParam(params, "path")),
 
-  "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),
+  "/api/ui-state": async (_params, { dataDir }) => {
+    try {
+      return { state: JSON.parse(await readFile(uiStateFile(dataDir), "utf8")) as unknown };
+    } catch {
+      return { state: null };
+    }
+  },
+
+  "/api/skills": async (params) => new SkillStore().listAll(params.get("root") || undefined),
 
   "/api/skill": async (params) => {
     const scope = skillScope(params.get("scope"));
@@ -881,6 +905,23 @@ export const mutations: Record<string, Mutation> = {
   },
 
   /**
+   * Tire plusieurs dépôts en avance rapide et rend le sort de chacun. Avec
+   * `withLinks`, les dossiers liés de chaque racine suivent la racine.
+   */
+  "/api/git/pull-many": async (_params, _context, body) => {
+    const roots = requireField(body, "roots", isArray).filter(isString);
+    if (roots.length === 0) throw new Error("aucun dossier à mettre à jour");
+    const all: string[] = [];
+    for (const root of roots) {
+      all.push(root);
+      if (body["withLinks"] === true) {
+        for (const link of await new LinkStore().read(root)) all.push(link.path);
+      }
+    }
+    return { results: await pullMany(all) };
+  },
+
+  /**
    * Pousse la branche courante. `head` est le commit montré dans l'aperçu : un
    * push ne part que si c'est encore lui, pour que ce qu'on a validé soit ce qui
    * est envoyé.
@@ -990,7 +1031,39 @@ export const mutations: Record<string, Mutation> = {
    * Capture interactive d'une zone de l'écran. La requête attend la fin de la
    * sélection, jusqu'à deux minutes, et rend le chemin de l'image.
    */
+  "/api/ui-state/save": async (_params, { dataDir }, body) => {
+    const state = requireField(body, "state", isRecord);
+    const text = JSON.stringify(state, null, 2);
+    if (Buffer.byteLength(text) > UI_STATE_MAX_BYTES) throw new Error("état de l'interface trop volumineux");
+    await mkdir(dataDir, { recursive: true });
+    // Écrit à côté puis renommé : une coupure en pleine écriture ne laisse pas
+    // un fichier tronqué, qui ferait rouvrir l'application sans projet.
+    const file = uiStateFile(dataDir);
+    await writeFile(`${file}.tmp`, text, "utf8");
+    await rename(`${file}.tmp`, file);
+    return { ok: true };
+  },
+
   "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
+
+  /**
+   * Ouvre la fenêtre de sélection de Windows sur le poste — un dossier, ou un
+   * fichier quand `kind` vaut `file` — et attend le choix. `path` est absent
+   * quand l'utilisateur annule.
+   */
+  "/api/pick": async (_params, { dataDir }, body) => {
+    const extensions = isArray(body["extensions"]) ? body["extensions"].filter(isString) : [];
+    const path = await pickPath(
+      {
+        kind: body["kind"] === "file" ? "file" : "folder",
+        ...(isString(body["title"]) ? { title: body["title"] } : {}),
+        ...(isString(body["start"]) ? { start: body["start"] } : {}),
+        ...(extensions.length ? { extensions } : {}),
+      },
+      dataDir,
+    );
+    return path ? { path } : {};
+  },
 
   "/api/files/open": async (_params, _context, body) => {
     // Borné au projet comme la liste des dossiers : cette route lance une

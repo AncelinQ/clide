@@ -120,6 +120,7 @@ export {
   type SkillDraft,
   type Scope,
   type SkillScope,
+  type SkillOrigin,
   type Skill,
   type SkillInvocation,
   type SlashCommand,

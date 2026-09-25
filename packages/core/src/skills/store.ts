@@ -13,12 +13,20 @@ export type SkillInvocation = "auto-and-slash" | "manual-only" | "auto-only";
 
 export type Scope = "user" | "project";
 
-/** Portée d'un skill listé. Un skill de plugin se lit, il ne s'écrit pas : il appartient au plugin. */
-export type SkillScope = Scope | "plugin";
+/**
+ * Portée d'un skill listé. Un skill de plugin ou synchronisé se lit, il ne
+ * s'écrit pas : il appartient au plugin, ou au compte claude.ai qui le pousse.
+ */
+export type SkillScope = Scope | "plugin" | "synced";
+
+/** Qui fournit un skill synchronisé : Anthropic, ou l'organisation du compte. */
+export type SkillOrigin = "anthropic" | "organisation";
 
 export interface Skill {
-  /** Nom déclaré dans le frontmatter, qui peut différer du nom du dossier. */
+  /** Nom d'invocation, celui de `/nom` : le nom du dossier. */
   name: string;
+  /** `name` du frontmatter, quand il diffère du dossier. Claude Code ne s'en sert pas pour `/nom`. */
+  declaredName?: string;
   directory: string;
   description?: string;
   invocation: SkillInvocation;
@@ -27,6 +35,18 @@ export interface Skill {
   path: string;
   /** Plugin qui livre le skill. */
   plugin?: string;
+  /** Fournisseur d'un skill synchronisé. */
+  origin?: SkillOrigin;
+}
+
+/**
+ * Préfixe sous lequel Claude Code expose les skills synchronisés depuis
+ * claude.ai, ceux d'Anthropic comme ceux de l'organisation.
+ */
+const SYNCED_PREFIX = "anthropic-skills";
+
+interface SyncedManifest {
+  skills?: { name?: string; creatorType?: string }[];
 }
 
 export interface SlashCommand {
@@ -141,9 +161,10 @@ async function walkMarkdown(dir: string, out: string[]): Promise<void> {
 /**
  * Inventaire des skills et des commandes, côté personnel comme côté projet.
  *
- * Un skill est un dossier `skills/<dossier>/SKILL.md`. Le `name` de son
- * frontmatter fait foi pour l'invocation : il ne suit pas nécessairement le nom
- * du dossier, et présenter le dossier induirait en erreur sur ce que `/nom` déclenche.
+ * Un skill est un dossier `skills/<dossier>/SKILL.md`. Claude Code l'invoque
+ * par le nom du dossier, même quand le `name` du frontmatter en diffère :
+ * présenter ce dernier induirait en erreur sur ce que `/nom` déclenche. Il est
+ * gardé à part, pour l'édition.
  */
 export class SkillStore {
   readonly #home: string;
@@ -163,8 +184,10 @@ export class SkillStore {
     const { fields } = parseFrontmatter(text);
     const description = fields["description"];
     const allowedTools = splitList(fields["allowed-tools"]);
+    const declared = fields["name"];
     return {
-      name: fields["name"] ?? directory,
+      name: directory,
+      ...(declared && declared !== directory ? { declaredName: declared } : {}),
       directory,
       ...(description ? { description } : {}),
       invocation: invocationOf(fields),
@@ -184,7 +207,7 @@ export class SkillStore {
     return skills.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  /** Skills personnels, dans `~/.claude/skills`. */
+  /** Skills personnels, dans `~/.claude/skills`. `synced` n'en est pas un : il n'a pas de SKILL.md. */
   listUserSkills(): Promise<Skill[]> {
     return this.#listSkillsIn(join(this.#home, "skills"), "user");
   }
@@ -225,6 +248,43 @@ export class SkillStore {
     return skills.sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  /**
+   * Skills synchronisés depuis le compte claude.ai : ceux d'Anthropic et ceux
+   * que l'organisation partage.
+   *
+   * Claude Code les dépose dans `skills/synced/<compte>/<nom>/SKILL.md`, avec un
+   * `manifest.json` qui dit qui a créé chacun. Un skill absent du manifeste est
+   * compté comme partagé par l'organisation : seuls ceux d'Anthropic y sont
+   * marqués comme tels.
+   */
+  async listSyncedSkills(): Promise<Skill[]> {
+    const synced = join(this.#home, "skills", "synced");
+    const seen = new Set<string>();
+    const skills: Skill[] = [];
+    for (const account of await listDirectories(synced)) {
+      const dir = join(synced, account);
+      const anthropic = new Set<string>();
+      try {
+        const manifest = JSON.parse(await readFile(join(dir, "manifest.json"), "utf8")) as SyncedManifest;
+        for (const entry of manifest.skills ?? []) {
+          if (entry.name && entry.creatorType === "anthropic") anthropic.add(entry.name);
+        }
+      } catch {
+        // Sans manifeste lisible, rien ne distingue Anthropic : tout passe pour l'organisation.
+      }
+      for (const directory of await listDirectories(dir)) {
+        const skill = await this.#readSkill(dir, directory, "synced");
+        if (!skill) continue;
+        const name = `${SYNCED_PREFIX}:${skill.name}`;
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const origin: SkillOrigin = anthropic.has(skill.name) || anthropic.has(directory) ? "anthropic" : "organisation";
+        skills.push({ ...skill, name, origin });
+      }
+    }
+    return skills.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async #listCommandsIn(dir: string, scope: Scope): Promise<SlashCommand[]> {
     const files: string[] = [];
     await walkMarkdown(dir, files);
@@ -254,14 +314,17 @@ export class SkillStore {
   /**
    * Tout ce qui est invocable pour un projet. Un skill de projet qui porte le
    * même nom qu'un skill personnel masque ce dernier, comme le fait Claude Code.
+   * Sans projet, seuls les skills qui ne dépendent d'aucun dossier sont listés.
    */
-  async listAll(projectRoot: string): Promise<{ skills: Skill[]; commands: SlashCommand[] }> {
-    const [userSkills, projectSkills, userCommands, projectCommands, pluginSkills] = await Promise.all([
+  async listAll(projectRoot?: string): Promise<{ skills: Skill[]; commands: SlashCommand[] }> {
+    const none = Promise.resolve([]);
+    const [userSkills, projectSkills, userCommands, projectCommands, pluginSkills, syncedSkills] = await Promise.all([
       this.listUserSkills(),
-      this.listProjectSkills(projectRoot),
+      projectRoot ? this.listProjectSkills(projectRoot) : none,
       this.listUserCommands(),
-      this.listProjectCommands(projectRoot),
+      projectRoot ? this.listProjectCommands(projectRoot) : none,
       this.listPluginSkills(),
+      this.listSyncedSkills(),
     ]);
 
     const shadowed = new Set(projectSkills.map((skill) => skill.name));
@@ -270,6 +333,7 @@ export class SkillStore {
       ...userSkills.filter((skill) => !shadowed.has(skill.name)),
       // Préfixés du nom de leur plugin : ils ne masquent rien et rien ne les masque.
       ...pluginSkills,
+      ...syncedSkills,
     ];
 
     const takenCommands = new Set(projectCommands.map((command) => command.name));

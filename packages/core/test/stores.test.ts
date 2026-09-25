@@ -72,14 +72,16 @@ describe("SkillStore", () => {
     expect(await new SkillStore(join(dir, "home")).listPluginSkills()).toEqual([]);
   });
 
-  it("retient le nom du frontmatter, pas celui du dossier", async () => {
+  it("nomme un skill d'après son dossier, et garde à part le name de son en-tête", async () => {
     await write(
       "home/skills/git/SKILL.md",
       "---\nname: commit\ndescription: conventions maison\n---\n",
     );
     const [skill] = await new SkillStore(join(dir, "home")).listUserSkills();
 
-    expect(skill?.name).toBe("commit");
+    // Claude Code l'invoque `/git`, quel que soit le name déclaré.
+    expect(skill?.name).toBe("git");
+    expect(skill?.declaredName).toBe("commit");
     expect(skill?.directory).toBe("git");
     expect(skill?.invocation).toBe("auto-and-slash");
   });
@@ -112,13 +114,36 @@ describe("SkillStore", () => {
   });
 
   it("laisse un skill de projet masquer un skill personnel du même nom", async () => {
-    await write("home/skills/git/SKILL.md", "---\nname: commit\ndescription: perso\n---\n");
+    await write("home/skills/commit/SKILL.md", "---\nname: commit\ndescription: perso\n---\n");
     await write("projet/.claude/skills/commit/SKILL.md", "---\nname: commit\ndescription: projet\n---\n");
 
     const { skills } = await new SkillStore(join(dir, "home")).listAll(join(dir, "projet"));
     expect(skills).toHaveLength(1);
     expect(skills[0]?.scope).toBe("project");
     expect(skills[0]?.description).toBe("projet");
+  });
+
+  it("liste les skills synchronisés et distingue Anthropic de l'organisation", async () => {
+    await write("home/skills/synced/compte/docx/SKILL.md", "---\nname: docx\n---\n");
+    await write("home/skills/synced/compte/revue/SKILL.md", "---\nname: revue\n---\n");
+    await write(
+      "home/skills/synced/compte/manifest.json",
+      JSON.stringify({ skills: [{ name: "docx", creatorType: "anthropic" }, { name: "revue", creatorType: "user" }] }),
+    );
+
+    const store = new SkillStore(join(dir, "home"));
+    expect((await store.listSyncedSkills()).map((s) => [s.name, s.scope, s.origin])).toEqual([
+      ["anthropic-skills:docx", "synced", "anthropic"],
+      ["anthropic-skills:revue", "synced", "organisation"],
+    ]);
+    // `synced` n'est pas un skill personnel.
+    expect(await store.listUserSkills()).toEqual([]);
+  });
+
+  it("liste sans projet ce qui ne dépend d'aucun dossier", async () => {
+    await write("home/skills/git/SKILL.md", "---\nname: git\n---\n");
+    const { skills } = await new SkillStore(join(dir, "home")).listAll();
+    expect(skills.map((s) => [s.name, s.scope])).toEqual([["git", "user"]]);
   });
 
   it("ignore un dossier sans SKILL.md", async () => {

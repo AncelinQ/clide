@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 import { startServer, type RunningServer } from "@clide/server";
-import { BrowserWindow, app, ipcMain, nativeImage, shell } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, nativeImage, shell } from "electron";
 
 /**
  * Ce module est empaqueté en CommonJS par esbuild : `__dirname` existe, pas
@@ -89,6 +89,28 @@ ipcMain.on("clide:focus", () => {
   if (window_.isMinimized()) window_.restore();
   window_.show();
   window_.focus();
+});
+
+/**
+ * Sélecteur natif de dossier ou de fichier, modal à la fenêtre. Rend `undefined`
+ * sur une annulation.
+ */
+ipcMain.handle("clide:pick", async (_event, request: unknown) => {
+  const { kind, title, start, extensions } = (request ?? {}) as Record<string, unknown>;
+  const file = kind === "file";
+  const filters = Array.isArray(extensions)
+    ? extensions.filter((extension): extension is string => typeof extension === "string")
+    : [];
+  const options: Electron.OpenDialogOptions = {
+    properties: [file ? "openFile" : "openDirectory"],
+    ...(typeof title === "string" && title ? { title } : {}),
+    ...(typeof start === "string" && start ? { defaultPath: start } : {}),
+    ...(file && filters.length
+      ? { filters: [{ name: filters.map((extension) => `.${extension}`).join(", "), extensions: filters }] }
+      : {}),
+  };
+  const result = window_ ? await dialog.showOpenDialog(window_, options) : await dialog.showOpenDialog(options);
+  return result.canceled ? undefined : result.filePaths[0];
 });
 
 async function shutdown(): Promise<void> {

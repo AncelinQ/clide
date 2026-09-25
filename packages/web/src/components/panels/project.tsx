@@ -1,12 +1,22 @@
-import { GitBranch, Link2, Package, Plug, Play, Sparkles } from "lucide-react";
+import { CloudDownload, GitBranch, Link2, MoreHorizontal, Package, Plug, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
+import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
+import { BranchDialog } from "@/components/BranchDialog";
+import { FolderInput } from "@/components/FolderInput";
+import { useGitStatus } from "@/components/GitChip";
+import { pullRepositories, usePullRunning } from "@/components/GitSync";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,12 +28,93 @@ import { openTerminal, runScript } from "@/state/terminals";
 
 // ─── Dossiers liés ──────────────────────────────────────────────────────────
 
+/**
+ * Un dossier lié, avec sa branche : c'est ce qu'on vérifie avant de lancer Claude
+ * sur plusieurs dépôts, et ce qu'on change le plus souvent.
+ */
+function LinkRow({
+  link,
+  onToggleReadOnly,
+  onUnlink,
+}: {
+  link: ProjectLink;
+  onToggleReadOnly: () => Promise<void>;
+  onUnlink: () => Promise<void>;
+}) {
+  const [status, refresh] = useGitStatus(link.path);
+  const [branching, setBranching] = useState(false);
+  const pulling = usePullRunning();
+
+  return (
+    <>
+      <Row
+        title={link.path}
+        sub={link.role}
+        badges={
+          <>
+            {status && (
+              <Badge variant="secondary" className="font-mono" title={t("branche courante")}>
+                <GitBranch className="size-3" />
+                {status.branch ?? status.head ?? "?"}
+                {status.behind > 0 && ` ↓${status.behind}`}
+                {status.ahead > 0 && ` ↑${status.ahead}`}
+              </Badge>
+            )}
+            {link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            {status && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6" title={t("Actions git")}>
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    disabled={pulling}
+                    onSelect={() =>
+                      void pullRepositories([link.path], {
+                        label: t("Mettre à jour {name}", { name: shortName(link.path) }),
+                      }).then(refresh)
+                    }
+                  >
+                    <CloudDownload /> {t("Mettre à jour (git pull)")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setBranching(true)}>
+                    <GitBranch /> {t("Changer de branche…")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <ActionButton onAction={onToggleReadOnly}>
+              {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
+            </ActionButton>
+            <DangerButton label={t("délier")} onConfirm={onUnlink} />
+          </>
+        }
+      />
+      {branching && (
+        <BranchDialog
+          root={link.path}
+          {...(status?.branch ? { current: status.branch } : {})}
+          onClose={() => setBranching(false)}
+          onDone={() => void refresh()}
+        />
+      )}
+    </>
+  );
+}
+
 export function LinksPanel({ root }: { root: string }) {
   const state = useAsync(() => api<{ links: ProjectLink[] }>("/api/links", { root }), [root]);
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState("");
   const [role, setRole] = useState("");
   const [readOnly, setReadOnly] = useState("non");
+  const pulling = usePullRunning();
 
   const save = async (links: ProjectLink[]) => {
     await post("/api/links/save", { root, links });
@@ -37,37 +128,40 @@ export function LinksPanel({ root }: { root: string }) {
           {links.length === 0 ? (
             <Empty icon={Link2}>{t("Les autres dépôts dont celui-ci dépend.")}</Empty>
           ) : (
-            <Rows>
-              {links.map((link) => (
-                <Row
-                  key={link.path}
-                  title={link.path}
-                  sub={link.role}
-                  badges={link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
-                  actions={
-                    <>
-                      <ActionButton
-                        onAction={() =>
-                          save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
-                        }
-                      >
-                        {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
-                      </ActionButton>
-                      <DangerButton
-                        label={t("délier")}
-                        onConfirm={() => save(links.filter((l) => l.path !== link.path))}
-                      />
-                    </>
-                  }
-                />
-              ))}
-            </Rows>
+            <>
+              <Rows>
+                {links.map((link) => (
+                  <LinkRow
+                    key={link.path}
+                    link={link}
+                    onToggleReadOnly={() =>
+                      save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
+                    }
+                    onUnlink={() => save(links.filter((l) => l.path !== link.path))}
+                  />
+                ))}
+              </Rows>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7"
+                disabled={pulling}
+                onClick={() =>
+                  void pullRepositories(
+                    links.map((link) => link.path),
+                    { label: t("Mettre à jour les dossiers liés") },
+                  )
+                }
+              >
+                <CloudDownload /> {t("Mettre à jour les dossiers liés")}
+              </Button>
+            </>
           )}
 
           {open ? (
             <div className="mt-3 flex flex-col gap-2">
               <Label>{t("Chemin")}</Label>
-              <Input value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("C:\\Projets\\api")} />
+              <FolderInput value={path} onChange={setPath} title={t("Lier un dossier")} placeholder={t("C:\\Projets\\api")} />
               <Label>{t("Rôle")}</Label>
               <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("api, design system…")} />
               <Label>{t("Accès")}</Label>
@@ -196,6 +290,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
     [root],
   );
   const [editing, setEditing] = useState<Partial<Skill> | null>(null);
+  const [filter, setFilter] = useState("");
 
   if (editing) {
     return (
@@ -213,12 +308,31 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
   return (
     <Async state={state}>
       {({ skills, commands }) => {
-        const own = skills.filter((skill) => skill.scope === "project");
-        const ownCommands = commands.filter((command) => command.scope === "project");
+        const needle = filter.trim().toLowerCase();
+        const searching = needle.length > 0;
+        const match = (text: string) => (searching ? text.toLowerCase().includes(needle) : true);
+        const all = skills.filter((skill) => skill.scope === "project");
+        const own = all.filter((skill) =>
+          match(`${skill.name} ${skill.declaredName ?? ""} ${skill.description ?? ""}`),
+        );
+        const ownCommands = commands.filter(
+          (command) => command.scope === "project" && match(`${command.name} ${command.description ?? ""}`),
+        );
         return (
           <>
+            {all.length + ownCommands.length > 0 && (
+              <Input
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+                placeholder={t("Rechercher un skill ou une commande…")}
+                spellCheck={false}
+                className="mb-2 h-7 text-[12px]"
+              />
+            )}
             <SkillImport scope="project" root={root} onDone={state.reload}>
-              {own.length === 0 ? (
+              {searching && own.length === 0 ? (
+                <p className="py-2 text-muted-foreground">{t("Aucun skill du projet ne correspond.")}</p>
+              ) : own.length === 0 ? (
                 <Empty icon={Sparkles}>{t("Les skills vivent dans .claude/skills/<nom>/SKILL.md.")}</Empty>
               ) : (
                 <Rows>
@@ -243,14 +357,13 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
               </Button>
             </SkillImport>
             {ownCommands.length > 0 && (
-              <>
-                <Section>{t("Commandes ({count})", { count: ownCommands.length })}</Section>
+              <FoldSection id="project.commands" title={t("Commandes")} count={ownCommands.length} forceOpen={searching}>
                 <Rows>
                   {ownCommands.map((command) => (
                     <Row key={command.name} title={`/${command.name}`} sub={command.description} />
                   ))}
                 </Rows>
-              </>
+              </FoldSection>
             )}
           </>
         );

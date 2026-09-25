@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld("clide", {
     ipcRenderer.send("clide:attention", waiting, badge);
   },
 
+  /** Ouvre le sélecteur de dossier ou de fichier du système ; `undefined` si l'utilisateur annule. */
+  pick(request: { kind: "folder" | "file"; title?: string; start?: string; extensions?: string[] }): Promise<string | undefined> {
+    return ipcRenderer.invoke("clide:pick", request);
+  },
+
   /** Ramène la fenêtre au premier plan, même réduite. */
   focusWindow(): void {
     ipcRenderer.send("clide:focus");
