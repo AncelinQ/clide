@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -136,6 +136,20 @@ function requireParam(params: URLSearchParams, name: string): string {
   if (!value) throw new Error(`paramètre \`${name}\` manquant`);
   return value;
 }
+
+/**
+ * État de l'interface : projets ouverts, thème, largeurs des colonnes…
+ *
+ * Gardé par le serveur plutôt que par le seul `localStorage` : celui-ci est
+ * propre à une origine, et le serveur change de port d'un lancement à l'autre —
+ * la page rouvrirait chaque fois sans rien.
+ */
+function uiStateFile(dataDir: string): string {
+  return join(dataDir, "ui-state.json");
+}
+
+/** Borne l'état reçu : il s'écrit sur le disque à chaque changement. */
+const UI_STATE_MAX_BYTES = 256 * 1024;
 
 let searchRefreshedAt = 0;
 let searchRefreshing: Promise<void> | undefined;
@@ -610,6 +624,14 @@ export const routes: Record<string, Handler> = {
   "/api/files/preview": async (params) =>
     previewFile(requireParam(params, "root"), requireParam(params, "path")),
 
+  "/api/ui-state": async (_params, { dataDir }) => {
+    try {
+      return { state: JSON.parse(await readFile(uiStateFile(dataDir), "utf8")) as unknown };
+    } catch {
+      return { state: null };
+    }
+  },
+
   "/api/skills": async (params) => new SkillStore().listAll(params.get("root") || undefined),
 
   "/api/skill": async (params) => {
@@ -991,6 +1013,19 @@ export const mutations: Record<string, Mutation> = {
    * Capture interactive d'une zone de l'écran. La requête attend la fin de la
    * sélection, jusqu'à deux minutes, et rend le chemin de l'image.
    */
+  "/api/ui-state/save": async (_params, { dataDir }, body) => {
+    const state = requireField(body, "state", isRecord);
+    const text = JSON.stringify(state, null, 2);
+    if (Buffer.byteLength(text) > UI_STATE_MAX_BYTES) throw new Error("état de l'interface trop volumineux");
+    await mkdir(dataDir, { recursive: true });
+    // Écrit à côté puis renommé : une coupure en pleine écriture ne laisse pas
+    // un fichier tronqué, qui ferait rouvrir l'application sans projet.
+    const file = uiStateFile(dataDir);
+    await writeFile(`${file}.tmp`, text, "utf8");
+    await rename(`${file}.tmp`, file);
+    return { ok: true };
+  },
+
   "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
 
   /**

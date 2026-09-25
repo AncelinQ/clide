@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
 export interface Project {
   root: string;
@@ -83,9 +84,6 @@ export interface Widths {
 
 export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
-const SAVED = "clide.state";
-/** Clé des versions antérieures au nom Clide, relue tant que la nouvelle n'existe pas. */
-const LEGACY_SAVED = "claude-ide.state";
 
 function restored(): Pick<
   State,
@@ -156,21 +154,25 @@ let state: State = {
 
 const listeners = new Set<() => void>();
 
+/** Mémorise l'état durable, dans le navigateur et chez le serveur. */
 function persist(): void {
-  localStorage.setItem(
-    SAVED,
-    JSON.stringify({
-      roots: state.projects.map((project) => project.root),
-      active: state.activeRoot,
-      theme: state.theme,
-      terminalFont: state.terminalFont,
-      shortcuts: state.shortcuts,
-      language: state.language,
-      tabLayout: state.tabLayout,
-      visibleTabs: state.visibleTabs,
-      widths: state.widths,
-    }),
-  );
+  const text = JSON.stringify({
+    roots: state.projects.map((project) => project.root),
+    active: state.activeRoot,
+    theme: state.theme,
+    terminalFont: state.terminalFont,
+    shortcuts: state.shortcuts,
+    language: state.language,
+    tabLayout: state.tabLayout,
+    visibleTabs: state.visibleTabs,
+    widths: state.widths,
+  });
+  try {
+    localStorage.setItem(SAVED, text);
+  } catch {
+    // Mémoire du navigateur bloquée : la copie du serveur suffit.
+  }
+  saveRemote(text);
 }
 
 /**
