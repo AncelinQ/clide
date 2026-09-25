@@ -1,7 +1,7 @@
 import { Cpu, History } from "lucide-react";
 import { useState } from "react";
 
-import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
+import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, serverTarget } from "@/components/panels/mcp-editor";
 import { formatSessionCost } from "@/components/panels/costs";
@@ -161,61 +161,73 @@ export function UserSkillsPanel({ filter }: { filter: string }) {
     <Async state={state}>
       {({ skills, commands }) => {
         const needle = filter.trim().toLowerCase();
-        const match = (text: string) => (needle ? text.toLowerCase().includes(needle) : true);
-        const personal = skills.filter(
-          (skill) => skill.scope === "user" && match(`${skill.name} ${skill.description ?? ""}`),
-        );
+        const searching = needle.length > 0;
+        const match = (text: string) => (searching ? text.toLowerCase().includes(needle) : true);
+        const matchSkill = (skill: Skill) =>
+          match(`${skill.name} ${skill.declaredName ?? ""} ${skill.description ?? ""}`);
+        const personal = skills.filter((skill) => skill.scope === "user" && matchSkill(skill));
         const shown = commands.filter((command) => match(`${command.name} ${command.description ?? ""}`));
-        const plugins = skills.filter(
-          (skill) => skill.scope === "plugin" && match(`${skill.name} ${skill.description ?? ""}`),
+        const plugins = skills.filter((skill) => skill.scope === "plugin" && matchSkill(skill));
+        const synced = (origin: Skill["origin"]) =>
+          skills.filter((skill) => skill.scope === "synced" && skill.origin === origin && matchSkill(skill));
+        // Poussés par le compte claude.ai : ils se lisent ici, ils se gèrent sur claude.ai.
+        const readOnly = [
+          ["organisation", t("Organisation"), synced("organisation")],
+          ["anthropic", "Anthropic", synced("anthropic")],
+          ["plugins", "Plugins", plugins],
+        ] as const;
+        const rows = (list: Skill[]) => (
+          <Rows>
+            {list.map((skill) => (
+              <SkillRow key={skill.path} skill={skill} root={root} onEdit={setEditing} onDone={state.reload} />
+            ))}
+          </Rows>
         );
+        const nothing =
+          searching && personal.length + shown.length + readOnly.reduce((sum, [, , list]) => sum + list.length, 0) === 0;
 
         return (
           <>
+            {nothing && <p className="py-2 text-muted-foreground">{t("Aucun résultat pour « {query} ».", { query: filter.trim() })}</p>}
+
             <SkillImport scope="user" root={root} onDone={state.reload}>
-              <Section>{t("Personnels")}</Section>
-              {personal.length === 0 ? (
-                <p className="py-2 text-muted-foreground">{t("Aucun skill personnel.")}</p>
-              ) : (
-                <Rows>
-                  {personal.map((skill) => (
-                    <SkillRow
-                      key={skill.path}
-                      skill={skill}
-                      root={root}
-                      onEdit={setEditing}
-                      onDone={state.reload}
-                    />
-                  ))}
-                </Rows>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 h-7"
-                onClick={() => setEditing({ directory: "", description: "" })}
-              >
-                {t("Nouveau skill")}
-              </Button>
+              <FoldSection id="skills.user" title={t("Personnels")} count={personal.length} forceOpen={searching}>
+                {personal.length === 0 ? (
+                  <p className="py-2 text-muted-foreground">
+                    {searching ? t("Aucun skill personnel ne correspond.") : t("Aucun skill personnel.")}
+                  </p>
+                ) : (
+                  rows(personal)
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-7"
+                  onClick={() => setEditing({ directory: "", description: "" })}
+                >
+                  {t("Nouveau skill")}
+                </Button>
+              </FoldSection>
             </SkillImport>
 
-            {plugins.length > 0 && (
-              <>
-                <Section>Plugins ({plugins.length})</Section>
-                <Rows>
-                  {plugins.map((skill) => (
-                    <SkillRow key={skill.path} skill={skill} root={root} onEdit={setEditing} onDone={state.reload} />
-                  ))}
-                </Rows>
-              </>
+            {readOnly.map(
+              ([id, label, list]) =>
+                list.length > 0 && (
+                  <FoldSection key={id} id={`skills.${id}`} title={label} count={list.length} forceOpen={searching}>
+                    {rows(list)}
+                  </FoldSection>
+                ),
             )}
 
-            <Section>{t("Commandes ({count})", { count: shown.length })}</Section>
-            <Rows>
-              {shown.map((command) => (
-                <Row key={command.name} title={`/${command.name}`} sub={command.description} />
-              ))}
-            </Rows>
+            {shown.length > 0 && (
+              <FoldSection id="skills.commands" title={t("Commandes")} count={shown.length} forceOpen={searching}>
+                <Rows>
+                  {shown.map((command) => (
+                    <Row key={command.name} title={`/${command.name}`} sub={command.description} />
+                  ))}
+                </Rows>
+              </FoldSection>
+            )}
           </>
         );
       }}

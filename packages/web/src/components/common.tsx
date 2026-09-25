@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,71 @@ export function Section({ children }: { children: ReactNode }) {
   return (
     <div className="-mx-3 mt-3 border-y bg-accent/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
       {children}
+    </div>
+  );
+}
+
+const FOLDED = "clide.folded";
+
+function readFolded(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(FOLDED) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Section repliable, dont l'état est retenu d'une ouverture à l'autre.
+ *
+ * `forceOpen` l'ouvre sans toucher à ce qui est retenu : pendant une recherche,
+ * un résultat caché dans une section repliée passerait pour absent.
+ */
+export function FoldSection({
+  id,
+  title,
+  count,
+  forceOpen,
+  children,
+}: {
+  /** Clé sous laquelle l'état replié est retenu. */
+  id: string;
+  title: ReactNode;
+  count?: number;
+  forceOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [folded, setFolded] = useState(() => readFolded().has(id));
+  const open = forceOpen || !folded;
+
+  const toggle = () => {
+    const next = !folded;
+    setFolded(next);
+    const all = readFolded();
+    if (next) all.add(id);
+    else all.delete(id);
+    try {
+      localStorage.setItem(FOLDED, JSON.stringify([...all]));
+    } catch {
+      // Mémoire du navigateur bloquée : l'état vaut pour cette page seulement.
+    }
+  };
+
+  const Chevron = open ? ChevronDown : ChevronRight;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={forceOpen}
+        aria-expanded={open}
+        className="-mx-3 mt-3 flex w-[calc(100%+1.5rem)] items-center gap-1 border-y bg-accent/40 px-3 py-1 text-left text-[11px] font-semibold text-muted-foreground hover:bg-accent disabled:cursor-default disabled:hover:bg-accent/40"
+      >
+        <Chevron className="size-3.5 shrink-0" />
+        <span className="flex-1">{title}</span>
+        {count !== undefined && <span className="font-normal">{count}</span>}
+      </button>
+      {open && children}
     </div>
   );
 }

@@ -94,7 +94,8 @@ describe("SkillStore — écriture", () => {
       body: "# Revue\n\nÉtapes…\n",
     });
 
-    expect(saved.name).toBe("revue-de-code");
+    expect(saved.name).toBe("revue");
+    expect(saved.declaredName).toBe("revue-de-code");
     expect(saved.invocation).toBe("manual-only");
 
     const [listed] = await store.listUserSkills();

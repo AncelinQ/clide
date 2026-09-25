@@ -39,7 +39,8 @@ export function SkillRow({
   onDone: () => void;
 }) {
   const scoped = skill.scope === "project" ? { root } : {};
-  const SCOPE_LABEL = { project: "projet", user: "perso", plugin: "plugin" } as const;
+  const SCOPE_LABEL = { project: "projet", user: "perso", plugin: "plugin", synced: "synchronisé" } as const;
+  const readOnly = skill.scope === "plugin" || skill.scope === "synced";
   return (
     <Row
       title={skill.name}
@@ -48,10 +49,15 @@ export function SkillRow({
         <>
           <Badge variant="secondary">{t(SCOPE_LABEL[skill.scope])}</Badge>
           <Badge variant="outline">{t(INVOCATION_LABEL[skill.invocation])}</Badge>
+          {skill.declaredName && (
+            <Badge variant="outline" title={t("name déclaré dans SKILL.md, ignoré pour /nom")}>
+              name: {skill.declaredName}
+            </Badge>
+          )}
         </>
       }
       actions={
-        skill.scope === "plugin" ? undefined : (
+        readOnly ? undefined : (
           <>
           <ActionButton
             onAction={async () => {
@@ -107,7 +113,7 @@ export function SkillEditor({
   onDone: () => void;
 }) {
   const [directory, setDirectory] = useState(skill.directory ?? "");
-  const [name, setName] = useState(skill.name ?? "");
+  const [name, setName] = useState(skill.declaredName ?? skill.name ?? "");
   const [description, setDescription] = useState(skill.description ?? "");
   const [invocation, setInvocation] = useState<Skill["invocation"]>(skill.invocation ?? "auto-and-slash");
   const [body, setBody] = useState(skill.body ?? "");
@@ -130,7 +136,7 @@ export function SkillEditor({
       <Label>{t("Dossier")}</Label>
       <Input value={directory} onChange={(e) => setDirectory(e.target.value)} placeholder={t("revue-de-code")} />
       <Label>{t("Nom")}</Label>
-      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("celui de /nom")} />
+      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("facultatif : /nom suit le dossier")} />
       <Label>Description</Label>
       <Input
         value={description}

@@ -156,7 +156,7 @@ describe("serveur local", () => {
   });
 
   it("signale un paramètre manquant plutôt que de deviner", async () => {
-    const response = await fetch(`${base()}/api/skills?token=${server.token}`);
+    const response = await fetch(`${base()}/api/files?token=${server.token}`);
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error?: string };
     expect(body.error).toContain("root");

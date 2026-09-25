@@ -159,7 +159,7 @@ export function GlobalColumn() {
           <Input
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            placeholder={t("Filtrer…")}
+            placeholder={globalTab === "skills" ? t("Rechercher un skill ou une commande…") : t("Filtrer…")}
             spellCheck={false}
             className="h-7 flex-1 text-[12px]"
           />

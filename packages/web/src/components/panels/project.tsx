@@ -1,7 +1,7 @@
 import { GitBranch, Link2, Package, Plug, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import { ActionButton, Async, DangerButton, Empty, Row, Rows, Section, useAsync } from "@/components/common";
+import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
@@ -196,6 +196,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
     [root],
   );
   const [editing, setEditing] = useState<Partial<Skill> | null>(null);
+  const [filter, setFilter] = useState("");
 
   if (editing) {
     return (
@@ -213,12 +214,31 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
   return (
     <Async state={state}>
       {({ skills, commands }) => {
-        const own = skills.filter((skill) => skill.scope === "project");
-        const ownCommands = commands.filter((command) => command.scope === "project");
+        const needle = filter.trim().toLowerCase();
+        const searching = needle.length > 0;
+        const match = (text: string) => (searching ? text.toLowerCase().includes(needle) : true);
+        const all = skills.filter((skill) => skill.scope === "project");
+        const own = all.filter((skill) =>
+          match(`${skill.name} ${skill.declaredName ?? ""} ${skill.description ?? ""}`),
+        );
+        const ownCommands = commands.filter(
+          (command) => command.scope === "project" && match(`${command.name} ${command.description ?? ""}`),
+        );
         return (
           <>
+            {all.length + ownCommands.length > 0 && (
+              <Input
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+                placeholder={t("Rechercher un skill ou une commande…")}
+                spellCheck={false}
+                className="mb-2 h-7 text-[12px]"
+              />
+            )}
             <SkillImport scope="project" root={root} onDone={state.reload}>
-              {own.length === 0 ? (
+              {searching && own.length === 0 ? (
+                <p className="py-2 text-muted-foreground">{t("Aucun skill du projet ne correspond.")}</p>
+              ) : own.length === 0 ? (
                 <Empty icon={Sparkles}>{t("Les skills vivent dans .claude/skills/<nom>/SKILL.md.")}</Empty>
               ) : (
                 <Rows>
@@ -243,14 +263,13 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
               </Button>
             </SkillImport>
             {ownCommands.length > 0 && (
-              <>
-                <Section>{t("Commandes ({count})", { count: ownCommands.length })}</Section>
+              <FoldSection id="project.commands" title={t("Commandes")} count={ownCommands.length} forceOpen={searching}>
                 <Rows>
                   {ownCommands.map((command) => (
                     <Row key={command.name} title={`/${command.name}`} sub={command.description} />
                   ))}
                 </Rows>
-              </>
+              </FoldSection>
             )}
           </>
         );

@@ -609,7 +609,7 @@ export const routes: Record<string, Handler> = {
   "/api/files/preview": async (params) =>
     previewFile(requireParam(params, "root"), requireParam(params, "path")),
 
-  "/api/skills": async (params) => new SkillStore().listAll(requireParam(params, "root")),
+  "/api/skills": async (params) => new SkillStore().listAll(params.get("root") || undefined),
 
   "/api/skill": async (params) => {
     const scope = skillScope(params.get("scope"));
