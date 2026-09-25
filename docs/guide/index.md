@@ -59,6 +59,17 @@ droite = ce qui ne dépend d'aucun projet.**
 ```
 
 Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
+Un projet s'ouvre par le `+` de la barre de titre, ou par le bouton « Ouvrir un
+projet » des îlots vides ; son dossier se tape, ou se choisit par « Parcourir… »
+dans la fenêtre de sélection de Windows — ouverte par Electron dans l'application
+de bureau, par le serveur local dans un navigateur, dont la page ne voit jamais le
+chemin d'un dossier. Choisir un dossier l'ouvre aussitôt.
+
+Les projets ouverts, le projet actif et les préférences reviennent au lancement
+suivant. Le serveur les garde dans `ui-state.json` des données de l'application
+plutôt que dans le seul `localStorage`, propre à une origine : le port change d'un
+lancement à l'autre, et l'application rouvrirait sans rien. Les dossiers liés
+reviennent avec leur projet, qui les porte.
 Les blocs à modes se replient (`˅`) et expliquent le mode courant (`ⓘ`), avec un
 lien vers la page de ce guide qui le détaille. Le bouton 📖 de la barre de titre,
 ou `Ctrl+Maj+H`, ouvre ce guide.
@@ -72,4 +83,5 @@ courant : c'est une lecture, pas un déplacement. La reprendre — bouton
 « reprendre », qui lance `claude --resume` — ouvre son projet, parce que là c'est
 une action.
 
-Les fichiers cachés sont écartés de la liste, `node_modules` aussi.
+Les fichiers cachés sont écartés de la liste, sauf à les afficher par l'œil de son
+en-tête ; `node_modules` et `.git` le sont toujours.

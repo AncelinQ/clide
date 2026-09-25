@@ -1,20 +1,72 @@
 # Le panneau global
 
-À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, les coûts, les processus, et les réglages de Claude Code.
+À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, l'usage et les coûts, les processus, et les réglages de Claude Code.
 
 ## Onglets du panneau global
 
-Neuf onglets ne tiennent pas dans la colonne de droite. Deux dispositions, au choix
+Dix onglets ne tiennent pas dans la colonne de droite. Deux dispositions, au choix
 depuis le menu « ⋯ » :
 
 - **en ligne, en haut**, comme les outils de développement du navigateur : autant
   d'onglets qu'en tient la largeur, le reste dans « ⋯ ». L'onglet ouvert reste
   toujours sur la ligne, pour qu'on voie où l'on est ;
-- **en colonne, à droite**, comme les barres d'outils de WebStorm : la hauteur les
-  tient tous, et le panneau garde toute sa largeur de texte.
+- **en colonne, à droite**, comme les barres d'outils de WebStorm : le panneau
+  garde toute sa largeur de texte, et la colonne défile quand la fenêtre manque de
+  hauteur.
 
 Le même menu choisit les onglets affichés ; un onglet masqué reste accessible depuis
 « ⋯ ». Le choix est gardé avec les autres préférences de l'application.
+
+**Réglages** édite le `settings.json` de Claude Code : modèle par défaut, effort,
+interface, permissions, hooks. Il ne faut pas le confondre avec les Préférences de
+la barre de titre, propres à Clide — elles y renvoient d'ailleurs par un lien.
+
+## Skills et commandes
+
+L'onglet Skills liste tout ce qui s'invoque, projet ouvert ou non : les skills du
+poste (`~/.claude/skills`), ceux des plugins, et ceux que le compte claude.ai
+synchronise — ceux d'Anthropic et ceux que l'organisation partage —, puis les
+commandes. Claude Code dépose ces derniers dans `~/.claude/skills/synced/<compte>/`,
+avec un `manifest.json` qui dit qui a créé chacun ; ils portent le préfixe
+`anthropic-skills:` de leur invocation, et se lisent sans s'éditer : ils se gèrent
+sur claude.ai.
+
+Un skill porte le nom de son dossier, parce que c'est ainsi que Claude Code
+l'invoque : `skills/git/SKILL.md` se lance par `/git`, même si son en-tête déclare
+`name: commit`. Ce `name` déclaré s'affiche en badge quand il diffère, et reste
+modifiable dans l'éditeur.
+
+Chaque section se replie et s'en souvient ; une recherche les ouvre toutes, pour
+qu'un résultat caché ne passe pas pour absent. La recherche porte sur le nom, le
+`name` déclaré et la description.
+
+## Usage de l'abonnement
+
+L'onglet Usage montre les limites de l'abonnement comme `/usage` les montre —
+session de 5 heures, semaine tous modèles, semaine d'un modèle, crédit
+supplémentaire —, avec le temps qui reste avant chaque réinitialisation, puis ce
+que chaque session récente a consommé : contexte, coût, durée, lignes modifiées.
+Une jauge passe à l'ambre puis au rouge en approchant de la limite, avec « élevé »
+ou « presque atteinte » écrit à côté : la couleur n'est jamais seule.
+
+Deux sources, parce qu'aucune ne suffit seule :
+
+- **La ligne de statut**, la voie documentée. Installée à la demande, elle est
+  déclarée dans `settings.json`, sauvegardé avant la première modification, et
+  jamais par-dessus une ligne de statut existante — Claude Code n'en accepte
+  qu'une, et on perdrait l'autre sans le dire. Claude Code lui transmet les
+  limites et l'état de la session à chaque réponse ; elle les dépose dans les
+  données de l'application et affiche sous le prompt un résumé comme
+  `5 h 9 % · sem. 47 % · ctx 12 %`. Elle ne sait donc rien hors d'une session, et
+  garde les dernières limites connues quand une entrée n'en porte pas — elles
+  n'arrivent qu'après la première réponse de l'API.
+- **« Actualiser »**, qui interroge l'API interne de `/usage` avec le jeton de
+  connexion de Claude Code. Elle répond à tout moment, mais n'est pas documentée :
+  elle peut changer ou limiter les appels. Elle n'est donc appelée qu'au clic, et
+  le jeton n'est jamais renouvelé ici — Claude Code s'en charge à sa prochaine
+  session.
+
+Le relevé affiché est le plus récent des deux, avec sa source et son âge.
 
 ## Recherche
 
@@ -83,7 +135,8 @@ où les réponses écrivent `claude-opus-5`, au même tarif.
 Le relevé d'une session couvre ses sous-agents ; sans relevé, leurs tokens
 s'ajoutent aux siens. Une réponse s'écrit en plusieurs events au même `message.id` :
 elle n'est comptée qu'une fois. Le panneau Coûts range chaque session au jour de sa
-dernière activité — ses réponses ne sont pas datées une à une dans l'index.
+dernière activité — ses réponses ne sont pas datées une à une dans l'index. Ses
+sections — par jour, par projet, par modèle, tarifs — se replient.
 
 ## Retirer une session
 
@@ -142,6 +195,12 @@ quand la session repart sur un nouveau prompt. La reprise est lue sur
 chaque appel d'outil. Elle ne voit donc pas une session qui repart sans prompt.
 Une installation antérieure à ce hook apparaît comme partielle : il suffit de
 réinstaller.
+
+Hooks et ligne de statut sont des commandes que Claude Code lance : elles visent
+Node par son chemin absolu, le PATH de Claude Code n'étant pas celui de
+l'application. Dans l'application de bureau, c'est le Node du PATH qui est retenu :
+l'exécutable courant y est `Clide.exe`, qui relancerait l'application à chaque
+événement. Sans Node dans le PATH, l'installation est refusée et le dit.
 
 Sous Windows, le bouton de la barre des tâches porte le nombre d'onglets en
 attente, fenêtre au premier plan ou non, et clignote tant que la fenêtre est en
