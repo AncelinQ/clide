@@ -56,8 +56,18 @@ retirée à l'autre action, et le dialogue le dit.
 Le bouton de réglage de la barre de titre ouvre les préférences propres à
 l'application, rangées avec le thème dans sa configuration — jamais dans
 `settings.json`, qui appartient à Claude Code. Elles portent pour l'instant la
-police du terminal et sa taille, appliquées aussitôt aux terminaux ouverts, et les
-raccourcis.
+langue, la police du terminal et sa taille, appliquées aussitôt aux terminaux
+ouverts, et les raccourcis.
+
+Les réglages de Claude Code — modèle par défaut, effort, interface, permissions —
+sont dans le panneau global, onglet **Réglages**, que les préférences ouvrent par
+un lien. Le modèle y fixe celui des nouvelles sessions ; celui de la session en
+cours change par le bouton « Modèle » de la barre du terminal.
+
+L'interface de Claude Code vaut `fullscreen` ou `default`. En plein écran, Claude
+Code dessine lui-même son écran ; en `default`, il écrit la conversation dans
+l'historique du terminal, ce qui permet de retrouver une ligne de l'activité dans
+le terminal (voir [la session](./session#le-detail-d-une-ligne)).
 
 Une page ne peut pas lister les polices installées : la liste est faite de
 polices à chasse fixe courantes, dont on ne garde que celles qui changent la

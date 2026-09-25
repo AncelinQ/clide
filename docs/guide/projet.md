@@ -6,7 +6,10 @@
 
 Le front dépend de l'API et du design system, qui vivent dans d'autres dépôts.
 Déclarer ces dossiers évite d'avoir à redire à Claude où ils sont et à quoi ils
-servent. Trois fichiers y suffisent, tous écrits dans le projet :
+servent. Le chemin se tape, se colle, ou se choisit par « Parcourir… » dans la
+fenêtre de sélection de Windows. Chaque dossier lié montre sa branche et ce qui y
+attend un commit ou un push ; son menu « ⋯ » le met à jour ou change sa branche
+(voir [Git](./git)). Trois fichiers y suffisent, tous écrits dans le projet :
 
 | Fichier | Rôle |
 |---|---|
@@ -48,8 +51,11 @@ du projet réécrirait son arbre de dépendances.
 
 ## Skills
 
-Les skills se lisent sur trois portées : le projet (`.claude/skills`), le poste
-(`~/.claude/skills`) et les plugins installés. Ceux d'un plugin vivent dans
+Les skills se lisent sur quatre portées : le projet (`.claude/skills`), le poste
+(`~/.claude/skills`), les plugins installés, et ceux que le compte claude.ai
+synchronise (voir le [panneau global](./panneau-global#skills-et-commandes)). Le
+panneau du projet montre les siens, avec sa propre recherche ; les autres sont dans
+le panneau global. Ceux d'un plugin vivent dans
 `~/.claude/plugins/cache/<marketplace>/<plugin>/`, à une profondeur qui varie avec
 sa version ; ils sont reconnus à leur position `skills/<nom>/SKILL.md`, nommés
 `<plugin>:<nom>` comme leur invocation, et montrés sans édition : ils appartiennent
@@ -61,7 +67,10 @@ depuis un chemin : un dossier qui porte un `SKILL.md`, ou un `.md` seul, qui dev
 le `SKILL.md` d'un dossier à son nom et reçoit un en-tête s'il n'en a pas — Claude
 Code ignore un `SKILL.md` qui en est dépourvu. Rien d'autre ne s'importe : l'import
 lit un chemin donné par l'appelant, et s'en tenir à ces deux formes l'empêche de
-recopier n'importe quel fichier. Déposer des fichiers sur le panneau fait de même :
+recopier n'importe quel fichier. « Importer… » propose « Fichier .md… » et
+« Dossier de skill… », qui ouvrent la fenêtre de sélection de Windows — deux
+boutons, parce qu'elle ne fait pas choisir dans une même fenêtre un fichier ou un
+dossier —, et importent aussitôt. Déposer des fichiers sur le panneau fait de même :
 sous Electron par leur chemin, dossiers compris ; dans un navigateur, qui ne livre
 que le contenu, les seuls `.md`. Ni la copie ni l'import ne remplacent un skill
 existant.

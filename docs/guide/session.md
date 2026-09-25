@@ -2,6 +2,12 @@
 
 Le bloc sous le terminal montre la session de l'onglet actif, ou celle choisie dans History. Ses modes — plan, activité, captures, fichiers, schéma, rédaction — se choisissent par ses icônes, et `ⓘ` dit à quoi sert le mode courant.
 
+Son menu « ⋯ » masque les modes dont on ne se sert pas : ils y restent
+accessibles, et le mode ouvert garde son icône tant qu'on ne le quitte pas. Le bloc
+de la colonne du projet a le même menu, et chaque bloc garde son propre choix.
+Activité, Captures et Fichiers ont un bouton ⇅ qui met les plus récents en haut,
+retenu mode par mode.
+
 ## La session d'un onglet
 
 Un `claude` tapé dans un shell fait de l'onglet un onglet Claude le temps de la
@@ -32,7 +38,36 @@ plusieurs events qui répètent le même `message.id` et le même `usage` : les 
 sont comptés une fois par réponse. Le bloc bascule sur Plan quand l'onglet regardé
 entre en mode plan.
 
-Deux faits du format vivant. Le mode d'un tour est porté par son prompt
+## Le détail d'une ligne
+
+L'activité résume : un texte à 400 caractères, un appel d'outil à son champ le plus
+parlant, et sans son résultat. Un double-clic sur une ligne l'ouvre en entier — le
+prompt ou la réponse tels qu'écrits, la réponse rendue en markdown, ou l'appel
+d'outil avec son entrée complète et ce qu'il a rendu, plafonné à 50 000
+caractères. Le serveur reparcourt le transcript exactement comme pour l'activité :
+le rang d'une ligne désigne toujours la même entrée, et la page ne demande que ce
+rang. Cela vaut pour les sessions passées comme pour celle en cours.
+
+« Voir dans le terminal » fait défiler l'onglet de la session jusqu'à la ligne et
+la sélectionne. Son texte y est cherché — lignes repliées recollées, espaces et
+casse ignorés — et, s'il revient plusieurs fois, compté depuis la fin : le début de
+l'historique a pu être perdu, la fin jamais. Un prompt se retrouve tel quel, un
+appel d'outil par sa forme `Bash(…)` ; une réponse, par ses premiers mots, le rendu
+du markdown changeant le reste. Le terminal garde 10 000 lignes.
+
+Trois cas l'empêchent, et la fenêtre dit lequel :
+
+- **le mode plein écran.** Claude Code y dessine lui-même son écran, dans le
+  tampon secondaire du terminal, qui n'a pas d'historique. Le saut demande
+  l'interface `default` (Réglages → Interface), puis un onglet relancé ;
+- **une ligne qui n'est plus affichée** : session reprise dans un nouvel onglet,
+  `/clear`, compactage ;
+- **une session sans onglet ouvert**, ou l'activité d'un sous-agent, que le
+  terminal ne détaille pas.
+
+## Deux faits du format vivant
+
+Le mode d'un tour est porté par son prompt
 (`user.permissionMode`) : l'event `permission-mode` est écrit à la fin du tour
 précédent, et dit encore `auto` quand le prompt qui suit part en mode plan. Et
 Claude Code ne l'écrit qu'aux tours : un Maj+Tab n'apparaît qu'au prompt suivant.
@@ -78,6 +113,12 @@ l'exposant pas. En pratique la file vit quelques secondes : la plupart des promp
 sont absorbés par le tour en cours.
 
 ## Restaurer un fichier
+
+L'onglet Fichiers liste ce que la session a changé, avec le diff exact. Chaque
+fichier se replie d'un clic sur son nom, et « Tout replier » ou « Tout déplier »
+agissent sur la liste ; une autre session repart dépliée. L'ordre est alphabétique,
+ou, avec ⇅, du fichier le plus récemment touché au plus ancien, daté par sa dernière
+sauvegarde dans l'historique de fichiers de Claude Code.
 
 Dans l'onglet Fichiers d'une session, « restaurer » ramène un fichier à son état
 d'avant la session, tiré de la première sauvegarde que Claude Code en a prise
