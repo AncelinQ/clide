@@ -48,6 +48,7 @@ import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
 import { pickPath } from "../platform/picker.js";
+import { installStatusline, readUsage, refreshApiUsage, uninstallStatusline } from "../platform/usage.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
@@ -764,6 +765,10 @@ export const routes: Record<string, Handler> = {
     status: await hooksStatus(dataDir, settingsPath),
     recent: notifications.recent(),
   }),
+
+
+  /** Limites de l'abonnement et usage des sessions, tels que les deux sources les ont relevés. */
+  "/api/usage": async (_params, { dataDir, settingsPath }) => readUsage(dataDir, settingsPath),
 };
 
 /**
@@ -779,6 +784,21 @@ export const mutations: Record<string, Mutation> = {
   "/api/notifications/install": async (_params, { dataDir, settingsPath }) => ({
     status: await installHooks(dataDir, settingsPath),
   }),
+
+  /** Déclare la ligne de statut qui relève l'usage. Action explicite, comme les hooks. */
+  "/api/usage/statusline/install": async (_params, { dataDir, settingsPath }) => ({
+    statusline: await installStatusline(dataDir, settingsPath),
+  }),
+
+  "/api/usage/statusline/uninstall": async (_params, { dataDir, settingsPath }) => ({
+    statusline: await uninstallStatusline(dataDir, settingsPath),
+  }),
+
+  /**
+   * Demande les limites à l'API d'usage de Claude Code. Jamais automatique :
+   * l'API n'est pas documentée et limite les appels.
+   */
+  "/api/usage/refresh": async (_params, { dataDir }) => ({ api: await refreshApiUsage(dataDir) }),
 
   /**
    * Édition ciblée de `settings.json`. Le chemin est une suite de clés, pas une

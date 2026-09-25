@@ -224,3 +224,38 @@ export type ServerMessage =
   | { t: "resume"; terminalId: string }
   | { t: "live"; terminalId: string; session: LiveSession }
   | { t: "error"; message: string };
+
+/** Une limite de l'abonnement ; `kind` reprend les noms de l'API d'usage. */
+export interface UsageLimit {
+  kind: string;
+  percent: number;
+  resetsAt?: string;
+  model?: string;
+  severity?: string;
+}
+
+export interface UsageReading {
+  at: string;
+  limits: UsageLimit[];
+}
+
+/** Ce que la ligne de statut a vu d'une session. */
+export interface SessionUsage {
+  sessionId: string;
+  at: string;
+  model?: string;
+  cwd?: string;
+  costUsd?: number;
+  durationMs?: number;
+  linesAdded?: number;
+  linesRemoved?: number;
+  contextPercent?: number;
+  contextSize?: number;
+}
+
+export interface UsageReport {
+  statusline: { installed: boolean; foreign?: string; command: string };
+  live: UsageReading | null;
+  api: (UsageReading & { subscription?: string }) | null;
+  sessions: SessionUsage[];
+}

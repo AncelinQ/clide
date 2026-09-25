@@ -2,6 +2,7 @@ import {
   Bell,
   Coins,
   Cpu,
+  Gauge,
   History,
   Layers,
   MoreHorizontal,
@@ -39,6 +40,7 @@ export const GLOBAL_TABS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: "chantiers", icon: Layers, label: "Chantiers" },
   { id: "skills", icon: Sparkles, label: "Skills" },
   { id: "mcp", icon: Plug, label: "MCP" },
+  { id: "usage", icon: Gauge, label: "Usage" },
   { id: "costs", icon: Coins, label: "Coûts" },
   { id: "settings", icon: Settings, label: "Réglages" },
   { id: "notifications", icon: Bell, label: "Alertes" },
@@ -194,7 +196,8 @@ export function TabRail({ current }: { current: string }) {
   const shown = useShownTabs();
   const hidden = GLOBAL_TABS.filter((tab) => !shown.includes(tab));
   return (
-    <nav className="flex shrink-0 flex-col items-center gap-0.5 border-l px-1 py-2">
+    // Défile quand la hauteur manque : les derniers onglets seraient sinon coupés, sans rien pour les atteindre.
+    <nav className="flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-l px-1 py-2 [scrollbar-width:none]">
       {shown.map((tab) => (
         <TabButton key={tab.id} tab={tab} current={current} vertical />
       ))}

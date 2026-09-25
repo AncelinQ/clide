@@ -92,7 +92,20 @@ export function PreferencesDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("Préférences")}</DialogTitle>
-          <DialogDescription>{t("Propres à Clide, sans effet sur Claude Code.")}</DialogDescription>
+          <DialogDescription>
+            {t("Propres à Clide, sans effet sur Claude Code.")}{" "}
+            {/* Les deux se confondent : ceux de Claude Code vivent dans le panneau global. */}
+            <button
+              type="button"
+              className="text-primary underline-offset-2 hover:underline"
+              onClick={() => {
+                onOpenChange(false);
+                setState({ globalTab: "settings", showRight: true });
+              }}
+            >
+              {t("Réglages de Claude Code (modèle, interface, permissions…)")}
+            </button>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
