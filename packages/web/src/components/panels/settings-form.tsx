@@ -14,7 +14,8 @@ type Path = (string | number)[];
 const DEFAULT = "__default__";
 const MODELS = ["opus", "sonnet", "haiku", "fable", "opus[1m]", "sonnet[1m]"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
-const INTERFACES = ["fullscreen", "inline"];
+// `default` écrit la conversation dans l'historique du terminal ; `fullscreen` dessine l'écran à part.
+const INTERFACES = ["default", "fullscreen"];
 const PERMISSION_MODES = ["default", "acceptEdits", "plan", "auto", "bypassPermissions"];
 const HOOK_EVENTS = [
   "PreToolUse",

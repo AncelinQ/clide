@@ -163,3 +163,30 @@ describe("buildActivity", () => {
     expect(entries[0]).toMatchObject({ kind: "prompt", images: 1 });
   });
 });
+
+describe("détail des entrées", () => {
+  it("garde le texte entier et l'appel d'outil avec son résultat, à l'indice de l'entrée", () => {
+    const long = `début ${"x".repeat(600)} fin`;
+    const feed = buildActivity(
+      [
+        user(long),
+        assistant([{ type: "tool_use", id: "t1", name: "Bash", input: { command: "ls -la" } }]),
+        user([{ type: "tool_result", tool_use_id: "t1", is_error: true, content: [{ type: "text", text: "introuvable" }] }]),
+        assistant([{ type: "text", text: "Voilà." }]),
+      ],
+      { details: true },
+    );
+    expect(feed.entries).toHaveLength(3);
+    expect(feed.details).toEqual([
+      { kind: "prompt", text: long },
+      { kind: "tool", name: "Bash", input: { command: "ls -la" }, result: "introuvable", failed: true },
+      { kind: "answer", text: "Voilà." },
+    ]);
+    // Le résumé, lui, reste court.
+    expect((feed.entries[0] as { text: string }).text.length).toBeLessThanOrEqual(400);
+  });
+
+  it("n'en calcule aucun sans qu'on le demande", () => {
+    expect(buildActivity([user("salut")]).details).toBeUndefined();
+  });
+});

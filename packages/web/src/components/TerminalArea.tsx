@@ -330,6 +330,7 @@ export function TerminalArea() {
       doc: "session#la-session-d-un-onglet",
       icon: Activity,
       title: t("Activité"),
+      defaultOrder: t("ordre chronologique"),
       about: t("Le déroulé de la session : prompts, réponses et appels d'outils."),
       render: () => (shown ? <ActivityPanel session={shown} /> : null),
     },
@@ -338,6 +339,7 @@ export function TerminalArea() {
       doc: "session#captures",
       icon: Images,
       title: t("Captures"),
+      defaultOrder: t("ordre chronologique"),
       about: t("Les images de la session, sous-agents compris : captures prises par Claude, images collées."),
       render: () => (shown ? <CapturesPanel session={shown} /> : null),
     },
@@ -346,6 +348,7 @@ export function TerminalArea() {
       doc: "session#restaurer-un-fichier",
       icon: FileDiff,
       title: t("Fichiers"),
+      defaultOrder: t("ordre alphabétique"),
       about: t(
         "Ce que la session a changé, avec le diff exact. L'état « avant » vient des sauvegardes de Claude Code, pas de git.",
       ),
@@ -511,6 +514,7 @@ export function TerminalArea() {
       {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
 
       <ModeBlock
+        block="session"
         modes={modes}
         current={sessionMode}
         onPick={(id) => setState({ sessionMode: id })}

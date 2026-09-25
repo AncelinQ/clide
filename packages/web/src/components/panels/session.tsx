@@ -1,8 +1,19 @@
-import { Activity, ChevronRight, ClipboardList, CornerDownRight, FileDiff, Undo2 } from "lucide-react";
+import {
+  Activity,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ClipboardList,
+  CornerDownRight,
+  FileDiff,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
+import { ActivityDetailDialog } from "@/components/panels/activity-detail";
 import { Thumbnails } from "@/components/panels/captures";
 import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
@@ -12,6 +23,7 @@ import { api, formatDate } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
+import { useNewestFirst } from "@/components/ModeBlock";
 import { setState, useStore } from "@/state/store";
 
 /**
@@ -32,6 +44,24 @@ export function formatTokens(count: number): string {
   return `${decimal(count / 1_000_000, 2)} M`;
 }
 
+/**
+ * Éléments dans l'ordre voulu, chacun avec sa position d'origine : l'activité
+ * repère une entrée par son rang dans la session, pas par sa place à l'écran.
+ */
+export function ordered<T>(items: T[], newestFirst: boolean): { item: T; index: number }[] {
+  const indexed = items.map((item, index) => ({ item, index }));
+  return newestFirst ? indexed.reverse() : indexed;
+}
+
+/**
+ * Fichiers du plus récemment modifié au plus ancien. Un fichier sans date part
+ * en fin de liste, dans l'ordre reçu : on ne sait pas quand il a été touché.
+ */
+function byRecency(diffs: Diff[]): Diff[] {
+  const time = (diff: Diff) => (diff.changedAt ? Date.parse(diff.changedAt) : -Infinity);
+  return [...diffs].sort((a, b) => time(b) - time(a));
+}
+
 export function FilesPanel({ session }: { session: ShownSession }) {
   const state = useAsync(
     () => api<{ diffs: Diff[] }>("/api/session/files", { id: session.sessionId }),
@@ -39,6 +69,19 @@ export function FilesPanel({ session }: { session: ShownSession }) {
     session.refresh,
   );
   const [restoring, setRestoring] = useState<string>();
+  const newest = useNewestFirst("files");
+  // Fichiers dont le diff est replié. Propre à la session montrée : une autre
+  // session repart dépliée.
+  const [folded, setFolded] = useState<Set<string>>(new Set());
+  useEffect(() => setFolded(new Set()), [session.sessionId]);
+
+  const toggle = (path: string) =>
+    setFolded((current) => {
+      const next = new Set(current);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
 
   return (
     <Async state={state}>
@@ -46,53 +89,89 @@ export function FilesPanel({ session }: { session: ShownSession }) {
         diffs.length === 0 ? (
           <Empty icon={FileDiff}>{t("Aucun fichier touché.")}</Empty>
         ) : (
-          <Rows>
-            {restoring && (
-              <FileRestoreDialog
-                sessionId={session.sessionId}
-                trackingPath={restoring}
-                onClose={() => setRestoring(undefined)}
-                onRestored={state.reload}
-              />
-            )}
-            {diffs.map((diff) => (
-              <Row
-                key={diff.trackingPath}
-                title={<span className="font-mono text-[11px]">{diff.trackingPath}</span>}
-                sub={
-                  <>
-                    <span className="text-emerald-600 dark:text-emerald-400">+{diff.linesAdded}</span>{" "}
-                    <span className="text-destructive">−{diff.linesRemoved}</span>
-                  </>
-                }
-                badges={
-                  <>
-                    {diff.created && <Badge variant="secondary">{t("créé")}</Badge>}
-                    {diff.deleted && <Badge variant="outline">{t("supprimé")}</Badge>}
-                    {diff.binary && <Badge variant="outline">{t("binaire")}</Badge>}
-                    {diff.beforeMissing && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
-                  </>
-                }
-                actions={
-                  !diff.beforeMissing &&
-                  (diff.unified || diff.binary || diff.created || diff.deleted) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-[11px]"
-                      title={t("Ramener ce fichier à son état d'avant la session")}
-                      onClick={() => setRestoring(diff.trackingPath)}
-                    >
-                      <Undo2 />
-                      {t("restaurer")}
-                    </Button>
-                  )
-                }
+          <>
+            <div className="flex items-center gap-1 pt-1">
+              <span className="flex-1 text-[11px] text-muted-foreground">
+                {t(diffs.length === 1 ? "{count} fichier" : "{count} fichiers", { count: diffs.length })}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px]"
+                onClick={() => setFolded(new Set(diffs.filter((diff) => diff.unified).map((diff) => diff.trackingPath)))}
               >
-                {diff.unified && <DiffLines unified={diff.unified} className="mt-1 max-h-72" />}
-              </Row>
-            ))}
-          </Rows>
+                <ChevronsDownUp /> {t("Tout replier")}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setFolded(new Set())}>
+                <ChevronsUpDown /> {t("Tout déplier")}
+              </Button>
+            </div>
+            <Rows>
+              {restoring && (
+                <FileRestoreDialog
+                  sessionId={session.sessionId}
+                  trackingPath={restoring}
+                  onClose={() => setRestoring(undefined)}
+                  onRestored={state.reload}
+                />
+              )}
+              {(newest ? byRecency(diffs) : diffs).map((diff) => {
+                const open = !folded.has(diff.trackingPath);
+                const Chevron = open ? ChevronDown : ChevronRight;
+                return (
+                  <Row
+                    key={diff.trackingPath}
+                    title={
+                      diff.unified ? (
+                        <button
+                          type="button"
+                          onClick={() => toggle(diff.trackingPath)}
+                          aria-expanded={open}
+                          className="inline-flex items-baseline gap-1 text-left font-mono text-[11px] hover:text-primary"
+                        >
+                          <Chevron className="size-3 shrink-0 self-center" />
+                          {diff.trackingPath}
+                        </button>
+                      ) : (
+                        <span className="font-mono text-[11px]">{diff.trackingPath}</span>
+                      )
+                    }
+                    sub={
+                      <>
+                        <span className="text-emerald-600 dark:text-emerald-400">+{diff.linesAdded}</span>{" "}
+                        <span className="text-destructive">−{diff.linesRemoved}</span>
+                      </>
+                    }
+                    badges={
+                      <>
+                        {diff.created && <Badge variant="secondary">{t("créé")}</Badge>}
+                        {diff.deleted && <Badge variant="outline">{t("supprimé")}</Badge>}
+                        {diff.binary && <Badge variant="outline">{t("binaire")}</Badge>}
+                        {diff.beforeMissing && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
+                      </>
+                    }
+                    actions={
+                      !diff.beforeMissing &&
+                      (diff.unified || diff.binary || diff.created || diff.deleted) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[11px]"
+                          title={t("Ramener ce fichier à son état d'avant la session")}
+                          onClick={() => setRestoring(diff.trackingPath)}
+                        >
+                          <Undo2 />
+                          {t("restaurer")}
+                        </Button>
+                      )
+                    }
+                  >
+                    {diff.unified && open && <DiffLines unified={diff.unified} className="mt-1 max-h-72" />}
+                  </Row>
+                );
+              })}
+            </Rows>
+          </>
         )
       }
     </Async>
@@ -188,6 +267,9 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
     // s'écrit ne la fait pas glisser.
     focus === undefined ? session.refresh : undefined,
   );
+  const newest = useNewestFirst("activity");
+  // Entrée ouverte en entier, par son rang dans la liste reçue.
+  const [detail, setDetail] = useState<number>();
   const focused = useRef<HTMLLIElement>(null);
   useEffect(() => {
     focused.current?.scrollIntoView({ block: "center" });
@@ -223,12 +305,23 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                 </p>
               )
             )}
+            {detail !== undefined && feed.entries[detail] && (
+              <ActivityDetailDialog
+                sessionId={session.sessionId}
+                {...(agent ? { agentId: agent } : {})}
+                entries={feed.entries}
+                index={detail}
+                offset={feed.offset}
+                onClose={() => setDetail(undefined)}
+              />
+            )}
             <ul className="m-0 list-none p-0 text-[12px]">
-              {feed.entries.map((entry, index) => (
+              {ordered(feed.entries, newest).map(({ item: entry, index }) => (
                 <li
                   key={feed.offset + index}
                   ref={feed.offset + index === focus ? focused : undefined}
-                  title={formatDate(entry.at)}
+                  title={`${formatDate(entry.at)} — ${t("double-clic : voir en entier")}`}
+                  onDoubleClick={() => setDetail(index)}
                   className={cn(
                     "flex gap-2 border-b py-1.5 last:border-0",
                     feed.offset + index === focus && "-mx-3 bg-primary/15 px-3",

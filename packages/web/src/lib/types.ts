@@ -144,6 +144,8 @@ export interface FileDiff {
   linesAdded: number;
   linesRemoved: number;
   unified: string;
+  /** Dernière modification du fichier par la session. */
+  changedAt?: string;
 }
 
 export type ActivityEntry =

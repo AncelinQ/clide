@@ -112,6 +112,7 @@ export function ProjectColumn() {
     <Island>
       <FileBrowser project={project} />
       <ModeBlock
+        block="project"
         modes={modes}
         current={project.leftMode}
         onPick={(id) => updateProject(project.root, { leftMode: id })}

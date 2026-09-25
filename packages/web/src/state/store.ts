@@ -71,6 +71,12 @@ export interface State {
   tabLayout: TabLayout;
   /** Onglets du panneau global affichés hors du menu « ⋯ », dans l'ordre ; tous si `null`. */
   visibleTabs: string[] | null;
+  /** Modes masqués de chaque bloc à modes (`session`, `project`) ; ils restent dans son menu « ⋯ ». */
+  hiddenModes: Record<string, string[]>;
+  /** L'explorateur du projet montre les fichiers cachés (`.env`, `.claude`…). */
+  showHidden: boolean;
+  /** Modes dont la liste montre les éléments les plus récents en haut, par identifiant de mode. */
+  newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
 }
@@ -87,7 +93,7 @@ export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
 function restored(): Pick<
   State,
-  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "widths"
+  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths"
 > {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}") as {
@@ -99,6 +105,9 @@ function restored(): Pick<
       language?: Language;
       tabLayout?: TabLayout;
       visibleTabs?: string[] | null;
+      hiddenModes?: Record<string, string[]>;
+      newestFirst?: Record<string, boolean>;
+      showHidden?: boolean;
       widths?: Partial<Widths>;
     };
     const projects = (saved.roots ?? []).map(toProject);
@@ -111,11 +120,14 @@ function restored(): Pick<
       language: saved.language ?? "auto",
       tabLayout: saved.tabLayout ?? "row",
       visibleTabs: saved.visibleTabs ?? null,
+      hiddenModes: saved.hiddenModes ?? {},
+      newestFirst: saved.newestFirst ?? {},
+      showHidden: saved.showHidden ?? false,
       widths: { ...DEFAULT_WIDTHS, ...saved.widths },
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, widths: DEFAULT_WIDTHS };
+    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS };
   }
 }
 
@@ -165,6 +177,9 @@ function persist(): void {
     language: state.language,
     tabLayout: state.tabLayout,
     visibleTabs: state.visibleTabs,
+    hiddenModes: state.hiddenModes,
+    newestFirst: state.newestFirst,
+    showHidden: state.showHidden,
     widths: state.widths,
   });
   try {

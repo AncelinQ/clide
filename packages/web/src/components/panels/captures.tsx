@@ -2,6 +2,7 @@ import { Images } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Async, Empty, useAsync } from "@/components/common";
+import { useNewestFirst } from "@/components/ModeBlock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
@@ -126,6 +127,8 @@ export function CapturesPanel({ session }: { session: ShownSession }) {
     session.refresh,
   );
 
+  const newest = useNewestFirst("captures");
+
   const reveal = (item: GalleryItem) =>
     setState({
       sessionMode: "activity",
@@ -146,7 +149,7 @@ export function CapturesPanel({ session }: { session: ShownSession }) {
           <Empty icon={Images}>{t("Aucune image dans cette session.")}</Empty>
         ) : (
           <ul className="m-0 list-none p-0">
-            {items.map((item) => (
+            {(newest ? [...items].reverse() : items).map((item) => (
               <li key={`${item.agentId ?? ""}|${item.index}`} className="border-b py-2 last:border-0">
                 <button
                   type="button"

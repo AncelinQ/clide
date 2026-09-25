@@ -586,6 +586,22 @@ export const routes: Record<string, Handler> = {
   },
 
   /**
+   * Une entrée de l'activité en entier, désignée par son rang dans la session :
+   * le texte tel qu'écrit, ou l'appel d'outil avec son entrée et son résultat.
+   */
+  "/api/session/activity/entry": async (params) => {
+    const id = requireParam(params, "id");
+    const agent = params.get("agent");
+    const index = Number(requireParam(params, "index"));
+    if (!Number.isInteger(index) || index < 0) throw new Error("`index` doit être un entier positif");
+    const ref = agent ? await findSubagent(id, agent) : await findSession(id);
+    const { events } = await TranscriptReader.fromRef(ref).poll();
+    const detail = buildActivity(events, { limit: 1, details: true }).details?.[index];
+    if (!detail) throw new Error(`aucune entrée ${index} dans cette session`);
+    return { detail };
+  },
+
+  /**
    * Recherche plein texte dans les transcripts. L'index est rafraîchi au plus toutes
    * les dix secondes : une frappe par requête relirait sinon, à chaque lettre, la
    * session en cours d'écriture.

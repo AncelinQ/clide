@@ -74,6 +74,7 @@ export { withPlanFile } from "./session/plan-file.js";
 export {
   buildActivity,
   summarizeTool,
+  type ActivityDetail,
   type ActivityEntry,
   type ActivityFeed,
   type ActivityImage,

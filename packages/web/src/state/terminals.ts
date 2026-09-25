@@ -257,6 +257,56 @@ export function closeTerminal(id: string): void {
   });
 }
 
+/** Ce qu'a donné la recherche d'une ligne dans un terminal. */
+export type RevealOutcome = "found" | "missing" | "fullscreen" | "absent";
+
+const squash = (text: string): string => text.replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * Fait défiler un terminal jusqu'à une ligne et la sélectionne.
+ *
+ * Le texte est cherché dans l'historique, lignes repliées recollées. `fromEnd`
+ * dit laquelle prendre quand il revient plusieurs fois, en comptant depuis la
+ * fin : le début de l'historique a pu être perdu, la fin jamais.
+ *
+ * Rien n'est possible en plein écran : Claude Code y dessine lui-même l'écran,
+ * dans le tampon secondaire du terminal, qui n'a pas d'historique.
+ */
+export function revealInTerminal(id: string, needles: string[], fromEnd = 0): RevealOutcome {
+  const entry = attached.get(id);
+  if (!entry) return "absent";
+  const buffer = entry.term.buffer.active;
+  if (buffer.type === "alternate") return "fullscreen";
+
+  const logical: { row: number; last: number; text: string }[] = [];
+  for (let row = 0; row < buffer.length; row++) {
+    const line = buffer.getLine(row);
+    if (!line) continue;
+    const text = line.translateToString(true);
+    const previous = logical.at(-1);
+    if (line.isWrapped && previous) {
+      previous.text += text;
+      previous.last = row;
+    } else {
+      logical.push({ row, last: row, text });
+    }
+  }
+
+  for (const needle of needles.map(squash).filter((value) => value.length >= 3)) {
+    const hits = logical.filter((line) => squash(line.text).includes(needle));
+    const hit = hits[hits.length - 1 - Math.min(fromEnd, hits.length - 1)];
+    if (!hit) continue;
+    focusTerminal(id);
+    // Après l'activation de l'onglet : son redimensionnement ramènerait sinon la vue en bas.
+    setTimeout(() => {
+      entry.term.scrollToLine(Math.max(0, hit.row - 2));
+      entry.term.selectLines(hit.row, hit.last);
+    }, 80);
+    return "found";
+  }
+  return "missing";
+}
+
 export function focusTerminal(id: string): void {
   const entry = getState().terminals[id];
   if (!entry) return;
@@ -347,6 +397,9 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
     fontFamily: fontStack(terminalFont.family),
     fontSize: terminalFont.size,
     cursorBlink: true,
+    // Assez pour remonter une session entière en mode inline, où Claude Code
+    // écrit la conversation dans l'historique du terminal.
+    scrollback: 10_000,
     theme,
   });
   const fit = new FitAddon();
