@@ -1,6 +1,6 @@
 import { Coins } from "lucide-react";
 
-import { Async, Empty, Section, useAsync } from "@/components/common";
+import { Async, Empty, FoldSection, useAsync } from "@/components/common";
 import { decimal, t } from "@/i18n";
 import { api, shortName } from "@/lib/api";
 import type { SessionCost } from "@/lib/types";
@@ -120,46 +120,50 @@ export function CostsPanel() {
               })}
             </p>
 
-            <Section>{t("Par jour")}</Section>
-            <Bars rows={report.byDay.slice(-21).map((row) => ({ label: row.day.slice(5).replace("-", "/"), usd: row.usd, title: row.day }))} />
+            <FoldSection id="costs.days" title={t("Par jour")}>
+              <Bars rows={report.byDay.slice(-21).map((row) => ({ label: row.day.slice(5).replace("-", "/"), usd: row.usd, title: row.day }))} />
+            </FoldSection>
 
-            <Section>{t("Par projet")}</Section>
-            <Bars
-              rows={report.byProject.slice(0, 12).map((row) => ({
-                label: shortName(row.project),
-                usd: row.usd,
-                title: t("{project} · {count} sessions", { project: row.project, count: row.sessions }),
-              }))}
-            />
+            <FoldSection id="costs.projects" title={t("Par projet")}>
+              <Bars
+                rows={report.byProject.slice(0, 12).map((row) => ({
+                  label: shortName(row.project),
+                  usd: row.usd,
+                  title: t("{project} · {count} sessions", { project: row.project, count: row.sessions }),
+                }))}
+              />
+            </FoldSection>
 
-            <Section>{t("Par modèle")}</Section>
-            <Bars rows={report.byModel.map((row) => ({ label: row.model.replace(/^claude-/, ""), usd: row.usd, title: row.model }))} />
+            <FoldSection id="costs.models" title={t("Par modèle")}>
+              <Bars rows={report.byModel.map((row) => ({ label: row.model.replace(/^claude-/, ""), usd: row.usd, title: row.model }))} />
+            </FoldSection>
 
-            <Section>{t("Tarifs")}</Section>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {t(
-                "Déduits des coûts que Claude Code a lui-même relevés, jamais écrits en dur. Un modèle n'en reçoit que si ses relevés concordent à 2 % près, sur au moins trois sessions.",
-              )}
-            </p>
-            <ul className="m-0 grid list-none gap-0.5 p-0 text-[11.5px]">
-              {report.calibration.map((entry) => (
-                <li key={entry.model} className="flex gap-2">
-                  <span className="min-w-0 flex-1 truncate">{entry.model}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {t("{price} $/M en entrée · {count} relevés", {
-                      price: decimal(entry.inputPerMillion, 2),
-                      count: entry.samples,
-                    })}
-                  </span>
-                </li>
-              ))}
-              {report.unpriced.map((model) => (
-                <li key={model} className="flex gap-2">
-                  <span className="min-w-0 flex-1 truncate">{model}</span>
-                  <span className="text-muted-foreground">{t("pas encore de tarif fiable")}</span>
-                </li>
-              ))}
-            </ul>
+            <FoldSection id="costs.prices" title={t("Tarifs")}>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {t(
+                  "Déduits des coûts que Claude Code a lui-même relevés, jamais écrits en dur. Un modèle n'en reçoit que si ses relevés concordent à 2 % près, sur au moins trois sessions.",
+                )}
+              </p>
+              <ul className="m-0 grid list-none gap-0.5 p-0 text-[11.5px]">
+                {report.calibration.map((entry) => (
+                  <li key={entry.model} className="flex gap-2">
+                    <span className="min-w-0 flex-1 truncate">{entry.model}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {t("{price} $/M en entrée · {count} relevés", {
+                        price: decimal(entry.inputPerMillion, 2),
+                        count: entry.samples,
+                      })}
+                    </span>
+                  </li>
+                ))}
+                {report.unpriced.map((model) => (
+                  <li key={model} className="flex gap-2">
+                    <span className="min-w-0 flex-1 truncate">{model}</span>
+                    <span className="text-muted-foreground">{t("pas encore de tarif fiable")}</span>
+                  </li>
+                ))}
+              </ul>
+            </FoldSection>
           </div>
         );
       }}

@@ -19,6 +19,7 @@ import { Island } from "@/components/columns";
 import { DevPreview, useDevServers } from "@/components/DevPreview";
 import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
+import { ModelPicker } from "@/components/ModelPicker";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
@@ -39,7 +40,7 @@ import {
   sendToClaude,
   typeInto,
 } from "@/state/terminals";
-import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
+import { PATHS_MIME, post, quotePath, saveImage } from "@/lib/api";
 import { captureInto } from "@/state/commands";
 import type { TerminalInfo } from "@/lib/types";
 
@@ -177,6 +178,10 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
  * faite. Pendant ce temps le bouton reste occupé, et un second clic n'en ouvre
  * pas une deuxième.
  */
+/**
+ * Capture d'écran vers le prompt. Pendant la capture, un second clic l'annule :
+ * l'outil de Windows peut rester ouvert, ou être fermé sans que rien ne revienne.
+ */
 function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -184,11 +189,15 @@ function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
     <Button
       variant="ghost"
       size="icon"
-      className="size-7"
-      disabled={!terminalId || busy}
-      title={error ?? t("Capture d'écran vers le prompt")}
+      className={cn("size-7", busy && "bg-accent")}
+      disabled={!terminalId}
+      title={busy ? t("Annuler la capture") : (error ?? t("Capture d'écran vers le prompt"))}
       onClick={async () => {
         if (!terminalId) return;
+        if (busy) {
+          await post("/api/capture/cancel", {}).catch(() => undefined);
+          return;
+        }
         setBusy(true);
         setError(undefined);
         try {
@@ -330,6 +339,7 @@ export function TerminalArea() {
       doc: "session#la-session-d-un-onglet",
       icon: Activity,
       title: t("Activité"),
+      defaultOrder: t("ordre chronologique"),
       about: t("Le déroulé de la session : prompts, réponses et appels d'outils."),
       render: () => (shown ? <ActivityPanel session={shown} /> : null),
     },
@@ -338,6 +348,7 @@ export function TerminalArea() {
       doc: "session#captures",
       icon: Images,
       title: t("Captures"),
+      defaultOrder: t("ordre chronologique"),
       about: t("Les images de la session, sous-agents compris : captures prises par Claude, images collées."),
       render: () => (shown ? <CapturesPanel session={shown} /> : null),
     },
@@ -346,6 +357,7 @@ export function TerminalArea() {
       doc: "session#restaurer-un-fichier",
       icon: FileDiff,
       title: t("Fichiers"),
+      defaultOrder: t("ordre alphabétique"),
       about: t(
         "Ce que la session a changé, avec le diff exact. L'état « avant » vient des sauvegardes de Claude Code, pas de git.",
       ),
@@ -440,17 +452,23 @@ export function TerminalArea() {
         <Button
           variant="ghost"
           size="icon"
-          className={cn("size-7", previewOpen && "bg-accent", serving && !previewOpen && "text-primary")}
+          className={cn("relative size-7", previewOpen && "bg-accent")}
           disabled={!project}
           onClick={() => setState({ previewOpen: !previewOpen })}
           title={serving ? t("Aperçu du serveur de développement") : t("Aperçu : aucun serveur de développement ne tourne")}
         >
           <MonitorPlay />
+          {/* Un serveur tourne : un point, pas une couleur, qui ferait croire le bouton enfoncé. */}
+          {serving && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-emerald-500" />}
         </Button>
+        <ModelPicker
+          disabled={!project}
+          {...(current?.tokens?.model ? { currentModel: current.tokens.model } : {})}
+        />
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 text-primary"
+          className="h-7"
           disabled={!project}
           onClick={() => openTerminal("claude", { command: "claude" })}
         >
@@ -511,6 +529,7 @@ export function TerminalArea() {
       {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
 
       <ModeBlock
+        block="session"
         modes={modes}
         current={sessionMode}
         onPick={(id) => setState({ sessionMode: id })}

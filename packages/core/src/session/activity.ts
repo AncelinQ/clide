@@ -32,6 +32,33 @@ export interface ActivityFeed {
   entries: ActivityEntry[];
   /** Nombre total d'entrées produites, avant la coupe à `limit`. */
   total: number;
+  /** Contenu entier de chaque entrée, avant la coupe, avec `details: true`. */
+  details?: ActivityDetail[];
+}
+
+/**
+ * Une entrée de l'activité en entier : le texte tel qu'écrit, ou l'appel d'outil
+ * avec son entrée et ce qu'il a rendu.
+ */
+export type ActivityDetail =
+  | { kind: "prompt" | "command" | "answer" | "note"; text: string }
+  | { kind: "tool"; name: string; input?: Record<string, unknown>; result?: string; failed?: boolean };
+
+/** Ce qu'un résultat d'outil garde au plus : une sortie de build peut peser des mégaoctets. */
+const RESULT_MAX = 50_000;
+
+/** Texte d'un résultat d'outil, qu'il soit une chaîne ou une suite de blocs. */
+function resultText(content: unknown): string | undefined {
+  let text: string | undefined;
+  if (typeof content === "string") text = content;
+  else if (Array.isArray(content)) {
+    text = (content as Record<string, unknown>[])
+      .map((block) => (block?.["type"] === "text" && typeof block["text"] === "string" ? block["text"] : ""))
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (!text) return undefined;
+  return text.length > RESULT_MAX ? `${text.slice(0, RESULT_MAX)}\n…` : text;
 }
 
 interface Block {
@@ -162,12 +189,17 @@ export function buildActivity(
     full?: boolean;
     /** Contenu des images en plus de leur nombre : lourd, réservé à qui les montre. */
     images?: boolean;
+    /** Contenu entier de chaque entrée, pour en montrer le détail. */
+    details?: boolean;
   } = {},
 ): ActivityFeed {
   const textMax = options.full ? 20_000 : 400;
   const toolMax = options.full ? 4_000 : 160;
   const entries: ActivityEntry[] = [];
   const toolByUseId = new Map<string, ActivityEntry & { kind: "tool" }>();
+  // Rempli au même endroit que `entries` : l'indice d'une entrée désigne son détail.
+  const details: ActivityDetail[] | undefined = options.details ? [] : undefined;
+  const detailByUseId = new Map<string, ActivityDetail & { kind: "tool" }>();
 
   for (const event of events) {
     const at = typeof event.timestamp === "string" ? event.timestamp : undefined;
@@ -187,15 +219,23 @@ export function buildActivity(
           if (tool && block.is_error) tool.failed = true;
           if (tool && agentId) tool.agentId = agentId;
           if (tool) picture(tool, imagesIn(block.content), options.images === true);
+          const detail = block.tool_use_id ? detailByUseId.get(block.tool_use_id) : undefined;
+          if (detail) {
+            const result = resultText(block.content);
+            if (result) detail.result = result;
+            if (block.is_error) detail.failed = true;
+          }
           continue;
         }
         if (block.type !== "text" || !block.text) continue;
         const text = condense(block.text, textMax);
         if (SYNTHETIC.test(block.text)) {
           entries.push({ kind: "command", ...(at ? { at } : {}), text });
+          details?.push({ kind: "command", text: block.text });
         } else {
           prompt = { kind: "prompt", ...(at ? { at } : {}), text };
           entries.push(prompt);
+          details?.push({ kind: "prompt", text: block.text });
         }
       }
       // Une image collée accompagne le texte du prompt, dans le même message : elle
@@ -214,6 +254,7 @@ export function buildActivity(
             text: condense(block.text, textMax),
             ...(model ? { model } : {}),
           });
+          details?.push({ kind: "answer", text: block.text });
         } else if (block.type === "tool_use" && block.name) {
           const entry: ActivityEntry & { kind: "tool" } = {
             kind: "tool",
@@ -223,6 +264,15 @@ export function buildActivity(
           };
           if (block.id) toolByUseId.set(block.id, entry);
           entries.push(entry);
+          if (details) {
+            const detail: ActivityDetail & { kind: "tool" } = {
+              kind: "tool",
+              name: block.name,
+              ...(block.input ? { input: block.input } : {}),
+            };
+            if (block.id) detailByUseId.set(block.id, detail);
+            details.push(detail);
+          }
         }
       }
       continue;
@@ -230,9 +280,10 @@ export function buildActivity(
 
     if (event.type === "pr-link" && typeof event["prUrl"] === "string") {
       entries.push({ kind: "note", ...(at ? { at } : {}), text: `merge request ${event["prUrl"]}` });
+      details?.push({ kind: "note", text: `merge request ${event["prUrl"]}` });
     }
   }
 
   const limit = options.limit ?? 400;
-  return { entries: entries.slice(-limit), total: entries.length };
+  return { entries: entries.slice(-limit), total: entries.length, ...(details ? { details } : {}) };
 }

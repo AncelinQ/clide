@@ -1,12 +1,32 @@
-import { ChevronDown, ChevronUp, Info, type LucideIcon } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  MoreHorizontal,
+  type LucideIcon,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { docUrl } from "@/lib/api";
+import { setState, useStore } from "@/state/store";
 
 export interface Mode {
   id: string;
@@ -15,7 +35,102 @@ export interface Mode {
   about: string;
   /** Section du guide qui détaille le mode : `session#captures`. */
   doc?: string;
+  /**
+   * Le mode liste des éléments datés, qu'on peut montrer les plus récents en
+   * haut ; la valeur nomme l'ordre par défaut, pour le bouton qui y revient.
+   */
+  defaultOrder?: string;
   render: () => ReactNode;
+}
+
+/**
+ * Menu « ⋯ » d'un bloc à modes, comme celui du panneau global : les modes
+ * masqués, qui y restent accessibles, puis le choix de ceux qui s'affichent.
+ */
+function ModeMenu({
+  block,
+  modes,
+  current,
+  onPick,
+}: {
+  block: string;
+  modes: Mode[];
+  current: string;
+  onPick: (id: string) => void;
+}) {
+  const hidden = new Set(useStore((state) => state.hiddenModes[block]) ?? []);
+  const off = modes.filter((mode) => hidden.has(mode.id));
+
+  const toggle = (id: string, on: boolean) => {
+    const next = modes.map((mode) => mode.id).filter((modeId) => (modeId === id ? !on : hidden.has(modeId)));
+    // Tout masquer ne laisserait rien à cliquer hors du menu : on garde au moins un mode.
+    if (next.length === modes.length) return;
+    setState((state) => ({ hiddenModes: { ...state.hiddenModes, [block]: next } }));
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-7" title={t("Onglets")}>
+          <MoreHorizontal />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        {off.length > 0 && (
+          <>
+            {off.map((mode) => (
+              <DropdownMenuItem key={mode.id} onSelect={() => onPick(mode.id)}>
+                <mode.icon />
+                <span className={cn(mode.id === current && "font-medium text-primary")}>{mode.title}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>{t("Onglets affichés")}</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {modes.map((mode) => (
+              <DropdownMenuCheckboxItem
+                key={mode.id}
+                checked={!hidden.has(mode.id)}
+                // Le menu reste ouvert : on coche souvent plusieurs onglets à la suite.
+                onSelect={(event) => event.preventDefault()}
+                onCheckedChange={(on) => toggle(mode.id, on === true)}
+              >
+                <mode.icon /> {mode.title}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Retient, pour un mode, si ses éléments les plus récents viennent en haut. */
+export function useNewestFirst(mode: string): boolean {
+  return useStore((state) => state.newestFirst[mode] === true);
+}
+
+function OrderButton({ mode, defaultOrder }: { mode: string; defaultOrder: string }) {
+  const newest = useNewestFirst(mode);
+  const Icon = newest ? ArrowDownWideNarrow : ArrowUpNarrowWide;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn("size-7", newest && "bg-accent text-primary")}
+      onClick={() => setState((state) => ({ newestFirst: { ...state.newestFirst, [mode]: !newest } }))}
+      title={
+        newest
+          ? t("Plus récents en haut — revenir à : {order}", { order: defaultOrder })
+          : t("Mettre les plus récents en haut")
+      }
+    >
+      <Icon />
+    </Button>
+  );
 }
 
 /**
@@ -24,6 +139,7 @@ export interface Mode {
  * terminal — c'est ce qui les fait lire comme deux instances d'une même chose.
  */
 export function ModeBlock({
+  block,
   modes,
   current,
   onPick,
@@ -32,6 +148,8 @@ export function ModeBlock({
   collapsed: controlled,
   onCollapse,
 }: {
+  /** Clé sous laquelle les modes masqués du bloc sont retenus. */
+  block: string;
   modes: Mode[];
   current: string;
   onPick: (id: string) => void;
@@ -49,13 +167,16 @@ export function ModeBlock({
     if (onCollapse) onCollapse(next);
     else setLocal(next);
   };
+  const hidden = useStore((state) => state.hiddenModes[block]);
   const mode = modes.find((entry) => entry.id === current) ?? modes[0];
   if (!mode) return null;
+  // Le mode ouvert garde son icône même masqué, pour qu'on voie où l'on est.
+  const shown = modes.filter((entry) => !hidden?.includes(entry.id) || entry.id === mode.id);
 
   return (
     <div className={cn("flex min-h-0 shrink-0 flex-col border-t", collapsed ? "" : "flex-1", className)}>
       <div className="flex shrink-0 items-center gap-0.5 px-2 py-1.5">
-        {modes.map((entry) => (
+        {shown.map((entry) => (
           <Tooltip key={entry.id}>
             <TooltipTrigger asChild>
               <Button
@@ -73,6 +194,8 @@ export function ModeBlock({
 
         <div className="flex-1 truncate px-2 text-[11px] text-muted-foreground">{header}</div>
 
+        {mode.defaultOrder && <OrderButton mode={mode.id} defaultOrder={mode.defaultOrder} />}
+        <ModeMenu block={block} modes={modes} current={mode.id} onPick={onPick} />
         <Button
           variant="ghost"
           size="icon"

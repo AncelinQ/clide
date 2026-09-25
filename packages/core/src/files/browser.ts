@@ -24,7 +24,7 @@ export interface DirectoryListing {
 }
 
 /** Dossiers dont le contenu n'intéresse personne dans un explorateur de projet. */
-const HIDDEN = new Set(["node_modules", "Thumbs.db"]);
+const HIDDEN = new Set(["node_modules", ".git", "Thumbs.db"]);
 
 /**
  * Résout un chemin demandé sous la racine d'un projet, ou refuse.

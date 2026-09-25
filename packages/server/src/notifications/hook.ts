@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 
 import { SettingsEditor, appDataDir, settingsFile, type SettingsEdit } from "@clide/core";
 
+import { nodeExecutable } from "../platform/node-path.js";
+
 /**
  * Ce que l'application sait faire d'un événement de hook.
  *
@@ -96,11 +98,13 @@ setTimeout(spool, 2000).unref();
 `;
 }
 
-/** Commande inscrite dans `settings.json` pour un type donné. */
-export function hookCommand(kind: NotificationKind, dataDir: string = appDataDir()): string {
-  // Le chemin absolu de l'exécutable Node courant plutôt que `node` : le hook
-  // s'exécute dans l'environnement de Claude Code, dont le PATH n'est pas le nôtre.
-  return `"${process.execPath}" "${hookScriptPath(dataDir)}" ${kind} "${eventsDir(dataDir)}"`;
+/** Commande inscrite dans `settings.json` pour un type donné. `node` : voir `nodeExecutable`. */
+export function hookCommand(
+  kind: NotificationKind,
+  dataDir: string = appDataDir(),
+  node: string = process.execPath,
+): string {
+  return `"${node}" "${hookScriptPath(dataDir)}" ${kind} "${eventsDir(dataDir)}"`;
 }
 
 interface HookEntry {
@@ -159,6 +163,7 @@ export async function installHooks(
   dataDir: string = appDataDir(),
   file: string = settingsFile(),
 ): Promise<HooksStatus> {
+  const node = await nodeExecutable();
   await mkdir(dirname(hookScriptPath(dataDir)), { recursive: true });
   await writeFile(hookScriptPath(dataDir), hookScript(), "utf8");
   await mkdir(eventsDir(dataDir), { recursive: true });
@@ -173,7 +178,7 @@ export async function installHooks(
     const kept = entriesOf(hooks[event]).filter((entry) => !isOurs(entry, scriptPath));
     const ours = HOOK_DEFINITIONS.filter((definition) => definition.event === event).map((definition) => ({
       ...(definition.matcher ? { matcher: definition.matcher } : {}),
-      hooks: [{ type: "command", command: hookCommand(definition.kind, dataDir) }],
+      hooks: [{ type: "command", command: hookCommand(definition.kind, dataDir, node) }],
     }));
     edits.push({ path: ["hooks", event], value: [...kept, ...ours] });
   }

@@ -48,6 +48,7 @@ describe("listDirectory", () => {
     // `node_modules` reste écarté même en montrant les fichiers cachés : ce
     // n'est pas une question de discrétion mais de volume.
     expect(avec.entries.map((e) => e.name)).not.toContain("node_modules");
+    expect(avec.entries.map((e) => e.name)).not.toContain(".git");
   });
 
   it("descend dans un sous-dossier et sait remonter", async () => {

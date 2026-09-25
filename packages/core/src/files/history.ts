@@ -19,6 +19,20 @@ export interface FileDiff {
   linesRemoved: number;
   /** Diff au format unifié, en-têtes à la manière de git. Vide si rien n'a changé. */
   unified: string;
+  /**
+   * Dernière fois que la session a touché le fichier : l'horodatage de sa
+   * sauvegarde la plus récente. Absent quand aucune n'en porte.
+   */
+  changedAt?: string;
+}
+
+/** Horodatage le plus récent des sauvegardes d'un fichier. */
+function lastChange(track: FileTrack): string | undefined {
+  let latest: string | undefined;
+  for (const backup of track.backups) {
+    if (backup.backupTime && (!latest || Date.parse(backup.backupTime) > Date.parse(latest))) latest = backup.backupTime;
+  }
+  return latest;
 }
 
 /** Nombre de lignes de contexte autour de chaque changement. */
@@ -96,6 +110,7 @@ export class FileHistoryResolver {
     const before = await this.readBefore(sessionId, track);
     const after = await this.readAfter(projectRoot, track);
     const posix = toPosix(track.trackingPath);
+    const changedAt = lastChange(track);
 
     const base: FileDiff = {
       trackingPath: track.trackingPath,
@@ -107,6 +122,7 @@ export class FileHistoryResolver {
       linesAdded: 0,
       linesRemoved: 0,
       unified: "",
+      ...(changedAt ? { changedAt } : {}),
     };
 
     if (base.binary || before.missing) return base;

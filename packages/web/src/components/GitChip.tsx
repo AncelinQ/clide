@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArchiveRestore,
+  ArrowDownUp,
   CloudDownload,
   ExternalLink,
   GitBranch,
@@ -41,7 +42,10 @@ export interface GitStatus {
   ahead: number;
   behind: number;
   changed: number;
+  untracked: number;
   conflicted: number;
+  /** La branche distante suivie a été supprimée. */
+  upstreamGone?: boolean;
 }
 
 interface PushPlan {
@@ -52,6 +56,106 @@ interface PushPlan {
   setUpstream: boolean;
   commits: { hash: string; subject: string }[];
   blocked?: string;
+  diverged: boolean;
+  overwritten: { hash: string; subject: string }[];
+  remoteHead?: string;
+}
+
+/**
+ * Ce qui attend dans un dépôt, en signes compacts : fichiers à committer,
+ * commits à pousser ou en retard, divergence. Rien quand tout est à jour.
+ */
+export function GitMarks({ status, className }: { status: GitStatus; className?: string }) {
+  const touched = status.changed + status.untracked + status.conflicted;
+  const diverged = status.ahead > 0 && status.behind > 0;
+  if (touched === 0 && status.ahead === 0 && status.behind === 0 && !status.upstreamGone) return null;
+  return (
+    <span
+      className={cn("flex items-center gap-1 text-[10.5px] tabular-nums", className)}
+      title={pendingSummary(status)}
+    >
+      {touched > 0 && (
+        <span className={status.conflicted > 0 ? "text-destructive" : "text-muted-foreground"}>●{touched}</span>
+      )}
+      {status.upstreamGone && <span className="text-amber-600">{t("distante supprimée")}</span>}
+      {diverged ? (
+        <span className="flex items-center text-destructive">
+          <ArrowDownUp className="size-3" />
+        </span>
+      ) : (
+        <>
+          {status.ahead > 0 && (
+            <span className="flex items-center text-primary">
+              <ArrowUp className="size-3" />
+              {status.ahead}
+            </span>
+          )}
+          {status.behind > 0 && (
+            <span className="flex items-center text-amber-600">
+              <ArrowDown className="size-3" />
+              {status.behind}
+            </span>
+          )}
+        </>
+      )}
+    </span>
+  );
+}
+
+/** Indicateurs git d'un dossier, relevés comme ceux de la puce de branche. */
+export function RepoMarks({ root, className }: { root: string; className?: string }) {
+  const [status] = useGitStatus(root);
+  return status ? <GitMarks status={status} {...(className ? { className } : {})} /> : null;
+}
+
+/** Branches qu'un push forcé ne devrait presque jamais viser. */
+const MAIN_BRANCHES = new Set(["main", "master", "develop", "trunk"]);
+
+/** Liste de commits, hash et sujet, dans une boîte qui défile. */
+function CommitList({ commits, tone }: { commits: { hash: string; subject: string }[]; tone?: "danger" }) {
+  return (
+    <ul
+      className={cn(
+        "m-0 max-h-48 list-none overflow-auto rounded-md border p-0 font-mono text-[11.5px]",
+        tone === "danger" && "border-destructive/50",
+      )}
+    >
+      {commits.map((entry) => (
+        <li key={entry.hash} className="flex gap-2 border-b px-2 py-1 last:border-0">
+          <span className="shrink-0 text-muted-foreground">{entry.hash}</span>
+          <span className="truncate" title={entry.subject}>
+            {entry.subject}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Résumé de ce qui attend, pour l'infobulle d'un indicateur git. */
+export function pendingSummary(status: GitStatus): string {
+  const parts: string[] = [];
+  const touched = status.changed + status.untracked + status.conflicted;
+  if (touched > 0) parts.push(t("{count} fichier(s) à committer", { count: touched }));
+  if (status.upstreamGone) {
+    parts.push(
+      t("la branche distante {upstream} a été supprimée (MR fusionnée ?)", { upstream: status.upstream ?? "" }),
+    );
+  }
+  if (status.conflicted > 0) parts.push(t("{count} en conflit", { count: status.conflicted }));
+  if (status.ahead > 0 && status.behind > 0) {
+    parts.push(
+      t("a divergé : {ahead} à pousser, {behind} distants — push forcé nécessaire", {
+        ahead: status.ahead,
+        behind: status.behind,
+      }),
+    );
+  } else {
+    if (status.ahead > 0) parts.push(t("{count} commit(s) à pousser", { count: status.ahead }));
+    if (status.behind > 0) parts.push(t("{count} commit(s) en retard", { count: status.behind }));
+  }
+  if (!status.upstream && status.branch) parts.push(t("jamais poussée"));
+  return parts.length > 0 ? parts.join(" · ") : t("à jour");
 }
 
 /**
@@ -157,19 +261,33 @@ function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => vo
   const [plan, setPlan] = useState<PushPlan>();
   const [error, setError] = useState<string>();
   const [pushing, setPushing] = useState(false);
+  // Un push forcé se confirme en deux temps : il efface des commits distants.
+  const [armed, setArmed] = useState(false);
 
+  // Un fetch d'abord : l'aperçu compare à l'état réel du dépôt distant, pas au
+  // dernier connu. Hors ligne, il compare au dernier connu.
   useEffect(() => {
-    api<PushPlan>("/api/git/push-plan", { root })
-      .then(setPlan)
-      .catch((caught: Error) => setError(caught.message));
+    let alive = true;
+    post("/api/git/fetch", { root })
+      .catch(() => undefined)
+      .then(() => api<PushPlan>("/api/git/push-plan", { root }))
+      .then((result) => alive && setPlan(result))
+      .catch((caught: Error) => alive && setError(caught.message));
+    return () => {
+      alive = false;
+    };
   }, [root]);
 
-  const push = async () => {
+  const push = async (force: boolean) => {
     if (!plan) return;
     setPushing(true);
     setError(undefined);
     try {
-      await post("/api/git/push", { root, head: plan.head });
+      await post("/api/git/push", {
+        root,
+        head: plan.head,
+        ...(force && plan.remoteHead ? { forceOver: plan.remoteHead } : {}),
+      });
       onDone();
       onClose();
     } catch (caught) {
@@ -192,7 +310,7 @@ function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => vo
                     target: plan.target,
                   })
                 : t("Vers {remote}/{target}.", { remote: plan.remote, target: plan.target })
-              : t("Lecture de ce qui partirait…")}
+              : t("Récupération de l'état distant, puis lecture de ce qui partirait…")}
           </DialogDescription>
         </DialogHeader>
         {plan && plan.commits.length > 0 && (
@@ -200,16 +318,32 @@ function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => vo
             <div className="text-[11px] text-muted-foreground">
               {t("{count} commit(s) partiront :", { count: plan.commits.length })}
             </div>
-            <ul className="m-0 max-h-64 list-none overflow-auto rounded-md border p-0 font-mono text-[11.5px]">
-              {plan.commits.map((entry) => (
-                <li key={entry.hash} className="flex gap-2 border-b px-2 py-1 last:border-0">
-                  <span className="shrink-0 text-muted-foreground">{entry.hash}</span>
-                  <span className="truncate" title={entry.subject}>
-                    {entry.subject}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <CommitList commits={plan.commits} />
+          </div>
+        )}
+        {plan?.diverged && (
+          <div className="grid gap-1">
+            <div className="text-[11px] font-medium text-destructive">
+              {t("Un push forcé effacerait ces {count} commit(s) de {remote}/{target} :", {
+                count: plan.overwritten.length,
+                remote: plan.remote,
+                target: plan.target,
+              })}
+            </div>
+            <CommitList commits={plan.overwritten} tone="danger" />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {t(
+                "Forcé avec --force-with-lease : si quelqu'un pousse d'ici là, le push est refusé au lieu d'effacer son travail.",
+              )}
+              {MAIN_BRANCHES.has(plan.target) && (
+                <strong className="text-destructive">
+                  {" "}
+                  {t("{target} est une branche principale : elle est souvent partagée, et parfois protégée.", {
+                    target: plan.target,
+                  })}
+                </strong>
+              )}
+            </p>
           </div>
         )}
         {plan?.setUpstream && plan.commits.length === 0 && (
@@ -217,19 +351,36 @@ function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => vo
             {t("Aucun commit nouveau : seule la branche distante sera créée.")}
           </p>
         )}
-        {(plan?.blocked ?? error) && <p className="text-[12px] text-destructive">{plan?.blocked ?? error}</p>}
+        {(error ?? (plan?.diverged ? undefined : plan?.blocked)) && (
+          <p className="text-[12px] text-destructive">{error ?? plan?.blocked}</p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             {t("Annuler")}
           </Button>
-          <Button disabled={!plan || !!plan.blocked || pushing} onClick={() => void push()}>
-            <Upload />
-            {pushing
-              ? t("Envoi…")
-              : plan?.commits.length
-                ? t("Pousser {count} commit(s)", { count: plan.commits.length })
-                : t("Pousser")}
-          </Button>
+          {plan?.diverged ? (
+            <Button
+              variant="destructive"
+              disabled={pushing || !plan.remoteHead}
+              onClick={() => (armed ? void push(true) : setArmed(true))}
+            >
+              <Upload />
+              {pushing
+                ? t("Envoi…")
+                : armed
+                  ? t("Confirmer : écraser {count} commit(s)", { count: plan.overwritten.length })
+                  : t("Forcer le push…")}
+            </Button>
+          ) : (
+            <Button disabled={!plan || !!plan.blocked || pushing} onClick={() => void push(false)}>
+              <Upload />
+              {pushing
+                ? t("Envoi…")
+                : plan?.commits.length
+                  ? t("Pousser {count} commit(s)", { count: plan.commits.length })
+                  : t("Pousser")}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -272,7 +423,10 @@ export function GitChip({ root }: { root: string }) {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            title={status.upstream ? t("{branch}, suit {upstream}", { branch: name, upstream: status.upstream }) : name}
+            title={[
+              status.upstream ? t("{branch}, suit {upstream}", { branch: name, upstream: status.upstream }) : name,
+              pendingSummary(status),
+            ].join("\n")}
             className={cn(
               "flex max-w-72 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] hover:bg-accent",
               message?.error && "border-destructive/60",
@@ -280,6 +434,12 @@ export function GitChip({ root }: { root: string }) {
           >
             <GitBranch className={cn("size-3.5 shrink-0", busy && "animate-pulse")} />
             <span className="truncate font-mono">{name}</span>
+            {status.ahead > 0 && status.behind > 0 && (
+              <span className="flex items-center gap-0.5 tabular-nums text-destructive">
+                <ArrowDownUp className="size-3" />
+                {t("divergée")}
+              </span>
+            )}
             {status.ahead > 0 && (
               <span className="flex items-center tabular-nums text-primary">
                 <ArrowUp className="size-3" />
@@ -299,12 +459,14 @@ export function GitChip({ root }: { root: string }) {
                 {review.ci && <span className={cn("size-1.5 rounded-full", CI_DOT[review.ci])} />}
               </span>
             )}
-            {status.changed + status.conflicted > 0 && (
+            {status.changed + status.untracked + status.conflicted > 0 && (
               <span
                 className={cn("tabular-nums", status.conflicted > 0 ? "text-destructive" : "text-muted-foreground")}
-                title={t("{count} fichier(s) touché(s)", { count: status.changed + status.conflicted })}
+                title={t("{count} fichier(s) touché(s)", {
+                  count: status.changed + status.untracked + status.conflicted,
+                })}
               >
-                ●{status.changed + status.conflicted}
+                ●{status.changed + status.untracked + status.conflicted}
               </span>
             )}
           </button>
@@ -313,6 +475,7 @@ export function GitChip({ root }: { root: string }) {
           <DropdownMenuLabel className="truncate font-mono text-[11px] font-normal text-muted-foreground">
             {status.upstream ? t("suit {upstream}", { upstream: status.upstream }) : t("sans branche distante")}
           </DropdownMenuLabel>
+          <div className="px-2 pb-1 text-[11px] text-muted-foreground">{pendingSummary(status)}</div>
           {message && (
             <div className={cn("px-2 pb-1 text-[11px]", message.error ? "text-destructive" : "text-muted-foreground")}>
               {message.text}
@@ -347,13 +510,13 @@ export function GitChip({ root }: { root: string }) {
             <RefreshCw /> {t("Fetch")}
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={!!busy || !status.upstream}
+            disabled={!!busy || !status.upstream || status.upstreamGone === true}
             onSelect={() => void act(t("Pull"), "/api/git/pull")}
           >
             <CloudDownload /> {t("Pull (avance rapide)")}
           </DropdownMenuItem>
           <DropdownMenuItem disabled={!!busy || !status.branch} onSelect={() => setPushing(true)}>
-            <Upload /> {t("Push…")}
+            <Upload /> {status.ahead > 0 && status.behind > 0 ? t("Push forcé…") : t("Push…")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled={!!busy} onSelect={() => setBranching(true)}>

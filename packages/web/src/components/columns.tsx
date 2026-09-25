@@ -6,6 +6,7 @@ import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { TabRail, TabRow } from "@/components/GlobalTabs";
 import { ChantiersPanel } from "@/components/panels/chantiers";
 import { CostsPanel } from "@/components/panels/costs";
+import { UsagePanel } from "@/components/panels/usage";
 import { SearchPanel } from "@/components/panels/search";
 import {
   LinksPanel,
@@ -112,6 +113,7 @@ export function ProjectColumn() {
     <Island>
       <FileBrowser project={project} />
       <ModeBlock
+        block="project"
         modes={modes}
         current={project.leftMode}
         onPick={(id) => updateProject(project.root, { leftMode: id })}
@@ -145,6 +147,8 @@ export function GlobalColumn() {
         return <SettingsPanel key={nonce} />;
       case "costs":
         return <CostsPanel key={nonce} />;
+      case "usage":
+        return <UsagePanel key={nonce} />;
       case "chantiers":
         return <ChantiersPanel key={nonce} filter={filter} />;
       case "search":

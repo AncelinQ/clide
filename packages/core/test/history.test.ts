@@ -164,4 +164,26 @@ describe("FileHistoryResolver", () => {
 
     expect(diffs.map((d) => d.trackingPath)).toEqual(["src\\a.ts", "src\\b.ts"]);
   });
+
+  it("date un fichier de sa sauvegarde la plus récente, quel que soit l'ordre des versions", async () => {
+    await writeFile(join(project, "src", "a.ts"), "a\n");
+    const [dated, undated] = await resolver.diffSession(
+      SESSION,
+      [
+        {
+          trackingPath: "src\\a.ts",
+          created: true,
+          backups: [
+            { backupFileName: null, version: 1, backupTime: "2026-09-25T10:00:00.000Z" },
+            { backupFileName: null, version: 2, backupTime: "2026-09-25T09:00:00.000Z" },
+          ],
+        },
+        { trackingPath: "src\\b.ts", created: true, backups: [{ backupFileName: null, version: 1 }] },
+      ],
+      project,
+    );
+
+    expect(dated?.changedAt).toBe("2026-09-25T10:00:00.000Z");
+    expect(undated?.changedAt).toBeUndefined();
+  });
 });

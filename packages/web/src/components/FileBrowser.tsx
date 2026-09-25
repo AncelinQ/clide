@@ -1,4 +1,4 @@
-import { ArrowUp, File, Folder } from "lucide-react";
+import { ArrowUp, Eye, EyeOff, File, Folder } from "lucide-react";
 import { useState } from "react";
 
 import { Async, useAsync } from "@/components/common";
@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { t } from "@/i18n";
 import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
-import { getState, openProject, updateProject, type Project } from "@/state/store";
+import { getState, openProject, setState, updateProject, useStore, type Project } from "@/state/store";
 import { openTerminal, typeInto } from "@/state/terminals";
 import { FilePreviewDialog } from "@/components/FilePreview";
 import { cn } from "cn";
@@ -49,9 +49,15 @@ export function FileBrowser({ project }: { project: Project }) {
   // clic l'écrirait deux fois avant l'ouverture.
   const [selected, setSelected] = useState<string>();
   const [previewing, setPreviewing] = useState<string>();
+  const showHidden = useStore((store) => store.showHidden);
   const state = useAsync(
-    () => api<DirectoryListing>("/api/files", { root: project.root, path: project.browsePath }),
-    [project.root, project.browsePath],
+    () =>
+      api<DirectoryListing>("/api/files", {
+        root: project.root,
+        path: project.browsePath,
+        ...(showHidden ? { hidden: 1 } : {}),
+      }),
+    [project.root, project.browsePath, showHidden],
   );
 
   const goTo = (relativePath: string) => updateProject(project.root, { browsePath: relativePath });
@@ -89,6 +95,17 @@ export function FileBrowser({ project }: { project: Project }) {
             ))
           }
         </Async>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("ml-auto size-6", showHidden && "text-primary")}
+          onClick={() => setState({ showHidden: !showHidden })}
+          title={
+            showHidden ? t("Masquer les fichiers cachés") : t("Afficher les fichiers cachés (.env, .claude…)")
+          }
+        >
+          {showHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+        </Button>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -139,7 +156,9 @@ export function FileBrowser({ project }: { project: Project }) {
                       ) : (
                         <File className="size-3.5 shrink-0 text-muted-foreground" />
                       )}
-                      <span className="truncate">{entry.name}</span>
+                      <span className={cn("truncate", entry.name.startsWith(".") && "opacity-60")}>
+                        {entry.name}
+                      </span>
                     </li>
                   </ContextMenuTrigger>
                   <ContextMenuContent>

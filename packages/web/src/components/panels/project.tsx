@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
 import { BranchDialog } from "@/components/BranchDialog";
 import { FolderInput } from "@/components/FolderInput";
-import { useGitStatus } from "@/components/GitChip";
+import { GitMarks, useGitStatus } from "@/components/GitChip";
 import { pullRepositories, usePullRunning } from "@/components/GitSync";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
@@ -56,10 +56,9 @@ function LinkRow({
               <Badge variant="secondary" className="font-mono" title={t("branche courante")}>
                 <GitBranch className="size-3" />
                 {status.branch ?? status.head ?? "?"}
-                {status.behind > 0 && ` ↓${status.behind}`}
-                {status.ahead > 0 && ` ↑${status.ahead}`}
               </Badge>
             )}
+            {status && <GitMarks status={status} />}
             {link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
           </>
         }

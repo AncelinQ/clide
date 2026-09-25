@@ -46,8 +46,10 @@ import {
 
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
-import { captureScreen } from "../platform/capture.js";
+import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
+import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
+import { installStatusline, readUsage, refreshApiUsage, uninstallStatusline } from "../platform/usage.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
@@ -586,6 +588,22 @@ export const routes: Record<string, Handler> = {
   },
 
   /**
+   * Une entrée de l'activité en entier, désignée par son rang dans la session :
+   * le texte tel qu'écrit, ou l'appel d'outil avec son entrée et son résultat.
+   */
+  "/api/session/activity/entry": async (params) => {
+    const id = requireParam(params, "id");
+    const agent = params.get("agent");
+    const index = Number(requireParam(params, "index"));
+    if (!Number.isInteger(index) || index < 0) throw new Error("`index` doit être un entier positif");
+    const ref = agent ? await findSubagent(id, agent) : await findSession(id);
+    const { events } = await TranscriptReader.fromRef(ref).poll();
+    const detail = buildActivity(events, { limit: 1, details: true }).details?.[index];
+    if (!detail) throw new Error(`aucune entrée ${index} dans cette session`);
+    return { detail };
+  },
+
+  /**
    * Recherche plein texte dans les transcripts. L'index est rafraîchi au plus toutes
    * les dix secondes : une frappe par requête relirait sinon, à chaque lettre, la
    * session en cours d'écriture.
@@ -748,6 +766,12 @@ export const routes: Record<string, Handler> = {
     status: await hooksStatus(dataDir, settingsPath),
     recent: notifications.recent(),
   }),
+
+  /** Modèles qu'on peut choisir pour une session, depuis le catalogue de Claude Code. */
+  "/api/models": async () => listModels(),
+
+  /** Limites de l'abonnement et usage des sessions, tels que les deux sources les ont relevés. */
+  "/api/usage": async (_params, { dataDir, settingsPath }) => readUsage(dataDir, settingsPath),
 };
 
 /**
@@ -763,6 +787,21 @@ export const mutations: Record<string, Mutation> = {
   "/api/notifications/install": async (_params, { dataDir, settingsPath }) => ({
     status: await installHooks(dataDir, settingsPath),
   }),
+
+  /** Déclare la ligne de statut qui relève l'usage. Action explicite, comme les hooks. */
+  "/api/usage/statusline/install": async (_params, { dataDir, settingsPath }) => ({
+    statusline: await installStatusline(dataDir, settingsPath),
+  }),
+
+  "/api/usage/statusline/uninstall": async (_params, { dataDir, settingsPath }) => ({
+    statusline: await uninstallStatusline(dataDir, settingsPath),
+  }),
+
+  /**
+   * Demande les limites à l'API d'usage de Claude Code. Jamais automatique :
+   * l'API n'est pas documentée et limite les appels.
+   */
+  "/api/usage/refresh": async (_params, { dataDir }) => ({ api: await refreshApiUsage(dataDir) }),
 
   /**
    * Édition ciblée de `settings.json`. Le chemin est une suite de clés, pas une
@@ -927,7 +966,12 @@ export const mutations: Record<string, Mutation> = {
    * est envoyé.
    */
   "/api/git/push": async (_params, _context, body) =>
-    gitPush(requireField(body, "root", isString), requireField(body, "head", isString)),
+    gitPush(
+      requireField(body, "root", isString),
+      requireField(body, "head", isString),
+      // Un push forcé nomme le commit distant qu'il accepte d'écraser.
+      isString(body["forceOver"]) ? { remoteHead: body["forceOver"] } : undefined,
+    ),
 
   "/api/session/restore": async (_params, context, body) => {
     const id = requireField(body, "id", isString);
@@ -1044,7 +1088,18 @@ export const mutations: Record<string, Mutation> = {
     return { ok: true };
   },
 
-  "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
+  "/api/capture": async (_params, { dataDir }) => {
+    try {
+      return { path: await captureScreen(dataDir) };
+    } catch (error) {
+      // Annuler n'est pas échouer : la page n'a rien à signaler.
+      if (error instanceof CaptureCancelled) return { cancelled: true };
+      throw error;
+    }
+  },
+
+  /** Interrompt la capture en cours : son outil peut rester ouvert, ou ne jamais rien rendre. */
+  "/api/capture/cancel": async () => ({ cancelled: cancelCapture() }),
 
   /**
    * Ouvre la fenêtre de sélection de Windows sur le poste — un dossier, ou un

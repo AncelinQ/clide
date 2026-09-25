@@ -27,6 +27,15 @@ const run = promisify(execFile);
 const git = (cwd: string, ...args: string[]) => run("git", args, { cwd, windowsHide: true });
 
 describe("parseStatusV2", () => {
+  it("repère un amont disparu : nommé, mais sans écart", () => {
+    const gone = parseStatusV2(["# branch.oid 1234567890", "# branch.head aqn/feat/x", "# branch.upstream origin/aqn/feat/x"].join("\n"));
+    expect(gone.upstreamGone).toBe(true);
+    const alive = parseStatusV2(
+      ["# branch.oid 1234567890", "# branch.head main", "# branch.upstream origin/main", "# branch.ab +0 -0"].join("\n"),
+    );
+    expect(alive.upstreamGone).toBeUndefined();
+  });
+
   it("lit la branche, l'amont, l'écart et les fichiers touchés", () => {
     const status = parseStatusV2(
       [
@@ -45,7 +54,8 @@ describe("parseStatusV2", () => {
       upstream: "origin/aqn/feat/x",
       ahead: 2,
       behind: 1,
-      changed: 2,
+      changed: 1,
+      untracked: 1,
       conflicted: 1,
     });
   });
@@ -55,6 +65,7 @@ describe("parseStatusV2", () => {
       ahead: 0,
       behind: 0,
       changed: 0,
+      untracked: 0,
       conflicted: 0,
     });
   });
@@ -165,6 +176,43 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     expect(await pullMany([mine])).toEqual([{ root: mine, outcome: "up-to-date", branch: "main" }]);
   }, 30_000);
 
+  it("ne force qu'une branche divergée, et seulement contre le commit distant de l'aperçu", async () => {
+    await commit(theirs, "divergence-distant.txt", "d");
+    await git(theirs, "push");
+    await commit(mine, "divergence-local.txt", "l");
+    await git(mine, "fetch");
+
+    const plan = await pushPlan(mine);
+    expect(plan.diverged).toBe(true);
+    expect(plan.blocked).toContain("divergé");
+    expect(plan.overwritten.map((entry) => entry.subject)).toEqual(["ajoute divergence-distant.txt"]);
+    await expect(gitPush(mine, plan.head)).rejects.toThrow("divergé");
+
+    // Quelqu'un pousse après l'aperçu : le bail tombe, rien n'est écrasé.
+    await commit(theirs, "divergence-encore.txt", "e");
+    await git(theirs, "push");
+    await expect(gitPush(mine, plan.head, { remoteHead: plan.remoteHead! })).rejects.toThrow();
+
+    await git(mine, "fetch");
+    const fresh = await pushPlan(mine);
+    expect(fresh.overwritten).toHaveLength(2);
+    await gitPush(mine, fresh.head, { remoteHead: fresh.remoteHead! });
+    await git(theirs, "fetch");
+    const { stdout } = await git(theirs, "rev-parse", "origin/main");
+    expect(stdout.trim()).toBe(fresh.head);
+    await git(theirs, "reset", "--hard", "origin/main");
+  }, 30_000);
+
+  it("refuse de forcer une branche qui n'est qu'en retard", async () => {
+    await commit(theirs, "retard.txt", "r");
+    await git(theirs, "push");
+    await git(mine, "fetch");
+    const plan = await pushPlan(mine);
+    expect(plan.diverged).toBe(false);
+    await expect(gitPush(mine, plan.head, { remoteHead: plan.remoteHead! })).rejects.toThrow("retard");
+    await gitPull(mine);
+  }, 30_000);
+
   it("refuse de changer de branche avec des modifications, puis les met de côté si on le demande", async () => {
     await writeFile(join(mine, "a.txt"), "modifié");
     await expect(switchBranch(mine, "aqn/feat/neuve")).rejects.toBeInstanceOf(DirtyTreeError);
@@ -195,7 +243,7 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
   it("crée une branche en gardant les modifications, et refuse un nom invalide", async () => {
     await writeFile(join(mine, "g.txt"), "en cours");
     await createBranch(mine, "aqn/feat/g");
-    expect(await gitStatus(mine)).toMatchObject({ branch: "aqn/feat/g", changed: 1 });
+    expect(await gitStatus(mine)).toMatchObject({ branch: "aqn/feat/g", untracked: 1 });
     await expect(createBranch(mine, "nom invalide..")).rejects.toThrow("pas un nom de branche valide");
     await rm(join(mine, "g.txt"));
     await switchBranch(mine, "main");
@@ -213,5 +261,13 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     expect(exclude.split("\n").filter((line) => line === "/.claude/worktrees/")).toHaveLength(1);
     await git(mine, "worktree", "remove", path);
     await git(mine, "worktree", "remove", join(mine, ".claude", "worktrees", "aqn-feat-encore"));
+  }, 30_000);
+
+  it("change de branche malgré un fichier non suivi, sans rien mettre de côté", async () => {
+    await writeFile(join(mine, "brouillon-non-suivi.txt"), "x");
+    await createBranch(mine, "aqn/feat/non-suivi");
+    await expect(switchBranch(mine, "main")).resolves.toEqual({ stashed: false });
+    expect(await stashCount(mine)).toBe(0);
+    await rm(join(mine, "brouillon-non-suivi.txt"));
   }, 30_000);
 });

@@ -13,8 +13,15 @@ export interface GitStatus {
   upstream?: string;
   ahead: number;
   behind: number;
-  /** Fichiers modifiés, indexés ou non suivis. */
+  /** Fichiers suivis modifiés, indexés ou non. */
   changed: number;
+  /** Fichiers nouveaux que git ne suit pas encore. */
+  untracked: number;
+  /**
+   * La branche suit une branche distante qui n'existe plus — supprimée après la
+   * fusion de sa MR, le plus souvent : il n'y a plus rien à tirer ni où pousser.
+   */
+  upstreamGone?: boolean;
   /** Fichiers en conflit. */
   conflicted: number;
 }
@@ -25,7 +32,9 @@ export interface GitStatus {
  * d'une version de git à l'autre, contrairement à la sortie lisible.
  */
 export function parseStatusV2(text: string): GitStatus {
-  const status: GitStatus = { ahead: 0, behind: 0, changed: 0, conflicted: 0 };
+  const status: GitStatus = { ahead: 0, behind: 0, changed: 0, untracked: 0, conflicted: 0 };
+  // git n'écrit l'écart que si l'amont existe encore : nommé sans écart, il a disparu.
+  let compared = false;
   for (const line of text.split(/\r?\n/)) {
     if (line.startsWith("# branch.oid ")) {
       const oid = line.slice("# branch.oid ".length);
@@ -36,15 +45,19 @@ export function parseStatusV2(text: string): GitStatus {
     } else if (line.startsWith("# branch.upstream ")) {
       status.upstream = line.slice("# branch.upstream ".length);
     } else if (line.startsWith("# branch.ab ")) {
+      compared = true;
       const match = /\+(\d+) -(\d+)/.exec(line);
       status.ahead = Number(match?.[1] ?? 0);
       status.behind = Number(match?.[2] ?? 0);
     } else if (line.startsWith("u ")) {
       status.conflicted += 1;
-    } else if (/^[12?] /.test(line)) {
+    } else if (line.startsWith("? ")) {
+      status.untracked += 1;
+    } else if (/^[12] /.test(line)) {
       status.changed += 1;
     }
   }
+  if (status.upstream && !compared) status.upstreamGone = true;
   return status;
 }
 
@@ -94,7 +107,7 @@ export async function gitPull(root: string): Promise<void> {
 export type PullOutcome =
   | { root: string; outcome: "updated"; branch: string; commits: number }
   | { root: string; outcome: "up-to-date"; branch: string }
-  | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" }
+  | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" | "upstream-gone" }
   | { root: string; outcome: "error"; message: string };
 
 /**
@@ -110,6 +123,7 @@ export async function pullReport(root: string): Promise<PullOutcome> {
   if (!status) return { root, outcome: "skipped", reason: "not-a-repo" };
   if (!status.branch) return { root, outcome: "skipped", reason: "detached" };
   if (!status.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
+  if (status.upstreamGone) return { root, outcome: "skipped", reason: "upstream-gone" };
   try {
     const before = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
     await gitPull(root);
@@ -162,6 +176,25 @@ export interface PushPlan {
   commits: { hash: string; subject: string }[];
   /** Ce qui interdit le push, dit avant qu'on ne le tente. */
   blocked?: string;
+  /**
+   * La branche a divergé de son amont — des commits de part et d'autre, après
+   * un rebase le plus souvent : seul un push forcé passerait.
+   */
+  diverged: boolean;
+  /** Commits de l'amont qu'un push forcé effacerait. */
+  overwritten: { hash: string; subject: string }[];
+  /** Commit de l'amont vu par l'aperçu : le push forcé n'écrase que lui. */
+  remoteHead?: string;
+}
+
+function parseLog(log: string): { hash: string; subject: string }[] {
+  return log
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const [hash = "", ...subject] = line.split("\t");
+      return { hash, subject: subject.join("\t") };
+    });
 }
 
 /** Ce qu'un push enverrait, sans rien envoyer. */
@@ -177,17 +210,17 @@ export async function pushPlan(root: string): Promise<PushPlan> {
 
   // Avec un amont, ce qui lui manque ; sans, ce qu'aucune branche distante n'a.
   const range = status.upstream ? [`${status.upstream}..HEAD`] : ["HEAD", "--not", "--remotes"];
-  const log = await git(root, ["log", "--format=%h%x09%s", ...range], 15_000);
-  const commits = log
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => {
-      const [hash = "", ...subject] = line.split("\t");
-      return { hash, subject: subject.join("\t") };
-    });
+  const commits = parseLog(await git(root, ["log", "--format=%h%x09%s", ...range], 15_000));
 
-  const blocked =
-    status.behind > 0
+  const diverged = !!status.upstream && status.ahead > 0 && status.behind > 0;
+  const overwritten = diverged
+    ? parseLog(await git(root, ["log", "--format=%h%x09%s", `HEAD..${status.upstream}`], 15_000))
+    : [];
+  const remoteHead = status.upstream ? (await git(root, ["rev-parse", status.upstream], 15_000)).trim() : undefined;
+
+  const blocked = diverged
+    ? `la branche a divergé de ${status.upstream} : un push normal serait refusé`
+    : status.behind > 0
       ? `la branche a ${status.behind} commit(s) de retard sur ${status.upstream} : tirer d'abord`
       : commits.length === 0 && !!status.upstream
         ? "rien à pousser"
@@ -200,19 +233,40 @@ export async function pushPlan(root: string): Promise<PushPlan> {
     setUpstream: !status.upstream,
     commits,
     ...(blocked ? { blocked } : {}),
+    diverged,
+    overwritten,
+    ...(remoteHead ? { remoteHead } : {}),
   };
 }
 
 /**
- * Pousse la branche courante, jamais de force. Le plan est relu au moment
- * d'envoyer : si HEAD a bougé depuis l'aperçu, ce qu'on a validé n'est plus ce
- * qui partirait, et le push est refusé.
+ * Pousse la branche courante. Le plan est relu au moment d'envoyer : si HEAD a
+ * bougé depuis l'aperçu, ce qu'on a validé n'est plus ce qui partirait, et le
+ * push est refusé.
+ *
+ * Forcer n'est permis que sur une branche qui a divergé, et seulement contre le
+ * commit distant que l'aperçu a montré (`--force-with-lease`) : si quelqu'un a
+ * poussé depuis, git refuse au lieu d'effacer son travail. Une branche qui n'est
+ * qu'en retard n'a rien à envoyer : la forcer ne ferait que détruire.
  */
-export async function gitPush(root: string, expectedHead: string): Promise<PushPlan> {
+export async function gitPush(
+  root: string,
+  expectedHead: string,
+  force?: { remoteHead: string },
+): Promise<PushPlan> {
   const plan = await pushPlan(root);
-  if (plan.blocked) throw new Error(plan.blocked);
   if (plan.head !== expectedHead) throw new Error("la branche a changé depuis l'aperçu : relire ce qui partirait");
-  await git(root, ["push", ...(plan.setUpstream ? ["-u"] : []), plan.remote, `HEAD:refs/heads/${plan.target}`]);
+  const target = `HEAD:refs/heads/${plan.target}`;
+  if (force) {
+    if (!plan.diverged) throw new Error(plan.blocked ?? "la branche n'a pas divergé : un push normal suffit");
+    if (plan.remoteHead !== force.remoteHead) {
+      throw new Error("la branche distante a changé depuis l'aperçu : relire ce qui serait écrasé");
+    }
+    await git(root, ["push", `--force-with-lease=refs/heads/${plan.target}:${force.remoteHead}`, plan.remote, target]);
+  } else {
+    if (plan.blocked) throw new Error(plan.blocked);
+    await git(root, ["push", ...(plan.setUpstream ? ["-u"] : []), plan.remote, target]);
+  }
   return plan;
 }
 
@@ -299,10 +353,12 @@ export class DirtyTreeError extends Error {
  * Passe sur une branche, locale ou seulement distante — git crée alors la branche
  * locale qui la suit.
  *
- * Des modifications non commitées bloquent le changement tant qu'on n'a pas dit
- * quoi en faire : les emporter sur l'autre branche peut les mêler à un travail qui
- * n'a rien à voir, et git refuse de toute façon celles qui entrent en conflit.
- * `stash` les met de côté sous un message qui dit d'où elles viennent.
+ * Des modifications non commitées de fichiers suivis bloquent le changement tant
+ * qu'on n'a pas dit quoi en faire : les emporter sur l'autre branche peut les
+ * mêler à un travail qui n'a rien à voir. `stash` les met de côté sous un message
+ * qui dit d'où elles viennent. Les fichiers non suivis, eux, ne bloquent rien :
+ * git les laisse en place, et refuse seul — en le disant — ceux qu'un fichier de
+ * l'autre branche écraserait.
  */
 export async function switchBranch(
   root: string,
