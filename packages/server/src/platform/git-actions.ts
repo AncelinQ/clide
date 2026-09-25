@@ -90,6 +90,66 @@ export async function gitPull(root: string): Promise<void> {
   await git(root, ["pull", "--ff-only"]);
 }
 
+/** Issue d'un pull, dépôt par dépôt. */
+export type PullOutcome =
+  | { root: string; outcome: "updated"; branch: string; commits: number }
+  | { root: string; outcome: "up-to-date"; branch: string }
+  | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" }
+  | { root: string; outcome: "error"; message: string };
+
+/**
+ * Tire un dépôt en avance rapide et dit ce qui s'est passé.
+ *
+ * Ne lève jamais : un pull groupé doit rapporter chaque dépôt, et l'échec de l'un
+ * — une branche qui a divergé, une modification locale sur un fichier entrant —
+ * ne doit pas masquer le sort des autres. Ce qui ne peut pas être tiré (hors
+ * d'un dépôt, HEAD détaché, sans amont) est écarté sans lancer git pull.
+ */
+export async function pullReport(root: string): Promise<PullOutcome> {
+  const status = await gitStatus(root);
+  if (!status) return { root, outcome: "skipped", reason: "not-a-repo" };
+  if (!status.branch) return { root, outcome: "skipped", reason: "detached" };
+  if (!status.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
+  try {
+    const before = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
+    await gitPull(root);
+    const after = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
+    if (before === after) return { root, outcome: "up-to-date", branch: status.branch };
+    const commits = Number((await git(root, ["rev-list", "--count", `${before}..${after}`], 15_000)).trim());
+    return { root, outcome: "updated", branch: status.branch, commits };
+  } catch (error) {
+    return { root, outcome: "error", message: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** Dépôts tirés en même temps : chacun attend surtout le réseau. */
+const PULL_CONCURRENCY = 4;
+
+/**
+ * Tire plusieurs dépôts, quelques-uns à la fois, et rend un compte rendu dans
+ * l'ordre reçu. Un même dossier cité deux fois — un projet ouvert, lié aussi à un
+ * autre — n'est tiré qu'une fois.
+ */
+export async function pullMany(roots: string[]): Promise<PullOutcome[]> {
+  const seen = new Set<string>();
+  const unique = roots.filter((root) => {
+    const key = root.replace(/[\\/]+$/, "").replace(/\\/g, "/").toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const results: PullOutcome[] = new Array(unique.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < unique.length) {
+      const index = next++;
+      results[index] = await pullReport(unique[index] as string);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PULL_CONCURRENCY, unique.length) }, worker));
+  return results;
+}
+
 export interface PushPlan {
   branch: string;
   /** Commit poussé : le push est refusé s'il a changé depuis l'aperçu. */

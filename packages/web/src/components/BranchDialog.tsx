@@ -40,12 +40,29 @@ export function BranchDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [stashFor, setStashFor] = useState<{ branch: string; changed: number }>();
+  const [fetching, setFetching] = useState(true);
 
+  // La liste connue s'affiche aussitôt ; un fetch la complète ensuite des
+  // branches poussées depuis, sans quoi celle d'un collègue resterait
+  // introuvable. Un fetch qui échoue (hors ligne) laisse la liste connue.
   useEffect(() => {
-    api<{ branches: Branch[] }>("/api/git/branches", { root })
-      .then((result) => setBranches(result.branches))
-      .catch((caught: Error) => setError(caught.message));
+    let alive = true;
+    const load = () =>
+      api<{ branches: Branch[] }>("/api/git/branches", { root }).then((result) => {
+        if (alive) setBranches(result.branches);
+      });
+    load().catch((caught: Error) => alive && setError(caught.message));
+    post("/api/git/fetch", { root })
+      .then(load)
+      .catch(() => undefined)
+      .finally(() => alive && setFetching(false));
+    return () => {
+      alive = false;
+    };
   }, [root]);
+
+  // Qui ouvre la fenêtre ne connaît pas toujours la branche courante : la liste la donne.
+  const currentBranch = current ?? branches?.find((branch) => branch.current)?.name;
 
   const wanted = filter.trim();
   const shown = (branches ?? []).filter((branch) => branch.name.toLowerCase().includes(wanted.toLowerCase())).slice(0, 60);
@@ -99,7 +116,7 @@ export function BranchDialog({
         <DialogHeader>
           <DialogTitle>{t("Branches")}</DialogTitle>
           <DialogDescription>
-            {current ? t("Sur {branch}.", { branch: current }) : t("HEAD détaché.")}{" "}
+            {currentBranch ? t("Sur {branch}.", { branch: currentBranch }) : branches ? t("HEAD détaché.") : ""}{" "}
             {t("Un clic change de branche ; l'icône de fourche l'ouvre dans un worktree, avec Claude.")}
           </DialogDescription>
         </DialogHeader>
@@ -109,7 +126,7 @@ export function BranchDialog({
             <p className="text-[13px]">
               {t("{count} fichier(s) modifié(s) sur {current}. Les mettre de côté (stash) puis passer sur {branch} ?", {
                 count: stashFor.changed,
-                current: current ?? "HEAD",
+                current: currentBranch ?? "HEAD",
                 branch: stashFor.branch,
               })}
             </p>
@@ -132,6 +149,9 @@ export function BranchDialog({
               onChange={(event) => setFilter(event.target.value)}
               className="h-8 font-mono text-[12px]"
             />
+            {fetching && (
+              <p className="text-[11px] text-muted-foreground">{t("Récupération des branches distantes…")}</p>
+            )}
             {wanted && branches && !exact && (
               <div className="flex flex-wrap gap-1.5">
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => void create(wanted)}>

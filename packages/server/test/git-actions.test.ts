@@ -13,6 +13,7 @@ import {
   gitPush,
   gitStatus,
   listBranches,
+  pullMany,
   parseBranches,
   parseStatusV2,
   pushPlan,
@@ -149,6 +150,19 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     expect(plan.blocked).toContain("retard");
     await gitPull(mine);
     expect(await gitStatus(mine)).toMatchObject({ ahead: 0, behind: 0 });
+  }, 30_000);
+
+  it("rend compte d'un pull groupé, dépôt par dépôt, sans tirer deux fois le même", async () => {
+    await commit(theirs, "groupe-1.txt", "1");
+    await commit(theirs, "groupe-2.txt", "2");
+    await git(theirs, "push");
+
+    const first = await pullMany([mine, `${mine}\\`, scratch]);
+    expect(first).toEqual([
+      { root: mine, outcome: "updated", branch: "main", commits: 2 },
+      { root: scratch, outcome: "skipped", reason: "not-a-repo" },
+    ]);
+    expect(await pullMany([mine])).toEqual([{ root: mine, outcome: "up-to-date", branch: "main" }]);
   }, 30_000);
 
   it("refuse de changer de branche avec des modifications, puis les met de côté si on le demande", async () => {

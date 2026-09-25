@@ -60,6 +60,7 @@ import {
   gitPush,
   gitStatus,
   listBranches,
+  pullMany,
   pushPlan,
   remoteUrl,
   stashCount,
@@ -901,6 +902,23 @@ export const mutations: Record<string, Mutation> = {
   "/api/git/pull": async (_params, _context, body) => {
     await gitPull(requireField(body, "root", isString));
     return { ok: true };
+  },
+
+  /**
+   * Tire plusieurs dépôts en avance rapide et rend le sort de chacun. Avec
+   * `withLinks`, les dossiers liés de chaque racine suivent la racine.
+   */
+  "/api/git/pull-many": async (_params, _context, body) => {
+    const roots = requireField(body, "roots", isArray).filter(isString);
+    if (roots.length === 0) throw new Error("aucun dossier à mettre à jour");
+    const all: string[] = [];
+    for (const root of roots) {
+      all.push(root);
+      if (body["withLinks"] === true) {
+        for (const link of await new LinkStore().read(root)) all.push(link.path);
+      }
+    }
+    return { results: await pullMany(all) };
   },
 
   /**

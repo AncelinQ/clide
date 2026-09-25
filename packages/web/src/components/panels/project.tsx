@@ -1,13 +1,22 @@
-import { GitBranch, Link2, Package, Plug, Play, Sparkles } from "lucide-react";
+import { CloudDownload, GitBranch, Link2, MoreHorizontal, Package, Plug, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
+import { BranchDialog } from "@/components/BranchDialog";
 import { FolderInput } from "@/components/FolderInput";
+import { useGitStatus } from "@/components/GitChip";
+import { pullRepositories, usePullRunning } from "@/components/GitSync";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,12 +28,93 @@ import { openTerminal, runScript } from "@/state/terminals";
 
 // ─── Dossiers liés ──────────────────────────────────────────────────────────
 
+/**
+ * Un dossier lié, avec sa branche : c'est ce qu'on vérifie avant de lancer Claude
+ * sur plusieurs dépôts, et ce qu'on change le plus souvent.
+ */
+function LinkRow({
+  link,
+  onToggleReadOnly,
+  onUnlink,
+}: {
+  link: ProjectLink;
+  onToggleReadOnly: () => Promise<void>;
+  onUnlink: () => Promise<void>;
+}) {
+  const [status, refresh] = useGitStatus(link.path);
+  const [branching, setBranching] = useState(false);
+  const pulling = usePullRunning();
+
+  return (
+    <>
+      <Row
+        title={link.path}
+        sub={link.role}
+        badges={
+          <>
+            {status && (
+              <Badge variant="secondary" className="font-mono" title={t("branche courante")}>
+                <GitBranch className="size-3" />
+                {status.branch ?? status.head ?? "?"}
+                {status.behind > 0 && ` ↓${status.behind}`}
+                {status.ahead > 0 && ` ↑${status.ahead}`}
+              </Badge>
+            )}
+            {link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            {status && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6" title={t("Actions git")}>
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    disabled={pulling}
+                    onSelect={() =>
+                      void pullRepositories([link.path], {
+                        label: t("Mettre à jour {name}", { name: shortName(link.path) }),
+                      }).then(refresh)
+                    }
+                  >
+                    <CloudDownload /> {t("Mettre à jour (git pull)")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setBranching(true)}>
+                    <GitBranch /> {t("Changer de branche…")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <ActionButton onAction={onToggleReadOnly}>
+              {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
+            </ActionButton>
+            <DangerButton label={t("délier")} onConfirm={onUnlink} />
+          </>
+        }
+      />
+      {branching && (
+        <BranchDialog
+          root={link.path}
+          {...(status?.branch ? { current: status.branch } : {})}
+          onClose={() => setBranching(false)}
+          onDone={() => void refresh()}
+        />
+      )}
+    </>
+  );
+}
+
 export function LinksPanel({ root }: { root: string }) {
   const state = useAsync(() => api<{ links: ProjectLink[] }>("/api/links", { root }), [root]);
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState("");
   const [role, setRole] = useState("");
   const [readOnly, setReadOnly] = useState("non");
+  const pulling = usePullRunning();
 
   const save = async (links: ProjectLink[]) => {
     await post("/api/links/save", { root, links });
@@ -38,31 +128,34 @@ export function LinksPanel({ root }: { root: string }) {
           {links.length === 0 ? (
             <Empty icon={Link2}>{t("Les autres dépôts dont celui-ci dépend.")}</Empty>
           ) : (
-            <Rows>
-              {links.map((link) => (
-                <Row
-                  key={link.path}
-                  title={link.path}
-                  sub={link.role}
-                  badges={link.readOnly && <Badge variant="outline">{t("lecture seule")}</Badge>}
-                  actions={
-                    <>
-                      <ActionButton
-                        onAction={() =>
-                          save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
-                        }
-                      >
-                        {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
-                      </ActionButton>
-                      <DangerButton
-                        label={t("délier")}
-                        onConfirm={() => save(links.filter((l) => l.path !== link.path))}
-                      />
-                    </>
-                  }
-                />
-              ))}
-            </Rows>
+            <>
+              <Rows>
+                {links.map((link) => (
+                  <LinkRow
+                    key={link.path}
+                    link={link}
+                    onToggleReadOnly={() =>
+                      save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
+                    }
+                    onUnlink={() => save(links.filter((l) => l.path !== link.path))}
+                  />
+                ))}
+              </Rows>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7"
+                disabled={pulling}
+                onClick={() =>
+                  void pullRepositories(
+                    links.map((link) => link.path),
+                    { label: t("Mettre à jour les dossiers liés") },
+                  )
+                }
+              >
+                <CloudDownload /> {t("Mettre à jour les dossiers liés")}
+              </Button>
+            </>
           )}
 
           {open ? (
