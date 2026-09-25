@@ -1,3 +1,4 @@
+import { FileText, FolderOpen } from "lucide-react";
 import { useState, type DragEvent, type ReactNode } from "react";
 
 import { ActionButton, DangerButton, Row } from "@/components/common";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
-import { api, post } from "@/lib/api";
+import { api, pickPath, post } from "@/lib/api";
 import type { Skill } from "@/lib/types";
 import { useStore } from "@/state/store";
 import { claudeTabFor, sendToClaude } from "@/state/terminals";
@@ -253,6 +254,19 @@ export function SkillImport({
     }
   };
 
+  /** Choisit un `.md` ou un dossier de skill dans la fenêtre du système, et l'importe aussitôt. */
+  const browse = (kind: "file" | "folder") =>
+    run(async () => {
+      const picked = await pickPath(
+        kind === "file"
+          ? { kind, title: t("Importer un skill (.md)"), extensions: ["md"] }
+          : { kind, title: t("Importer un dossier de skill") },
+      );
+      if (!picked) return;
+      await post("/api/skills/import", { scope, path: picked, ...(scope === "project" ? { root } : {}) });
+      setOpen(false);
+    });
+
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     const files = [...event.dataTransfer.files];
     setOver(false);
@@ -279,6 +293,18 @@ export function SkillImport({
         </Button>
         <span className="text-[11px] text-muted-foreground">{t("ou dépose un .md sur le panneau")}</span>
       </div>
+      {open && (
+        <div className="mt-1 flex flex-wrap gap-2">
+          {/* Deux boutons : Windows ne sait pas faire choisir, dans une même
+              fenêtre, un fichier ou un dossier. */}
+          <ActionButton onAction={() => browse("file")}>
+            <FileText /> {t("Fichier .md…")}
+          </ActionButton>
+          <ActionButton onAction={() => browse("folder")}>
+            <FolderOpen /> {t("Dossier de skill…")}
+          </ActionButton>
+        </div>
+      )}
       {open && (
         <div className="mt-1 flex gap-2">
           <Input

@@ -1,4 +1,4 @@
-import { Bell, Coins, Cpu, GitBranch, History, Layers, Link2, Package, Plug, RefreshCw, Search, Settings, Sparkles } from "lucide-react";
+import { Bell, Coins, Cpu, FolderOpen, GitBranch, History, Layers, Link2, Package, Plug, RefreshCw, Search, Settings, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
@@ -51,7 +51,12 @@ export function ProjectColumn() {
   if (!project) {
     return (
       <Island>
-        <p className="p-4 text-muted-foreground">{t("Aucun projet ouvert.")}</p>
+        <div className="flex flex-col items-start gap-3 p-4">
+          <p className="text-muted-foreground">{t("Aucun projet ouvert.")}</p>
+          <Button variant="outline" size="sm" onClick={() => setState({ addingProject: true })}>
+            <FolderOpen /> {t("Ouvrir un projet")}
+          </Button>
+        </div>
       </Island>
     );
   }

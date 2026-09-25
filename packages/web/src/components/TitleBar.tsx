@@ -1,11 +1,11 @@
 import { BookOpen, Contrast, Moon, PanelLeft, PanelRight, Plus, Settings2, SquareDashed, Sun, X } from "lucide-react";
 import { useState } from "react";
 
+import { FolderInput } from "@/components/FolderInput";
 import { GitChip } from "@/components/GitChip";
 import { PreferencesDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -45,8 +45,8 @@ export function TitleBar() {
     closeProject(root);
   };
 
-  const confirm = () => {
-    if (draft.trim()) openProject(draft);
+  const confirm = (path = draft) => {
+    if (path.trim()) openProject(path.trim());
     setDraft("");
     setAdding(false);
   };
@@ -171,19 +171,21 @@ export function TitleBar() {
               {t("Le dossier racine du dépôt. Ses terminaux, ses fichiers et ses réglages en dépendent.")}
             </DialogDescription>
           </DialogHeader>
-          <Input
+          {/* Un dossier choisi dans la fenêtre s'ouvre aussitôt : le choisir, c'est déjà confirmer. */}
+          <FolderInput
             autoFocus
-            spellCheck={false}
+            title={t("Ouvrir un projet")}
             placeholder={t("C:\\Projets\\mon-projet")}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={setDraft}
+            onPicked={confirm}
             onKeyDown={(event) => event.key === "Enter" && confirm()}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdding(false)}>
               {t("Annuler")}
             </Button>
-            <Button onClick={confirm}>{t("Ouvrir")}</Button>
+            <Button onClick={() => confirm()}>{t("Ouvrir")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

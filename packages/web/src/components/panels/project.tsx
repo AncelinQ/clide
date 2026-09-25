@@ -2,6 +2,7 @@ import { GitBranch, Link2, Package, Plug, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
+import { FolderInput } from "@/components/FolderInput";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
 import { SkillEditor, SkillImport, SkillRow } from "@/components/panels/skills";
@@ -67,7 +68,7 @@ export function LinksPanel({ root }: { root: string }) {
           {open ? (
             <div className="mt-3 flex flex-col gap-2">
               <Label>{t("Chemin")}</Label>
-              <Input value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("C:\\Projets\\api")} />
+              <FolderInput value={path} onChange={setPath} title={t("Lier un dossier")} placeholder={t("C:\\Projets\\api")} />
               <Label>{t("Rôle")}</Label>
               <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("api, design system…")} />
               <Label>{t("Accès")}</Label>

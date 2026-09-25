@@ -47,6 +47,7 @@ import {
 import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { captureScreen } from "../platform/capture.js";
+import { pickPath } from "../platform/picker.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
@@ -991,6 +992,25 @@ export const mutations: Record<string, Mutation> = {
    * sélection, jusqu'à deux minutes, et rend le chemin de l'image.
    */
   "/api/capture": async (_params, { dataDir }) => ({ path: await captureScreen(dataDir) }),
+
+  /**
+   * Ouvre la fenêtre de sélection de Windows sur le poste — un dossier, ou un
+   * fichier quand `kind` vaut `file` — et attend le choix. `path` est absent
+   * quand l'utilisateur annule.
+   */
+  "/api/pick": async (_params, { dataDir }, body) => {
+    const extensions = isArray(body["extensions"]) ? body["extensions"].filter(isString) : [];
+    const path = await pickPath(
+      {
+        kind: body["kind"] === "file" ? "file" : "folder",
+        ...(isString(body["title"]) ? { title: body["title"] } : {}),
+        ...(isString(body["start"]) ? { start: body["start"] } : {}),
+        ...(extensions.length ? { extensions } : {}),
+      },
+      dataDir,
+    );
+    return path ? { path } : {};
+  },
 
   "/api/files/open": async (_params, _context, body) => {
     // Borné au projet comme la liste des dossiers : cette route lance une

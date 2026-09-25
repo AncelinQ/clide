@@ -56,6 +56,21 @@ export function post<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, {}, { method: "POST", body: JSON.stringify(body) });
 }
 
+/**
+ * Demande un dossier ou un fichier par la fenêtre de sélection du système. Rend
+ * `undefined` sur une annulation.
+ *
+ * Sous Electron, la boîte de dialogue native, modale à la fenêtre. Dans un
+ * navigateur, la page ne voit jamais le chemin d'un fichier : c'est le serveur,
+ * sur le même poste, qui ouvre la fenêtre de Windows.
+ */
+export async function pickPath(request: PickRequest): Promise<string | undefined> {
+  const desktop = window.clide;
+  if (desktop?.pick) return desktop.pick(request);
+  const { path } = await post<{ path?: string }>("/api/pick", request);
+  return path;
+}
+
 export function socketUrl(path: string): string {
   const url = new URL(path, location.origin);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";

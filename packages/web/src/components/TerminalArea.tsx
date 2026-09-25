@@ -3,6 +3,7 @@ import {
   Camera,
   ClipboardList,
   FileDiff,
+  FolderOpen,
   Images,
   MonitorPlay,
   PenLine,
@@ -56,6 +57,11 @@ function Welcome({ root }: { root?: string }) {
       <p className="font-mono text-[11px] text-muted-foreground">
         {root ?? t("Ouvre un projet pour commencer.")}
       </p>
+      {!root && (
+        <Button className="mt-1" onClick={() => setState({ addingProject: true })}>
+          <FolderOpen /> {t("Ouvrir un projet")}
+        </Button>
+      )}
       {root && (
         <div className="mt-1 flex gap-2">
           <Button onClick={() => openTerminal("claude", { command: "claude" })}>
