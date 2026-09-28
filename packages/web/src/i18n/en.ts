@@ -583,4 +583,9 @@ export const EN: Record<string, string> = {
   "Mode affiché": "Shown mode",
   "Chaque mode a ses couleurs : celles du mode affiché s'appliquent aussitôt, les autres attendent qu'on y passe.":
     "Each mode has its own colors: those of the shown mode apply at once, the others wait until you switch to it.",
+  "Replier le diff": "Collapse the diff",
+  "Déplier le diff": "Expand the diff",
+  "Ouvrir avec l'application par défaut ; Maj+clic : afficher dans l'Explorateur":
+    "Open with the default application; Shift+click: show in Explorer",
+  "Ouverture impossible : {error}": "Cannot open: {error}",
 };

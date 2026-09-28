@@ -1,5 +1,5 @@
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import {
   FileHistoryResolver,
@@ -195,12 +195,26 @@ async function removalPlan(id: string, { index, live }: ApiContext) {
   return { session, artifacts, ...(blocked ? { blocked } : {}) };
 }
 
+type Projection = Awaited<ReturnType<TranscriptReader["poll"]>>["projection"];
+
+/**
+ * Un fichier touché par la session, désigné par son chemin de suivi, et le
+ * dossier qui le situe : la session peut avoir déménagé ou vivre dans un
+ * worktree. Un chemin absent des fichiers de la session est refusé : il vient
+ * de la page, et ne doit désigner que ce que la session a touché.
+ */
+function locateFile(projection: Projection, trackingPath: string) {
+  const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
+  const track = projection.files.find((file) => file.trackingPath === trackingPath);
+  if (!root || !track) throw new Error(`${trackingPath} n'est pas un fichier de cette session`);
+  return { root, track, absolutePath: isAbsolute(trackingPath) ? trackingPath : join(root, trackingPath) };
+}
+
 /**
  * Plan de restauration d'un fichier touché par une session.
  *
- * Le fichier est désigné par son chemin de suivi, cherché parmi ceux de la
- * session : on ne restaure que ce que ses sauvegardes couvrent. Une session qui
- * tourne, dans un onglet ou ailleurs, est refusée, comme pour son retrait : elle
+ * On ne restaure que ce que ses sauvegardes couvrent. Une session qui tourne,
+ * dans un onglet ou ailleurs, est refusée, comme pour son retrait : elle
  * pourrait réécrire le fichier juste après.
  */
 async function restorePlan(id: string, trackingPath: string, { live }: ApiContext) {
@@ -208,9 +222,7 @@ async function restorePlan(id: string, trackingPath: string, { live }: ApiContex
   const main = refs.find((ref) => ref.kind === "session");
   if (!main) throw new Error(`session ${id} introuvable`);
   const { events, projection } = await TranscriptReader.fromRef(main).poll();
-  const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
-  const track = projection.files.find((file) => file.trackingPath === trackingPath);
-  if (!root || !track) throw new Error(`${trackingPath} n'est pas un fichier de cette session`);
+  const { root, track } = locateFile(projection, trackingPath);
 
   // Les écritures d'un sous-agent sont sauvegardées dans la session, mais ses
   // appels d'outils sont dans son propre transcript.
@@ -1125,6 +1137,19 @@ export const mutations: Record<string, Mutation> = {
     // application, elle ne doit pas atteindre n'importe quel fichier de la machine.
     const path = resolveInside(requireField(body, "root", isString), requireField(body, "path", isString));
     return { outcome: await openPath(path, body["reveal"] === true) };
+  },
+
+  /**
+   * Ouvre un fichier touché par la session avec l'application par défaut, ou
+   * le montre dans l'Explorateur. Cette route lance une application : elle
+   * n'atteint que les fichiers de la session, comme l'ouverture depuis
+   * l'explorateur ne sort pas du projet.
+   */
+  "/api/session/files/open": async (_params, _context, body) => {
+    const id = requireField(body, "id", isString);
+    const { projection } = await TranscriptReader.fromRef(await findSession(id)).poll();
+    const { absolutePath } = locateFile(projection, requireField(body, "path", isString));
+    return { outcome: await openPath(absolutePath, body["reveal"] === true) };
   },
 
   "/api/worktrees/remove": async (_params, _context, body) => {

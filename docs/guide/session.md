@@ -115,10 +115,16 @@ sont absorbés par le tour en cours.
 ## Restaurer un fichier
 
 L'onglet Fichiers liste ce que la session a changé, avec le diff exact. Chaque
-fichier se replie d'un clic sur son nom, et « Tout replier » ou « Tout déplier »
+fichier se replie par son chevron, et « Tout replier » ou « Tout déplier »
 agissent sur la liste ; une autre session repart dépliée. L'ordre est alphabétique,
 ou, avec ⇅, du fichier le plus récemment touché au plus ancien, daté par sa dernière
 sauvegarde dans l'historique de fichiers de Claude Code.
+
+Un clic sur le chemin ouvre le fichier avec l'application par défaut ; Maj+clic
+le montre dans l'Explorateur. Le serveur n'ouvre que les fichiers de la session
+— le chemin vient de la page, il ne désigne rien d'autre — et, comme depuis
+l'explorateur du projet, montre au lieu d'ouvrir ce que Windows exécuterait. Un
+fichier supprimé n'a plus rien à ouvrir : son chemin reste du texte.
 
 Dans l'onglet Fichiers d'une session, « restaurer » ramène un fichier à son état
 d'avant la session, tiré de la première sauvegarde que Claude Code en a prise

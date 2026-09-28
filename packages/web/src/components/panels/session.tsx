@@ -19,7 +19,7 @@ import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { decimal, t } from "@/i18n";
-import { api, formatDate } from "@/lib/api";
+import { api, formatDate, post } from "@/lib/api";
 import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
@@ -74,6 +74,16 @@ export function FilesPanel({ session }: { session: ShownSession }) {
   // session repart dépliée.
   const [folded, setFolded] = useState<Set<string>>(new Set());
   useEffect(() => setFolded(new Set()), [session.sessionId]);
+  // Un clic qui n'ouvre rien se dit ici : la fenêtre attendue n'apparaît pas.
+  const [notice, setNotice] = useState<string>();
+  useEffect(() => setNotice(undefined), [session.sessionId]);
+
+  const openOnDisk = (path: string, reveal: boolean) => {
+    setNotice(undefined);
+    post("/api/session/files/open", { id: session.sessionId, path, reveal }).catch((error: unknown) => {
+      setNotice(t("Ouverture impossible : {error}", { error: (error as Error).message }));
+    });
+  };
 
   const toggle = (path: string) =>
     setFolded((current) => {
@@ -106,6 +116,7 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                 <ChevronsUpDown /> {t("Tout déplier")}
               </Button>
             </div>
+            {notice && <p className="py-1 text-[11px] text-destructive">{notice}</p>}
             <Rows>
               {restoring && (
                 <FileRestoreDialog
@@ -122,19 +133,31 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                   <Row
                     key={diff.trackingPath}
                     title={
-                      diff.unified ? (
-                        <button
-                          type="button"
-                          onClick={() => toggle(diff.trackingPath)}
-                          aria-expanded={open}
-                          className="inline-flex items-baseline gap-1 text-left font-mono text-[11px] hover:text-primary"
-                        >
-                          <Chevron className="size-3 shrink-0 self-center" />
-                          {diff.trackingPath}
-                        </button>
-                      ) : (
-                        <span className="font-mono text-[11px]">{diff.trackingPath}</span>
-                      )
+                      <span className="inline-flex items-baseline gap-1 font-mono text-[11px]">
+                        {diff.unified && (
+                          <button
+                            type="button"
+                            onClick={() => toggle(diff.trackingPath)}
+                            aria-expanded={open}
+                            title={open ? t("Replier le diff") : t("Déplier le diff")}
+                            className="-m-1 shrink-0 self-center rounded p-1 hover:bg-accent"
+                          >
+                            <Chevron className="size-3" />
+                          </button>
+                        )}
+                        {diff.deleted ? (
+                          diff.trackingPath
+                        ) : (
+                          <button
+                            type="button"
+                            title={t("Ouvrir avec l'application par défaut ; Maj+clic : afficher dans l'Explorateur")}
+                            className="text-left underline-offset-2 hover:text-primary hover:underline"
+                            onClick={(event) => openOnDisk(diff.trackingPath, event.shiftKey)}
+                          >
+                            {diff.trackingPath}
+                          </button>
+                        )}
+                      </span>
                     }
                     sub={
                       <>
