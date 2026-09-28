@@ -85,6 +85,13 @@ Un clic sur un test ouvre son fichier à la ligne ; sur un test en échec, il d�
 aussi le message, avec **Corriger avec Claude**, qui l'écrit dans l'onglet Claude
 du projet sans le valider.
 
+Le champ du haut filtre l'arbre sur le nom complet d'un test (blocs compris) ou le
+chemin de son fichier, et **échecs** ne garde que les tests en échec ; un filtre
+actif déplie ce qui lui répond. L'arbre se parcourt au clavier comme
+l'explorateur : `↓` depuis le filtre y entre, les flèches passent d'une ligne à
+l'autre, `→` déplie ou descend, `←` replie ou remonte, **Entrée** lance la suite,
+le fichier ou le test sélectionné, **Espace** ouvre le test à sa ligne.
+
 ## Rechercher dans les fichiers
 
 La vue **Recherche**, sous l'explorateur dans la barre d'activité, cherche un texte

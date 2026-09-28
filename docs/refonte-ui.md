@@ -355,12 +355,8 @@ dans les fichiers » (`Ctrl+Shift+F`) y mène, avec le texte choisi dans l'édit
 
 ## File d'implémentation
 
-Toute la file est faite et fusionnée (#34 à #43). Restent, pour une suite : le
-filtre et la navigation au clavier de la vue Tests (lot 14), et la prise en compte
-du `.gitignore` par la recherche dans les fichiers, qui saute aujourd'hui la même
-liste fixe de dossiers que la palette.
-
-Dans l'ordre où elle a été suivie :
+Les MR 16 à 25 sont faites et fusionnées (#34 à #43), dans l'ordre ci-dessous ;
+les MR 26 et 27 reprennent ce qu'elles avaient laissé.
 
 1. MR 16 — Tests du projet (lot 14, sans la marge de l'éditeur).
 2. MR 17 — Lancer depuis la marge de l'éditeur (lot 15, et la marge des tests du
@@ -380,6 +376,13 @@ Dans l'ordre où elle a été suivie :
 10. MR 25 — Thèmes au format VS Code, chargés tels quels : les couleurs de Clide
     étaient déjà des jetons nommés (variables CSS de l'interface et du terminal) ;
     les `colors` et `tokenColors` d'un thème y sont traduits, et vers Monaco.
+11. MR 26 — Vue Tests, le reste du lot 14 : un filtre (nom de test ou de fichier,
+    et « échecs seulement »), et le clavier comme dans l'explorateur — flèches pour
+    se déplacer, `→` / `←` pour déplier et replier, Entrée pour lancer, Espace
+    pour ouvrir le test à sa ligne.
+12. MR 27 — Le `.gitignore` respecté : la palette et la recherche dans les fichiers
+    ne listent plus ce que git ignore (dépôt git : `git ls-files --cached --others
+    --exclude-standard`), la liste fixe de dossiers restant la règle hors dépôt.
 
 ## Autres idées à reprendre
 
