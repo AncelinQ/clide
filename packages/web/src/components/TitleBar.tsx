@@ -41,7 +41,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { openDoc } from "@/lib/api";
-import { closeProject, openProject, setState, useStore } from "@/state/store";
+import { activateProject, closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal } from "@/state/terminals";
 
@@ -103,7 +103,7 @@ export function TitleBar() {
               <ContextMenuTrigger asChild>
                 <div
                   title={project.root}
-                  onClick={() => setState({ activeRoot: project.root })}
+                  onClick={() => activateProject(project.root)}
                   className={cn(
                     "group flex max-w-64 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 transition-colors",
                     active

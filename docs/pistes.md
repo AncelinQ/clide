@@ -340,8 +340,11 @@ pour repointer un hook que Clide avait lui-même posé sous un ancien nom ; le
 mode Fichiers garde sa limite — il ne voit que ce que les outils d'édition de
 Claude Code ont écrit.
 
-**État.** Conçu, voir [`design-suivi-session.md`](design-suivi-session.md). À
-faire, en trois MR.
+**État.** Fait, les trois paliers, selon
+[`design-suivi-session.md`](design-suivi-session.md) : rattachement par les hooks
+avec `SessionStart` et l'onglet nommé dans l'environnement, reprise des hooks
+ClaudeTerm et claude-ide ; History ne détache plus la session vivante et le bloc
+dit « détaché » ; changer de projet réactive son dernier onglet.
 
 ---
 

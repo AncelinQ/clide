@@ -1,7 +1,7 @@
 import { t } from "@/i18n";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
-import { closeProject, getState, setState } from "@/state/store";
+import { activateProject, closeProject, getState, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
@@ -73,7 +73,7 @@ export function commands(): Command[] {
       activeRoot,
       step,
     );
-    if (root) setState({ activeRoot: root });
+    if (root) activateProject(root);
   };
   const nextTab = (step: number) => {
     const id = cycle(ownTabs(), activeTab(), step);
