@@ -24,8 +24,8 @@ import type {
   Skill,
   SlashCommand,
 } from "@/lib/types";
-import { getState, openProject, setState, useStore } from "@/state/store";
-import { openTerminal } from "@/state/terminals";
+import { getState, selectSession, selectedSessionOf, setState, useStore } from "@/state/store";
+import { resumeSession } from "@/state/terminals";
 import { agoLabel } from "@/components/panels/usage";
 
 // ─── History ────────────────────────────────────────────────────────────────
@@ -34,7 +34,8 @@ export function HistoryPanel({ filter }: { filter: string }) {
   const state = useAsync(() => api<{ sessions: SessionSummary[] }>("/api/sessions"), []);
   const [scope, setScope] = useState("all");
   const [removing, setRemoving] = useState<string>();
-  const { activeRoot, selectedSession } = useStore((store) => store);
+  const activeRoot = useStore((store) => store.activeRoot);
+  const selectedSession = useStore(selectedSessionOf);
 
   return (
     <Async state={state}>
@@ -73,20 +74,16 @@ export function HistoryPanel({ filter }: { filter: string }) {
                   <Row
                     key={session.sessionId}
                     selected={selectedSession?.sessionId === session.sessionId}
-                    onClick={() =>
-                      setState((current) => {
-                        // Choisir la session de l'onglet actif n'est pas s'en détacher :
-                        // le bloc continue de la suivre.
-                        const followed = current.activeTerminalId
-                          ? current.live[current.activeTerminalId]?.sessionId
-                          : undefined;
-                        return {
-                          selectedSession: session,
-                          followLive: followed === session.sessionId,
-                          activityFocus: null,
-                        };
-                      })
-                    }
+                    onClick={() => {
+                      // Choisir la session de l'onglet actif n'est pas s'en détacher :
+                      // le bloc continue de la suivre.
+                      const current = getState();
+                      const followed = current.activeTerminalId
+                        ? current.live[current.activeTerminalId]?.sessionId
+                        : undefined;
+                      selectSession(session, { follow: followed === session.sessionId });
+                      setState({ activityFocus: null });
+                    }}
                     title={session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)}
                     badges={
                       <>
@@ -113,11 +110,7 @@ export function HistoryPanel({ filter }: { filter: string }) {
                         onAction={() => {
                           // Reprendre est une action : elle ouvre le projet,
                           // contrairement à la simple sélection.
-                          if (session.effectiveCwd) openProject(session.effectiveCwd);
-                          openTerminal("claude", {
-                            cwd: session.effectiveCwd,
-                            command: `claude --resume ${session.sessionId}`,
-                          });
+                          resumeSession(session.sessionId, session.effectiveCwd);
                         }}
                       >
                         {t("reprendre")}
@@ -136,7 +129,12 @@ export function HistoryPanel({ filter }: { filter: string }) {
                 sessionId={removing}
                 onClose={() => setRemoving(undefined)}
                 onRemoved={() => {
-                  if (selectedSession?.sessionId === removing) setState({ selectedSession: null });
+                  // Retirée du disque, elle ne doit plus être montrée dans aucun projet.
+                  setState((current) => ({
+                    selectedSessions: Object.fromEntries(
+                      Object.entries(current.selectedSessions).filter(([, chosen]) => chosen.sessionId !== removing),
+                    ),
+                  }));
                   state.reload();
                 }}
               />

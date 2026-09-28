@@ -1,7 +1,7 @@
 import { t } from "@/i18n";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
-import { activateProject, closeProject, getState, setState } from "@/state/store";
+import { activateProject, closeProject, getState, setBottomMode, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
@@ -151,7 +151,10 @@ export function commands(): Command[] {
       id: `session.${mode}`,
       group: t("Session"),
       label: t("Montrer : {label}", { label: t(label) }),
-      run: () => setState({ sessionMode: mode, sessionCollapsed: false }),
+      run: () => {
+        setBottomMode(mode);
+        setState({ sessionCollapsed: false });
+      },
     })),
 
     {

@@ -1,5 +1,5 @@
 import { ArrowUp, Eye, EyeOff, File, Folder } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Async, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { t } from "@/i18n";
 import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, setState, updateProject, useStore, type Project } from "@/state/store";
-import { openTerminal, typeInto } from "@/state/terminals";
+import { openTerminal, typeIntoActive } from "@/state/terminals";
 import { FilePreviewDialog } from "@/components/FilePreview";
 import { cn } from "cn";
 
@@ -27,9 +27,7 @@ function parentOf(relativePath: string): string {
 
 /** Écrit un chemin dans le terminal actif, entre guillemets s'il porte des espaces. */
 function insertPath(path: string): void {
-  const { activeTerminalId } = getState();
-  if (!activeTerminalId) return;
-  typeInto(activeTerminalId, `${quotePath(path)} `);
+  typeIntoActive(`${quotePath(path)} `);
 }
 
 /**
@@ -61,6 +59,12 @@ export function FileBrowser({ project }: { project: Project }) {
   );
 
   const goTo = (relativePath: string) => updateProject(project.root, { browsePath: relativePath });
+
+  // Le dossier retenu d'une session précédente a pu disparaître depuis : on
+  // repart de la racine plutôt que de laisser l'explorateur sur une erreur.
+  useEffect(() => {
+    if (state.error && project.browsePath) updateProject(project.root, { browsePath: "" });
+  }, [state.error, project.root, project.browsePath]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

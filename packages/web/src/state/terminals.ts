@@ -4,8 +4,17 @@ import { Terminal } from "@xterm/xterm";
 import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
+import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { dismissSystem, notifySystem } from "@/state/notify";
-import { getState, setState, type TerminalFont } from "@/state/store";
+import {
+  activateProject,
+  forgetTab,
+  getState,
+  openProject,
+  rememberTab,
+  setState,
+  type TerminalFont,
+} from "@/state/store";
 
 /**
  * Les instances xterm vivent hors de React.
@@ -54,19 +63,23 @@ function onMessage(message: ServerMessage): void {
       adopt(message.terminals, message.backlogs);
       break;
     case "opened": {
-      const owner = pendingOwner ?? getState().activeRoot;
+      // Le serveur renvoie le projet de la demande : deux ouvertures rapprochées ne
+      // se volent pas leur propriétaire.
+      const owner = message.terminal.owner ?? pendingOwner;
       pendingOwner = null;
       if (pendingScript) {
         scripts.set(message.terminal.id, pendingScript);
         pendingScript = null;
       }
       if (!owner) return;
+      const id = message.terminal.id;
       setState((current) => ({
-        terminals: { ...current.terminals, [message.terminal.id]: { info: message.terminal, owner } },
-        activeTerminalId: message.terminal.id,
+        terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
+        projects: rememberTab(current.projects, owner, id),
         // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
-        // reprend une session choisie dans History.
-        followLive: true,
+        // reprend une session choisie dans History — sauf si l'on a changé de
+        // projet entre la demande et la réponse : il attend qu'on y revienne.
+        ...(owner === current.activeRoot ? { activeTerminalId: id, followLive: true } : {}),
       }));
       break;
     }
@@ -124,9 +137,12 @@ function onMessage(message: ServerMessage): void {
           previous?.planMode !== true &&
           message.terminalId === current.activeTerminalId &&
           current.followLive;
+        const owner = current.terminals[message.terminalId]?.owner;
         return {
           live: { ...current.live, [message.terminalId]: message.session },
-          ...(entering ? { sessionMode: "plan" } : {}),
+          ...(entering && owner
+            ? { projects: current.projects.map((project) => (project.root === owner ? { ...project, bottomMode: "plan" } : project)) }
+            : {}),
         };
       });
       break;
@@ -161,23 +177,20 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
       continue;
     }
     // Un terminal ouvert avant que le serveur ne retienne son projet se range par
-    // son dossier ; à défaut, dans le projet ouvert.
-    const owner =
-      info.owner ??
-      roots.find((root) => info.projectRoot.toLowerCase().startsWith(root.toLowerCase())) ??
-      current.activeRoot;
+    // son dossier. Sans projet ouvert qui le contienne, il n'est montré nulle part.
+    const owner = info.owner ?? ownerOf(info.projectRoot, roots);
     if (!owner) continue;
     next[info.id] = { info, owner };
     const backlog = backlogs[info.id];
     if (backlog) pending.set(info.id, backlog);
   }
-  const own = Object.values(next).filter((entry) => entry.owner === current.activeRoot);
   setState({
     terminals: next,
     activeTerminalId:
-      current.activeTerminalId && next[current.activeTerminalId]
-        ? current.activeTerminalId
-        : (own.at(-1)?.info.id ?? null),
+      ownActiveTab(next, current.activeTerminalId, current.activeRoot) ??
+      (current.activeRoot
+        ? tabToShow(next, current.projects.find((project) => project.root === current.activeRoot)?.activeTab, current.activeRoot)
+        : null),
   });
 }
 
@@ -194,6 +207,22 @@ export function openTerminal(kind: TerminalKind, options: { command?: string; cw
     rows: 30,
     ...(options.command ? { initialCommand: options.command } : {}),
   });
+}
+
+/**
+ * Reprend une session dans le projet qui contient son dossier.
+ *
+ * Le projet ouvert le plus profond qui la contient la reçoit ; sans lui, son
+ * dossier est ouvert comme projet. Dans les deux cas on y bascule : l'onglet
+ * repris est ce qu'on veut voir.
+ */
+export function resumeSession(sessionId: string, cwd: string | undefined): void {
+  if (cwd) {
+    const owner = ownerOf(cwd, getState().projects.map((project) => project.root));
+    if (owner) activateProject(owner);
+    else openProject(cwd);
+  }
+  openTerminal("claude", { ...(cwd ? { cwd } : {}), command: `claude --resume ${sessionId}` });
 }
 
 /** Script lancé dans chaque onglet, pour ne pas relancer celui qui tourne encore. */
@@ -273,6 +302,7 @@ export function closeTerminal(id: string): void {
       terminals,
       attention,
       live,
+      projects: forgetTab(current.projects, id),
       activeTerminalId:
         current.activeTerminalId === id ? (remaining[0]?.info.id ?? null) : current.activeTerminalId,
     };
@@ -344,7 +374,7 @@ export function focusTerminal(id: string): void {
       attention,
       activeRoot: entry.owner,
       followLive: true,
-      lastTab: { ...current.lastTab, [entry.owner]: id },
+      projects: rememberTab(current.projects, entry.owner, id),
     };
   });
   requestAnimationFrame(() => resize(id));
@@ -382,7 +412,18 @@ export function sendToClaude(command: string): boolean {
   return true;
 }
 
-/** Écrit dans le terminal actif, pour insérer un chemin par exemple. */
+/**
+ * Écrit dans l'onglet actif du projet actif, pour insérer un chemin par exemple.
+ * Rien si l'onglet actif appartient à un autre projet : on taperait chez lui.
+ */
+export function typeIntoActive(data: string): string | undefined {
+  const { terminals, activeTerminalId, activeRoot } = getState();
+  const id = ownActiveTab(terminals, activeTerminalId, activeRoot);
+  if (id) typeInto(id, data);
+  return id;
+}
+
+/** Écrit dans un terminal désigné. */
 export function typeInto(id: string, data: string): void {
   send({ t: "input", id, data });
 }
