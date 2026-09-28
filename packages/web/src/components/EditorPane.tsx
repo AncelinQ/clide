@@ -5,7 +5,7 @@ import { Markdown } from "@/components/Markdown";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { cn } from "cn";
-import { mountEditor, reloadFile, saveFile, watchText } from "@/state/editor";
+import { mountDiff, mountEditor, reloadFile, saveFile, watchText } from "@/state/editor";
 import { useStore } from "@/state/store";
 
 type MarkdownMode = "code" | "split" | "preview";
@@ -45,6 +45,16 @@ function CodeHost({ path }: { path: string }) {
   return <div ref={host} className="h-full min-h-0 w-full min-w-0" />;
 }
 
+/** Hôte de l'éditeur de diff, créé une fois et prêté au diff visible. */
+function DiffHost({ id }: { id: string }) {
+  const host = useRef<HTMLDivElement>(null);
+  const kind = useStore((state) => state.files[id]?.kind);
+  useEffect(() => {
+    if (host.current && kind === "diff") void mountDiff(host.current, id);
+  }, [id, kind]);
+  return <div ref={host} className="h-full min-h-0 w-full min-w-0" />;
+}
+
 /** Un fichier ouvert au centre : son texte, son aperçu, ou son image, et ce qui demande un choix. */
 export function EditorPane({ path }: { path: string }) {
   const file = useStore((state) => state.files[path]);
@@ -61,6 +71,7 @@ export function EditorPane({ path }: { path: string }) {
   if (file.kind === "unsupported") {
     return <div className="flex h-full items-center justify-center p-4 text-[12px] text-destructive">{file.error}</div>;
   }
+  if (file.kind === "diff") return <DiffHost id={path} />;
   if (file.kind === "image") {
     return (
       <div className="flex h-full items-center justify-center overflow-auto bg-[repeating-conic-gradient(var(--muted)_0%_25%,transparent_0%_50%)] bg-[length:16px_16px] p-4">

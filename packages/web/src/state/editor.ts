@@ -89,6 +89,8 @@ function patchFile(path: string, patch: Partial<OpenFile>): void {
 
 function projectFor(path: string): string | undefined {
   const { projects, activeRoot } = getState();
+  // Un diff porte son projet dans sa clé : `diff:<ref>:<racine>|<chemin>`.
+  if (isDiff(path)) return path.slice(path.indexOf(":", 5) + 1, path.indexOf("|"));
   return ownerOf(path, projects.map((project) => project.root)) ?? activeRoot ?? undefined;
 }
 
@@ -251,6 +253,7 @@ export async function checkOnDisk(path: string): Promise<void> {
 }
 
 function forget(path: string, owner: string): void {
+  forgetDiff(path);
   const doc = documents.get(path);
   if (doc) {
     if (shown === path) {
@@ -352,6 +355,11 @@ export function followRename(from: string, to: string): void {
 export function restoreOpenFiles(): void {
   for (const project of getState().projects) {
     for (const path of project.openFiles) {
+      // Un diff se recalcule à la demande, il ne survit pas au rechargement.
+      if (isDiff(path)) {
+        forget(path, project.root);
+        continue;
+      }
       // Déjà repris : l'effet de démarrage peut passer deux fois.
       if (getState().files[path]) continue;
       setState((current) => ({ files: { ...current.files, [path]: { kind: "loading", dirty: false, changedOnDisk: false } } }));
@@ -366,6 +374,94 @@ export function restoreOpenFiles(): void {
         .catch(() => forget(path, project.root));
     }
   }
+}
+
+// ─── Diffs ──────────────────────────────────────────────────────────────────
+
+/** Onglet de diff : sa clé commence par `diff:`, jamais un chemin de fichier. */
+export function isDiff(id: string): boolean {
+  return id.startsWith("diff:");
+}
+
+interface DiffDocument {
+  original: Monaco.editor.ITextModel;
+  modified: Monaco.editor.ITextModel;
+}
+
+const diffs = new Map<string, DiffDocument>();
+let diffEditor: Monaco.editor.IStandaloneDiffEditor | undefined;
+const diffSurface = document.createElement("div");
+diffSurface.style.width = "100%";
+diffSurface.style.height = "100%";
+
+/**
+ * Ouvre, en lecture seule, les deux côtés d'un fichier : le dernier commit contre
+ * le disque (`ref` absent), ou un commit contre son parent. Un même diff ouvert
+ * deux fois reprend son onglet.
+ */
+export async function openDiff(root: string, request: { path: string; from?: string; ref?: string }): Promise<void> {
+  const ref = request.ref ?? "worktree";
+  const id = `diff:${ref}:${root}|${request.path}`;
+  const name = request.path.split("/").pop() ?? request.path;
+  const title = ref === "worktree" ? name : `${name} @ ${ref.slice(0, 7)}`;
+  setState((current) => ({
+    files: current.files[id] ? current.files : { ...current.files, [id]: { kind: "loading", dirty: false, changedOnDisk: false, title } },
+  }));
+  updateOwner(root, (project) => ({
+    openFiles: project.openFiles.includes(id) ? project.openFiles : [...project.openFiles, id],
+    activeFile: id,
+  }));
+  try {
+    const sides = await api<{ original: string; modified: string }>("/api/git/diff", {
+      root,
+      path: request.path,
+      ref,
+      ...(request.from ? { from: request.from } : {}),
+    });
+    const m = await load();
+    const uri = (side: string) => m.Uri.parse(`diff:/${encodeURIComponent(id)}/${side}/${name}`);
+    const existing = diffs.get(id);
+    if (existing) {
+      existing.original.setValue(sides.original);
+      existing.modified.setValue(sides.modified);
+    } else {
+      // Le nom du fichier en fin d'uri donne son langage à la coloration.
+      diffs.set(id, {
+        original: m.editor.createModel(sides.original, undefined, uri("a")),
+        modified: m.editor.createModel(sides.modified, undefined, uri("b")),
+      });
+    }
+    patchFile(id, { kind: "diff" });
+  } catch (error) {
+    patchFile(id, { kind: "unsupported", error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
+/** Prête l'éditeur de diff, créé une fois, à l'hôte visible. */
+export async function mountDiff(host: HTMLElement, id: string): Promise<void> {
+  const m = await load();
+  diffEditor ??= m.editor.createDiffEditor(diffSurface, {
+    automaticLayout: true,
+    readOnly: true,
+    originalEditable: false,
+    renderSideBySide: true,
+    minimap: { enabled: false },
+    theme: isDark() ? "vs-dark" : "vs",
+  });
+  if (diffSurface.parentElement !== host) host.append(diffSurface);
+  const doc = diffs.get(id);
+  if (doc) diffEditor.setModel({ original: doc.original, modified: doc.modified });
+  diffEditor.layout();
+}
+
+function forgetDiff(id: string): void {
+  const doc = diffs.get(id);
+  if (!doc) return;
+  const model = diffEditor?.getModel();
+  if (model?.original === doc.original) diffEditor?.setModel(null);
+  doc.original.dispose();
+  doc.modified.dispose();
+  diffs.delete(id);
 }
 
 /** Fichiers modifiés et non enregistrés d'un projet, pour prévenir avant de fermer. */

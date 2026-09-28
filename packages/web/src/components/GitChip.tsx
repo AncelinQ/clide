@@ -257,7 +257,7 @@ const REVIEW_LABEL: Record<NonNullable<Review["review"]>, string> = {
  * sortant, qu'on ne rattrape pas. Le serveur refuse si la branche a bougé depuis
  * cet aperçu.
  */
-function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => void; onDone: () => void }) {
+export function PushDialog({ root, onClose, onDone }: { root: string; onClose: () => void; onDone: () => void }) {
   const [plan, setPlan] = useState<PushPlan>();
   const [error, setError] = useState<string>();
   const [pushing, setPushing] = useState(false);

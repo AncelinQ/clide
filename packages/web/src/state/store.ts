@@ -27,13 +27,15 @@ export type Theme = "auto" | "light" | "dark";
 
 /** Ce que l'interface sait d'un fichier ouvert ; son texte vit dans l'éditeur, hors de React. */
 export interface OpenFile {
-  kind: "loading" | "text" | "image" | "unsupported";
+  kind: "loading" | "text" | "image" | "diff" | "unsupported";
   /** Le texte diffère du dernier enregistré. */
   dirty: boolean;
   /** Le fichier a changé sur disque alors qu'il était modifié ici : il faut choisir. */
   changedOnDisk: boolean;
   /** Image : de quoi la montrer. */
   src?: string;
+  /** Diff : son titre d'onglet. */
+  title?: string;
   error?: string;
 }
 

@@ -1,6 +1,7 @@
 import { consumption } from "./consumption.js";
+import { gitModule } from "./git.js";
 import { scripts } from "./scripts.js";
 import type { ServerModule } from "./module.js";
 
 /** Modules du serveur, dans l'ordre où l'interface les présente. */
-export const SERVER_MODULES: readonly ServerModule[] = [scripts, consumption];
+export const SERVER_MODULES: readonly ServerModule[] = [scripts, gitModule, consumption];

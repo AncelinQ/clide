@@ -18,6 +18,7 @@ import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { ContextArea } from "@/components/Menu";
 import { EditorPane } from "@/components/EditorPane";
+import { moduleBottomViews } from "@/modules";
 import { FileIcon } from "@/components/FileIcon";
 import { NewTabMenu, ToolsMenu, tabItems } from "@/components/TerminalMenus";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -241,7 +242,9 @@ function QueueStrip({ queue }: { queue: { text: string; at?: string }[] }) {
 /** Onglet d'un fichier ouvert : son icône, un point tant qu'il n'est pas enregistré. */
 function FileTab({ path, active, onClose }: { path: string; active: boolean; onClose: () => void }) {
   const dirty = useStore((state) => state.files[path]?.dirty === true);
-  const name = baseName(path);
+  const title = useStore((state) => state.files[path]?.title);
+  const name = title ?? baseName(path);
+  const iconName = title ? (title.split(" @ ")[0] ?? title) : name;
   return (
     <ContextArea
       items={[
@@ -259,7 +262,8 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
           active ? "border-border bg-muted text-foreground" : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
-        <FileIcon name={name} directory={false} className="size-3.5" />
+        <FileIcon name={iconName} directory={false} className="size-3.5" />
+        {title && <span className="text-[10px] text-muted-foreground">±</span>}
         <span className={cn(dirty && "italic")}>{name}</span>
         {/* Le point d'un fichier modifié laisse place à la croix au survol, comme dans VS Code. */}
         <span className="relative size-3">
@@ -328,6 +332,7 @@ export function TerminalArea() {
   const project = useStore(activeProject);
   const selectedSession = useStore(selectedSessionOf);
   const sessionMode = useStore(bottomModeOf);
+  const disabledModules = useStore((state) => state.disabledModules);
   const showCosts = useStore((state) => state.showCosts);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
@@ -377,7 +382,7 @@ export function TerminalArea() {
           }
         : undefined;
 
-  const modes: Mode[] = [
+  const sessionModes: Mode[] = [
     {
       id: "plan",
       doc: "session#le-plan-d-une-session",
@@ -440,6 +445,20 @@ export function TerminalArea() {
       about: t("Un message de commit ou une description de MR pour la session, rédigé à la demande par claude -p : il coûte des tokens."),
       render: () => (shown ? <WriteupPanel session={shown} /> : null),
     },
+  ];
+  // Les modules ajoutent leurs modes après ceux de la session ; ils portent sur le projet.
+  const modes: Mode[] = [
+    ...sessionModes,
+    ...(project
+      ? moduleBottomViews(disabledModules).map((view) => ({
+          id: view.id,
+          icon: view.icon,
+          title: t(view.title),
+          about: t(view.about),
+          ...(view.doc ? { doc: view.doc } : {}),
+          render: () => view.render(project.root),
+        }))
+      : []),
   ];
 
   return (

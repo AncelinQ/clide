@@ -64,6 +64,33 @@ propre connexion : l'application ne voit aucun jeton. Chaque appel coûte une
 seconde, la réponse est gardée une minute. Une CLI absente ou déconnectée le dit
 dans le menu.
 
+## La vue Git, le commit et le journal
+
+L'icône Git de la colonne du projet montre la même pastille que la barre de titre,
+avec son menu, puis les branches du dépôt, locales et distantes : un double-clic ou
+le menu contextuel bascule sur l'une d'elles. Des modifications en cours arrêtent
+le basculement, et la fenêtre des branches propose de les mettre de côté.
+
+Le bloc sous le terminal a deux onglets de plus, **Commit** et **Commits** :
+
+- **Commit** liste ce qui attend : conflits, modifications, fichiers non versionnés.
+  Chaque fichier a sa case, chaque groupe une case qui les coche tous ; un fichier
+  modifié arrive coché, un fichier non versionné non. Seuls les fichiers cochés
+  partent, dans leur état sur disque ; ce qui était déjà indexé à part n'est pas
+  touché. Double-clic sur un fichier : son diff, contre le dernier commit, dans un
+  onglet à côté des terminaux. Le message s'écrit, ou se fait rédiger depuis la
+  session de l'onglet Claude (« Rédiger depuis la session », payant comme dans le
+  mode Rédaction). « Amender le dernier commit » reprend son message. `Ctrl+Entrée`
+  ou **Commit (N)** commite ; **Commit + push** commite puis ouvre l'aperçu du push,
+  à valider comme tout push.
+- **Commits** est le journal de toutes les branches, avec son graphe : une voie par
+  branche, les fusions qui les rejoignent, les branches et étiquettes en pastilles.
+  Un clic sur un commit montre son message et ses fichiers ; un double-clic sur un
+  fichier ouvre son diff contre le parent du commit. Le champ du haut filtre par
+  sujet, auteur, hash ou branche.
+
+Les diffs s'ouvrent en lecture seule, côte à côte quand la place le permet.
+
 ## Mettre à jour plusieurs dépôts
 
 Le bouton ☁↓ de la barre de titre tire d'un coup tous les projets ouverts et leurs
