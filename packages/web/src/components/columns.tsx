@@ -1,4 +1,4 @@
-import { FolderOpen, FolderTree, GitBranch, History, Info, Plug, RefreshCw, Sparkles } from "lucide-react";
+import { FolderGit2, FolderOpen, FolderTree, History, Info, Plug, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileTree } from "@/components/FileTree";
@@ -91,7 +91,7 @@ export function projectActivities(disabledModules: readonly string[]): ProjectAc
     },
     {
       id: "worktrees",
-      icon: GitBranch,
+      icon: FolderGit2,
       label: "Worktrees",
       doc: "git#worktrees",
       about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),

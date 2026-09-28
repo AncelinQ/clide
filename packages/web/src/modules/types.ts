@@ -23,6 +23,16 @@ export interface ProjectView {
   render: (root: string) => ReactNode;
 }
 
+/** Un mode du bloc sous le terminal, à côté de ceux de la session. */
+export interface BottomView {
+  id: string;
+  icon: LucideIcon;
+  title: string;
+  about: string;
+  doc?: string;
+  render: (root: string) => ReactNode;
+}
+
 /**
  * Un module de l'interface : une fonction de Clide qu'on peut couper dans les
  * Réglages. Il déclare ses vues ; l'application les range dans ses barres et ne
@@ -34,4 +44,5 @@ export interface WebModule {
   description: string;
   globalViews?: GlobalView[];
   projectViews?: ProjectView[];
+  bottomViews?: BottomView[];
 }

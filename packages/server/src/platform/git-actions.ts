@@ -3,6 +3,8 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { LOG_FORMAT, parseChanges, parseCommits, parseNameStatus, type Change, type Commit, type CommitFile } from "@clide/core";
+
 const run = promisify(execFile);
 
 export interface GitStatus {
@@ -431,3 +433,72 @@ async function excludeWorktrees(root: string): Promise<void> {
 }
 
 const WORKTREES_EXCLUDE = "/.claude/worktrees/";
+
+/** Fichiers modifiés, ajoutés, supprimés, renommés, non suivis ou en conflit. */
+export async function gitChanges(root: string): Promise<Change[]> {
+  return parseChanges(await git(root, ["status", "--porcelain=v2", "-z", "--untracked-files=all"], 30_000));
+}
+
+/**
+ * Commite les fichiers choisis, et eux seuls, dans l'état où ils sont sur disque.
+ *
+ * On passe les chemins à `git commit --` plutôt que de refaire l'index : ce qui
+ * était indexé à part, hors de la sélection, y reste. Les fichiers non suivis
+ * sont ajoutés d'abord, git ne les commiterait pas sinon. Amender sans fichier
+ * ne change que le message.
+ */
+export async function gitCommit(
+  root: string,
+  options: { message: string; paths: string[]; untracked: string[]; amend: boolean },
+): Promise<string> {
+  const message = options.message.trim();
+  if (!message) throw new Error("le message de commit est vide");
+  if (options.paths.length === 0 && !options.amend) throw new Error("aucun fichier choisi");
+  if (options.untracked.length > 0) await git(root, ["add", "--", ...options.untracked]);
+  await git(root, [
+    "commit",
+    ...(options.amend ? ["--amend"] : []),
+    "-m",
+    message,
+    ...(options.paths.length > 0 ? ["--", ...options.paths] : []),
+  ]);
+  return (await git(root, ["rev-parse", "--short", "HEAD"], 15_000)).trim();
+}
+
+/** Message du dernier commit, pour amender sans le retaper. */
+export async function lastCommitMessage(root: string): Promise<string> {
+  return (await git(root, ["log", "-1", "--format=%B"], 15_000)).trim();
+}
+
+/** Journal de toutes les branches, dans l'ordre qui permet de tracer le graphe. */
+export async function gitLog(root: string, limit = 300): Promise<Commit[]> {
+  const text = await git(
+    root,
+    ["log", "--topo-order", `--format=${LOG_FORMAT}`, "-n", String(limit), "--branches", "--remotes", "--tags", "HEAD"],
+    30_000,
+  );
+  return parseCommits(text);
+}
+
+/** Détail d'un commit : son message entier et ses fichiers, comparés à son premier parent. */
+export async function gitShow(root: string, hash: string): Promise<{ message: string; files: CommitFile[] }> {
+  if (!/^[0-9a-f]{4,40}$/i.test(hash)) throw new Error("identifiant de commit invalide");
+  const [message, names] = await Promise.all([
+    git(root, ["show", "-s", "--format=%B", hash], 15_000),
+    git(root, ["show", "--first-parent", "--name-status", "-z", "-M", "--format=", hash], 30_000),
+  ]);
+  return { message: message.trim(), files: parseNameStatus(names) };
+}
+
+/**
+ * Texte d'un fichier à un commit (`HEAD`, un hash, `hash^`), ou vide s'il n'y
+ * existait pas : un fichier ajouté se compare au vide.
+ */
+export async function gitFileAt(root: string, ref: string, path: string): Promise<string> {
+  if (!/^(HEAD|[0-9a-f]{4,40})\^?$/i.test(ref)) throw new Error("révision invalide");
+  try {
+    return await git(root, ["show", `${ref}:${path.replace(/\\/g, "/")}`], 30_000);
+  } catch {
+    return "";
+  }
+}

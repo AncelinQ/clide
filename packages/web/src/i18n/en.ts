@@ -689,4 +689,38 @@ export const EN: Record<string, string> = {
   "Ne pas enregistrer": "Don't save",
   "Enregistrer le fichier": "Save the file",
   "Ouvrir dans Clide ; Maj+clic : avec l'application par défaut": "Open in Clide; Shift+click: with the default app",
+  Conflits: "Conflicts",
+  Modifications: "Changes",
+  "Non versionnés": "Unversioned",
+  "Aucune session à résumer : lance Claude dans un onglet, ou choisis une session dans History.":
+    "No session to summarise: start Claude in a tab, or pick a session in History.",
+  "Lecture de l'état git…": "Reading the git state…",
+  "Rien à commiter.": "Nothing to commit.",
+  "{selected} fichier(s) choisi(s) sur {total}": "{selected} of {total} file(s) selected",
+  "Voir le diff": "Show the diff",
+  "Ouvrir le fichier": "Open the file",
+  "Message du commit": "Commit message",
+  "Amender le dernier commit": "Amend the last commit",
+  "Rédaction…": "Drafting…",
+  "Rédiger depuis la session": "Draft from the session",
+  "Commit ({count})": "Commit ({count})",
+  "Commit + push": "Commit + push",
+  "fusion de {count} parents": "merge of {count} parents",
+  "Lecture du journal…": "Reading the log…",
+  "Filtrer les commits…": "Filter commits…",
+  "Basculer sur cette branche": "Switch to this branch",
+  "Copier le nom": "Copy the name",
+  Locales: "Local",
+  Distantes: "Remote",
+  "Commit et journal sont dans le bloc sous le terminal, onglets Commit et Commits.":
+    "Commit and log live in the block under the terminal, Commit and Commits tabs.",
+  "La branche et ses gestes, les fichiers à commiter, le journal avec son graphe, les diffs.":
+    "The branch and its actions, the files to commit, the log with its graph, the diffs.",
+  "La branche courante, son écart avec l'amont, et les autres branches du dépôt.":
+    "The current branch, how far it is from its upstream, and the repository's other branches.",
+  "Les fichiers modifiés du projet, à cocher : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.":
+    "The project's changed files, to tick: only ticked files go, as they are on disk. Double-click: their diff.",
+  "Le journal de toutes les branches avec son graphe ; un commit montre son message et ses fichiers.":
+    "The log of all branches with its graph; a commit shows its message and files.",
+  Commits: "Commits",
 };
