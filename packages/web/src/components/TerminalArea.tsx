@@ -1,13 +1,10 @@
 import {
   Activity,
-  Camera,
   ClipboardList,
   FileDiff,
   FolderOpen,
   Images,
-  MonitorPlay,
   PenLine,
-  Plus,
   Sparkles,
   Terminal as TerminalIcon,
   Workflow,
@@ -19,7 +16,8 @@ import { Island } from "@/components/columns";
 import { DevPreview, useDevServers } from "@/components/DevPreview";
 import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
-import { ModelPicker } from "@/components/ModelPicker";
+import { ContextArea } from "@/components/Menu";
+import { NewTabMenu, ToolsMenu, tabItems } from "@/components/TerminalMenus";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
@@ -40,8 +38,7 @@ import {
   sendToClaude,
   typeInto,
 } from "@/state/terminals";
-import { PATHS_MIME, post, quotePath, saveImage } from "@/lib/api";
-import { captureInto } from "@/state/commands";
+import { PATHS_MIME, quotePath, saveImage } from "@/lib/api";
 import type { TerminalInfo } from "@/lib/types";
 
 /** Largeur que l'aperçu laisse toujours au terminal, en pixels. */
@@ -168,49 +165,6 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
     />
-  );
-}
-
-/**
- * Capture d'une zone de l'écran, dont le chemin est tapé dans l'onglet actif.
- *
- * La capture est menée par l'outil de Windows ; la requête attend qu'elle soit
- * faite. Pendant ce temps le bouton reste occupé, et un second clic n'en ouvre
- * pas une deuxième.
- */
-/**
- * Capture d'écran vers le prompt. Pendant la capture, un second clic l'annule :
- * l'outil de Windows peut rester ouvert, ou être fermé sans que rien ne revienne.
- */
-function CaptureButton({ terminalId }: { terminalId: string | undefined }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn("size-7", busy && "bg-accent")}
-      disabled={!terminalId}
-      title={busy ? t("Annuler la capture") : (error ?? t("Capture d'écran vers le prompt"))}
-      onClick={async () => {
-        if (!terminalId) return;
-        if (busy) {
-          await post("/api/capture/cancel", {}).catch(() => undefined);
-          return;
-        }
-        setBusy(true);
-        setError(undefined);
-        try {
-          await captureInto(terminalId);
-        } catch (caught) {
-          setError((caught as Error).message);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Camera className={busy ? "animate-pulse" : undefined} />
-    </Button>
   );
 }
 
@@ -401,8 +355,8 @@ export function TerminalArea() {
       <div className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
           {own.map(({ info }) => (
+            <ContextArea key={info.id} items={() => tabItems(info, own.map((entry) => entry.info.id))}>
             <div
-              key={info.id}
               onClick={() => focusTerminal(info.id)}
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
@@ -444,44 +398,17 @@ export function TerminalArea() {
                 }}
               />
             </div>
+            </ContextArea>
           ))}
         </nav>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
+        <NewTabMenu disabled={!project} terminalId={status?.id} />
+        <ToolsMenu
           disabled={!project}
-          onClick={() => openTerminal("shell")}
-          title={t("Nouveau shell")}
-        >
-          <Plus />
-        </Button>
-        <CaptureButton terminalId={status?.id} />
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("relative size-7", previewOpen && "bg-accent")}
-          disabled={!project}
-          onClick={() => setState({ previewOpen: !previewOpen })}
-          title={serving ? t("Aperçu du serveur de développement") : t("Aperçu : aucun serveur de développement ne tourne")}
-        >
-          <MonitorPlay />
-          {/* Un serveur tourne : un point, pas une couleur, qui ferait croire le bouton enfoncé. */}
-          {serving && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-emerald-500" />}
-        </Button>
-        <ModelPicker
-          disabled={!project}
-          {...(current?.tokens?.model ? { currentModel: current.tokens.model } : {})}
+          active={status}
+          currentModel={current?.tokens?.model}
+          serving={serving}
+          ownTabs={own.map((entry) => entry.info.id)}
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7"
-          disabled={!project}
-          onClick={() => openTerminal("claude", { command: "claude" })}
-        >
-          <Sparkles /> claude
-        </Button>
       </div>
 
       <div ref={zone} className="mx-2 flex min-h-0 flex-1">

@@ -2,6 +2,14 @@
 
 Chaque projet a ses onglets de terminal : des shells PowerShell, et des onglets Claude. Taper `claude` dans un shell en fait un onglet Claude le temps de la session.
 
+La barre d'onglets ne porte que deux menus. `+` ouvre un onglet — Claude, Claude
+avec un modèle choisi, un shell — ou lance la capture d'écran vers le prompt ;
+chaque entrée affiche son raccourci. `⋯` porte sur l'onglet actif : changer le
+modèle de la session Claude, ouvrir l'aperçu du serveur de développement, copier le
+dossier de l'onglet, fermer les autres. Sur un onglet Claude, `⋯` affiche le modèle
+en cours à sa place. Un clic droit sur un onglet le ferme, ferme les autres ou copie
+son dossier.
+
 ## Images vers le prompt
 
 Claude Code lit une image désignée par son chemin, pas un contenu collé. Une image
@@ -11,7 +19,7 @@ est donc d'abord enregistrée dans le dossier `drops` de l'application, et c'est
 chemin qui est tapé. Elle part brute, hors du corps JSON des autres routes, dont la
 limite est pensée pour des réglages ; seules les images passent, jusqu'à 20 Mo.
 
-Le bouton Capture de la barre d'onglets ouvre l'outil Capture d'écran de Windows
+« Capture d'écran vers le prompt », dans le menu `+`, ouvre l'outil Capture d'écran de Windows
 (`ms-screenclip:`), qui dépose son image dans le presse-papiers et non dans un
 fichier. Le serveur relève le compteur de séquence du presse-papiers avant de
 l'ouvrir, puis attend qu'il change avec une image : une image copiée plus tôt ne
@@ -21,15 +29,15 @@ Une annulation ne dépose rien. Pour ne pas attendre le délai de deux minutes, 
 serveur suit les processus de l'outil apparus après son ouverture, et s'arrête
 quand ils ont tous disparu sans image — un temps de grâce laisse arriver une image
 juste après la fermeture. Un outil qui reste en mémoire après coup n'est jamais pris
-pour une annulation : pendant une capture, un second clic sur le bouton l'annule
-dans tous les cas.
+pour une annulation : pendant une capture, un bouton à côté de `+` l'annule dans
+tous les cas.
 
 ## Changer de modèle
 
-Le bouton « Modèle », à côté de « claude », montre le modèle de la session de
-l'onglet et en change. Sur un onglet Claude, le choix est tapé dans la session sous
-la forme `/model <id>` ; Claude travaille-t-il, la commande part dans sa file et
-s'applique au tour suivant. Sans onglet Claude, il en ouvre un avec
+Sur un onglet Claude, `⋯` montre le modèle de la session et « Changer de modèle »
+en change : le choix est tapé dans la session sous la forme `/model <id>` ; Claude
+travaille-t-il, la commande part dans sa file et s'applique au tour suivant.
+« Claude avec le modèle », dans `+`, ouvre un nouvel onglet avec
 `claude --model <id>`.
 
 Les modèles viennent du catalogue que Claude Code garde en cache pour le compte
@@ -41,8 +49,8 @@ ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
 le panneau global, onglet Réglages.
 
-Le bouton d'aperçu porte un point vert quand un serveur de développement tourne ;
-seul l'aperçu ouvert a un fond. Aucun bouton de la barre n'est coloré au repos, ce
+Le bouton `⋯` porte un point vert quand un serveur de développement tourne ; l'aperçu
+ouvert est coché dans son menu. Aucun bouton de la barre n'est coloré au repos, ce
 qui le ferait croire enfoncé.
 
 ## Ouvrir un fichier
