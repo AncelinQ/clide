@@ -1,6 +1,8 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
+import { detectTools, type ToolScripts } from "./tools.js";
+
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun";
 
 export interface PackageScript {
@@ -23,6 +25,8 @@ export interface ProjectScripts {
   /** Vrai quand le gestionnaire vient d'un lockfile plutôt que du défaut. */
   managerDetected: boolean;
   sources: ScriptSource[];
+  /** Les autres outils du projet : make, cargo, go, python, scripts PowerShell et shell. */
+  tools: ToolScripts[];
 }
 
 /** Lockfile de chaque gestionnaire, dans l'ordre où ils sont examinés. */
@@ -192,7 +196,7 @@ export class ScriptStore {
       }
     }
 
-    return { root, manager, managerDetected: detected, sources };
+    return { root, manager, managerDetected: detected, sources, tools: await detectTools(root) };
   }
 
   /** Ligne de commande à exécuter pour un script, dans le dossier de sa source. */

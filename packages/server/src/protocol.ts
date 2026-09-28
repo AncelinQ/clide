@@ -13,6 +13,9 @@ export type ClientMessage =
       initialCommand?: string;
       /** Projet de l'interface auquel l'onglet appartient. */
       owner?: string;
+      /** Nom de l'onglet et script qu'il fait tourner. */
+      label?: string;
+      script?: string;
     }
   | { t: "input"; id: string; data: string }
   | { t: "resize"; id: string; cols: number; rows: number }
@@ -65,6 +68,8 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
       const rows = num("rows");
       const initialCommand = str("initialCommand");
       const owner = str("owner");
+      const label = str("label");
+      const script = str("script");
       return {
         t: "open",
         projectRoot,
@@ -73,6 +78,8 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
         ...(rows !== undefined ? { rows } : {}),
         ...(initialCommand ? { initialCommand } : {}),
         ...(owner ? { owner } : {}),
+        ...(label ? { label: label.slice(0, 80) } : {}),
+        ...(script ? { script: script.slice(0, 1000) } : {}),
       };
     }
     case "input": {

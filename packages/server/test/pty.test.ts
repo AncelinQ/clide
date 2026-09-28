@@ -130,6 +130,17 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     manager.close(terminal.id);
   }, 60_000);
 
+  it("garde le nom d'un onglet de script et son script, même après un claude", async () => {
+    const terminal = await manager.open({ projectRoot: scratch, label: "api › dev", script: `${scratch}|dev` });
+    expect(terminal).toMatchObject({ title: "api › dev", script: `${scratch}|dev` });
+    const titles: string[] = [];
+    manager.on("state", (info) => info.id === terminal.id && titles.push(info.title));
+    manager.write(terminal.id, "__clideEmit 'CLAUDE_START;claude'; __clideEmit 'CLAUDE_END'\r");
+    await waitFor(() => titles.at(-1) === "api › dev" && titles.includes("claude"), 15000);
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
+
   it("fait d'un shell un onglet Claude le temps d'un claude, puis le rend", async () => {
     const terminal = await manager.open({ projectRoot: scratch });
     const kinds: string[] = [];

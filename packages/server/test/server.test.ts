@@ -54,6 +54,14 @@ describe("parseClientMessage", () => {
     });
   });
 
+  it("garde le nom de l'onglet et le script qu'il fait tourner, bornés en longueur", () => {
+    const message = parseClientMessage(
+      JSON.stringify({ t: "open", projectRoot: "C:/x", label: `api › ${"d".repeat(200)}`, script: "C:/x|dev" }),
+    );
+    expect(message).toMatchObject({ t: "open", script: "C:/x|dev" });
+    expect(message?.t === "open" && message.label?.length).toBe(80);
+  });
+
   it("rejette une ouverture sans dossier", () => {
     expect(parseClientMessage('{"t":"open"}')).toBeUndefined();
   });

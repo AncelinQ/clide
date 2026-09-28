@@ -168,6 +168,8 @@ export {
   type ProjectScripts,
   type ScriptSource,
 } from "./scripts/store.js";
+export { detectTools, makeTargets, type ToolCommand, type ToolScripts } from "./scripts/tools.js";
+export { fromGroupDirectory, groupsFile, readGroups, toGroupDirectory, writeGroups, type GroupScript, type ScriptGroup } from "./scripts/groups.js";
 
 export {
   LinkStore,

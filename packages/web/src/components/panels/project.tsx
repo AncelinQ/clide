@@ -1,4 +1,4 @@
-import { CloudDownload, GitBranch, Link2, MoreHorizontal, Package, Plug, Play, Sparkles } from "lucide-react";
+import { CloudDownload, GitBranch, Link2, MoreHorizontal, Plug, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
@@ -22,10 +22,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
-import type { McpServer, ProjectLink, ProjectScripts, Skill, SlashCommand, Worktree } from "@/lib/types";
-import { cn } from "cn";
+import type { McpServer, ProjectLink, Skill, SlashCommand, Worktree } from "@/lib/types";
 import { openProject, useStore } from "@/state/store";
-import { focusTerminal, interruptTerminal, openTerminal, runScript, runningScriptTab } from "@/state/terminals";
+import { openTerminal } from "@/state/terminals";
 
 // ─── Dossiers liés ──────────────────────────────────────────────────────────
 
@@ -199,111 +198,6 @@ export function LinksPanel({ root }: { root: string }) {
           )}
         </>
       )}
-    </Async>
-  );
-}
-
-// ─── Scripts ────────────────────────────────────────────────────────────────
-
-/** Scripts qu'on lance sans cesse : ils viennent en tête, dans cet ordre. */
-const FAVORITE_SCRIPTS = ["dev", "start", "build", "test", "lint", "preview", "typecheck"];
-
-function orderScripts<T extends { name: string }>(scripts: readonly T[]): T[] {
-  const rank = (script: T): number => {
-    const index = FAVORITE_SCRIPTS.indexOf(script.name);
-    return index === -1 ? FAVORITE_SCRIPTS.length : index;
-  };
-  return [...scripts].sort((a, b) => rank(a) - rank(b));
-}
-
-/**
- * Scripts d'un dossier, groupés par `package.json`, lancés avec son propre
- * gestionnaire. Un script en cours se voit dans son onglet : « arrêter » lui
- * envoie Ctrl+C.
- */
-function ScriptGroups({ project, prefix }: { project: ProjectScripts; prefix?: string }) {
-  // L'état des onglets change ce que chaque ligne propose : lancer, ou arrêter.
-  useStore((state) => state.terminals);
-  const command = (name: string): string =>
-    project.manager === "npm" ? `npm run ${name}` : `${project.manager} run ${name}`;
-  return (
-    <>
-      <div className="flex items-center gap-2 py-1 text-[11px] text-muted-foreground">
-        <span className="flex-1">
-          {prefix ??
-            (project.managerDetected
-              ? project.manager
-              : t("{manager} (défaut, aucun lockfile)", { manager: project.manager }))}
-        </span>
-        <ActionButton
-          onAction={() => runScript("install", project.root, `${project.manager} install`)}
-        >
-          {t("installer")}
-        </ActionButton>
-      </div>
-      {project.sources
-        .filter((source) => source.scripts.length > 0)
-        .map((source) => (
-          <div key={source.directory}>
-            <Section>{source.packageName ?? (source.relativePath || t("racine"))}</Section>
-            <Rows>
-              {orderScripts(source.scripts).map((script) => {
-                const running = runningScriptTab(source.directory, script.name);
-                return (
-                  <Row
-                    key={script.name}
-                    title={
-                      <span className={cn(FAVORITE_SCRIPTS.includes(script.name) && "font-medium")}>
-                        {script.name}
-                      </span>
-                    }
-                    sub={script.command}
-                    actions={
-                      running ? (
-                        <>
-                          <ActionButton onAction={() => interruptTerminal(running)}>{t("arrêter")}</ActionButton>
-                          <ActionButton variant="ghost" onAction={() => focusTerminal(running)}>
-                            {t("aller à l'onglet")}
-                          </ActionButton>
-                        </>
-                      ) : (
-                        <ActionButton onAction={() => runScript(script.name, source.directory, command(script.name))}>
-                          <Play className="size-3" /> {t("lancer")}
-                        </ActionButton>
-                      )
-                    }
-                  />
-                );
-              })}
-            </Rows>
-          </div>
-        ))}
-    </>
-  );
-}
-
-export function ScriptsPanel({ root }: { root: string }) {
-  const state = useAsync(() => api<ProjectScripts>("/api/scripts", { root }), [root]);
-
-  return (
-    <Async state={state}>
-      {(project) => {
-        const own = project.sources.some((source) => source.scripts.length > 0);
-        const linked = project.linked ?? [];
-        if (!own && linked.length === 0) return <Empty icon={Package}>{t("Aucun script dans ce projet.")}</Empty>;
-        return (
-          <>
-            {own && <ScriptGroups project={project} />}
-            {linked.map((folder) => (
-              <ScriptGroups
-                key={folder.root}
-                project={folder}
-                prefix={t("lié {name} ({manager})", { name: shortName(folder.root), manager: folder.manager })}
-              />
-            ))}
-          </>
-        );
-      }}
     </Async>
   );
 }
