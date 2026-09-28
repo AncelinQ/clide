@@ -92,6 +92,8 @@ export interface State {
   activityFocus: { sessionId: string; index: number; agentId?: string } | null;
   /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
   activityAgents: { sessionId: string; path: { agentId: string; label: string }[] } | null;
+  /** Un prompt enregistré attend la valeur de `{saisie}` ; la fenêtre répond par `resolve`. */
+  promptInput: { label: string; resolve: (value: string | undefined) => void } | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -184,6 +186,7 @@ let state: State = {
   activityAgents: null,
   paletteOpen: false,
   paletteQuery: ">",
+  promptInput: null,
   addingProject: false,
   preferencesOpen: false,
   settingsSection: "general",

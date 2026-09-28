@@ -1,7 +1,8 @@
-import { BrainCircuit, Camera, Copy, Ellipsis, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
+import { BrainCircuit, Camera, Copy, Ellipsis, MessageSquareText, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
 import { useState } from "react";
 
 import { MenuButton, type MenuItem } from "@/components/Menu";
+import { usePrompts } from "@/components/PromptsPanel";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { post } from "@/lib/api";
@@ -9,6 +10,7 @@ import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { sameModel, useModels, type ModelChoice } from "@/state/models";
 import { getState, setState, useStore } from "@/state/store";
+import { runPrompt } from "@/state/prompts";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
 import { cn } from "cn";
 
@@ -148,6 +150,7 @@ export function ToolsMenu({
   ownTabs: string[];
 }) {
   const models = useModels();
+  const prompts = usePrompts();
   const previewOpen = useStore((state) => state.previewOpen);
   const claude = active?.kind === "claude" && !active.exited;
   const model = models.find((choice) => sameModel(choice, currentModel));
@@ -164,6 +167,22 @@ export function ToolsMenu({
               { kind: "label", label: t("Pour la session en cours (/model)") },
               ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), currentModel ?? ""),
             ],
+          },
+          { kind: "separator" },
+        ] as MenuItem[])
+      : []),
+    ...(prompts.length > 0
+      ? ([
+          {
+            kind: "submenu",
+            label: t("Prompts"),
+            icon: MessageSquareText,
+            items: prompts.map((prompt) => ({
+              kind: "item",
+              label: prompt.label,
+              hint: prompt.text,
+              run: () => void runPrompt(prompt),
+            })),
           },
           { kind: "separator" },
         ] as MenuItem[])

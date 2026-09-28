@@ -13,6 +13,8 @@ import { DEFAULT_WIDTHS, activeProject, getState, setState, updateProject, useSt
 import { badgeImage } from "@/state/notify";
 import { listenShortcuts } from "@/state/commands";
 import { restoreOpenFiles } from "@/state/editor";
+import { loadPrompts } from "@/state/prompts";
+import { PromptInputDialog } from "@/components/PromptsPanel";
 import { resizeActive } from "@/state/terminals";
 
 /** Le terminal garde de quoi afficher une ligne de commande lisible. */
@@ -30,6 +32,11 @@ export function App() {
   useEffect(() => listenShortcuts(), []);
   // Les fichiers laissés ouverts reviennent dans leurs onglets.
   useEffect(() => restoreOpenFiles(), []);
+  // Les prompts du projet suivent le projet actif : la palette et les raccourcis les lisent sans attendre.
+  const activeRoot = useStore((state) => state.activeRoot);
+  useEffect(() => {
+    void loadPrompts(activeRoot).catch(() => undefined);
+  }, [activeRoot]);
 
 
   // Le titre de l'onglet est le seul endroit visible quand la fenêtre est en
@@ -75,6 +82,7 @@ export function App() {
   return (
     <TooltipProvider delayDuration={400}>
       <CommandPalette />
+      <PromptInputDialog />
       {/* Remonté à chaque changement de langue : chaque texte se relit. Les
           terminaux n'y perdent rien, ils vivent hors de React. */}
       <div key={language} className="flex h-full flex-col">

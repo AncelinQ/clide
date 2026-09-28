@@ -6,6 +6,7 @@ import { post, quotePath } from "@/lib/api";
 import { activateProject, closeProject, getState, openSettings, setBottomMode, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeFile, saveFile } from "@/state/editor";
+import { cachedPrompts, runPrompt } from "@/state/prompts";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
 export interface Command {
@@ -216,6 +217,13 @@ export function commands(): Command[] {
       shortcut: "Ctrl+Shift+U",
       run: () => setState((current) => ({ previewOpen: !current.previewOpen })),
     },
+    // Chaque prompt enregistré est une commande : la palette le trouve, un raccourci peut le lancer.
+    ...cachedPrompts().map((prompt) => ({
+      id: `prompt.run:${prompt.id}`,
+      group: t("Prompts"),
+      label: prompt.label,
+      run: () => void runPrompt(prompt),
+    })),
     ...tabs.map(([id, label]) => ({
       id: `panel.${id}`,
       group: t("Affichage"),

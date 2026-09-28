@@ -145,6 +145,13 @@ export class SearchIndex {
    * Un mot est cherché tel quel dans le texte, sans découpage : un bout de chemin
    * ou de commande — `glab mr`, `hn-12528` — se trouve comme un mot.
    */
+  /** Commandes `/…` tapées dans toutes les sessions indexées, avec leur date. */
+  *commands(): Generator<{ text: string; at?: string }> {
+    for (const document of this.#documents.values()) {
+      for (const entry of document.entries) if (entry.kind === "command") yield entry;
+    }
+  }
+
   search(query: string, limit = 60): SearchResult {
     const started = Date.now();
     const words = fold(query).split(/\s+/).filter(Boolean);
