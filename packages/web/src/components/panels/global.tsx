@@ -26,6 +26,7 @@ import type {
 } from "@/lib/types";
 import { getState, openProject, setState, useStore } from "@/state/store";
 import { openTerminal } from "@/state/terminals";
+import { agoLabel } from "@/components/panels/usage";
 
 // ─── History ────────────────────────────────────────────────────────────────
 
@@ -453,7 +454,11 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
               </span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground">{t("{size} Mo", { size: node.memoryMB })}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {[t("{size} Mo", { size: node.memoryMB }), node.startedAt ? t("lancé {ago}", { ago: agoLabel(node.startedAt) }) : ""]
+              .filter(Boolean)
+              .join("  ·  ")}
+          </div>
           {node.children.length > 0 && <ProcessTree nodes={node.children} reload={reload} />}
         </li>
       ))}

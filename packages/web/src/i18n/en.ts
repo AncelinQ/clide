@@ -605,4 +605,8 @@ export const EN: Record<string, string> = {
     "The block shows a session picked in History; the active tab has another one. Click to follow the tab.",
   "Écrit par une commande : Claude Code en a relevé le diff, il n'y a pas de sauvegarde à restaurer.":
     "Written by a command: Claude Code recorded its diff, there is no backup to restore.",
+  "{count} Claude en cours": "{count} Claude running",
+  "lancé {ago}": "started {ago}",
+  "installer": "install",
+  "aller à l'onglet": "go to the tab",
 };

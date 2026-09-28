@@ -97,6 +97,13 @@ export function TitleBar() {
           const waiting = Object.entries(terminals).filter(
             ([id, entry]) => entry.owner === project.root && attention[id],
           ).length;
+          const busy = Object.values(terminals).filter(
+            (entry) =>
+              entry.owner === project.root &&
+              entry.info.kind === "claude" &&
+              entry.info.state === "running" &&
+              !entry.info.exited,
+          ).length;
           const active = project.root === activeRoot;
           return (
             <ContextMenu key={project.root}>
@@ -117,6 +124,15 @@ export function TitleBar() {
                   {waiting > 0 && (
                     <Badge className="h-4 min-w-4 justify-center rounded-full px-1 text-[10px] tabular-nums">
                       {waiting}
+                    </Badge>
+                  )}
+                  {busy > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="h-4 min-w-4 justify-center rounded-full border-emerald-500/60 px-1 text-[10px] text-emerald-600 tabular-nums dark:text-emerald-400"
+                      title={t("{count} Claude en cours", { count: busy })}
+                    >
+                      {busy}
                     </Badge>
                   )}
                   <X

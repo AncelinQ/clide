@@ -34,7 +34,7 @@ function untilLabel(iso: string, now = Date.now()): string {
 }
 
 /** « il y a 3 min » : l'âge d'un relevé. */
-function agoLabel(iso: string, now = Date.now()): string {
+export function agoLabel(iso: string, now = Date.now()): string {
   const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000));
   if (minutes < 1) return t("à l'instant");
   if (minutes < 60) return t("il y a {minutes} min", { minutes });
