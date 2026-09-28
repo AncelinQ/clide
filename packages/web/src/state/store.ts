@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
+import { restoreImportedTheme, type ImportedTheme } from "@/lib/vscode-theme";
 import type { BrowserState, ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
 import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
@@ -98,6 +99,8 @@ export interface State {
   theme: Theme;
   /** Couleurs de l'interface, par mode ; le terminal n'en dépend pas. */
   look: LookPair;
+  /** Thème VS Code importé : il remplace l'habillage, le mode clair ou sombre et les couleurs de l'éditeur. */
+  vscodeTheme: ImportedTheme | null;
   terminalFont: TerminalFont;
   showLeft: boolean;
   showRight: boolean;
@@ -160,7 +163,7 @@ export const DEFAULT_WIDTHS: Widths = DEFAULT_LAYOUT.widths;
 
 function restored(): Pick<
   State,
-  | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
+  | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
 > {
@@ -177,6 +180,7 @@ function restored(): Pick<
     ...saved.layout,
     ...saved.prefs,
     look: restoreLook(saved.prefs.look),
+    vscodeTheme: restoreImportedTheme(saved.prefs.vscodeTheme),
   };
 }
 
@@ -234,6 +238,7 @@ function persist(): void {
     prefs: {
       theme: state.theme,
       look: state.look,
+      vscodeTheme: state.vscodeTheme,
       terminalFont: state.terminalFont,
       shortcuts: state.shortcuts,
       language: state.language,

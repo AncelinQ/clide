@@ -355,7 +355,12 @@ dans les fichiers » (`Ctrl+Shift+F`) y mène, avec le texte choisi dans l'édit
 
 ## File d'implémentation
 
-Ce qui reste, dans l'ordre :
+Toute la file est faite et fusionnée (#34 à #43). Restent, pour une suite : le
+filtre et la navigation au clavier de la vue Tests (lot 14), et la prise en compte
+du `.gitignore` par la recherche dans les fichiers, qui saute aujourd'hui la même
+liste fixe de dossiers que la palette.
+
+Dans l'ordre où elle a été suivie :
 
 1. MR 16 — Tests du projet (lot 14, sans la marge de l'éditeur).
 2. MR 17 — Lancer depuis la marge de l'éditeur (lot 15, et la marge des tests du
@@ -372,9 +377,9 @@ Ce qui reste, dans l'ordre :
    sessions de chacun.
 9. MR 24 — Invites de saisie avec suggestions en pastilles (nom de branche, rôle
    d'un lien…).
-10. MR 25 — Thèmes au format VS Code, chargés tels quels : d'abord ramener les
-    couleurs de Clide à des jetons nommés, puis traduire les `colors` et
-    `tokenColors` d'un thème vers ces jetons et vers Monaco.
+10. MR 25 — Thèmes au format VS Code, chargés tels quels : les couleurs de Clide
+    étaient déjà des jetons nommés (variables CSS de l'interface et du terminal) ;
+    les `colors` et `tokenColors` d'un thème y sont traduits, et vers Monaco.
 
 ## Autres idées à reprendre
 

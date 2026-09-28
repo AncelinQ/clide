@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 
 import { canvasIsDark, isDark, type Look } from "@/lib/looks";
+import type { ImportedTheme } from "@/lib/vscode-theme";
+import { setEditorTheme } from "@/state/editor";
 import { getState, setState, useStore, type Theme } from "@/state/store";
 import { applyTerminalTheme } from "@/state/terminals";
 
@@ -72,13 +74,46 @@ function applyLook(look: Look): void {
   root.dataset["canvas"] = canvasIsDark(look) ? "dark" : "light";
 }
 
+/** Variables posées par le thème importé, à retirer quand il change ou s'en va. */
+let importedVars: string[] = [];
+
+/**
+ * Pose un thème VS Code importé par-dessus l'habillage : ses jetons remplacent
+ * ceux de la feuille de style, ceux qu'il ne donne pas gardent la valeur de Clide.
+ */
+function applyImported(theme: ImportedTheme): void {
+  const root = document.documentElement;
+  for (const [name, color] of Object.entries(theme.vars)) {
+    root.style.setProperty(name, color);
+    importedVars.push(name);
+  }
+  const primary = theme.vars["--primary"];
+  if (primary && !theme.vars["--primary-foreground"]) {
+    root.style.setProperty("--primary-foreground", isDark(primary.slice(0, 7)) ? "var(--ink-on-dark)" : "var(--ink-on-light)");
+  }
+  const canvas = theme.vars["--canvas"];
+  if (canvas) root.dataset["canvas"] = isDark(canvas.slice(0, 7)) ? "dark" : "light";
+}
+
 export function applyTheme(): void {
-  const { look } = getState();
-  const mode = effectiveMode();
-  document.documentElement.classList.toggle("dark", mode === "dark");
-  document.documentElement.style.colorScheme = mode;
+  const { look, vscodeTheme } = getState();
+  const root = document.documentElement;
+  for (const name of importedVars) root.style.removeProperty(name);
+  importedVars = [];
+  // Un thème importé porte son mode : le choix clair, sombre ou système s'efface devant lui.
+  const mode = vscodeTheme ? vscodeTheme.mode : effectiveMode();
+  root.classList.toggle("dark", mode === "dark");
+  root.style.colorScheme = mode;
   applyLook(look[mode]);
+  if (vscodeTheme) applyImported(vscodeTheme);
+  setEditorTheme(vscodeTheme?.editor ?? null);
   applyTerminalTheme(terminalTheme());
+}
+
+/** Importe un thème VS Code, ou le retire avec `null`. */
+export function setImportedTheme(theme: ImportedTheme | null): void {
+  setState({ vscodeTheme: theme });
+  applyTheme();
 }
 
 export function setTheme(theme: Theme): void {

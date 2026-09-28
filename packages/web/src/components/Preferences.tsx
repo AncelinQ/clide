@@ -1,11 +1,12 @@
 import { Blocks, Bot, Coins, Keyboard, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LookPicker } from "@/components/LookPicker";
 import { ShortcutsEditor } from "@/components/ShortcutsEditor";
 import { SettingsPanel } from "@/components/panels/global";
 import { WEB_MODULES } from "@/modules";
 import type { WebModule } from "@/modules/types";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,6 +21,8 @@ import { t } from "@/i18n";
 import { cn } from "cn";
 import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type TabLayout, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
+import { setImportedTheme } from "@/state/theme";
+import { fromVscodeTheme, parseJsonc } from "@/lib/vscode-theme";
 
 /** Polices à chasse fixe courantes sous Windows ; seules celles installées sont proposées. */
 const CANDIDATES = [
@@ -114,10 +117,69 @@ function GeneralSection() {
   );
 }
 
+/**
+ * Import d'un thème VS Code : le `.json` d'une extension de thème, choisi sur le
+ * disque. Il remplace l'habillage, le mode clair ou sombre, le terminal et
+ * l'éditeur, jusqu'à ce qu'on le retire.
+ */
+function VscodeThemeGroup() {
+  const imported = useStore((state) => state.vscodeTheme);
+  const [error, setError] = useState<string>();
+  const input = useRef<HTMLInputElement>(null);
+  const load = async (file: File) => {
+    setError(undefined);
+    try {
+      setImportedTheme(fromVscodeTheme(parseJsonc(await file.text()), file.name.replace(/\.jsonc?$/i, "")));
+    } catch (caught) {
+      setError(caught instanceof SyntaxError ? t("JSON illisible : {message}", { message: caught.message }) : t((caught as Error).message));
+    }
+  };
+  return (
+    <Group
+      title={t("Thème VS Code")}
+      hint={t(
+        "Le .json d'un thème VS Code (dans le dossier themes/ de son extension) : ses couleurs vont à l'interface, au terminal et à l'éditeur. Il impose son mode clair ou sombre tant qu'il est chargé.",
+      )}
+    >
+      <input
+        ref={input}
+        type="file"
+        accept=".json,.jsonc,application/json"
+        className="hidden"
+        data-vscode-theme-file
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void load(file);
+          event.target.value = "";
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => input.current?.click()}>
+          {t("Charger un thème…")}
+        </Button>
+        {imported && (
+          <>
+            <span className="text-[12px]" data-vscode-theme-name>
+              {t("{name} ({mode})", { name: imported.name, mode: imported.mode === "dark" ? t("sombre") : t("clair") })}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setImportedTheme(null)}>
+              {t("Retirer")}
+            </Button>
+          </>
+        )}
+      </div>
+      {error && <p className="text-[12px] text-destructive">{error}</p>}
+    </Group>
+  );
+}
+
 function AppearanceSection() {
   const tabLayout = useStore((state) => state.tabLayout);
+  const imported = useStore((state) => state.vscodeTheme);
   return (
     <div className="grid gap-6">
+      <VscodeThemeGroup />
+      {imported && <p className="-mt-3 text-[11px] text-muted-foreground">{t("Le thème VS Code chargé passe devant l'habillage choisi ci-dessous.")}</p>}
       <LookPicker />
       <Group
         title={t("Onglets du panneau global")}

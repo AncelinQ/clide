@@ -49,6 +49,8 @@ export interface SavedPrefs {
   theme: "auto" | "light" | "dark";
   /** Couleurs de l'interface, relues par `restoreLook` qui en connaît la forme. */
   look: unknown;
+  /** Thème VS Code importé, relu par `restoreImportedTheme` ; il l'emporte sur l'habillage et le mode. */
+  vscodeTheme: unknown;
   terminalFont: { family: string; size: number };
   shortcuts: Record<string, string | null>;
   language: "auto" | "fr" | "en";
@@ -87,6 +89,7 @@ export const DEFAULT_LAYOUT: SavedLayout = {
 export const DEFAULT_PREFS: SavedPrefs = {
   theme: "auto",
   look: undefined,
+  vscodeTheme: null,
   terminalFont: { family: "", size: 13 },
   shortcuts: {},
   language: "auto",
@@ -196,6 +199,7 @@ function prefs(value: unknown): SavedPrefs {
   return {
     theme: oneOf(source["theme"], ["auto", "light", "dark"], DEFAULT_PREFS.theme),
     look: source["look"],
+    vscodeTheme: source["vscodeTheme"] ?? null,
     terminalFont: {
       family: text(font["family"], DEFAULT_PREFS.terminalFont.family),
       size: number(font["size"], DEFAULT_PREFS.terminalFont.size),
