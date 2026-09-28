@@ -20,6 +20,14 @@ Le même menu choisit les onglets affichés ; un onglet masqué reste accessible
 La roue en bas de la barre d'onglets, comme celle de la barre de titre, ouvre la
 fenêtre Réglages (voir [Personnaliser](personnaliser.md#reglages)).
 
+## Processus
+
+L'onglet **Process** montre les processus Claude de la machine et leurs enfants :
+« ce terminal » pour ceux qui descendent d'un onglet de Clide, « lancé ailleurs »
+pour les autres. Un Claude qui tourne dans un onglet encore ouvert porte **aller à
+l'onglet**, qui passe à son projet et montre l'onglet, devant un fichier ouvert.
+« arrêter », révélé au survol, demande confirmation.
+
 ## Skills et commandes
 
 L'onglet Skills liste tout ce qui s'invoque, projet ouvert ou non : les skills du
