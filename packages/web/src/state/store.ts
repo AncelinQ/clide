@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { restoreLook, type LookPair } from "@/lib/looks";
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import { tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
 export interface Project {
@@ -35,7 +36,11 @@ export interface State {
   activeTerminalId: string | null;
   /** Onglets qui réclament un regard, et à quel titre. */
   attention: Record<string, NotificationKind>;
-  selectedSession: SessionSummary | null;
+  /**
+   * Session choisie dans History, par projet : un projet où l'on n'a rien choisi
+   * ne montre pas celle d'un autre.
+   */
+  selectedSessions: Record<string, SessionSummary>;
   /** Session vivante de chaque onglet Claude, par identifiant d'onglet. */
   live: Record<string, LiveSession>;
   /**
@@ -82,7 +87,7 @@ export interface State {
   newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
-  /** Dernier onglet regardé dans chaque projet, par racine ; jamais mémorisé. */
+  /** Dernier onglet regardé dans chaque projet, par racine. */
   lastTab: Record<string, string>;
 }
 
@@ -98,7 +103,7 @@ export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
 function restored(): Pick<
   State,
-  "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths"
+  "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "lastTab"
 > {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}") as {
@@ -115,6 +120,7 @@ function restored(): Pick<
       newestFirst?: Record<string, boolean>;
       showHidden?: boolean;
       widths?: Partial<Widths>;
+      lastTab?: Record<string, string>;
     };
     const projects = (saved.roots ?? []).map(toProject);
     return {
@@ -131,10 +137,11 @@ function restored(): Pick<
       newestFirst: saved.newestFirst ?? {},
       showHidden: saved.showHidden ?? false,
       widths: { ...DEFAULT_WIDTHS, ...saved.widths },
+      lastTab: saved.lastTab ?? {},
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", look: restoreLook(undefined), terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS };
+    return { projects: [], activeRoot: null, theme: "auto", look: restoreLook(undefined), terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS, lastTab: {} };
   }
 }
 
@@ -152,7 +159,7 @@ let state: State = {
   terminals: {},
   activeTerminalId: null,
   attention: {},
-  selectedSession: null,
+  selectedSessions: {},
   live: {},
   followLive: true,
   sessionMode: "files",
@@ -168,7 +175,6 @@ let state: State = {
   paletteOpen: false,
   addingProject: false,
   preferencesOpen: false,
-  lastTab: {},
   ...restored(),
 };
 
@@ -190,6 +196,7 @@ function persist(): void {
     newestFirst: state.newestFirst,
     showHidden: state.showHidden,
     widths: state.widths,
+    lastTab: state.lastTab,
   });
   try {
     localStorage.setItem(SAVED, text);
@@ -252,11 +259,28 @@ export function openProject(root: string, activate = true): void {
  * le pied de la zone décrire l'onglet de l'autre projet, jusqu'à un clic.
  */
 export function activateProject(root: string): void {
+  setState((current) => ({
+    activeRoot: root,
+    activeTerminalId: tabToShow(current.terminals, current.lastTab, root),
+    followLive: true,
+  }));
+}
+
+/** Session choisie dans History pour le projet actif, s'il y en a une. */
+export const selectedSessionOf = (current: State = state): SessionSummary | undefined =>
+  current.activeRoot ? current.selectedSessions[current.activeRoot] : undefined;
+
+/**
+ * Montre une session de History dans le bloc du projet actif, ou retire le choix.
+ * Choisir détache le bloc de l'onglet ; retirer le laisse suivre.
+ */
+export function selectSession(session: SessionSummary | null, options: { follow?: boolean } = {}): void {
   setState((current) => {
-    const own = Object.entries(current.terminals).filter(([, entry]) => entry.owner === root);
-    const remembered = current.lastTab[root];
-    const id = remembered && own.some(([candidate]) => candidate === remembered) ? remembered : (own.at(-1)?.[0] ?? null);
-    return { activeRoot: root, activeTerminalId: id, followLive: true };
+    if (!current.activeRoot) return {};
+    const selectedSessions = { ...current.selectedSessions };
+    if (session) selectedSessions[current.activeRoot] = session;
+    else delete selectedSessions[current.activeRoot];
+    return { selectedSessions, followLive: options.follow ?? session === null };
   });
 }
 
@@ -269,8 +293,11 @@ export function updateProject(root: string, patch: Partial<Project>): void {
 }
 
 export function closeProject(root: string): void {
-  const projects = getState().projects.filter((project) => project.root !== root);
-  setState({ projects });
+  const { projects: open, lastTab, selectedSessions } = getState();
+  const projects = open.filter((project) => project.root !== root);
+  const { [root]: _tab, ...keptTabs } = lastTab;
+  const { [root]: _session, ...keptSessions } = selectedSessions;
+  setState({ projects, lastTab: keptTabs, selectedSessions: keptSessions });
   if (getState().activeRoot !== root) return;
   const next = projects[0]?.root;
   if (next) activateProject(next);

@@ -14,7 +14,7 @@ import { t } from "@/i18n";
 import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import type { DirectoryListing } from "@/lib/types";
 import { getState, openProject, setState, updateProject, useStore, type Project } from "@/state/store";
-import { openTerminal, typeInto } from "@/state/terminals";
+import { openTerminal, typeIntoActive } from "@/state/terminals";
 import { FilePreviewDialog } from "@/components/FilePreview";
 import { cn } from "cn";
 
@@ -27,9 +27,7 @@ function parentOf(relativePath: string): string {
 
 /** Écrit un chemin dans le terminal actif, entre guillemets s'il porte des espaces. */
 function insertPath(path: string): void {
-  const { activeTerminalId } = getState();
-  if (!activeTerminalId) return;
-  typeInto(activeTerminalId, `${quotePath(path)} `);
+  typeIntoActive(`${quotePath(path)} `);
 }
 
 /**
