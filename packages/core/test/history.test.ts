@@ -187,3 +187,52 @@ describe("FileHistoryResolver", () => {
     expect(undated?.changedAt).toBeUndefined();
   });
 });
+
+describe("écritures des commandes Bash", () => {
+  it("fait un diff d'un fichier que seule une commande a touché, sans rien à restaurer", async () => {
+    const path = join(project, "src", "tool.ts");
+    await writeFile(path, "a\nb\nc\n", "utf8");
+
+    const diffs = await resolver.diffSession(SESSION, [], project, [
+      { path, hunks: ["@@ -1,2 +1,3 @@\n a\n+b\n c"], at: "2026-09-28T10:00:00.000Z" },
+    ]);
+
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]).toMatchObject({
+      trackingPath: path,
+      viaBash: true,
+      beforeMissing: true,
+      created: false,
+      deleted: false,
+      linesAdded: 1,
+      linesRemoved: 0,
+      changedAt: "2026-09-28T10:00:00.000Z",
+    });
+    expect(diffs[0]?.unified).toContain("+++ b/");
+    expect(diffs[0]?.unified).toContain("+b");
+  });
+
+  it("marque supprimé un fichier de commande qui n'existe plus", async () => {
+    const path = join(project, "src", "parti.ts");
+    const diffs = await resolver.diffSession(SESSION, [], project, [{ path, hunks: ["@@ -1,1 +0,0 @@\n-x"] }]);
+    expect(diffs[0]).toMatchObject({ deleted: true, linesRemoved: 1 });
+  });
+
+  it("ajoute les morceaux des commandes au diff d'un fichier qui a aussi une sauvegarde", async () => {
+    await writeBackup("aaaa000000000001@v1", "const a = 1;\n");
+    await writeFile(join(project, "src", "app.ts"), "const a = 2;\n");
+
+    const diffs = await resolver.diffSession(
+      SESSION,
+      [modified([{ backupFileName: "aaaa000000000001@v1", version: 1 }])],
+      project,
+      [{ path: join(project, "src", "app.ts"), hunks: ["@@ -1,1 +1,2 @@\n const a = 2;\n+const z = 0;"] }],
+    );
+
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]).toMatchObject({ viaBash: true, beforeMissing: false, linesAdded: 2, linesRemoved: 1 });
+    expect(diffs[0]?.unified).toContain("-const a = 1;");
+    expect(diffs[0]?.unified).toContain("@@ modifications par une commande @@");
+    expect(diffs[0]?.unified).toContain("+const z = 0;");
+  });
+});

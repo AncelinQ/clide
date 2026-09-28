@@ -10,6 +10,7 @@ function diff(path: string, unified: string, extra: Partial<FileDiff> = {}): Fil
     created: false,
     deleted: false,
     beforeMissing: false,
+    viaBash: false,
     binary: false,
     linesAdded: 1,
     linesRemoved: 0,

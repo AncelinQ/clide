@@ -1,10 +1,10 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { isAbsolute, join, sep } from "node:path";
 
 import { structuredPatch } from "diff";
 
-import { claudeHome, fileHistoryDir } from "../paths.js";
-import type { FileTrack } from "../session/projection.js";
+import { claudeHome, fileHistoryDir, samePath } from "../paths.js";
+import type { BashEdit, FileTrack } from "../session/projection.js";
 
 export interface FileDiff {
   trackingPath: string;
@@ -14,6 +14,12 @@ export interface FileDiff {
   deleted: boolean;
   /** La sauvegarde attendue est introuvable : l'état « avant » ne peut pas être reconstitué. */
   beforeMissing: boolean;
+  /**
+   * Une commande Bash a écrit dans le fichier : son diff vient du relevé de
+   * Claude Code, pas d'une sauvegarde. Seul par ce chemin, le fichier n'a rien
+   * à restaurer.
+   */
+  viaBash: boolean;
   binary: boolean;
   linesAdded: number;
   linesRemoved: number;
@@ -118,6 +124,7 @@ export class FileHistoryResolver {
       created: track.created,
       deleted: !after.exists && !track.created,
       beforeMissing: before.missing,
+      viaBash: false,
       binary: looksBinary(before.content) || looksBinary(after.content),
       linesAdded: 0,
       linesRemoved: 0,
@@ -155,14 +162,76 @@ export class FileHistoryResolver {
     };
   }
 
-  /** Diff de tous les fichiers touchés par une session. */
+  /**
+   * Diff de tous les fichiers touchés par une session : ceux des outils
+   * d'édition, depuis leurs sauvegardes, et ceux des commandes Bash, depuis le
+   * relevé de Claude Code. Un fichier touché par les deux garde le diff de sa
+   * sauvegarde, et les morceaux des commandes à la suite.
+   */
   async diffSession(
     sessionId: string,
     files: readonly FileTrack[],
     projectRoot: string,
+    bashEdits: readonly BashEdit[] = [],
   ): Promise<FileDiff[]> {
     const out: FileDiff[] = [];
-    for (const track of files) out.push(await this.diff(sessionId, track, projectRoot));
+    const remaining = [...bashEdits];
+    for (const track of files) {
+      const diff = await this.diff(sessionId, track, projectRoot);
+      const index = remaining.findIndex((edit) => samePath(edit.path, diff.absolutePath));
+      if (index === -1) {
+        out.push(diff);
+        continue;
+      }
+      const [edit] = remaining.splice(index, 1) as [BashEdit];
+      const counted = countLines(edit.hunks);
+      out.push({
+        ...diff,
+        viaBash: true,
+        linesAdded: diff.linesAdded + counted.added,
+        linesRemoved: diff.linesRemoved + counted.removed,
+        unified: [diff.unified, "@@ modifications par une commande @@", ...edit.hunks].filter(Boolean).join("\n"),
+        ...(edit.at && (!diff.changedAt || Date.parse(edit.at) > Date.parse(diff.changedAt)) ? { changedAt: edit.at } : {}),
+      });
+    }
+    for (const edit of remaining) out.push(await this.bashOnly(edit));
     return out.sort((a, b) => a.trackingPath.localeCompare(b.trackingPath));
   }
+
+  /** Fichier que seules des commandes ont touché : pas de sauvegarde, le relevé fait le diff. */
+  async bashOnly(edit: BashEdit): Promise<FileDiff> {
+    const posix = toPosix(edit.path);
+    const exists = await stat(edit.path).then(
+      (info) => info.isFile(),
+      () => false,
+    );
+    const counted = countLines(edit.hunks);
+    return {
+      trackingPath: edit.path,
+      absolutePath: edit.path,
+      created: false,
+      deleted: !exists,
+      beforeMissing: true,
+      viaBash: true,
+      binary: false,
+      linesAdded: counted.added,
+      linesRemoved: counted.removed,
+      unified: [`--- a/${posix}`, `+++ b/${posix}`, ...edit.hunks].join("\n"),
+      ...(edit.at ? { changedAt: edit.at } : {}),
+    };
+  }
+}
+
+/** Lignes ajoutées et retirées d'un lot de morceaux unifiés. */
+function countLines(hunks: readonly string[]): { added: number; removed: number } {
+  let added = 0;
+  let removed = 0;
+  for (const hunk of hunks) {
+    for (const line of hunk.split("\n")) {
+      if (line.startsWith("@@")) continue;
+      if (line.startsWith("+")) added += 1;
+      else if (line.startsWith("-")) removed += 1;
+    }
+  }
+  return { added, removed };
 }

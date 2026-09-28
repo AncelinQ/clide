@@ -133,6 +133,11 @@ le montre dans l'Explorateur. Le serveur n'ouvre que les fichiers de la session
 l'explorateur du projet, montre au lieu d'ouvrir ce que Windows exécuterait. Un
 fichier supprimé n'a plus rien à ouvrir : son chemin reste du texte.
 
+Un fichier écrit par une commande Bash y figure aussi, marqué « commande » : son
+diff est celui que Claude Code relève dans le résultat de la commande, faute de
+sauvegarde. Un fichier touché par les deux garde le diff de sa sauvegarde, et les
+morceaux des commandes à la suite. Sans sauvegarde, rien ne se restaure.
+
 Dans l'onglet Fichiers d'une session, « restaurer » ramène un fichier à son état
 d'avant la session, tiré de la première sauvegarde que Claude Code en a prise
 (`~/.claude/file-history/<session>/`). La fenêtre montre d'abord ce qui sera
