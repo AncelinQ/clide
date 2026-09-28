@@ -7,7 +7,8 @@
 Le front dépend de l'API et du design system, qui vivent dans d'autres dépôts.
 Déclarer ces dossiers évite d'avoir à redire à Claude où ils sont et à quoi ils
 servent. Le chemin se tape, se colle, ou se choisit par « Parcourir… » dans la
-fenêtre de sélection de Windows. Chaque dossier lié montre sa branche et ce qui y
+fenêtre de sélection de Windows ; le rôle se prend parmi des pastilles — ceux déjà
+donnés aux autres liens, puis api, front, design system… Chaque dossier lié montre sa branche et ce qui y
 attend un commit ou un push ; son menu « ⋯ » le met à jour ou change sa branche
 (voir [Git](./git)). Trois fichiers y suffisent, tous écrits dans le projet :
 
@@ -201,8 +202,10 @@ partager ; les siens dans les données de Clide, pour tous les projets.
 
 Le texte peut porter des variables, remplacées à l'envoi : `{sélection}` (le texte
 choisi dans l'éditeur), `{fichier}` (le fichier ouvert au centre), `{branche}`,
-`{saisie}` (demandée dans une petite fenêtre). Une variable sans valeur arrête
-l'envoi et le dit : « explique {sélection} » ne part pas sans sélection.
+`{saisie}` (demandée dans une petite fenêtre, qui propose en pastilles les cinq
+dernières réponses données à ce prompt dans ce navigateur). Une variable sans
+valeur arrête l'envoi et le dit : « explique {sélection} » ne part pas sans
+sélection.
 
 Un prompt part dans l'onglet Claude du projet ; sans onglet Claude, un onglet
 s'ouvre avec le prompt en argument de `claude`. On le lance d'un clic dans la vue,
