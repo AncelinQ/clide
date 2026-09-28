@@ -68,6 +68,18 @@ describe("LiveSessions", () => {
     expect(received.at(-1)).toMatchObject({ sessionId: "exacte", title: "exacte" });
   });
 
+  it("sert l'onglet le plus récent en premier : le transcript créé après lui est le sien", async () => {
+    const live = new LiveSessions(home);
+    const bound: string[] = [];
+    live.on((terminalId) => bound.push(terminalId));
+    live.track("ancien", CWD, undefined, Date.now() - 60_000);
+    live.track("recent", CWD, undefined, Date.now() - 1);
+
+    await writeFile(join(directory, "neuve.jsonl"), line({ type: "permission-mode", permissionMode: "default" }), "utf8");
+    await live.tick();
+    expect(bound).toEqual(["recent"]);
+  });
+
   it("ne rattache pas deux onglets du même dossier à la même session", async () => {
     const live = new LiveSessions(home);
     const received: [string, LiveSession][] = [];

@@ -22,12 +22,17 @@ Le bloc session suit l'onglet Claude actif ; choisir une session dans History l'
 détache jusqu'au prochain changement d'onglet. Le serveur relie chaque onglet
 Claude à son transcript, puis le lit par ajouts :
 
-- **par les hooks**, quand ils sont installés : ils donnent la session et son
-  transcript, et suivent un `/clear` ou une reprise ;
+- **par les hooks**, quand ils sont installés : `SessionStart` donne la session
+  et son transcript dès le démarrage, puis à chaque `/clear` ou reprise. L'onglet
+  est reconnu à la variable `CLIDE_TERMINAL_ID` que Clide lui donne et que
+  `claude` transmet à ses hooks : deux onglets du même dossier ne se confondent
+  pas, et une session lancée hors de Clide dans ce dossier ne rattache rien ;
 - **sinon, par le fichier créé** dans le dossier du projet après l'ouverture de
-  l'onglet, hors de ceux qu'un autre onglet suit. La date de modification ne sert
-  pas : toute session active dans le même dossier, lancée ailleurs, écrit sans
-  cesse dans le sien, et serait prise avant que la nouvelle ait créé son fichier ;
+  l'onglet, hors de ceux qu'un autre onglet suit, les onglets servis du plus
+  récent au plus ancien — un transcript créé après l'ouverture du dernier est
+  le sien. La date de modification ne sert pas : toute session active dans le
+  même dossier, lancée ailleurs, écrit sans cesse dans le sien, et serait prise
+  avant que la nouvelle ait créé son fichier ;
 - **par la commande**, pour `claude --resume <id>` : le transcript nommé est suivi.
   Son mode n'est montré qu'une fois la reprise repartie, le transcript décrivant
   jusque-là la séance précédente.

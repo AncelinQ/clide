@@ -470,6 +470,7 @@ const NOTIFICATION_LABEL: Record<string, string> = {
   idle: "en attente d'une réponse",
   stop: "réponse terminée",
   resume: "reprise",
+  session: "session rattachée",
   other: "événement",
 };
 
@@ -490,37 +491,73 @@ export function NotificationsPanel() {
       {({ status, recent }) => {
         const seen = new Set(live.map((item) => item.id));
         const all = [...live, ...recent.filter((item) => !seen.has(item.id))];
+        const current = status.installed && !status.outdated;
+        const install = async () => {
+          await post("/api/notifications/install", {});
+          if (window.Notification && Notification.permission === "default") {
+            await Notification.requestPermission();
+          }
+          state.reload();
+        };
         return (
           <>
             <div className="flex flex-wrap items-center gap-2 py-2">
-              <Badge variant={status.installed ? "default" : "outline"}>
+              <Badge variant={current ? "default" : "outline"}>
                 {status.installed
-                  ? t("hooks installés")
+                  ? status.outdated
+                    ? t("hooks à mettre à jour")
+                    : t("hooks installés")
                   : status.kinds.length > 0
                     ? t("installation partielle")
                     : t("hooks absents")}
               </Badge>
               <span className="text-[11px] text-muted-foreground">
-                {status.installed
-                  ? t("Claude Code signale permissions, attentes, fins de réponse et reprises.")
-                  : t("Sans eux, aucun événement ne remonte.")}
+                {current
+                  ? t("Claude Code signale permissions, attentes, fins de réponse et reprises, et rattache chaque onglet à sa session.")
+                  : status.outdated
+                    ? t("Le script déposé est celui d'une version antérieure : le mettre à jour le remplace.")
+                    : t("Sans eux, aucun événement ne remonte, et l'onglet devine sa session.")}
               </span>
             </div>
-            <ActionButton
-              variant={status.installed ? "outline" : "default"}
-              onAction={async () => {
-                await post(
-                  status.installed ? "/api/notifications/uninstall" : "/api/notifications/install",
-                  {},
-                );
-                if (window.Notification && Notification.permission === "default") {
-                  await Notification.requestPermission();
-                }
-                state.reload();
-              }}
-            >
-              {status.installed ? t("Désinstaller") : t("Installer les hooks")}
-            </ActionButton>
+            <div className="flex flex-wrap gap-2">
+              {!current && (
+                <ActionButton variant="default" onAction={install}>
+                  {status.installed ? t("Mettre à jour les hooks") : t("Installer les hooks")}
+                </ActionButton>
+              )}
+              {status.kinds.length > 0 && (
+                <ActionButton
+                  onAction={async () => {
+                    await post("/api/notifications/uninstall", {});
+                    state.reload();
+                  }}
+                >
+                  {t("Désinstaller")}
+                </ActionButton>
+              )}
+            </div>
+            {status.legacy.length > 0 && (
+              <div className="grid justify-items-start gap-1.5 py-2">
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  {t("Une installation antérieure a laissé ses hooks dans settings.json : ils déversent dans un dossier que rien ne lit.")}
+                </p>
+                <ul className="m-0 list-none p-0 text-[11px] text-muted-foreground">
+                  {status.legacy.map((item) => (
+                    <li key={item.script} className="truncate font-mono" title={item.script}>
+                      {item.script} · {item.events.join(", ")}
+                    </li>
+                  ))}
+                </ul>
+                <ActionButton
+                  onAction={async () => {
+                    await post("/api/notifications/prune-legacy", {});
+                    state.reload();
+                  }}
+                >
+                  {t("Retirer ces hooks")}
+                </ActionButton>
+              </div>
+            )}
 
             <Section>{t("Reçus")}</Section>
             {all.length === 0 ? (

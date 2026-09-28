@@ -1,6 +1,7 @@
 export {
   appDataDir,
   legacyAppDataDir,
+  roamingDir,
   migrateAppData,
   claudeHome,
   isInside,

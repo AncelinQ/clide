@@ -15,6 +15,7 @@ import {
   hooksStatus,
   installHooks,
   migrateHooks,
+  pruneLegacyHooks,
   uninstallHooks,
 } from "../src/notifications/hook.js";
 import {
@@ -98,12 +99,22 @@ describe("installation des hooks", () => {
     const status = await installHooks(dataDir, settings);
 
     expect(status.installed).toBe(true);
-    expect(status.kinds.sort()).toEqual(["idle", "permission", "resume", "stop"]);
+    expect(status.outdated).toBe(false);
+    expect(status.kinds.sort()).toEqual(["idle", "permission", "resume", "session", "stop"]);
     expect(existsSync(hookScriptPath(dataDir))).toBe(true);
     expect(existsSync(eventsDir(dataDir))).toBe(true);
   });
 
-  it.each(["Stop", "UserPromptSubmit"])("ne pose pas de matcher sur %s, qui n'en accepte pas", async (event) => {
+  it("signale un script déposé par une version antérieure", async () => {
+    await installHooks(dataDir, settings);
+    await writeFile(hookScriptPath(dataDir), "// ancien script\n", "utf8");
+    expect((await hooksStatus(dataDir, settings)).outdated).toBe(true);
+
+    await installHooks(dataDir, settings);
+    expect((await hooksStatus(dataDir, settings)).outdated).toBe(false);
+  });
+
+  it.each(["Stop", "UserPromptSubmit", "SessionStart"])("ne pose pas de matcher sur %s", async (event) => {
     await installHooks(dataDir, settings);
     const value = JSON.parse(await readFile(settings, "utf8"));
 
@@ -204,6 +215,26 @@ describe("parseNotification", () => {
       permissionMode: "plan",
       agentType: "code-review",
     });
+  });
+
+  it("lit l'onglet d'origine et la source d'un rattachement", () => {
+    const notification = parseNotification(
+      "43",
+      JSON.stringify({
+        v: 2,
+        kind: "session",
+        receivedAt: "2026-09-28T10:00:00.000Z",
+        terminalId: "t1",
+        payload: { session_id: "abc", transcript_path: "C:/x/abc.jsonl", cwd: "C:/app", source: "clear" },
+      }),
+    );
+    expect(notification).toMatchObject({ kind: "session", terminalId: "t1", source: "clear", sessionId: "abc" });
+  });
+
+  it("lit encore une enveloppe sans version, qui ne nomme aucun onglet", () => {
+    const notification = parseNotification("44", JSON.stringify({ kind: "stop", payload: { session_id: "abc" } }));
+    expect(notification).toMatchObject({ kind: "stop", sessionId: "abc" });
+    expect(notification).not.toHaveProperty("terminalId");
   });
 
   it("prend le dernier message de Claude comme texte d'un arrêt", () => {
@@ -393,7 +424,9 @@ describe("script de hook, exécuté pour de vrai", () => {
       last_assistant_message: "terminé",
     });
 
-    const child = execFile(process.execPath, [hookScriptPath(dataDir), "stop", eventsDir(dataDir)]);
+    const child = execFile(process.execPath, [hookScriptPath(dataDir), "stop", eventsDir(dataDir)], {
+      env: { ...process.env, CLIDE_TERMINAL_ID: "onglet-7" },
+    });
     child.stdin?.end(payload);
     await new Promise((done) => child.on("close", done));
 
@@ -406,6 +439,7 @@ describe("script de hook, exécuté pour de vrai", () => {
       sessionId: "s1",
       cwd: "C:\\Projets\\mon-app",
       message: "terminé",
+      terminalId: "onglet-7",
     });
   }, 30_000);
 
@@ -428,26 +462,68 @@ describe("définitions", () => {
       "idle",
       "stop",
       "resume",
+      "session",
     ]);
   });
 });
 
-describe("migrateHooks", () => {
-  it("repointe vers le nouveau dossier les hooks posés sous l'ancien", async () => {
+describe("anciennes installations", () => {
+  /** Ce que le tout premier nom de l'application laissait dans settings.json. */
+  const claudeTerm = (root: string) => {
+    const script = join(root, "ClaudeTerm", "hook.cmd");
+    const entry = { hooks: [{ type: "command", command: `"${script}"` }] };
+    return { script, settings: { hooks: { Notification: [entry], Stop: [entry, { hooks: [{ type: "command", command: "mon-outil" }] }] } } };
+  };
+
+  it("reconnaît leurs entrées et les événements qui les portent", async () => {
+    const legacy = claudeTerm(dir);
+    await writeFile(settings, JSON.stringify(legacy.settings));
+    const status = await hooksStatus(dataDir, settings, [legacy.script]);
+    expect(status.legacy).toEqual([{ script: legacy.script, events: ["Notification", "Stop"] }]);
+    expect(status.kinds).toEqual([]);
+  });
+
+  it("repointe : retire les anciennes entrées, pose les nôtres, garde le hook maison", async () => {
+    const legacy = claudeTerm(dir);
+    await writeFile(settings, JSON.stringify(legacy.settings));
+
+    expect(await migrateHooks([legacy.script], dataDir, settings)).toEqual([legacy.script]);
+    const status = await hooksStatus(dataDir, settings, [legacy.script]);
+    expect(status.installed).toBe(true);
+    expect(status.legacy).toEqual([]);
+    const raw = await readFile(settings, "utf8");
+    expect(raw).toContain("mon-outil");
+    expect(raw).not.toContain("ClaudeTerm");
+  });
+
+  it("repointe aussi le script d'un ancien dossier de données", async () => {
     const legacyDir = join(dir, "ancien");
     await writeFile(settings, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mon-outil" }] }] } }));
     await installHooks(legacyDir, settings);
 
-    expect(await migrateHooks(legacyDir, dataDir, settings)).toBe(true);
-    expect((await hooksStatus(dataDir, settings)).installed).toBe(true);
+    const scripts = [hookScriptPath(legacyDir)];
+    expect(await migrateHooks(scripts, dataDir, settings)).toEqual(scripts);
+    expect((await hooksStatus(dataDir, settings, scripts)).installed).toBe(true);
     expect((await hooksStatus(legacyDir, settings)).kinds).toEqual([]);
-    // Le hook posé à la main sur le même événement reste là.
     expect(await readFile(settings, "utf8")).toContain("mon-outil");
   });
 
   it("ne pose rien là où rien n'était installé", async () => {
     await writeFile(settings, "{}");
-    expect(await migrateHooks(join(dir, "ancien"), dataDir, settings)).toBe(false);
+    expect(await migrateHooks([join(dir, "ancien", "hook.mjs")], dataDir, settings)).toEqual([]);
     expect((await hooksStatus(dataDir, settings)).kinds).toEqual([]);
+  });
+
+  it("se retire sans rien poser, sur demande", async () => {
+    const legacy = claudeTerm(dir);
+    await writeFile(settings, JSON.stringify(legacy.settings));
+
+    const status = await pruneLegacyHooks(dataDir, settings, [legacy.script]);
+    expect(status.legacy).toEqual([]);
+    expect(status.kinds).toEqual([]);
+    const value = JSON.parse(await readFile(settings, "utf8"));
+    expect(value.hooks.Notification).toBeUndefined();
+    expect(value.hooks.Stop).toHaveLength(1);
+    expect(value.hooks.Stop[0].hooks[0].command).toBe("mon-outil");
   });
 });
