@@ -29,6 +29,8 @@ const pending = new Map<string, string>();
 let socket: WebSocket | undefined;
 /** Projet auquel rattacher le prochain terminal ouvert. */
 let pendingOwner: string | null = null;
+/** Script que l'onglet en cours d'ouverture va lancer, noté dès qu'on connaît son identifiant. */
+let pendingScript: string | null = null;
 
 export function connect(): void {
   socket = new WebSocket(socketUrl("/pty"));
@@ -54,6 +56,10 @@ function onMessage(message: ServerMessage): void {
     case "opened": {
       const owner = pendingOwner ?? getState().activeRoot;
       pendingOwner = null;
+      if (pendingScript) {
+        scripts.set(message.terminal.id, pendingScript);
+        pendingScript = null;
+      }
       if (!owner) return;
       setState((current) => ({
         terminals: { ...current.terminals, [message.terminal.id]: { info: message.terminal, owner } },
@@ -224,6 +230,7 @@ export function runScript(name: string, directory: string, command: string): voi
 
   const idle = shells.find((info) => info.state !== "running");
   if (!idle) {
+    pendingScript = key;
     openTerminal("shell", { cwd: directory, command });
     return;
   }
@@ -231,6 +238,21 @@ export function runScript(name: string, directory: string, command: string): voi
   scripts.set(idle.id, key);
   typeInto(idle.id, `\u001b${move}${command}\r`);
   focusTerminal(idle.id);
+}
+
+/** Onglet où un script tourne encore, s'il y en a un. */
+export function runningScriptTab(directory: string, name: string): string | undefined {
+  const key = `${directory}|${name}`;
+  return Object.values(getState().terminals).find(
+    (entry) =>
+      entry.info.kind === "shell" && !entry.info.exited && entry.info.state === "running" && scripts.get(entry.info.id) === key,
+  )?.info.id;
+}
+
+/** Interrompt ce qui tourne dans un onglet, par Ctrl+C, et le montre. */
+export function interruptTerminal(id: string): void {
+  typeInto(id, "\u0003");
+  focusTerminal(id);
 }
 
 export function closeTerminal(id: string): void {
