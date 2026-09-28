@@ -213,6 +213,8 @@ export async function refreshSearch(search: SearchIndex): Promise<void> {
 
 /** En deçà, une session est peut-être en cours ailleurs : on ne la retire pas. */
 const RECENT_MS = 2 * 60 * 1000;
+/** Taille d'un transcript montré en entier dans l'éditeur, en caractères. */
+const TRANSCRIPT_LIMIT = 20_000_000;
 
 /**
  * Ce que retirer une session emporterait, et ce qui l'interdit.
@@ -472,6 +474,26 @@ export const routes: Record<string, Handler> = {
   "/api/session": async (params, { index }) => {
     const id = requireParam(params, "id");
     return { chain: index.chain(id), subagents: index.subagents(id) };
+  },
+
+  /**
+   * Le transcript `.jsonl` d'une session, pour le lire dans l'éditeur. Lu, jamais
+   * écrit ; au-delà de 20 Mo, seul le début vient, coupé à une ligne entière.
+   */
+  "/api/session/transcript": async (params, { index }) => {
+    const id = requireParam(params, "id");
+    let session = index.list({ kind: "session" }).find((entry) => entry.sessionId === id);
+    if (!session) {
+      await index.refresh();
+      session = index.list({ kind: "session" }).find((entry) => entry.sessionId === id);
+    }
+    if (!session) throw new Error(`session ${id} introuvable`);
+    const transcript = (await sessionArtifacts(session.projectDir, id)).find((artifact) => artifact.role === "transcript");
+    if (!transcript) throw new Error("transcript introuvable");
+    const text = await readFile(transcript.path, "utf8");
+    if (text.length <= TRANSCRIPT_LIMIT) return { path: transcript.path, text, truncated: false };
+    const cut = text.lastIndexOf("\n", TRANSCRIPT_LIMIT);
+    return { path: transcript.path, text: text.slice(0, cut === -1 ? TRANSCRIPT_LIMIT : cut + 1), truncated: true };
   },
 
   "/api/session/removal": async (params, context) => {

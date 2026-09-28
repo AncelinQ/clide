@@ -104,6 +104,11 @@ export function EditorPane({ path }: { path: string }) {
           </Button>
         </div>
       )}
+      {file.readOnly && (
+        <div className="shrink-0 border-b bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground" data-read-only>
+          {file.notice ?? t("Transcript de la session, en lecture seule : Claude Code l'écrit, Clide ne fait que le lire.")}
+        </div>
+      )}
       {file.error && !file.changedOnDisk && (
         <div className="shrink-0 border-b bg-destructive/10 px-3 py-1.5 text-[12px] text-destructive">{file.error}</div>
       )}

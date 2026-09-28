@@ -102,7 +102,10 @@ avec les 256 derniers Ko de leur sortie rejoués.
 La session regardée vient de **History**, à droite, et ne déplace pas le projet
 courant : c'est une lecture, pas un déplacement. La reprendre — bouton
 « reprendre », qui lance `claude --resume` — ouvre son projet, parce que là c'est
-une action.
+une action. « transcript » ouvre son `.jsonl` dans l'éditeur, en lecture seule, dans
+le projet ouvert qui la contient : Claude Code l'écrit, Clide ne fait que le lire.
+Au-delà de 20 Mo, seul le début est montré, avec le chemin du fichier entier ; ce
+transcript ne revient pas au rechargement.
 
 Les fichiers cachés sont écartés de la liste, sauf à les afficher par l'œil de son
 en-tête ; `node_modules` et `.git` le sont toujours.

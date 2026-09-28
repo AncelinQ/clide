@@ -1,5 +1,6 @@
 import type * as Monaco from "monaco-editor";
 
+import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
 import { ownerOf } from "@/lib/workspace";
 import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
@@ -23,6 +24,8 @@ interface Document {
   eol: "\n" | "\r\n";
   bom: boolean;
   view?: Monaco.editor.ICodeEditorViewState | null;
+  /** Un transcript : montré, jamais enregistré ni relu sur disque. */
+  readOnly?: boolean;
 }
 
 type Readable =
@@ -109,6 +112,7 @@ function projectFor(path: string): string | undefined {
   const { projects, activeRoot } = getState();
   // Un diff porte son projet dans sa clé : `diff:<ref>:<racine>|<chemin>`.
   if (isDiff(path)) return path.slice(path.indexOf(":", 5) + 1, path.indexOf("|"));
+  if (isTranscript(path)) return path.slice(TRANSCRIPT_PREFIX.length, path.indexOf("|"));
   return ownerOf(path, projects.map((project) => project.root)) ?? activeRoot ?? undefined;
 }
 
@@ -215,6 +219,7 @@ export async function mountEditor(host: HTMLElement, path: string): Promise<void
     instance.setModel(doc.model);
     if (doc.view) instance.restoreViewState(doc.view);
   }
+  instance.updateOptions({ readOnly: doc.readOnly === true });
   shown = path;
   instance.layout();
   const at = pendingReveal.get(path);
@@ -283,7 +288,7 @@ export function watchText(path: string, listener: (text: string) => void): () =>
  */
 export async function saveFile(path: string, options: { overwrite?: boolean } = {}): Promise<boolean> {
   const doc = documents.get(path);
-  if (!doc) return false;
+  if (!doc || doc.readOnly) return false;
   const text = doc.model.getValue();
   try {
     const expectedMtimeMs = options.overwrite
@@ -321,7 +326,7 @@ export async function reloadFile(path: string): Promise<void> {
  */
 export async function checkOnDisk(path: string): Promise<void> {
   const doc = documents.get(path);
-  if (!doc) return;
+  if (!doc || doc.readOnly) return;
   try {
     const { mtimeMs } = await api<{ mtimeMs: number }>("/api/fs/stat", { path });
     if (Math.abs(mtimeMs - doc.mtimeMs) <= 1) return;
@@ -436,8 +441,8 @@ export function followRename(from: string, to: string): void {
 export function restoreOpenFiles(): void {
   for (const project of getState().projects) {
     for (const path of project.openFiles) {
-      // Un diff se recalcule à la demande, il ne survit pas au rechargement.
-      if (isDiff(path)) {
+      // Un diff ou un transcript se relit à la demande, il ne survit pas au rechargement.
+      if (isDiff(path) || isTranscript(path)) {
         forget(path, project.root);
         continue;
       }
@@ -454,6 +459,49 @@ export function restoreOpenFiles(): void {
         })
         .catch(() => forget(path, project.root));
     }
+  }
+}
+
+// ─── Transcripts ────────────────────────────────────────────────────────────
+
+const TRANSCRIPT_PREFIX = "transcript:";
+
+/** Onglet de transcript : sa clé est `transcript:<racine>|<session>`, jamais un chemin de fichier. */
+export function isTranscript(id: string): boolean {
+  return id.startsWith(TRANSCRIPT_PREFIX);
+}
+
+/**
+ * Ouvre le transcript `.jsonl` d'une session dans l'éditeur du projet `root`, en
+ * lecture seule : Claude Code l'écrit, Clide ne fait que le lire.
+ */
+export async function openTranscript(root: string, session: { sessionId: string; title?: string }): Promise<void> {
+  const id = `${TRANSCRIPT_PREFIX}${root}|${session.sessionId}`;
+  const title = `${(session.title ?? session.sessionId.slice(0, 8)).slice(0, 40)}.jsonl`;
+  setState((current) => ({
+    files: current.files[id] ? current.files : { ...current.files, [id]: { kind: "loading", dirty: false, changedOnDisk: false, title, readOnly: true } },
+  }));
+  updateOwner(root, (project) => ({
+    openFiles: project.openFiles.includes(id) ? project.openFiles : [...project.openFiles, id],
+    activeFile: id,
+  }));
+  try {
+    const transcript = await api<{ path: string; text: string; truncated: boolean }>("/api/session/transcript", { id: session.sessionId });
+    const m = await load();
+    await ensureEditor();
+    const existing = documents.get(id);
+    if (existing) existing.model.setValue(transcript.text);
+    else {
+      // Pas de langage : une ligne par objet JSON n'est pas un document JSON, Monaco le soulignerait partout.
+      const model = m.editor.createModel(transcript.text, "plaintext", m.Uri.parse(`transcript:/${encodeURIComponent(session.sessionId)}.jsonl`));
+      documents.set(id, { model, saved: transcript.text, mtimeMs: 0, eol: "\n", bom: false, readOnly: true });
+    }
+    patchFile(id, {
+      kind: "text",
+      ...(transcript.truncated ? { notice: t("Transcript de plus de 20 Mo : seul son début est montré. Le fichier entier : {path}", { path: transcript.path }) } : {}),
+    });
+  } catch (error) {
+    patchFile(id, { kind: "unsupported", error: error instanceof Error ? error.message : String(error) });
   }
 }
 
