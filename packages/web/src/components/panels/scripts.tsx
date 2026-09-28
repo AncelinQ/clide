@@ -323,7 +323,7 @@ export function ScriptsPanel({ root }: { root: string }) {
                   </Button>
                 ) : (
                   <form
-                    className="flex min-w-0 flex-1 basis-full items-center gap-1"
+                    className="grid min-w-0 basis-full grid-cols-1 gap-1.5"
                     onSubmit={(event) => {
                       event.preventDefault();
                       if (!naming.trim()) return;
@@ -341,13 +341,18 @@ export function ScriptsPanel({ root }: { root: string }) {
                       autoFocus
                       value={naming}
                       onChange={(event) => setNaming(event.target.value)}
-                      placeholder={t("Tout démarrer")}
-                      className="h-7 min-w-0 flex-1 text-[12px]"
+                      placeholder={t("Nom du groupe, par exemple Tout démarrer")}
+                      className="h-8 w-full min-w-0 text-[12px]"
                       onKeyDown={(event) => event.key === "Escape" && setNaming(undefined)}
                     />
-                    <Button type="submit" size="sm" className="h-7" disabled={!naming.trim()}>
-                      {t("Enregistrer")}
-                    </Button>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <Button type="button" size="sm" variant="ghost" className="h-7" onClick={() => setNaming(undefined)}>
+                        {t("Annuler")}
+                      </Button>
+                      <Button type="submit" size="sm" className="h-7" disabled={!naming.trim()}>
+                        {t("Enregistrer")}
+                      </Button>
+                    </div>
                   </form>
                 )}
               </div>

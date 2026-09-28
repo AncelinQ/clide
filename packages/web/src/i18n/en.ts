@@ -865,4 +865,5 @@ export const EN: Record<string, string> = {
   "Ignoré par git (.gitignore)": "Ignored by git (.gitignore)",
   "Masquer les fichiers cachés et ignorés": "Hide hidden and ignored files",
   "Afficher les fichiers cachés (.env, .claude…) et ceux que git ignore": "Show hidden files (.env, .claude…) and those git ignores",
+  "Nom du groupe, par exemple Tout démarrer": "Group name, e.g. Start everything",
 };
