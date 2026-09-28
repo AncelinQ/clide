@@ -18,17 +18,17 @@ export const git: WebModule = {
       about: "La branche courante, son écart avec l'amont, et les autres branches du dépôt.",
       render: (root) => <GitView root={root} />,
     },
-  ],
-  bottomViews: [
     {
       id: "commit",
       icon: GitCommitHorizontal,
-      title: "Commit",
-      doc: "git",
+      label: "Commit",
+      doc: "git#commiter",
       about:
-        "Les fichiers modifiés du projet, à cocher : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.",
+        "Les fichiers modifiés du projet, à cocher, en liste ou rangés par dossier : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.",
       render: (root) => <CommitPanel root={root} />,
     },
+  ],
+  bottomViews: [
     {
       id: "commits",
       icon: GitGraph,

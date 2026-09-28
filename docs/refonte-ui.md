@@ -416,7 +416,7 @@ d'être extrait après coup. Plus propre, mais le gain visible arrive plus tard.
 
 ## Décisions à prendre
 
-1. **Où vit le commit ?** ClaudeTerm met le panneau de commit dans l'activité Git à gauche
+1. **Où vit le commit ?** Tranché ensuite : à gauche, dans la colonne du projet, rangeable par dossier comme dans WebStorm ; le journal reste en bas. ClaudeTerm met le panneau de commit dans l'activité Git à gauche
    et le **journal** des commits en bas. Mettre le commit en bas le rapproche de la session
    (Fichiers, Rédaction) ; le mettre à gauche le rattache au projet. Proposition : commit en
    bas, journal en bas aussi, branches à gauche.
