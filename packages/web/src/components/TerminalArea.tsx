@@ -307,9 +307,13 @@ export function TerminalArea() {
   const zone = useRef<HTMLDivElement>(null);
   const previewStart = useRef(0);
 
+  // Rattachée dès son démarrage par les hooks, une session n'a rien à montrer
+  // avant son premier prompt : son transcript n'existe pas encore.
+  const starting = followLive && current !== undefined && current.lastActivityAt === undefined;
   // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
-  const shown: (ShownSession & { title?: string }) | undefined =
-    followLive && current
+  const shown: (ShownSession & { title?: string }) | undefined = starting
+    ? undefined
+    : followLive && current
       ? {
           sessionId: current.sessionId,
           ...(current.title ? { title: current.title } : {}),
@@ -366,7 +370,9 @@ export function TerminalArea() {
           <FilesPanel session={shown} />
         ) : (
           <p className="py-6 text-center text-muted-foreground">
-            {t("Lance Claude dans un onglet, ou choisis une session dans History.")}
+            {starting
+              ? t("La session démarre : le bloc se remplit au premier prompt.")
+              : t("Lance Claude dans un onglet, ou choisis une session dans History.")}
           </p>
         ),
     },

@@ -163,7 +163,7 @@ export interface ProcessNode {
   children: ProcessNode[];
 }
 
-export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "other";
+export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "session" | "other";
 
 export interface ClaudeNotification {
   id: string;
@@ -181,7 +181,11 @@ export type FilePreview =
 
 export interface HooksStatus {
   installed: boolean;
+  /** Le script déposé n'est plus celui de cette version : réinstaller le remplace. */
+  outdated: boolean;
   kinds: NotificationKind[];
+  /** Hooks d'installations antérieures encore déclarés, par script, avec leurs événements. */
+  legacy: { script: string; events: string[] }[];
   settingsPath: string;
 }
 

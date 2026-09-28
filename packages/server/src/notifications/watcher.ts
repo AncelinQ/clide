@@ -13,13 +13,17 @@ export interface ClaudeNotification {
   sessionId?: string;
   transcriptPath?: string;
   cwd?: string;
+  /** Onglet d'où vient l'événement, quand le claude a été lancé par Clide. */
+  terminalId?: string;
+  /** Pour `session` : startup, resume, clear, compact ou fork. */
+  source?: string;
   permissionMode?: string;
   agentType?: string;
   /** Texte à montrer : dernier message de Claude, ou libellé de la notification. */
   message?: string;
 }
 
-const KINDS = new Set<NotificationKind>(["permission", "idle", "stop", "resume", "other"]);
+const KINDS = new Set<NotificationKind>(["permission", "idle", "stop", "resume", "session", "other"]);
 
 function pickString(record: Record<string, unknown>, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -68,6 +72,8 @@ export function parseNotification(id: string, text: string): ClaudeNotification 
       ? { transcriptPath: pickString(payload, ["transcript_path"]) }
       : {}),
     ...(pickString(payload, ["cwd"]) ? { cwd: pickString(payload, ["cwd"]) } : {}),
+    ...(pickString(envelope, ["terminalId"]) ? { terminalId: pickString(envelope, ["terminalId"]) } : {}),
+    ...(pickString(payload, ["source"]) ? { source: pickString(payload, ["source"]) } : {}),
     ...(pickString(payload, ["permission_mode"])
       ? { permissionMode: pickString(payload, ["permission_mode"]) }
       : {}),
@@ -188,8 +194,8 @@ export class NotificationWatcher {
         await rm(path, { force: true });
         if (!notification) continue;
 
-        // Une reprise n'est pas une alerte à relire : elle ne va pas à l'historique.
-        if (notification.kind !== "resume") {
+        // Une reprise ou un rattachement ne sont pas des alertes à relire : ils ne vont pas à l'historique.
+        if (notification.kind !== "resume" && notification.kind !== "session") {
           this.#recent.push(notification);
           if (this.#recent.length > this.keep) this.#recent.shift();
         }

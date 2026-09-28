@@ -162,11 +162,23 @@ fichier après coup qui fait foi, la corbeille ne rendant pas d'erreur fiable.
 
 Claude Code signale trois choses par ses hooks : une permission demandée, une
 attente de réponse, une réponse terminée — et, par `UserPromptSubmit`, la reprise
-qui les rend caduques. L'installation, depuis le panneau
-**Notifications**, déclare ces hooks dans `settings.json` et dépose un script qui
+qui les rend caduques. Un cinquième hook, `SessionStart`, n'est pas une alerte :
+il dit quelle session l'onglet suit désormais, au démarrage, après un `/clear`, à
+la reprise et après une compaction, et c'est lui qui rattache l'onglet à son
+transcript avant le premier prompt. L'installation, depuis le panneau
+**Alertes**, déclare ces hooks dans `settings.json` et dépose un script qui
 déverse chaque événement dans une file que le serveur surveille.
 
-Trois décisions de conception :
+Quatre décisions de conception :
+
+- **L'onglet se nomme lui-même.** Clide donne à chaque onglet la variable
+  `CLIDE_TERMINAL_ID` ; `claude` la transmet à ses hooks, dont le script la
+  rapporte avec l'événement. Le serveur rattache donc l'événement à l'onglet
+  exact, même quand deux onglets travaillent dans le même dossier. Un `claude`
+  lancé hors de Clide n'en porte pas : ses alertes vont à l'onglet du même
+  dossier, mais il ne rattache aucun onglet à sa session — sans quoi un autre
+  éditeur ou un `claude -p` dans le même dossier volerait l'onglet à chaque
+  démarrage.
 
 - **Le type vient du `matcher`, pas de la charge utile.** Une entrée de hook par
   type, et le type est passé en argument du script : la documentation fixe les
@@ -194,7 +206,12 @@ quand la session repart sur un nouveau prompt. La reprise est lue sur
 `UserPromptSubmit` plutôt que sur `PreToolUse`, qui lancerait un processus à
 chaque appel d'outil. Elle ne voit donc pas une session qui repart sans prompt.
 Une installation antérieure à ce hook apparaît comme partielle : il suffit de
-réinstaller.
+réinstaller. Le panneau dit aussi quand le script déposé n'est plus celui de la
+version qui tourne — « à mettre à jour », un clic le remplace — et quand
+`settings.json` porte encore les hooks d'une installation de Clide sous un ancien
+nom : ils déversent dans un dossier que rien ne lit. Ils sont repointés au
+démarrage du serveur, les hooks ayant été voulus, et le panneau propose de les
+retirer si cette écriture n'a pas pu se faire.
 
 Hooks et ligne de statut sont des commandes que Claude Code lance : elles visent
 Node par son chemin absolu, le PATH de Claude Code n'étant pas celui de

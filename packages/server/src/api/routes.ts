@@ -44,7 +44,7 @@ import {
   type TranscriptRef,
 } from "@clide/core";
 
-import { hooksStatus, installHooks, uninstallHooks } from "../notifications/hook.js";
+import { hooksStatus, installHooks, pruneLegacyHooks, uninstallHooks } from "../notifications/hook.js";
 import { GitWorktrees, realPath } from "../platform/git.js";
 import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
 import { listModels } from "../platform/models.js";
@@ -1175,6 +1175,11 @@ export const mutations: Record<string, Mutation> = {
 
   "/api/notifications/uninstall": async (_params, { dataDir, settingsPath }) => ({
     status: await uninstallHooks(dataDir, settingsPath),
+  }),
+
+  /** Retire les hooks d'une installation antérieure restés dans settings.json, sans rien poser. */
+  "/api/notifications/prune-legacy": async (_params, { dataDir, settingsPath }) => ({
+    status: await pruneLegacyHooks(dataDir, settingsPath),
   }),
 
   "/api/processes/stop": async (params, { processes, terminals }) => {

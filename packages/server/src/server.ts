@@ -16,7 +16,8 @@ import {
 import { WebSocketServer, type WebSocket } from "ws";
 
 import { mutations, routes, type ApiContext } from "./api/routes.js";
-import { migrateHooks } from "./notifications/hook.js";
+import { legacyHookScripts, migrateHooks } from "./notifications/hook.js";
+import { terminalOf } from "./notifications/target.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
 import { calibrationOf } from "./sessions/costs.js";
@@ -181,9 +182,9 @@ async function serveDocs(response: ServerResponse, root: string | undefined, res
 }
 
 /**
- * Reprend l'état laissé sous l'ancien nom, claude-ide. Seulement quand le dossier
- * de données est celui par défaut : un dossier imposé — les tests — n'a pas
- * d'histoire à reprendre.
+ * Reprend l'état laissé par les installations antérieures. Seulement quand le
+ * dossier de données est celui par défaut : un dossier imposé — les tests — n'a
+ * pas d'histoire à reprendre.
  */
 async function migrateLegacyState(settingsPath: string): Promise<void> {
   const data = await migrateAppData();
@@ -191,10 +192,16 @@ async function migrateLegacyState(settingsPath: string): Promise<void> {
   if (data.kept.length > 0) {
     console.warn(`déjà présents dans ${data.to}, laissés dans ${data.from} : ${data.kept.join(", ")}`);
   }
-  if (data.moved.length === 0) return;
-  console.log(`données reprises de ${data.from} : ${data.moved.join(", ")}`);
-  // Les hooks lisent leur script dans l'ancien dossier, qui vient d'être déplacé.
-  if (await migrateHooks(legacyAppDataDir(), appDataDir(), settingsPath)) console.log("hooks de notification repointés");
+  if (data.moved.length > 0) console.log(`données reprises de ${data.from} : ${data.moved.join(", ")}`);
+  // Les hooks d'une installation antérieure appellent un script déplacé ou
+  // disparu : sans cela, aucun événement n'arrive et l'onglet devine sa session.
+  try {
+    for (const script of await migrateHooks(legacyHookScripts(), appDataDir(), settingsPath)) {
+      console.log(`hooks repointés depuis ${script}`);
+    }
+  } catch (error) {
+    console.warn(`hooks d'une installation antérieure laissés en place : ${(error as Error).message}`);
+  }
 }
 
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
@@ -230,10 +237,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     if (command !== undefined && terminal) live.track(id, terminal.cwd, command);
   });
   // Un hook porte la session et son transcript : c'est le rattachement exact,
-  // qui prime sur la recherche par date.
+  // qui prime sur la recherche par date. Seul un événement qui nomme son onglet
+  // rattache : une session lancée ailleurs dans le même dossier — un autre
+  // éditeur, un `claude -p` — ne doit pas voler l'onglet.
   notifications.on((notification) => {
-    if (!notification.cwd || !notification.transcriptPath || !notification.sessionId) return;
-    const terminal = manager.findByCwd(notification.cwd);
+    if (!notification.terminalId || !notification.transcriptPath || !notification.sessionId) return;
+    const terminal = manager.get(notification.terminalId);
     if (terminal?.kind === "claude") live.bind(terminal.id, notification.transcriptPath, notification.sessionId);
   });
 
@@ -339,10 +348,9 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       manager.on("exit", (id, exitCode) => post({ t: "exit", id, exitCode })),
       live.on((terminalId, session) => post({ t: "live", terminalId, session })),
       notifications.on((notification) => {
-        // Claude Code annonce le dossier de la session, pas l'onglet : le
-        // rattachement se fait sur ce dossier, et reste absent s'il ne
-        // correspond à aucun terminal ouvert.
-        const terminal = notification.cwd ? manager.findByCwd(notification.cwd) : undefined;
+        // Un rattachement de session a fait son office côté serveur : rien à montrer.
+        if (notification.kind === "session") return;
+        const terminal = terminalOf(manager, notification);
         if (notification.kind === "resume") {
           if (terminal) post({ t: "resume", terminalId: terminal.id });
           return;

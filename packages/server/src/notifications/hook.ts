@@ -1,19 +1,20 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { SettingsEditor, appDataDir, settingsFile, type SettingsEdit } from "@clide/core";
+import { SettingsEditor, appDataDir, legacyAppDataDir, roamingDir, settingsFile, type SettingsEdit } from "@clide/core";
 
 import { nodeExecutable } from "../platform/node-path.js";
 
 /**
  * Ce que l'application sait faire d'un événement de hook.
  *
- * `resume` n'est pas une alerte : il signale que la session repart, et éteint la
- * pastille de l'onglet au lieu d'en allumer une.
+ * `resume` et `session` ne sont pas des alertes : le premier signale que la
+ * session repart, et éteint la pastille de l'onglet au lieu d'en allumer une ;
+ * le second dit quelle session l'onglet suit désormais, et le rattache.
  */
-export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "other";
+export type NotificationKind = "permission" | "idle" | "stop" | "resume" | "session" | "other";
 
-type HookEvent = "Notification" | "Stop" | "UserPromptSubmit";
+type HookEvent = "Notification" | "Stop" | "UserPromptSubmit" | "SessionStart";
 
 /**
  * Hooks déclarés dans `settings.json`.
@@ -35,6 +36,9 @@ export const HOOK_DEFINITIONS: { event: HookEvent; matcher?: string; kind: Notif
   { event: "Notification", matcher: "idle_prompt|agent_needs_input", kind: "idle" },
   { event: "Stop", kind: "stop" },
   { event: "UserPromptSubmit", kind: "resume" },
+  // Sans matcher : au démarrage, à la reprise, après /clear et après une
+  // compaction — chaque fois que l'onglet change de transcript.
+  { event: "SessionStart", kind: "session" },
 ];
 
 const HOOK_EVENTS = [...new Set(HOOK_DEFINITIONS.map((definition) => definition.event))];
@@ -80,7 +84,11 @@ function spool() {
     // Écrit à côté puis renommé : le renommage est atomique, et l'application ne
     // lit jamais un fichier à moitié écrit.
     const target = join(directory, name);
-    writeFileSync(target + ".tmp", JSON.stringify({ kind, receivedAt: new Date().toISOString(), payload }), "utf8");
+    // L'onglet d'où vient l'événement : Clide le nomme dans l'environnement du
+    // claude qu'il lance, et claude le transmet à ses hooks.
+    const terminalId = process.env.CLIDE_TERMINAL_ID || undefined;
+    const envelope = { v: 2, kind, receivedAt: new Date().toISOString(), terminalId, payload };
+    writeFileSync(target + ".tmp", JSON.stringify(envelope), "utf8");
     renameSync(target + ".tmp", target);
   } catch {
     // Un hook qui échoue ne doit pas remonter à la session : il n'y a rien à
@@ -121,10 +129,29 @@ function isOurs(entry: HookEntry, scriptPath: string): boolean {
   return (entry.hooks ?? []).some((hook) => (hook.command ?? "").includes(scriptPath));
 }
 
+/**
+ * Scripts des installations antérieures, reconnus dans `settings.json` à leur
+ * chemin : le premier nom de l'application déposait un `hook.cmd` dans le profil
+ * itinérant, claude-ide un `hook.mjs` dans son dossier de données. Leurs entrées
+ * déversent dans un dossier que rien ne lit, ou appellent un script disparu.
+ */
+export function legacyHookScripts(env: NodeJS.ProcessEnv = process.env): string[] {
+  return [join(legacyAppDataDir(env), "hook.mjs"), join(roamingDir(env), "ClaudeTerm", "hook.cmd")];
+}
+
+/** Hooks d'une installation antérieure encore déclarés, avec les événements qui les portent. */
+export interface LegacyHooks {
+  script: string;
+  events: string[];
+}
+
 export interface HooksStatus {
   installed: boolean;
+  /** Le script déposé n'est plus celui de cette version : réinstaller le remplace. */
+  outdated: boolean;
   /** Types effectivement déclarés, pour distinguer une installation partielle. */
   kinds: NotificationKind[];
+  legacy: LegacyHooks[];
   scriptPath: string;
   eventsPath: string;
   settingsPath: string;
@@ -133,6 +160,7 @@ export interface HooksStatus {
 export async function hooksStatus(
   dataDir: string = appDataDir(),
   file: string = settingsFile(),
+  legacyScripts: string[] = legacyHookScripts(),
 ): Promise<HooksStatus> {
   const settings = await new SettingsEditor().read(file);
   const hooks = (settings.value["hooks"] ?? {}) as Record<string, unknown>;
@@ -141,14 +169,42 @@ export async function hooksStatus(
   const kinds = HOOK_DEFINITIONS.filter((definition) =>
     entriesOf(hooks[definition.event]).some((entry) => isOurs(entry, scriptPath)),
   ).map((definition) => definition.kind);
+  const deployed = kinds.length > 0 ? await readFile(scriptPath, "utf8").catch(() => undefined) : undefined;
+  const legacy = legacyScripts
+    .map((script) => ({
+      script,
+      events: Object.keys(hooks).filter((event) => entriesOf(hooks[event]).some((entry) => isOurs(entry, script))),
+    }))
+    .filter((item) => item.events.length > 0);
 
   return {
     installed: kinds.length === HOOK_DEFINITIONS.length,
+    outdated: kinds.length > 0 && deployed !== hookScript(),
     kinds,
+    legacy,
     scriptPath,
     eventsPath: eventsDir(dataDir),
     settingsPath: file,
   };
+}
+
+/**
+ * Retire les entrées qui appellent l'un des scripts, sur tous les événements du
+ * fichier ; une clé vidée disparaît, le reste ne bouge pas.
+ */
+async function removeEntries(file: string, scripts: string[]): Promise<void> {
+  const editor = new SettingsEditor();
+  const settings = await editor.read(file);
+  const hooks = (settings.value["hooks"] ?? {}) as Record<string, unknown>;
+
+  const edits: SettingsEdit[] = [];
+  for (const event of Object.keys(hooks)) {
+    const all = entriesOf(hooks[event]);
+    const kept = all.filter((entry) => !scripts.some((script) => isOurs(entry, script)));
+    if (kept.length === all.length) continue;
+    edits.push({ path: ["hooks", event], value: kept.length > 0 ? kept : undefined });
+  }
+  if (edits.length > 0) await editor.update(file, edits);
 }
 
 /**
@@ -188,21 +244,31 @@ export async function installHooks(
 }
 
 /**
- * Réinstalle les hooks posés sous l'ancien nom : leurs commandes pointent vers le
- * script de l'ancien dossier de données, qui a été déplacé. Les entrées sont
- * reconnues à ce chemin, retirées, et reposées vers le nouveau dossier — les
- * types installés restent les mêmes. Rien n'est posé là où rien ne l'était.
+ * Repointe les hooks d'une installation antérieure : leurs entrées, reconnues à
+ * leur script, sont retirées et les nôtres posées — les hooks avaient été
+ * voulus, seul le script appelé change. Rend les scripts repris ; rien n'est
+ * posé là où rien ne l'était.
  */
 export async function migrateHooks(
-  legacyDataDir: string,
+  legacyScripts: string[],
   dataDir: string = appDataDir(),
   file: string = settingsFile(),
-): Promise<boolean> {
-  const legacy = await hooksStatus(legacyDataDir, file);
-  if (legacy.kinds.length === 0) return false;
-  await uninstallHooks(legacyDataDir, file);
+): Promise<string[]> {
+  const { legacy } = await hooksStatus(dataDir, file, legacyScripts);
+  if (legacy.length === 0) return [];
+  await removeEntries(file, legacy.map((item) => item.script));
   await installHooks(dataDir, file);
-  return true;
+  return legacy.map((item) => item.script);
+}
+
+/** Retire les hooks d'une installation antérieure sans rien poser : le geste « Retirer » du panneau. */
+export async function pruneLegacyHooks(
+  dataDir: string = appDataDir(),
+  file: string = settingsFile(),
+  legacyScripts: string[] = legacyHookScripts(),
+): Promise<HooksStatus> {
+  await removeEntries(file, legacyScripts);
+  return hooksStatus(dataDir, file, legacyScripts);
 }
 
 /** Retire nos entrées et laisse le reste intact. Une clé vidée est supprimée. */
@@ -210,17 +276,6 @@ export async function uninstallHooks(
   dataDir: string = appDataDir(),
   file: string = settingsFile(),
 ): Promise<HooksStatus> {
-  const editor = new SettingsEditor();
-  const settings = await editor.read(file);
-  const hooks = (settings.value["hooks"] ?? {}) as Record<string, unknown>;
-  const scriptPath = hookScriptPath(dataDir);
-
-  const edits: SettingsEdit[] = [];
-  for (const event of HOOK_EVENTS) {
-    const kept = entriesOf(hooks[event]).filter((entry) => !isOurs(entry, scriptPath));
-    edits.push({ path: ["hooks", event], value: kept.length > 0 ? kept : undefined });
-  }
-
-  await editor.update(file, edits);
+  await removeEntries(file, [hookScriptPath(dataDir)]);
   return hooksStatus(dataDir, file);
 }

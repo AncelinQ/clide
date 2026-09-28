@@ -7,6 +7,8 @@ const TITLES: Record<NotificationKind, string> = {
   idle: "Claude attend une réponse",
   stop: "Claude a terminé",
   resume: "Claude reprend",
+  // Jamais affiché : un rattachement reste côté serveur.
+  session: "Claude démarre",
   other: "Claude",
 };
 

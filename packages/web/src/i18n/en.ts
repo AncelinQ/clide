@@ -588,4 +588,17 @@ export const EN: Record<string, string> = {
   "Ouvrir avec l'application par défaut ; Maj+clic : afficher dans l'Explorateur":
     "Open with the default application; Shift+click: show in Explorer",
   "Ouverture impossible : {error}": "Cannot open: {error}",
+  "hooks à mettre à jour": "hooks to update",
+  "Claude Code signale permissions, attentes, fins de réponse et reprises, et rattache chaque onglet à sa session.":
+    "Claude Code reports permissions, waits, finished answers and resumes, and binds each tab to its session.",
+  "Le script déposé est celui d'une version antérieure : le mettre à jour le remplace.":
+    "The deployed script is from an earlier version: updating replaces it.",
+  "Sans eux, aucun événement ne remonte, et l'onglet devine sa session.":
+    "Without them, no event comes through, and a tab guesses its session.",
+  "Mettre à jour les hooks": "Update hooks",
+  "Une installation antérieure a laissé ses hooks dans settings.json : ils déversent dans un dossier que rien ne lit.":
+    "An earlier install left its hooks in settings.json: they spool into a folder nothing reads.",
+  "Retirer ces hooks": "Remove these hooks",
+  "session rattachée": "session bound",
+  "La session démarre : le bloc se remplit au premier prompt.": "The session is starting: the block fills in at the first prompt.",
 };

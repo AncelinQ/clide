@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { normalizePath } from "@clide/core";
 
-import { PtyManager, cleanEnvironment, type TerminalInfo } from "../src/pty/manager.js";
+import { PtyManager, cleanEnvironment, terminalEnvironment, type TerminalInfo } from "../src/pty/manager.js";
 import { shellProfileScript } from "../src/pty/shell-profile.js";
 
 describe("normalizePath", () => {
@@ -35,6 +35,15 @@ describe("cleanEnvironment", () => {
       CLAUDEX: "garde-moi",
     });
     expect(env).toEqual({ PATH: "C:/bin", CLAUDEX: "garde-moi" });
+  });
+});
+
+describe("terminalEnvironment", () => {
+  it("nomme l'onglet et garde le nettoyage", () => {
+    const env = terminalEnvironment("t1", { PATH: "C:\\bin", CLAUDE_CODE_ENTRYPOINT: "cli" });
+    expect(env["CLIDE_TERMINAL_ID"]).toBe("t1");
+    expect(env["PATH"]).toBe("C:\\bin");
+    expect(env).not.toHaveProperty("CLAUDE_CODE_ENTRYPOINT");
   });
 });
 

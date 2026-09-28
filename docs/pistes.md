@@ -309,6 +309,42 @@ worktrees ouverts avec Claude ; la MR ou la PR et sa CI par `glab` et `gh`.
 
 ---
 
+## Piste 10 — Le bloc suit vraiment l'onglet
+
+**Le besoin.** Que le bloc sous le terminal — plan, activité, fichiers — montre
+ce que l'onglet actif est en train de faire, sans qu'on ait à cliquer pour le
+raccrocher, et qu'il dise clairement quand il montre autre chose.
+
+**Ce qu'on a déjà.** Le serveur relit le transcript de chaque onglet toutes les
+1,5 s et le client se rafraîchit à chaque écriture. Mais le lien onglet ↔
+transcript est deviné par la date de création du fichier quand les hooks ne sont
+pas installés — et ils ne le sont pas dès que `settings.json` porte ceux d'une
+installation antérieure. Un clic dans History détache le bloc sans le dire, et
+changer de projet laisse l'onglet actif dans l'autre projet.
+
+**Ce qu'on attend, par palier**
+
+1. **Rattachement exact** : l'onglet se nomme dans l'environnement du `claude`
+   qu'il lance, le hook le rapporte, et `SessionStart` rattache dès le démarrage
+   et à chaque `/clear` ou reprise. Les hooks d'anciennes installations sont
+   repointés au démarrage, et le panneau Alertes dit quand le script déposé est
+   à mettre à jour.
+2. **Le bloc dit ce qu'il suit** : choisir dans History la session de l'onglet
+   actif ne détache pas ; choisir une autre session affiche « détaché » avec un
+   retour à l'onglet.
+3. **Changer de projet réactive son dernier onglet**, ou son plus récent, pour
+   que le bloc suive tout de suite.
+
+**Tranché** : `settings.json` ne bouge que par un geste (Installer, Retirer) ou
+pour repointer un hook que Clide avait lui-même posé sous un ancien nom ; le
+mode Fichiers garde sa limite — il ne voit que ce que les outils d'édition de
+Claude Code ont écrit.
+
+**État.** Conçu, voir [`design-suivi-session.md`](design-suivi-session.md). À
+faire, en trois MR.
+
+---
+
 ## Constats en passant
 
 - **Le démarrage est déjà rapide** : interface prête en 180 ms, 430 ms avec le

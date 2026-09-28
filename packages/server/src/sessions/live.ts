@@ -135,7 +135,10 @@ export class LiveSessions {
       [...this.#tracked.values()].map((tracked) => tracked.path).filter((path): path is string => Boolean(path)),
     );
 
-    for (const [terminalId, tracked] of this.#tracked) {
+    // Du plus récent au plus ancien : un transcript créé après l'ouverture du
+    // dernier onglet est le sien, pas celui d'un onglet plus vieux qui attend encore.
+    const ordered = [...this.#tracked].sort(([, a], [, b]) => b.since - a.since);
+    for (const [terminalId, tracked] of ordered) {
       if (!tracked.reader) {
         const match = await findLiveTranscript(tracked.cwd, tracked.since, claimed, this.home, tracked.resumed);
         if (!match) continue;

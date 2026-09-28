@@ -115,7 +115,7 @@ export class PtyManager {
       cols: options.cols ?? 100,
       rows: options.rows ?? 30,
       cwd: options.projectRoot,
-      env: cleanEnvironment(process.env),
+      env: terminalEnvironment(id, process.env),
       useConpty: true,
     });
 
@@ -319,4 +319,15 @@ export function cleanEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     if (value !== undefined) out[key] = value;
   }
   return out;
+}
+
+/**
+ * Environnement d'un onglet : celui du serveur nettoyé, et le nom de l'onglet.
+ *
+ * `claude` transmet son environnement à ses hooks : leur script rapporte ainsi
+ * l'onglet exact d'où vient chaque événement, ce que le dossier de la session ne
+ * dit pas quand deux onglets y travaillent.
+ */
+export function terminalEnvironment(id: string, env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...cleanEnvironment(env), CLIDE_TERMINAL_ID: id };
 }

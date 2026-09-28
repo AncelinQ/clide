@@ -79,6 +79,11 @@ export function legacyAppDataDir(env: NodeJS.ProcessEnv = process.env): string {
   return join(dataBase(env), "claude-ide");
 }
 
+/** Profil itinérant de Windows (`%APPDATA%`), où le tout premier nom de l'application rangeait ses données. */
+export function roamingDir(env: NodeJS.ProcessEnv = process.env): string {
+  return env["APPDATA"] ?? env["XDG_CONFIG_HOME"] ?? join(homedir(), ".config");
+}
+
 /**
  * Reprend les données écrites sous l'ancien nom : index, schémas, rédactions,
  * sauvegardes de restauration, profil PowerShell.
