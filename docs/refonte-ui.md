@@ -344,14 +344,41 @@ Réordonner au glisser-déposer les onglets de projet de la barre de titre et le
 onglets du centre (terminaux, fichiers, diffs), l'ordre gardé dans l'état
 sauvegardé (`projects` et `openFiles` sont déjà des listes ordonnées).
 
+## Lot 17 — Rechercher dans les fichiers du projet
+
+Une vue **Recherche** dans la colonne du projet, à côté de l'explorateur : un texte
+ou une expression régulière, avec casse, mot entier et filtres de chemins (à
+inclure, à exclure), sur les fichiers que liste l'explorateur (`.gitignore`
+respecté). Les résultats sont groupés par fichier, la ligne trouvée surlignée ; un
+clic ouvre le fichier à la ligne. La palette y mène (`#` puis Entrée, ou
+Ctrl+Shift+F).
+
+## File d'implémentation
+
+Ce qui reste, dans l'ordre :
+
+1. MR 16 — Tests du projet (lot 14, sans la marge de l'éditeur).
+2. MR 17 — Lancer depuis la marge de l'éditeur (lot 15, et la marge des tests du
+   lot 14).
+3. MR 18 — Onglets déplaçables (lot 16).
+4. MR 19 — Rechercher dans les fichiers du projet (lot 17).
+5. MR 20 — Navigateur de Claude dans l'aperçu (lot 12).
+6. MR 21 — Historique : ouvrir le transcript `.jsonl` d'une session dans
+   l'éditeur, en lecture. Reprendre une session reste un bouton : le double-clic
+   ouvre, il ne lance pas.
+7. MR 22 — Processus : « aller à l'onglet » depuis un processus Claude qui tourne
+   dans un onglet de Clide.
+8. MR 23 — Écran d'accueil, sans projet ouvert : projets récents et nombre de
+   sessions de chacun.
+9. MR 24 — Invites de saisie avec suggestions en pastilles (nom de branche, rôle
+   d'un lien…).
+10. MR 25 — Thèmes au format VS Code, chargés tels quels : d'abord ramener les
+    couleurs de Clide à des jetons nommés, puis traduire les `colors` et
+    `tokenColors` d'un thème vers ces jetons et vers Monaco.
+
 ## Autres idées à reprendre
 
-- Historique : reprendre au double-clic, ouvrir le transcript `.jsonl` dans l'éditeur.
-- Processus : « aller à l'onglet » depuis un processus Claude.
-- Écran d'accueil avec projets récents et nombre de sessions.
-- Invites de saisie avec suggestions en pastilles (nom de branche, rôle d'un lien…).
-- Thèmes au format VS Code (un thème VS Code se charge tel quel) : à envisager une fois le
-  jeu de couleurs de Clide ramené à des jetons nommés.
+Toutes sont passées dans la file d'implémentation (MR 21 à 25).
 
 ## Ordre proposé
 
@@ -371,6 +398,7 @@ sauvegardé (`projects` et `openFiles` sont déjà des listes ordonnées).
 | 14 Tests du projet | 11, 13 | M |
 | 15 Lancer depuis la marge de l'éditeur | 10, 11 | S |
 | 16 Onglets déplaçables | 3 | S |
+| 17 Rechercher dans les fichiers | 3, 4 | M |
 | 8 Skills | 4 | S |
 | 5 Git | 1, 4 | L |
 | 6 Modules | 5 | M |

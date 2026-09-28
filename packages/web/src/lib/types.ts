@@ -299,3 +299,29 @@ export interface UsageReport {
   api: (UsageReading & { subscription?: string }) | null;
   sessions: SessionUsage[];
 }
+
+/** Un test lu dans son fichier (ligne à partir de 1), avec les blocs qui l'englobent. */
+export interface TestCase {
+  name: string;
+  line: number;
+  parents: string[];
+}
+
+export interface TestResult {
+  /** Chemin relatif au dossier de la suite, séparé par `/`. */
+  path: string;
+  name: string;
+  parents: string[];
+  status: "passed" | "failed" | "skipped";
+  durationMs?: number;
+  failure?: string;
+}
+
+/** Les tests d'un package, le rapport que sa commande écrit, et ses derniers résultats. */
+export interface TestSuite {
+  framework: "vitest" | "jest" | "pytest";
+  directory: string;
+  files: { path: string; tests: TestCase[] }[];
+  reportPath: string;
+  results: TestResult[];
+}
