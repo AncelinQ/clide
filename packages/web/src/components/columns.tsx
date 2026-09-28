@@ -159,23 +159,27 @@ function ExplorerStack({ project }: { project: Project }) {
   const start = useRef(0);
   const box = useRef<HTMLDivElement>(null);
   return (
-    <div ref={box} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col">
+    // Deux îlots, comme le terminal et le bloc du bas : l'explorateur, puis les dossiers liés.
+    <div ref={box} className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Island className="min-h-0 flex-1">
         <FileTree project={project} />
-      </div>
+      </Island>
       <Splitter
         orientation="horizontal"
+        className="on-canvas"
         onStart={() => (start.current = height)}
         onDrag={(dy) => setHeight(clamp(start.current - dy, 60, (box.current?.clientHeight ?? 600) - 120))}
         onReset={() => setHeight(200)}
       />
-      <div className="flex min-h-0 shrink-0 flex-col border-t" style={{ height }}>
-        <ViewHeader title={t("Dossiers liés")} />
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="px-3 py-2">
-            <LinksPanel root={project.root} />
-          </div>
-        </ScrollArea>
+      <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ height }} data-linked-island>
+        <Island>
+          <ViewHeader title={t("Dossiers liés")} />
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="px-3 py-2">
+              <LinksPanel root={project.root} />
+            </div>
+          </ScrollArea>
+        </Island>
       </div>
     </div>
   );
@@ -202,13 +206,7 @@ export function ProjectColumn() {
   const activities = projectActivities(disabledModules);
   const activity = activities.find((entry) => entry.id === project.leftMode) ?? (activities[0] as (typeof activities)[number]);
 
-  if (activity.id === "explorer") {
-    return (
-      <Island>
-        <ExplorerStack project={project} />
-      </Island>
-    );
-  }
+  if (activity.id === "explorer") return <ExplorerStack project={project} />;
 
   const body = () => {
     if (activity.render) return activity.render(project.root);
