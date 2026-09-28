@@ -5,6 +5,7 @@ import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
 import { activateProject, closeProject, getState, openSettings, setBottomMode, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
+import { closeFile, saveFile } from "@/state/editor";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
 export interface Command {
@@ -28,6 +29,12 @@ function cycle<T>(items: T[], current: T | null | undefined, step: number): T | 
   if (items.length === 0) return undefined;
   const index = current === null || current === undefined ? -1 : items.indexOf(current);
   return items[(index + step + items.length) % items.length];
+}
+
+/** Fichier montré au centre du projet actif, s'il y en a un. */
+function activeProjectFile(): string | undefined {
+  const { projects, activeRoot } = getState();
+  return projects.find((project) => project.root === activeRoot)?.activeFile ?? undefined;
 }
 
 function activeTab(): string | undefined {
@@ -123,8 +130,23 @@ export function commands(): Command[] {
       label: t("Fermer l'onglet"),
       shortcut: "Ctrl+Shift+W",
       run: () => {
+        // Un fichier montré se ferme d'abord ; modifié, il reste ouvert : sa croix demande quoi faire.
+        const file = activeProjectFile();
+        if (file) {
+          closeFile(file);
+          return;
+        }
         const id = activeTab();
         if (id) closeTerminal(id);
+      },
+    },
+    {
+      id: "file.save",
+      group: t("Fichiers"),
+      label: t("Enregistrer le fichier"),
+      run: () => {
+        const file = activeProjectFile();
+        if (file) void saveFile(file);
       },
     },
     { id: "tab.next", group: t("Onglets"), label: t("Onglet suivant"), shortcut: "Ctrl+Shift+PageDown", run: () => nextTab(1) },

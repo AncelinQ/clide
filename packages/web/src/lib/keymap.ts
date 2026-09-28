@@ -12,8 +12,8 @@ export type Keymap = "clide" | "vscode" | "jetbrains";
 
 export const KEYMAPS: readonly Keymap[] = ["clide", "vscode", "jetbrains"];
 
-/** Où est le focus quand la touche arrive. */
-export type Focus = "terminal" | "input" | "other";
+/** Où est le focus quand la touche arrive. L'éditeur de fichiers n'est pas un champ : ses touches sont celles d'un IDE. */
+export type Focus = "terminal" | "input" | "editor" | "other";
 
 export interface Binding {
   key: string;
@@ -35,6 +35,7 @@ export const PRESETS: Record<Exclude<Keymap, "clide">, Record<string, Binding[]>
     "tab.shell": [{ key: "Ctrl+Shift+`" }],
     "terminal.focus": [{ key: "Ctrl+`" }],
     preferences: [{ key: "Ctrl+,", outside: true }],
+    "file.save": [{ key: "Ctrl+S", outside: true }],
   },
   jetbrains: {
     "palette.files": [{ key: "Ctrl+Shift+N", outside: true }],
@@ -72,7 +73,7 @@ export function bindingsOf(
 }
 
 export function applies(binding: Binding, focus: Focus): boolean {
-  return !binding.outside || focus === "other";
+  return !binding.outside || focus === "other" || focus === "editor";
 }
 
 /** La commande qu'une touche déclenche là où est le focus, s'il y en a une. */
@@ -112,6 +113,7 @@ export function conflicts(
 export function focusOf(target: EventTarget | null): Focus {
   if (!(target instanceof Element)) return "other";
   if (target.closest(".xterm")) return "terminal";
+  if (target.closest(".monaco-editor")) return "editor";
   if (target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']")) return "input";
   return "other";
 }

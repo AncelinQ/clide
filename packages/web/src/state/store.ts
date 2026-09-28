@@ -17,9 +17,25 @@ export interface Project {
   bottomMode: string;
   /** Dernier onglet regardé dans le projet. */
   activeTab: string | null;
+  /** Fichiers ouverts dans l'éditeur, par chemin absolu, dans l'ordre des onglets. */
+  openFiles: string[];
+  /** Fichier montré au centre ; `null` quand c'est un terminal. */
+  activeFile: string | null;
 }
 
 export type Theme = "auto" | "light" | "dark";
+
+/** Ce que l'interface sait d'un fichier ouvert ; son texte vit dans l'éditeur, hors de React. */
+export interface OpenFile {
+  kind: "loading" | "text" | "image" | "unsupported";
+  /** Le texte diffère du dernier enregistré. */
+  dirty: boolean;
+  /** Le fichier a changé sur disque alors qu'il était modifié ici : il faut choisir. */
+  changedOnDisk: boolean;
+  /** Image : de quoi la montrer. */
+  src?: string;
+  error?: string;
+}
 
 /** Disposition des onglets du panneau global : une ligne en haut, ou une colonne à droite. */
 export type TabLayout = "row" | "column";
@@ -48,6 +64,8 @@ export interface State {
    * ne montre pas celle d'un autre.
    */
   selectedSessions: Record<string, SessionSummary>;
+  /** État des fichiers ouverts dans l'éditeur, par chemin : ce que les onglets affichent. */
+  files: Record<string, OpenFile>;
   /** Session vivante de chaque onglet Claude, par identifiant d'onglet. */
   live: Record<string, LiveSession>;
   /**
@@ -155,6 +173,7 @@ let state: State = {
   activeTerminalId: null,
   attention: {},
   selectedSessions: {},
+  files: {},
   live: {},
   followLive: true,
   notifications: [],

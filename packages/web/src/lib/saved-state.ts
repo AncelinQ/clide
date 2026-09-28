@@ -20,6 +20,10 @@ export interface SavedProject {
   bottomMode: string;
   /** Dernier onglet regardé, par identifiant de terminal ; les terminaux survivent au rechargement de la page. */
   activeTab: string | null;
+  /** Fichiers ouverts dans l'éditeur, par chemin absolu, dans l'ordre des onglets. */
+  openFiles: string[];
+  /** Fichier montré au centre ; `null` quand c'est un terminal. */
+  activeFile: string | null;
 }
 
 export interface SavedLayout {
@@ -93,6 +97,8 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   leftMode: "explorer",
   bottomMode: "files",
   activeTab: null,
+  openFiles: [],
+  activeFile: null,
 };
 
 type Json = Record<string, unknown>;
@@ -130,12 +136,16 @@ function leftActivity(value: unknown): string {
 function project(value: unknown, fallbackTab?: string): SavedProject | undefined {
   if (!isRecord(value) || typeof value["root"] !== "string" || !trimRoot(value["root"])) return undefined;
   const tab = value["activeTab"] ?? fallbackTab;
+  const openFiles = [...new Set(strings(value["openFiles"]))];
+  const activeFile = typeof value["activeFile"] === "string" && openFiles.includes(value["activeFile"]) ? value["activeFile"] : null;
   return {
     root: trimRoot(value["root"]),
     browsePath: text(value["browsePath"], DEFAULT_PROJECT.browsePath),
     leftMode: leftActivity(value["leftMode"]),
     bottomMode: text(value["bottomMode"], DEFAULT_PROJECT.bottomMode),
     activeTab: typeof tab === "string" ? tab : null,
+    openFiles,
+    activeFile,
   };
 }
 

@@ -39,7 +39,8 @@ async function request<T>(path: string, params: Params = {}, init?: RequestInit)
   const body: unknown = await response.json();
   if (!response.ok) {
     const message = (body as { error?: string }).error ?? `HTTP ${response.status}`;
-    throw new Error(message);
+    // Le code accompagne le message : un 409 (fichier changé sur disque) ne se traite pas comme un refus.
+    throw Object.assign(new Error(message), { status: response.status });
   }
   return body as T;
 }

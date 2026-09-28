@@ -67,12 +67,12 @@ describe("migrate en version 2", () => {
   it("garde l'état propre à chaque projet et la disposition", () => {
     const state = migrate({
       version: 2,
-      projects: [{ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1" }],
+      projects: [{ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts", "C:/a/x.ts", 3], activeFile: "C:/a/fermé.ts" }],
       active: "C:\\a",
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1" });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null });
     expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });

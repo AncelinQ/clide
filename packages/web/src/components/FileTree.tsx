@@ -32,6 +32,7 @@ import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import { baseName, fs, parentPath, type OnConflict, type Outcome } from "@/lib/fs";
 import type { DirectoryEntry, DirectoryListing } from "@/lib/types";
 import { openProject, setState, useStore, type Project } from "@/state/store";
+import { followRename, openFile as openInEditor } from "@/state/editor";
 import { openTerminal, typeIntoActive } from "@/state/terminals";
 import { cn } from "cn";
 
@@ -194,7 +195,10 @@ export function FileTree({ project }: { project: Project }) {
       const done = outcomes.filter((outcome) => outcome.status === "done" && outcome.source !== outcome.target);
       if (done.length === 0) return;
       if (mode === "copy") remember({ kind: "copy", targets: done.map((outcome) => outcome.target) });
-      else remember({ kind: "move", moved: done.map(({ source, target }) => ({ source, target })) });
+      else {
+        remember({ kind: "move", moved: done.map(({ source, target }) => ({ source, target })) });
+        for (const { source, target } of done) followRename(source, target);
+      }
       refresh([...done.map((outcome) => outcome.target), ...(mode === "move" ? done.map((outcome) => outcome.source) : [])]);
       if (dir !== root) toggle({ relativePath: relativeOf(dir) } as DirectoryEntry, true);
       setSelection(done.map((outcome) => outcome.target));
@@ -262,7 +266,11 @@ export function FileTree({ project }: { project: Project }) {
     }
   };
 
+  /** Ouvre dans l'éditeur de Clide ; un binaire y part seul vers l'application par défaut. */
   const openFile = (entry: DirectoryEntry) => {
+    void openInEditor(entry.path);
+  };
+  const openWithDefaultApp = (entry: DirectoryEntry) => {
     post("/api/files/open", { root, path: entry.path, reveal: false }).catch(report);
   };
 
@@ -325,6 +333,7 @@ export function FileTree({ project }: { project: Project }) {
       if (current.kind === "rename") {
         if (value.trim() === baseName(current.path)) return;
         const renamed = await fs.rename(current.path, value);
+        followRename(current.path, renamed);
         remember({ kind: "rename", from: current.path, to: renamed });
         refresh([renamed]);
         setSelection([renamed]);
@@ -404,7 +413,7 @@ export function FileTree({ project }: { project: Project }) {
       { kind: "separator" },
       { kind: "item", label: t("Insérer le chemin"), run: () => typeIntoActive(`${quotePath(entry.path)} `) },
       { kind: "item", label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(entry.path) },
-      { kind: "item", label: t("Ouvrir avec l'application par défaut"), run: () => openFile(entry) },
+      { kind: "item", label: t("Ouvrir avec l'application par défaut"), run: () => openWithDefaultApp(entry) },
       { kind: "item", label: t("Afficher dans l'Explorateur"), run: () => void post("/api/files/open", { root, path: entry.path, reveal: true }).catch(report) },
       ...(entry.directory
         ? ([

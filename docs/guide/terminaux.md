@@ -57,7 +57,8 @@ qui le ferait croire enfoncé.
 
 L'explorateur est un arbre : un clic sur un dossier le déplie, un clic sur un
 fichier le sélectionne (`Ctrl` et `Maj` pour en prendre plusieurs), un double-clic
-l'ouvre avec l'application par défaut. Les icônes sont celles de Catppuccin pour VS
+l'ouvre dans l'éditeur de Clide (voir plus bas) ; « Ouvrir avec l'application par
+défaut » reste dans le menu contextuel. Les icônes sont celles de Catppuccin pour VS
 Code, dans la palette Latte en clair et Mocha en sombre. Le menu contextuel insère
 le chemin dans le prompt, montre le fichier dans l'Explorateur ou copie son chemin.
 
@@ -103,6 +104,31 @@ Un fichier glissé de l'explorateur sur un terminal y écrit son chemin, dans le
 comme dans l'application de bureau. Glissé depuis l'Explorateur, il ne le fait que
 sous Electron : un navigateur livre le contenu d'un fichier déposé, jamais son
 emplacement.
+
+## L'éditeur
+
+Un fichier s'ouvre dans un onglet, à côté des terminaux du projet : double-clic dans
+l'explorateur, `Ctrl+P` dans la palette, clic sur un chemin du mode Fichiers de la
+session (`Maj`+clic pour l'application par défaut). C'est l'éditeur de VS Code,
+Monaco, chargé à la première ouverture : coloration, recherche (`Ctrl+F`),
+remplacement (`Ctrl+H`), multicurseur, et un historique d'annulation propre à
+chaque fichier.
+
+- **Modifié** : le nom de l'onglet passe en italique et sa croix devient un point,
+  tant que le texte diffère du dernier enregistrement ; `Ctrl+S` enregistre. Fermer
+  un fichier modifié demande : enregistrer, ne pas enregistrer, ou y rester.
+- **Changé sur disque** : Claude, git ou un autre éditeur a pu écrire le fichier.
+  Clide le revérifie quand on revient dans l'éditeur. Non modifié ici, il se relit
+  sans rien demander ; modifié des deux côtés, un bandeau propose de recharger ou
+  d'écraser, et `Ctrl+S` refuse d'écraser sans ce choix.
+- **Fins de ligne** : un fichier en CRLF reste en CRLF, son BOM éventuel aussi.
+- **Markdown** : code, côte à côte ou aperçu, par les boutons en haut à droite.
+- **Images** : montrées telles quelles ; un binaire ou un fichier de plus de 5 Mo
+  s'ouvre avec l'application par défaut.
+
+Les fichiers ouverts reviennent au lancement suivant. Un fichier renommé ou déplacé
+dans l'explorateur garde son onglet et ses modifications. Ouvrir un terminal ou
+cliquer son onglet le remet devant l'éditeur.
 
 ## Largeur des colonnes
 

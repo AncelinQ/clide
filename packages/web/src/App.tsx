@@ -12,6 +12,7 @@ import { useLanguage } from "@/i18n";
 import { DEFAULT_WIDTHS, activeProject, getState, setState, updateProject, useStore } from "@/state/store";
 import { badgeImage } from "@/state/notify";
 import { listenShortcuts } from "@/state/commands";
+import { restoreOpenFiles } from "@/state/editor";
 import { resizeActive } from "@/state/terminals";
 
 /** Le terminal garde de quoi afficher une ligne de commande lisible. */
@@ -27,6 +28,8 @@ export function App() {
 
   // Les raccourcis valent pour toute l'application, terminal compris.
   useEffect(() => listenShortcuts(), []);
+  // Les fichiers laissés ouverts reviennent dans leurs onglets.
+  useEffect(() => restoreOpenFiles(), []);
 
 
   // Le titre de l'onglet est le seul endroit visible quand la fenêtre est en

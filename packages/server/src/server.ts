@@ -7,6 +7,7 @@ import { extname, join, normalize, resolve, sep } from "node:path";
 import {
   LinkStore,
   SessionIndex,
+  ChangedOnDisk,
   appDataDir,
   legacyAppDataDir,
   migrateAppData,
@@ -209,7 +210,10 @@ async function migrateLegacyState(settingsPath: string): Promise<void> {
 
 /** Un chemin hors des projets ouverts est un refus, pas une requête mal formée. */
 function statusOf(error: unknown): number {
-  return error instanceof OutsideWorkspace ? 403 : 400;
+  if (error instanceof OutsideWorkspace) return 403;
+  // Un fichier changé sur disque n'est pas une requête fautive : c'est un conflit, que l'éditeur résout.
+  if (error instanceof ChangedOnDisk) return 409;
+  return 400;
 }
 
 /** Projets ouverts à la dernière sauvegarde de l'interface ; aucun si elle est absente ou illisible. */
