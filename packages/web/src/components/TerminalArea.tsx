@@ -23,6 +23,8 @@ import { FileIcon } from "@/components/FileIcon";
 import { NewTabMenu, ToolsMenu, tabItems } from "@/components/TerminalMenus";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
+import { dropTab, orderTabs } from "@/lib/tab-order";
+import { Reorderable } from "@/components/Reorderable";
 import { closeFile, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -32,7 +34,7 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { DEFAULT_WIDTHS, activeProject, bottomModeOf, getState, selectedSessionOf, setBottomMode, setState, useStore } from "@/state/store";
+import { DEFAULT_WIDTHS, activeProject, bottomModeOf, getState, selectedSessionOf, setBottomMode, setState, updateProject, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import {
   closeTerminal,
@@ -339,6 +341,12 @@ export function TerminalArea() {
   const status = active && active.owner === activeRoot ? active.info : undefined;
   const openFiles = project?.openFiles ?? [];
   const activeFile = project?.activeFile ?? null;
+  // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés.
+  const tabIds = orderTabs(project?.tabOrder ?? [], [...own.map((entry) => entry.info.id), ...openFiles]);
+  const byId = new Map(own.map((entry) => [entry.info.id, entry.info]));
+  const dropOn = (moved: string, target: string, side: "before" | "after") => {
+    if (project) updateProject(project.root, { tabOrder: dropTab(tabIds, moved, target, side) });
+  };
   const [closing, setClosing] = useState<string>();
   // Un fichier modifié ne se ferme pas sans qu'on ait choisi quoi faire de ses changements.
   const requestClose = (path: string) => {
@@ -466,58 +474,64 @@ export function TerminalArea() {
     <Island className="min-h-0 flex-1">
       <div className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
-          {own.map(({ info }) => (
-            <ContextArea key={info.id} items={() => tabItems(info, own.map((entry) => entry.info.id))}>
-            <div
-              onClick={() => {
-                focusTerminal(info.id);
-                showTerminals();
-              }}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
-                info.id === activeTerminalId && !activeFile
-                  ? "border-border bg-muted text-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
-            >
-              {info.kind === "claude" ? (
-                <Sparkles
-                  className={cn(
-                    "size-3",
-                    info.state === "running"
-                      ? "text-amber-500"
-                      : info.state === "failed"
-                        ? "text-destructive"
-                        : "text-primary",
-                  )}
-                />
-              ) : (
-                <span
-                  className={cn(
-                    "size-1.5 shrink-0 rounded-full",
-                    info.state === "running"
-                      ? "bg-amber-500"
-                      : info.state === "failed"
-                        ? "bg-destructive"
-                        : "bg-muted-foreground",
-                  )}
-                />
-              )}
-              <span>{info.title}</span>
-              {attention[info.id] && <span className="size-1.5 rounded-full bg-primary" />}
-              <X
-                className="size-3 opacity-50 hover:opacity-100"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  closeTerminal(info.id);
-                }}
-              />
-            </div>
-            </ContextArea>
-          ))}
-          {openFiles.map((path) => (
-            <FileTab key={path} path={path} active={path === activeFile} onClose={() => requestClose(path)} />
-          ))}
+          {tabIds.map((id) => {
+            const info = byId.get(id);
+            return (
+              <Reorderable key={id} group="center" id={id} onDrop={dropOn}>
+                {!info ? (
+                  <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
+                ) : (
+                  <ContextArea items={() => tabItems(info, own.map((entry) => entry.info.id))}>
+                    <div
+                      onClick={() => {
+                        focusTerminal(info.id);
+                        showTerminals();
+                      }}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
+                        info.id === activeTerminalId && !activeFile
+                          ? "border-border bg-muted text-foreground"
+                          : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+                      )}
+                    >
+                      {info.kind === "claude" ? (
+                        <Sparkles
+                          className={cn(
+                            "size-3",
+                            info.state === "running"
+                              ? "text-amber-500"
+                              : info.state === "failed"
+                                ? "text-destructive"
+                                : "text-primary",
+                          )}
+                        />
+                      ) : (
+                        <span
+                          className={cn(
+                            "size-1.5 shrink-0 rounded-full",
+                            info.state === "running"
+                              ? "bg-amber-500"
+                              : info.state === "failed"
+                                ? "bg-destructive"
+                                : "bg-muted-foreground",
+                          )}
+                        />
+                      )}
+                      <span>{info.title}</span>
+                      {attention[info.id] && <span className="size-1.5 rounded-full bg-primary" />}
+                      <X
+                        className="size-3 opacity-50 hover:opacity-100"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          closeTerminal(info.id);
+                        }}
+                      />
+                    </div>
+                  </ContextArea>
+                )}
+              </Reorderable>
+            );
+          })}
         </nav>
         <NewTabMenu disabled={!project} terminalId={status?.id} />
         <ToolsMenu

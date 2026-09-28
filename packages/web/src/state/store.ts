@@ -22,6 +22,8 @@ export interface Project {
   openFiles: string[];
   /** Fichier montré au centre ; `null` quand c'est un terminal. */
   activeFile: string | null;
+  /** Ordre des onglets du centre, terminaux et fichiers mêlés (`orderTabs`). */
+  tabOrder: string[];
 }
 
 export type Theme = "auto" | "light" | "dark";

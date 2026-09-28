@@ -72,9 +72,14 @@ describe("migrate en version 2", () => {
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [] });
     expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
+  });
+
+  it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
+    const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
+    expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
   });
 });
 
