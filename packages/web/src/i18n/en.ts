@@ -798,7 +798,6 @@ export const EN: Record<string, string> = {
   "Aucun rapport de test n'a été écrit : regarde la sortie dans l'onglet.": "No test report was written: check the output in the tab.",
   "Le test « {name} » de {file} échoue :\n{failure}\nCorrige le code ou le test.": "The test \"{name}\" in {file} fails:\n{failure}\nFix the code or the test.",
   "Aucun test Vitest, Jest ou pytest dans ce projet.": "No Vitest, Jest or pytest test in this project.",
-  "Un clic sur un test l'ouvre ; ▶ le lance dans l'onglet de sa suite.": "A click on a test opens it; ▶ runs it in its suite's tab.",
   "Relire les fichiers de test": "Read the test files again",
   "{passed} ✓ · {failed} ✗ · {count} tests": "{passed} ✓ · {failed} ✗ · {count} tests",
   "Lancer toute la suite": "Run the whole suite",
@@ -858,4 +857,9 @@ export const EN: Record<string, string> = {
   "Le thème VS Code chargé passe devant l'habillage choisi ci-dessous.": "The loaded VS Code theme takes precedence over the look chosen below.",
   "ce fichier n'est pas un thème VS Code": "this file is not a VS Code theme",
   "ce fichier n'est pas un thème VS Code : ni colors ni tokenColors": "this file is not a VS Code theme: neither colors nor tokenColors",
+  "Filtrer les tests…": "Filter tests…",
+  "Ne montrer que les tests en échec": "Show failing tests only",
+  "échecs": "failures",
+  "Un clic ou Espace ouvre un test, ▶ ou Entrée le lance ; flèches pour parcourir, → et ← pour déplier et replier.": "Click or Space opens a test, ▶ or Enter runs it; arrows to move, → and ← to expand and collapse.",
+  "Aucun test ne répond au filtre.": "No test matches the filter.",
 };
