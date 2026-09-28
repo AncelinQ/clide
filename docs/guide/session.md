@@ -88,6 +88,12 @@ deux l'emporte, et seul un fichier sous ce dossier est lu. Le dossier n'existe
 qu'une fois un plan écrit. Une session peut repasser en mode plan et en proposer un
 autre : le dernier décrit le travail en cours.
 
+Le mode Plan peut aussi montrer un **autre plan** de `~/.claude/plans` — celui
+d'une autre session, ou un plan rédigé à part — par le sélecteur en tête du bloc,
+qui les liste du plus récent au plus ancien avec leur premier titre ; « détacher »
+revient au plan de la session. Ce choix ne dure que le temps de la session
+montrée, et seul un fichier de ce dossier est lu.
+
 Le plan est rendu en markdown, sans HTML brut : un texte produit par un modèle ne
 doit pas pouvoir injecter de balise dans la page.
 

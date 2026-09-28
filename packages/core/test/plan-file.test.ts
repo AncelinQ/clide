@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { withPlanFile } from "../src/session/plan-file.js";
+import { listPlans, readPlanFile, withPlanFile } from "../src/session/plan-file.js";
 
 let home: string;
 
@@ -46,5 +46,37 @@ describe("withPlanFile", () => {
   it("s'accommode d'un fichier annoncé mais pas encore écrit", async () => {
     const lookup = await withPlanFile({ planModeEntries: 1, planFilePath: join(home, "plans", "absent.md") }, home);
     expect(lookup.plan).toBeUndefined();
+  });
+});
+
+describe("listPlans et readPlanFile", () => {
+  it("liste les plans du plus récent au plus ancien, titrés par leur premier titre", async () => {
+    const old = join(home, "plans", "ancien.md");
+    const recent = join(home, "plans", "recent.md");
+    await writeFile(old, "# Ancien plan\n- [ ] a\n", "utf8");
+    await writeFile(recent, "sans titre\n", "utf8");
+    const past = new Date(Date.now() - 3_600_000);
+    await utimes(old, past, past);
+
+    const plans = await listPlans(home);
+    expect(plans.map((plan) => plan.name)).toEqual(["recent.md", "ancien.md"]);
+    expect(plans[1]?.title).toBe("Ancien plan");
+    expect(plans[0]?.title).toBeUndefined();
+  });
+
+  it("rend une liste vide sans dossier de plans", async () => {
+    expect(await listPlans(join(home, "nulle-part"))).toEqual([]);
+  });
+
+  it("lit un plan du dossier, et rien en dehors", async () => {
+    const path = join(home, "plans", "a.md");
+    await writeFile(path, "# Plan\n- [x] fait\n- [ ] reste\n", "utf8");
+    const plan = await readPlanFile(path, home);
+    expect(plan?.text).toContain("# Plan");
+    expect(plan?.progress).toEqual({ done: 1, total: 2 });
+
+    await writeFile(join(home, "ailleurs.md"), "# Non\n", "utf8");
+    expect(await readPlanFile(join(home, "ailleurs.md"), home)).toBeUndefined();
+    expect(await readPlanFile(join(home, "plans", "absent.md"), home)).toBeUndefined();
   });
 });

@@ -159,6 +159,14 @@ export function FileBrowser({ project }: { project: Project }) {
                       <span className={cn("truncate", entry.name.startsWith(".") && "opacity-60")}>
                         {entry.name}
                       </span>
+                      {entry.hasSessions && (
+                        <span
+                          className="shrink-0 text-[10px] text-primary"
+                          title={t("Des sessions Claude ont été lancées dans ce dossier")}
+                        >
+                          ✳
+                        </span>
+                      )}
                     </li>
                   </ContextMenuTrigger>
                   <ContextMenuContent>

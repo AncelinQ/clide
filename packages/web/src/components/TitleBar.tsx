@@ -17,6 +17,7 @@ import { useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
 import { FolderInput } from "@/components/FolderInput";
+import { useAsync } from "@/components/common";
 import { GitChip, RepoMarks } from "@/components/GitChip";
 import { PullReportDialog, pullRepositories, usePullRunning } from "@/components/GitSync";
 import { PreferencesDialog } from "@/components/Preferences";
@@ -40,7 +41,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { openDoc } from "@/lib/api";
+import { api, openDoc } from "@/lib/api";
+import type { SessionSummary } from "@/lib/types";
 import { activateProject, closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal } from "@/state/terminals";
@@ -59,6 +61,21 @@ export function TitleBar() {
   const [draft, setDraft] = useState("");
   const [branching, setBranching] = useState<string>();
   const pulling = usePullRunning();
+  // Les dossiers où des sessions ont tourné, du plus récent au plus ancien : ce
+  // sont les projets qu'on rouvre. Lus à l'ouverture de la fenêtre seulement.
+  const known = useAsync(
+    () => (adding ? api<{ sessions: SessionSummary[] }>("/api/sessions") : Promise.resolve({ sessions: [] })),
+    [adding],
+  );
+  const open = new Set(projects.map((project) => project.root.toLowerCase()));
+  // `projectDir` est le nom encodé du dossier de transcripts ; seul `effectiveCwd`
+  // est un chemin. Un dossier temporaire n'est pas un projet qu'on rouvre.
+  const recents = [...(known.data?.sessions ?? [])]
+    .sort((a, b) => (b.lastActivityAt ?? "").localeCompare(a.lastActivityAt ?? ""))
+    .map((session) => session.effectiveCwd)
+    .filter((root): root is string => Boolean(root) && !/[\\/]AppData[\\/]Local[\\/]Temp[\\/]/i.test(root ?? ""))
+    .filter((root, index, all) => !open.has(root.toLowerCase()) && all.indexOf(root) === index)
+    .slice(0, 8);
 
   const ThemeIcon = THEME_ICON[theme];
 
@@ -274,6 +291,22 @@ export function TitleBar() {
             onPicked={confirm}
             onKeyDown={(event) => event.key === "Enter" && confirm()}
           />
+          {recents.length > 0 && (
+            <div className="grid gap-0.5">
+              <span className="px-2 text-[11px] text-muted-foreground">{t("Récents")}</span>
+              {recents.map((root) => (
+                <button
+                  key={root}
+                  type="button"
+                  className="flex items-baseline gap-2 rounded-md px-2 py-1 text-left hover:bg-accent"
+                  onClick={() => confirm(root)}
+                >
+                  <span className="shrink-0 font-medium">{root.split(/[\\/]/).pop()}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">{root}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdding(false)}>
               {t("Annuler")}

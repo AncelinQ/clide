@@ -54,6 +54,16 @@ export interface DirectoryEntry {
   directory: boolean;
   relativePath: string;
   path: string;
+  /** Des sessions Claude ont été lancées dans ce dossier. */
+  hasSessions?: boolean;
+}
+
+/** Un plan de `~/.claude/plans`. */
+export interface PlanFileInfo {
+  path: string;
+  name: string;
+  modifiedAt: string;
+  title?: string;
 }
 
 export interface DirectoryListing {

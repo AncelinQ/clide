@@ -71,7 +71,7 @@ export {
   type PlanProgress,
   type SessionPlan,
 } from "./session/plan.js";
-export { withPlanFile } from "./session/plan-file.js";
+export { listPlans, readPlanFile, withPlanFile, type PlanFileInfo } from "./session/plan-file.js";
 
 export {
   buildActivity,
@@ -102,6 +102,7 @@ export {
 export {
   breadcrumb,
   listDirectory,
+  markSessions,
   resolveInside,
   type DirectoryEntry,
   type DirectoryListing,

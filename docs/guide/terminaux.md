@@ -54,6 +54,10 @@ l'ouvrir — `.cmd`, `.ps1`, et `.js`, confié par défaut à Windows Script Hos
 est montré dans l'Explorateur à la place : un double-clic dans un dépôt ne lance
 rien. L'ouverture passe par `explorer.exe`, sans shell pour relire le chemin.
 
+Un dossier où des sessions Claude ont été lancées porte une marque ✳ : Claude
+Code range ses transcripts par dossier de lancement, la marque dit que le sien
+existe. « Claude ici » y reprend le fil.
+
 L'œil de l'en-tête affiche les fichiers cachés — `.env`, `.claude`, `.gitignore` —,
 estompés pour qu'on les reconnaisse ; le choix est gardé. `.git` et `node_modules`
 restent écartés dans tous les cas : ce n'est pas une affaire de discrétion, mais de
