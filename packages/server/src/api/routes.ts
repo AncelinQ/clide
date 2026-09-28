@@ -56,7 +56,7 @@ import {
 } from "@clide/core";
 
 import { hooksStatus, installHooks, pruneLegacyHooks, uninstallHooks } from "../notifications/hook.js";
-import { GitWorktrees, realPath } from "../platform/git.js";
+import { GitWorktrees, gitFiles, realPath } from "../platform/git.js";
 import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
 import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
@@ -184,14 +184,19 @@ async function fsTransfer(mode: "copy" | "move", context: ApiContext, body: Reco
   return { outcomes };
 }
 
-/** Fichiers de chaque projet, pour la recherche par nom, avec l'heure de leur relevé. */
+/** Fichiers de chaque projet, pour la palette et la recherche, avec l'heure de leur relevé. */
 const fileLists = new Map<string, { files: Promise<string[]>; at: number }>();
 const FILE_LIST_TTL_MS = 15_000;
 
+/**
+ * Les fichiers d'un projet : ceux que git ne dit pas ignorés dans un dépôt, sinon
+ * le parcours du dossier, qui saute dépendances, sorties de build et caches. Une
+ * liste git vide — un projet qu'un dépôt parent ignore en entier — vaut hors dépôt.
+ */
 function projectFiles(root: string): Promise<string[]> {
   const cached = fileLists.get(root);
   if (cached && Date.now() - cached.at < FILE_LIST_TTL_MS) return cached.files;
-  const files = listProjectFiles(root);
+  const files = gitFiles(root).then((listed) => (listed && listed.length > 0 ? listed : listProjectFiles(root)));
   fileLists.set(root, { files, at: Date.now() });
   return files;
 }

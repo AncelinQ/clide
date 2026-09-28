@@ -82,7 +82,9 @@ La palette se lit à son premier caractère, comme celle de VS Code :
 Chercher un texte dans les fichiers du projet, c'est la vue Recherche de la colonne
 du projet, par `Ctrl+Maj+F` ou « Rechercher dans les fichiers » dans la palette.
 
-La recherche de fichiers passe les dépendances, les sorties de build et les caches
+La recherche de fichiers suit git dans un dépôt : ni ce que le `.gitignore` écarte,
+ni les fichiers suivis supprimés du disque ; un fichier non suivi mais non ignoré y
+figure. Hors dépôt, elle passe les dépendances, les sorties de build et les caches
 (`node_modules`, `dist`, `.git`…).
 
 | Action | Raccourci |
