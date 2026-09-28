@@ -11,15 +11,17 @@ import { hydrateSavedState } from "@/state/saved";
  */
 async function boot(): Promise<void> {
   await hydrateSavedState();
-  const [{ StrictMode }, { createRoot }, { App }, { applyTheme, watchSystemTheme }, { connect }] = await Promise.all([
+  const [{ StrictMode }, { createRoot }, { App }, { applyTheme, watchSystemTheme }, { connect }, { applyInterfaceFont }] = await Promise.all([
     import("react"),
     import("react-dom/client"),
     import("@/App"),
     import("@/state/theme"),
     import("@/state/terminals"),
+    import("@/state/interface"),
   ]);
 
   applyTheme();
+  applyInterfaceFont();
   watchSystemTheme();
   connect();
 

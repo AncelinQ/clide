@@ -16,6 +16,7 @@ interface ClideBridge {
   pathForFile(file: File): string | undefined;
   setAttention(waiting: number, badge?: string): void;
   focusWindow(): void;
+  setZoom(factor: number): void;
   pick(request: PickRequest): Promise<string | undefined>;
 }
 

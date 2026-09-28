@@ -183,6 +183,7 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
     <div
       ref={ref}
       className={cn("absolute inset-0 p-2", active ? "block" : "hidden")}
+      data-unzoom
       onDragOver={(event) => {
         if (desktop || event.dataTransfer.types.includes(PATHS_MIME) || event.dataTransfer.types.includes("Files")) {
           event.preventDefault();

@@ -5,6 +5,7 @@ import { api, post } from "@/lib/api";
 import { ownerOf } from "@/lib/workspace";
 import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
 import type { EditorTheme } from "@/lib/vscode-theme";
+import { nativeZoom, onZoomChange } from "@/state/interface";
 import { afterSave, installGutter } from "@/state/gutter";
 import { getState, setState, type OpenFile, type Project } from "@/state/store";
 
@@ -43,6 +44,7 @@ let monaco: MonacoModule | undefined;
 let editor: Monaco.editor.IStandaloneCodeEditor | undefined;
 /** Nœud qui porte l'éditeur ; il change d'hôte sans être recréé. */
 const surface = document.createElement("div");
+surface.dataset["unzoom"] = "";
 surface.style.width = "100%";
 surface.style.height = "100%";
 const documents = new Map<string, Document>();
@@ -65,6 +67,11 @@ function load(): Promise<MonacoModule> {
 function isDark(): boolean {
   return document.documentElement.classList.contains("dark");
 }
+
+/** Taille du texte de l'éditeur, en pixels réels : le zoom de l'interface est compensé. */
+const EDITOR_FONT_SIZE = 13;
+
+onZoomChange(() => editor?.updateOptions({ fontSize: EDITOR_FONT_SIZE / nativeZoom() }));
 
 /** Couleurs d'un thème VS Code importé ; sans lui, les thèmes de Monaco suivent le mode. */
 let importedTheme: EditorTheme | null = null;
@@ -92,7 +99,7 @@ async function ensureEditor(): Promise<Monaco.editor.IStandaloneCodeEditor> {
     automaticLayout: true,
     theme: isDark() ? "vs-dark" : "vs",
     minimap: { enabled: false },
-    fontSize: 13,
+    fontSize: EDITOR_FONT_SIZE / nativeZoom(),
     scrollBeyondLastLine: false,
     renderWhitespace: "selection",
     tabSize: 2,
@@ -540,6 +547,7 @@ interface DiffDocument {
 const diffs = new Map<string, DiffDocument>();
 let diffEditor: Monaco.editor.IStandaloneDiffEditor | undefined;
 const diffSurface = document.createElement("div");
+diffSurface.dataset["unzoom"] = "";
 diffSurface.style.width = "100%";
 diffSurface.style.height = "100%";
 

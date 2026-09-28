@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 
 /**
  * Pont entre la page et l'application de bureau.
@@ -36,6 +36,14 @@ contextBridge.exposeInMainWorld("clide", {
   /** Ouvre le sélecteur de dossier ou de fichier du système ; `undefined` si l'utilisateur annule. */
   pick(request: { kind: "folder" | "file"; title?: string; start?: string; extensions?: string[] }): Promise<string | undefined> {
     return ipcRenderer.invoke("clide:pick", request);
+  },
+
+  /**
+   * Échelle de la page, comme le zoom du navigateur : tout suit, menus flottants
+   * compris, là où un `zoom` CSS fausserait leur position.
+   */
+  setZoom(factor: number): void {
+    webFrame.setZoomFactor(factor);
   },
 
   /** Ramène la fenêtre au premier plan, même réduite. */

@@ -96,9 +96,14 @@
     height: 100%;
   }
 
+  /* Le terminal et l'éditeur gardent leur taille quand l'interface change d'échelle. */
+  [data-unzoom] {
+    zoom: calc(1 / var(--ui-zoom, 1));
+  }
+
   body {
     @apply text-foreground overflow-hidden text-[13px] antialiased;
-    font-family: "Segoe UI", system-ui, sans-serif;
+    font-family: var(--ui-font, "Segoe UI"), system-ui, sans-serif;
     /* La toile ; unie quand ses deux couleurs sont égales. */
     background: linear-gradient(var(--canvas-angle), var(--canvas), var(--canvas-end));
   }
