@@ -52,8 +52,17 @@ envoyé à Claude ne se traduit pas.
 
 ## Palette et raccourcis
 
-`Ctrl+Maj+P` ouvre la palette : toute action de l'application, cherchée par mots et
-lancée d'Entrée, avec son raccourci affiché — c'est ce qui les rend découvrables.
+La palette se lit à son premier caractère, comme celle de VS Code :
+
+| Saisie | Cherche | Ouverte par |
+|---|---|---|
+| rien | un fichier du projet, lettres dans l'ordre (`stst` trouve `src/state/store.ts`) ; Entrée l'ouvre | `Ctrl+P` (VS Code), `Ctrl+Maj+N` (JetBrains) |
+| `>` | une action de l'application, par mots, avec son raccourci ; les dernières lancées en tête | `Ctrl+Maj+P`, `F1` |
+| `@` | une session, par titre, premier prompt, dossier ou branche ; Entrée la montre dans le bloc session | |
+| `#` | un passage dans le texte des sessions ; Entrée l'ouvre dans Activité | `Ctrl+Maj+F` |
+
+La recherche de fichiers passe les dépendances, les sorties de build et les caches
+(`node_modules`, `dist`, `.git`…).
 
 | Action | Raccourci |
 |---|---|
@@ -76,6 +85,17 @@ elle n'atteint pas le shell, et la palette se ferme sans laisser de caractère. 
 combinaison qui n'est à aucune action passe au terminal telle quelle. Les
 raccourcis se changent dans les préférences ; une combinaison déjà prise est
 retirée à l'autre action, et le dialogue le dit.
+
+**Jeu de raccourcis.** Les préférences proposent VS Code (par défaut), JetBrains, ou
+Clide seul. Un jeu ajoute ses touches à celles du tableau, sans en retirer : VS Code
+apporte `Ctrl+P`, `Ctrl+B` (colonne du projet), `Ctrl+J` (bloc session),
+`Ctrl+Page suiv./préc.`, `Ctrl+W`, `Ctrl+,` (préférences), ``Ctrl+` `` (revenir au
+terminal) ; JetBrains `Ctrl+Maj+N`, `Alt+1`, `Alt+←/→`, `Ctrl+F4`, `Alt+F12`. Celles
+que le shell ou Claude Code utilisent aussi — `Ctrl+B`, `Ctrl+P`, `Ctrl+J`… — ne
+valent que hors du terminal et des champs de saisie, et l'éditeur de raccourcis les
+marque ◦ : dans un terminal, elles lui restent. Dans un navigateur, `Ctrl+W` ferme
+l'onglet du navigateur avant que Clide ne la voie ; elle ne vaut que dans
+l'application de bureau.
 
 ## Préférences
 

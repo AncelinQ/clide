@@ -51,6 +51,7 @@ describe("migrate depuis la version 1", () => {
       hiddenModes: { session: ["plan"] },
       newestFirst: { activity: false },
       showHidden: true,
+      keymap: "vscode",
     });
   });
 });

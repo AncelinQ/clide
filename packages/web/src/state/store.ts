@@ -4,6 +4,7 @@ import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
+import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -86,6 +87,10 @@ export interface State {
   visibleTabs: string[] | null;
   /** Modes masqués de chaque bloc à modes (`session`, `project`) ; ils restent dans son menu « ⋯ ». */
   hiddenModes: Record<string, string[]>;
+  /** Jeu de raccourcis ajouté aux défauts : VS Code, JetBrains, ou ceux de Clide seuls. */
+  keymap: Keymap;
+  /** Ce que la palette montre à son ouverture : `>` commandes, `@` sessions, `#` recherche, rien pour les fichiers. */
+  paletteQuery: string;
   /** L'explorateur du projet montre les fichiers cachés (`.env`, `.claude`…). */
   showHidden: boolean;
   /** Modes dont la liste montre les éléments les plus récents en haut, par identifiant de mode. */
@@ -108,7 +113,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "globalTab"
+  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap"
 > {
   let raw: unknown;
   try {
@@ -147,6 +152,7 @@ let state: State = {
   activityFocus: null,
   activityAgents: null,
   paletteOpen: false,
+  paletteQuery: ">",
   addingProject: false,
   preferencesOpen: false,
   ...restored(),
@@ -179,6 +185,7 @@ function persist(): void {
       hiddenModes: state.hiddenModes,
       newestFirst: state.newestFirst,
       showHidden: state.showHidden,
+      keymap: state.keymap,
     },
   };
   const text = JSON.stringify(saved);
