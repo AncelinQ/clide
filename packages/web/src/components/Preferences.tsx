@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { LookPicker } from "@/components/LookPicker";
 import { ShortcutsEditor } from "@/components/ShortcutsEditor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +90,7 @@ export function PreferencesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("Préférences")}</DialogTitle>
           <DialogDescription>
@@ -122,6 +123,8 @@ export function PreferencesDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <LookPicker />
 
           <div className="grid gap-1.5">
             <Label>{t("Police du terminal")}</Label>

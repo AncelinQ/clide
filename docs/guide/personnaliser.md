@@ -5,14 +5,40 @@ Apparence, langue, police du terminal et raccourcis clavier.
 ## Thème
 
 Sombre par défaut, clair quand le système le demande, et un bouton dans la barre
-de titre qui force l'un ou l'autre. Le réglage explicite l'emporte sur le système,
-et le suivi est immédiat — aucun rechargement.
+de titre qui force l'un ou l'autre — ou le sélecteur « Apparence » des
+préférences. Le réglage explicite l'emporte sur le système, et le suivi est
+immédiat — aucun rechargement.
 
 Les couleurs sont des variables CSS, **y compris les seize couleurs ANSI du
 terminal**. xterm peint sur un canevas et ne lit pas la feuille de style : sa
 palette lui est repassée à chaque changement. Sans cela, le jaune et le cyan
 réglés pour un fond noir deviennent illisibles sur blanc — c'est tout le terminal
 qui suit l'apparence, pas seulement son fond.
+
+## Couleurs de l'interface
+
+Les préférences donnent à choisir les couleurs de l'interface, comme un thème
+Slack : des presets — Clide, Bourgogne, Vert émeraude, Bleu marine, Bleu Lake
+Placid, Vert princesse, Crème, Argent, Candy cola — ou ses propres couleurs.
+
+Elles habillent la **toile** et l'**accent**, rien d'autre. La toile est le fond
+de la fenêtre : la barre de titre et l'espace derrière les îlots ; elle est unie
+ou en dégradé, d'une couleur à une seconde, dans la direction qu'on lui donne.
+L'accent colore les boutons, l'onglet actif, les liens et l'anneau de focus. Les
+îlots gardent le blanc ou le gris sombre de leur mode, pour que leur contenu se
+lise pareil quelle que soit la toile, et le terminal garde ses couleurs.
+
+Chaque mode a les siennes : une toile pensée pour des îlots blancs n'est pas celle
+qu'on veut sous des îlots sombres. Un preset règle les deux d'un coup ;
+« Personnaliser » ouvre une ligne par mode — accent, toile, dégradé et sa
+direction — et celle du mode affiché change sous les yeux, l'autre attend qu'on y
+passe. Retoucher une couleur fait quitter le preset ; en choisir un le remplace.
+
+Ce qui est posé à même la toile — la barre de titre, les poignées entre les
+colonnes — prend une encre claire ou sombre selon la toile en dessous, et non
+selon le mode : une toile bourgogne sous des îlots blancs s'écrit en clair. Les
+menus et fenêtres flottants ne sont pas sur la toile ; ils gardent les couleurs
+des îlots.
 
 ## Langue
 
@@ -56,8 +82,8 @@ retirée à l'autre action, et le dialogue le dit.
 Le bouton de réglage de la barre de titre ouvre les préférences propres à
 l'application, rangées avec le thème dans sa configuration — jamais dans
 `settings.json`, qui appartient à Claude Code. Elles portent pour l'instant la
-langue, la police du terminal et sa taille, appliquées aussitôt aux terminaux
-ouverts, et les raccourcis.
+langue, l'apparence et les couleurs de l'interface, la police du terminal et sa
+taille, appliquées aussitôt aux terminaux ouverts, et les raccourcis.
 
 Les réglages de Claude Code — modèle par défaut, effort, interface, permissions —
 sont dans le panneau global, onglet **Réglages**, que les préférences ouvrent par

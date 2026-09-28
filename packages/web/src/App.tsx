@@ -82,6 +82,7 @@ export function App() {
                 <ProjectColumn />
               </div>
               <Splitter
+                className="on-canvas"
                 onStart={() => (start.current = getState().widths.left)}
                 onDrag={(dx) =>
                   setState((current) => ({
@@ -101,6 +102,7 @@ export function App() {
           {showRight && (
             <>
               <Splitter
+                className="on-canvas"
                 onStart={() => (start.current = getState().widths.right)}
                 onDrag={(dx) =>
                   setState((current) => ({

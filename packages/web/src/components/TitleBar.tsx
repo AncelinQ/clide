@@ -77,7 +77,7 @@ export function TitleBar() {
   };
 
   return (
-    <header className="flex shrink-0 items-center gap-1.5 px-1.5 py-1.5">
+    <header className="on-canvas flex shrink-0 items-center gap-1.5 px-1.5 py-1.5">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button

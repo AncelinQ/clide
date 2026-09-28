@@ -17,12 +17,12 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.96 0 0);
   --muted-foreground: oklch(0.52 0 0);
-  --accent: oklch(0.95 0.01 258);
+  --accent: color-mix(in oklab, var(--secondary), var(--primary) 6%);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.58 0.21 27);
   --border: oklch(0.9 0 0);
   --input: oklch(0.9 0 0);
-  --ring: oklch(0.56 0.18 258);
+  --ring: var(--primary);
 }
 
 .dark {
@@ -38,12 +38,26 @@
   --secondary-foreground: oklch(0.93 0.004 260);
   --muted: oklch(0.26 0.006 260);
   --muted-foreground: oklch(0.66 0.006 260);
-  --accent: oklch(0.29 0.008 260);
+  --accent: color-mix(in oklab, var(--secondary), var(--primary) 6%);
   --accent-foreground: oklch(0.93 0.004 260);
   --destructive: oklch(0.65 0.19 27);
   --border: oklch(1 0 0 / 11%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.66 0.17 254);
+  --ring: var(--primary);
+}
+
+/*
+ * Habillage : la toile et l'encre. Le script pose `--canvas*`, `--primary` et
+ * `--primary-foreground` depuis les préférences ; les valeurs d'ici, celles du
+ * preset par défaut, servent au premier rendu.
+ */
+:root {
+  --canvas: var(--background);
+  --canvas-end: var(--background);
+  --canvas-angle: 160deg;
+  /* Encre qui se lit sur une surface sombre, et sur une surface claire. */
+  --ink-on-dark: oklch(0.97 0.003 260);
+  --ink-on-light: oklch(0.18 0.005 260);
 }
 
 @theme inline {
@@ -83,9 +97,54 @@
   }
 
   body {
-    @apply bg-background text-foreground overflow-hidden text-[13px] antialiased;
+    @apply text-foreground overflow-hidden text-[13px] antialiased;
     font-family: "Segoe UI", system-ui, sans-serif;
+    /* La toile ; unie quand ses deux couleurs sont égales. */
+    background: linear-gradient(var(--canvas-angle), var(--canvas), var(--canvas-end));
   }
+}
+
+/*
+ * Ce qui est posé à même la toile — la barre de titre, les poignées — lit ses
+ * jetons depuis la toile, pas depuis les îlots : une toile sombre sous des îlots
+ * clairs veut un texte clair, que les îlots ne veulent pas. Les fenêtres et menus
+ * flottants sortent de la zone par leur portail et gardent ceux des îlots.
+ */
+[data-canvas="light"] .on-canvas {
+  --foreground: var(--ink-on-light);
+  --muted-foreground: color-mix(in oklab, var(--foreground) 60%, transparent);
+  --accent: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --accent-foreground: var(--foreground);
+  --card: color-mix(in oklab, white 75%, transparent);
+  --border: color-mix(in oklab, var(--foreground) 12%, transparent);
+}
+
+[data-canvas="dark"] .on-canvas {
+  --foreground: var(--ink-on-dark);
+  --muted-foreground: color-mix(in oklab, var(--foreground) 62%, transparent);
+  --accent: color-mix(in oklab, var(--foreground) 14%, transparent);
+  --accent-foreground: var(--foreground);
+  --card: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --border: color-mix(in oklab, var(--foreground) 14%, transparent);
+  /* Un accent choisi pour des îlots clairs se perdrait sur sa propre toile. */
+  --primary: var(--foreground);
+  --primary-foreground: var(--canvas);
+  --destructive: oklch(0.72 0.19 22);
+}
+
+/* Le sélecteur de couleur natif, réduit à sa pastille. */
+input[type="color"] {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 4px);
 }
 
 /*
