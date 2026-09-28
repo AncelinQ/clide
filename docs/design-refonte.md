@@ -140,6 +140,12 @@ function ownerOf(cwd: string, roots: string[]): string | undefined
 la liste des onglets **fichier** ouverts (les terminaux se retrouvent par le serveur).
 Une fonction `migrate(v1) → v2` pure, testée sur un vrai `ui-state.json` v1.
 
+Réalisation par étapes : la MR 3 pose le format v2 (`lib/saved-state.ts`) et range dans
+chaque projet son onglet actif et le mode de l'îlot du bas ; en mémoire, la disposition
+et les préférences restent des champs à plat du `State`, regroupés dans le fichier
+seulement. Leur regroupement en mémoire (`layout`, `prefs`) vient avec la fenêtre
+Réglages (MR 7), qui les relit toutes.
+
 ---
 
 ## 3. Disposition

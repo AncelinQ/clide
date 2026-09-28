@@ -6,7 +6,7 @@ import { useNewestFirst } from "@/components/ModeBlock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { t } from "@/i18n";
 import { api, formatDate } from "@/lib/api";
-import { setState } from "@/state/store";
+import { setBottomMode, setState } from "@/state/store";
 import type { ShownSession } from "@/components/panels/session";
 
 interface Image {
@@ -129,9 +129,9 @@ export function CapturesPanel({ session }: { session: ShownSession }) {
 
   const newest = useNewestFirst("captures");
 
-  const reveal = (item: GalleryItem) =>
+  const reveal = (item: GalleryItem) => {
+    setBottomMode("activity");
     setState({
-      sessionMode: "activity",
       activityAgents: item.agentId
         ? { sessionId: session.sessionId, path: [{ agentId: item.agentId, label: item.agentLabel ?? item.agentId }] }
         : null,
@@ -141,6 +141,7 @@ export function CapturesPanel({ session }: { session: ShownSession }) {
         ...(item.agentId ? { agentId: item.agentId } : {}),
       },
     });
+  };
 
   return (
     <Async state={state}>

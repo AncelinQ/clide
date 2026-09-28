@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { restoreLook, type LookPair } from "@/lib/looks";
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import { tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -10,6 +11,10 @@ export interface Project {
   name: string;
   browsePath: string;
   leftMode: string;
+  /** Mode du bloc session sous le terminal, propre au projet. */
+  bottomMode: string;
+  /** Dernier onglet regardé dans le projet. */
+  activeTab: string | null;
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -48,7 +53,6 @@ export interface State {
    * détache jusqu'au prochain changement d'onglet.
    */
   followLive: boolean;
-  sessionMode: string;
   globalTab: string;
   notifications: ClaudeNotification[];
   connected: boolean;
@@ -87,8 +91,6 @@ export interface State {
   newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
-  /** Dernier onglet regardé dans chaque projet, par racine. */
-  lastTab: Record<string, string>;
 }
 
 export interface Widths {
@@ -98,61 +100,38 @@ export interface Widths {
   preview: number;
 }
 
-export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
+export const DEFAULT_WIDTHS: Widths = DEFAULT_LAYOUT.widths;
 
 
 function restored(): Pick<
   State,
-  "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "lastTab"
+  | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
+  | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
+  | "sessionCollapsed" | "previewOpen" | "globalTab"
 > {
+  let raw: unknown;
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}") as {
-      roots?: string[];
-      active?: string;
-      theme?: Theme;
-      look?: unknown;
-      terminalFont?: Partial<TerminalFont>;
-      shortcuts?: Record<string, string | null>;
-      language?: Language;
-      tabLayout?: TabLayout;
-      visibleTabs?: string[] | null;
-      hiddenModes?: Record<string, string[]>;
-      newestFirst?: Record<string, boolean>;
-      showHidden?: boolean;
-      widths?: Partial<Widths>;
-      lastTab?: Record<string, string>;
-    };
-    const projects = (saved.roots ?? []).map(toProject);
-    return {
-      projects,
-      activeRoot: saved.active ?? projects[0]?.root ?? null,
-      theme: saved.theme ?? "auto",
-      look: restoreLook(saved.look),
-      terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
-      shortcuts: saved.shortcuts ?? {},
-      language: saved.language ?? "auto",
-      tabLayout: saved.tabLayout ?? "row",
-      visibleTabs: saved.visibleTabs ?? null,
-      hiddenModes: saved.hiddenModes ?? {},
-      newestFirst: saved.newestFirst ?? {},
-      showHidden: saved.showHidden ?? false,
-      widths: { ...DEFAULT_WIDTHS, ...saved.widths },
-      lastTab: saved.lastTab ?? {},
-    };
+    raw = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}");
   } catch {
-    // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", look: restoreLook(undefined), terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS, lastTab: {} };
+    // Rien de mémorisé, ou mémoire illisible : `migrate` en fait un état vide.
   }
+  const saved = migrate(raw);
+  return {
+    projects: saved.projects.map((project) => ({ ...project, name: nameOf(project.root) })),
+    activeRoot: saved.active,
+    ...saved.layout,
+    ...saved.prefs,
+    look: restoreLook(saved.prefs.look),
+  };
+}
+
+function nameOf(root: string): string {
+  return root.split(/[\\/]/).pop() ?? root;
 }
 
 export function toProject(root: string): Project {
-  const trimmed = root.replace(/[\\/]+$/, "");
-  return {
-    root: trimmed,
-    name: trimmed.split(/[\\/]/).pop() ?? trimmed,
-    browsePath: "",
-    leftMode: "links",
-  };
+  const trimmed = trimRoot(root);
+  return { root: trimmed, name: nameOf(trimmed), ...DEFAULT_PROJECT };
 }
 
 let state: State = {
@@ -162,14 +141,8 @@ let state: State = {
   selectedSessions: {},
   live: {},
   followLive: true,
-  sessionMode: "files",
-  globalTab: "history",
   notifications: [],
   connected: false,
-  showLeft: true,
-  showRight: true,
-  sessionCollapsed: false,
-  previewOpen: false,
   activityFocus: null,
   activityAgents: null,
   paletteOpen: false,
@@ -182,22 +155,32 @@ const listeners = new Set<() => void>();
 
 /** Mémorise l'état durable, dans le navigateur et chez le serveur. */
 function persist(): void {
-  const text = JSON.stringify({
-    roots: state.projects.map((project) => project.root),
+  const saved: SavedState = {
+    version: SAVED_VERSION,
+    projects: state.projects.map(({ name: _name, ...project }) => project),
     active: state.activeRoot,
-    theme: state.theme,
-    look: state.look,
-    terminalFont: state.terminalFont,
-    shortcuts: state.shortcuts,
-    language: state.language,
-    tabLayout: state.tabLayout,
-    visibleTabs: state.visibleTabs,
-    hiddenModes: state.hiddenModes,
-    newestFirst: state.newestFirst,
-    showHidden: state.showHidden,
-    widths: state.widths,
-    lastTab: state.lastTab,
-  });
+    layout: {
+      widths: state.widths,
+      showLeft: state.showLeft,
+      showRight: state.showRight,
+      sessionCollapsed: state.sessionCollapsed,
+      previewOpen: state.previewOpen,
+      globalTab: state.globalTab,
+    },
+    prefs: {
+      theme: state.theme,
+      look: state.look,
+      terminalFont: state.terminalFont,
+      shortcuts: state.shortcuts,
+      language: state.language,
+      tabLayout: state.tabLayout,
+      visibleTabs: state.visibleTabs,
+      hiddenModes: state.hiddenModes,
+      newestFirst: state.newestFirst,
+      showHidden: state.showHidden,
+    },
+  };
+  const text = JSON.stringify(saved);
   try {
     localStorage.setItem(SAVED, text);
   } catch {
@@ -259,11 +242,33 @@ export function openProject(root: string, activate = true): void {
  * le pied de la zone décrire l'onglet de l'autre projet, jusqu'à un clic.
  */
 export function activateProject(root: string): void {
-  setState((current) => ({
-    activeRoot: root,
-    activeTerminalId: tabToShow(current.terminals, current.lastTab, root),
-    followLive: true,
-  }));
+  setState((current) => {
+    const remembered = current.projects.find((project) => project.root === root)?.activeTab ?? null;
+    return {
+      activeRoot: root,
+      activeTerminalId: tabToShow(current.terminals, remembered, root),
+      followLive: true,
+    };
+  });
+}
+
+/** Projets où `owner` retient `tab` comme dernier onglet regardé. */
+export function rememberTab(projects: Project[], owner: string, tab: string): Project[] {
+  return projects.map((project) => (project.root === owner && project.activeTab !== tab ? { ...project, activeTab: tab } : project));
+}
+
+/** Projets où plus aucun ne retient l'onglet `tab`, qui vient de se fermer. */
+export function forgetTab(projects: Project[], tab: string): Project[] {
+  return projects.map((project) => (project.activeTab === tab ? { ...project, activeTab: null } : project));
+}
+
+/** Mode du bloc session du projet actif. */
+export const bottomModeOf = (current: State = state): string =>
+  activeProject(current)?.bottomMode ?? DEFAULT_PROJECT.bottomMode;
+
+/** Change le mode du bloc session d'un projet, l'actif par défaut. */
+export function setBottomMode(mode: string, root: string | null = state.activeRoot): void {
+  if (root) updateProject(root, { bottomMode: mode });
 }
 
 /** Session choisie dans History pour le projet actif, s'il y en a une. */
@@ -293,11 +298,10 @@ export function updateProject(root: string, patch: Partial<Project>): void {
 }
 
 export function closeProject(root: string): void {
-  const { projects: open, lastTab, selectedSessions } = getState();
+  const { projects: open, selectedSessions } = getState();
   const projects = open.filter((project) => project.root !== root);
-  const { [root]: _tab, ...keptTabs } = lastTab;
   const { [root]: _session, ...keptSessions } = selectedSessions;
-  setState({ projects, lastTab: keptTabs, selectedSessions: keptSessions });
+  setState({ projects, selectedSessions: keptSessions });
   if (getState().activeRoot !== root) return;
   const next = projects[0]?.root;
   if (next) activateProject(next);

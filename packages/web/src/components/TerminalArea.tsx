@@ -28,7 +28,7 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { DEFAULT_WIDTHS, activeProject, getState, selectedSessionOf, setState, useStore } from "@/state/store";
+import { DEFAULT_WIDTHS, activeProject, bottomModeOf, getState, selectedSessionOf, setBottomMode, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import {
   closeTerminal,
@@ -283,7 +283,6 @@ export function TerminalArea() {
     activeTerminalId,
     attention,
     activeRoot,
-    sessionMode,
     live,
     followLive,
     sessionCollapsed,
@@ -292,6 +291,7 @@ export function TerminalArea() {
   } = useStore((state) => state);
   const project = useStore(activeProject);
   const selectedSession = useStore(selectedSessionOf);
+  const sessionMode = useStore(bottomModeOf);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
@@ -540,7 +540,7 @@ export function TerminalArea() {
         block="session"
         modes={modes}
         current={sessionMode}
-        onPick={(id) => setState({ sessionMode: id })}
+        onPick={(id) => setBottomMode(id)}
         header={
           // Le titre se tronque, la puce reste entière : elle est ce qui dit que
           // le bloc ne montre pas l'onglet.

@@ -1,5 +1,5 @@
 import { ArrowUp, Eye, EyeOff, File, Folder } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Async, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,12 @@ export function FileBrowser({ project }: { project: Project }) {
   );
 
   const goTo = (relativePath: string) => updateProject(project.root, { browsePath: relativePath });
+
+  // Le dossier retenu d'une session précédente a pu disparaître depuis : on
+  // repart de la racine plutôt que de laisser l'explorateur sur une erreur.
+  useEffect(() => {
+    if (state.error && project.browsePath) updateProject(project.root, { browsePath: "" });
+  }, [state.error, project.root, project.browsePath]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
