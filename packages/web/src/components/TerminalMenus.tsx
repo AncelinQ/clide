@@ -120,6 +120,7 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
         </Button>
       )}
       <MenuButton
+        hover
         items={items}
         trigger={
           <Button variant="ghost" size="icon" className="size-7" disabled={disabled} title={t("Nouvel onglet")}>
@@ -219,6 +220,7 @@ export function ToolsMenu({
 
   return (
     <MenuButton
+      hover
       items={items}
       className="min-w-64"
       trigger={

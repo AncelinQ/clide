@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { tidy, type MenuItem } from "@/lib/menu";
 
@@ -61,8 +61,12 @@ const CONTEXT: Parts = {
   SubContent: ContextMenuSubContent,
 };
 
+/** Survol d'un menu ouvert au survol : ses sous-menus, dans leur propre calque, en font partie. */
+const HoverContext = createContext<{ enter: () => void; leave: () => void } | null>(null);
+
 function Items({ items, parts }: { items: MenuItem[]; parts: Parts }) {
   const { Item, Label, Separator, Shortcut, Sub, SubTrigger, SubContent } = parts;
+  const hover = useContext(HoverContext);
   return tidy(items).map((item, index) => {
     switch (item.kind) {
       case "separator":
@@ -81,7 +85,7 @@ function Items({ items, parts }: { items: MenuItem[]; parts: Parts }) {
               {Icon && <Icon />}
               {item.label}
             </SubTrigger>
-            <SubContent className="min-w-48">
+            <SubContent className="min-w-48" onPointerEnter={hover?.enter} onPointerLeave={hover?.leave}>
               <Items items={item.items} parts={parts} />
             </SubContent>
           </Sub>
@@ -114,23 +118,46 @@ function Items({ items, parts }: { items: MenuItem[]; parts: Parts }) {
   });
 }
 
-/** Menu déroulant sous un déclencheur (un bouton, en général). */
+/** Délais du survol : assez pour traverser l'espace entre le bouton et le menu sans le fermer. */
+const HOVER_OPEN_MS = 120;
+const HOVER_CLOSE_MS = 250;
+
+/**
+ * Menu déroulant sous un déclencheur (un bouton, en général). `hover` l'ouvre au
+ * survol et le ferme quand le pointeur quitte le bouton, le menu et ses
+ * sous-menus ; le clic l'ouvre et le ferme toujours.
+ */
 export function MenuButton({
   trigger,
   items,
   align = "end",
   className = "min-w-56",
+  hover = false,
 }: {
   trigger: ReactNode;
   items: MenuItem[] | (() => MenuItem[]);
   align?: "start" | "center" | "end";
   className?: string;
+  hover?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const later = (value: boolean, delay: number) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setOpen(value), delay);
+  };
+  const handlers = hover ? { enter: () => later(true, open ? 0 : HOVER_OPEN_MS), leave: () => later(false, HOVER_CLOSE_MS) } : null;
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className={className}>
-        <Items items={typeof items === "function" ? items() : items} parts={DROPDOWN} />
+    // Au survol, le menu n'est pas modal : il ne doit pas bloquer le pointeur qui le quitte.
+    <DropdownMenu open={open} onOpenChange={(value) => { clearTimeout(timer.current); setOpen(value); }} modal={!hover}>
+      <DropdownMenuTrigger asChild onPointerEnter={handlers?.enter} onPointerLeave={handlers?.leave}>
+        {trigger}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={align} className={className} onPointerEnter={handlers?.enter} onPointerLeave={handlers?.leave}>
+        <HoverContext.Provider value={handlers}>
+          <Items items={typeof items === "function" ? items() : items} parts={DROPDOWN} />
+        </HoverContext.Provider>
       </DropdownMenuContent>
     </DropdownMenu>
   );
