@@ -55,9 +55,31 @@ qui le ferait croire enfoncé.
 
 ## Ouvrir un fichier
 
-Dans le Finder, un clic sélectionne et un double-clic ouvre avec l'application
-par défaut ; le menu contextuel insère le chemin dans le prompt, montre le fichier
-dans l'Explorateur ou copie son chemin. Ce que Windows exécuterait au lieu de
+L'explorateur est un arbre : un clic sur un dossier le déplie, un clic sur un
+fichier le sélectionne (`Ctrl` et `Maj` pour en prendre plusieurs), un double-clic
+l'ouvre avec l'application par défaut. Les icônes sont celles de Catppuccin pour VS
+Code, dans la palette Latte en clair et Mocha en sombre. Le menu contextuel insère
+le chemin dans le prompt, montre le fichier dans l'Explorateur ou copie son chemin.
+
+On y manipule les fichiers comme dans l'Explorateur de Windows, l'arbre ayant le
+focus :
+
+| Geste | Effet |
+|---|---|
+| boutons de l'en-tête, menu contextuel | nouveau fichier, nouveau dossier, dans le dossier sélectionné |
+| `F2` | renommer sur place, le nom sélectionné sans son extension |
+| `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | copier, couper, coller dans le dossier sélectionné |
+| Dupliquer (menu) | une copie à côté, nommée `nom (2)` |
+| glisser sur un dossier | déplacer ; `Ctrl` enfoncé, copier ; un fichier venu de l'Explorateur (application de bureau) est copié |
+| `Suppr` | mettre à la corbeille de Windows |
+| `Ctrl+Z` | annuler la dernière création, le dernier renommage, déplacement ou copie |
+| `↑` `↓` `←` `→` · Entrée · Espace | se déplacer, replier, déplier · ouvrir · aperçu |
+
+Rien n'est écrasé : si un nom est pris, Clide demande — remplacer, qui envoie
+l'existant à la corbeille, garder les deux, ou annuler ; coller à côté de
+l'original en fait une copie `nom (2)` sans demander. Un projet ouvert ne se met
+pas à la corbeille, et rien ne sort des projets ouverts, de leurs dossiers liés et
+de leurs worktrees : le serveur vérifie chaque chemin. Ce que Windows exécuterait au lieu de
 l'ouvrir — `.cmd`, `.ps1`, et `.js`, confié par défaut à Windows Script Host —
 est montré dans l'Explorateur à la place : un double-clic dans un dépôt ne lance
 rien. L'ouverture passe par `explorer.exe`, sans shell pour relire le chemin.
@@ -77,7 +99,7 @@ kilo-octets est tenu pour binaire, comme le fait git ; un SVG est montré en tex
 le rendre exécuterait ce qu'il contient. L'aperçu comme l'ouverture sont bornés à
 la racine du projet, comme la liste des dossiers.
 
-Un fichier glissé du Finder sur un terminal y écrit son chemin, dans le navigateur
+Un fichier glissé de l'explorateur sur un terminal y écrit son chemin, dans le navigateur
 comme dans l'application de bureau. Glissé depuis l'Explorateur, il ne le fait que
 sous Electron : un navigateur livre le contenu d'un fichier déposé, jamais son
 emplacement.

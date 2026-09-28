@@ -1,7 +1,7 @@
 import { FolderOpen, FolderTree, GitBranch, History, Info, Plug, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { FileBrowser } from "@/components/FileBrowser";
+import { FileTree } from "@/components/FileTree";
 import type { Activity } from "@/components/ActivityBar";
 import { Splitter, clamp } from "@/components/Splitter";
 import { TabRow } from "@/components/GlobalTabs";
@@ -151,7 +151,7 @@ function ExplorerStack({ project }: { project: Project }) {
   return (
     <div ref={box} className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col">
-        <FileBrowser project={project} />
+        <FileTree project={project} />
       </div>
       <Splitter
         orientation="horizontal"

@@ -186,6 +186,35 @@ describe("serveur local", () => {
     }
   });
 
+  it("crée, renomme et copie dans les projets ouverts, et refuse ailleurs", async () => {
+    const post = (path: string, body: unknown) =>
+      fetch(`${base()}${path}?token=${server.token}`, { method: "POST", body: JSON.stringify(body) });
+    const folder = join(scratch, "ops");
+    await mkdir(folder, { recursive: true });
+
+    expect((await post("/api/fs/create", { parent: folder, name: "a.md", kind: "file" })).status).toBe(200);
+    const renamed = (await (await post("/api/fs/rename", { path: join(folder, "a.md"), name: "b.md" })).json()) as { path: string };
+    expect(renamed.path).toBe(join(folder, "b.md"));
+
+    const asked = (await (await post("/api/fs/copy", { sources: [join(folder, "b.md")], targetDir: folder })).json()) as {
+      outcomes: { status: string; conflict?: boolean }[];
+    };
+    expect(asked.outcomes).toEqual([expect.objectContaining({ status: "skipped", conflict: true })]);
+    const kept = (await (
+      await post("/api/fs/copy", { sources: [join(folder, "b.md")], targetDir: folder, onConflict: "keepBoth" })
+    ).json()) as { outcomes: { target: string }[] };
+    expect(kept.outcomes[0]?.target).toBe(join(folder, "b (2).md"));
+
+    const outside = await mkdtemp(join(tmpdir(), "clide-dehors-"));
+    try {
+      expect((await post("/api/fs/create", { parent: outside, name: "x", kind: "file" })).status).toBe(403);
+      expect((await post("/api/fs/copy", { sources: [join(folder, "b.md")], targetDir: outside })).status).toBe(403);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+    expect((await post("/api/fs/trash", { paths: [scratch] })).status).toBe(400);
+  });
+
   it("signale un paramètre manquant plutôt que de deviner", async () => {
     const response = await fetch(`${base()}/api/files?token=${server.token}`);
     expect(response.status).toBe(400);
