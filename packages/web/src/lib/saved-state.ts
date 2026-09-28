@@ -48,6 +48,8 @@ export interface SavedPrefs {
   showHidden: boolean;
   /** Jeu de raccourcis ajouté aux défauts de Clide. */
   keymap: "clide" | "vscode" | "jetbrains";
+  /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
+  showCosts: boolean;
 }
 
 export interface SavedState {
@@ -80,6 +82,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   newestFirst: {},
   showHidden: false,
   keymap: "vscode",
+  showCosts: true,
 };
 
 export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
@@ -148,7 +151,8 @@ function layout(value: unknown): SavedLayout {
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),
     previewOpen: flag(source["previewOpen"], DEFAULT_LAYOUT.previewOpen),
-    globalTab: text(source["globalTab"], DEFAULT_LAYOUT.globalTab),
+    // Les réglages de Claude Code, un onglet du panneau global, ont rejoint la fenêtre Réglages.
+    globalTab: source["globalTab"] === "settings" ? DEFAULT_LAYOUT.globalTab : text(source["globalTab"], DEFAULT_LAYOUT.globalTab),
   };
 }
 
@@ -173,6 +177,7 @@ function prefs(value: unknown): SavedPrefs {
     newestFirst: recordOf(source["newestFirst"], (item): item is boolean => typeof item === "boolean"),
     showHidden: flag(source["showHidden"], DEFAULT_PREFS.showHidden),
     keymap: oneOf(source["keymap"], ["clide", "vscode", "jetbrains"], DEFAULT_PREFS.keymap),
+    showCosts: flag(source["showCosts"], DEFAULT_PREFS.showCosts),
   };
 }
 

@@ -1,6 +1,6 @@
 # Le panneau global
 
-À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, l'usage et les coûts, les processus, et les réglages de Claude Code.
+À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, l'usage et les coûts, les processus. Les réglages de Claude Code sont dans la fenêtre Réglages.
 
 ## Onglets du panneau global
 
@@ -17,9 +17,8 @@ depuis le menu « ⋯ » :
 Le même menu choisit les onglets affichés ; un onglet masqué reste accessible depuis
 « ⋯ ». Le choix est gardé avec les autres préférences de l'application.
 
-**Réglages** édite le `settings.json` de Claude Code : modèle par défaut, effort,
-interface, permissions, hooks. Il ne faut pas le confondre avec les Préférences de
-la barre de titre, propres à Clide — elles y renvoient d'ailleurs par un lien.
+La roue en bas de la barre d'onglets, comme celle de la barre de titre, ouvre la
+fenêtre Réglages (voir [Personnaliser](personnaliser.md#reglages)).
 
 ## Skills et commandes
 
@@ -110,6 +109,10 @@ Beaucoup de tickets ne sont que consultés — lus en préparant d'autres chanti
 liste montre d'abord ceux qui ont une branche ou une MR.
 
 ## Ce que coûtent les sessions
+
+Réglages › Historique et coûts › « Afficher les coûts » les masque dans
+l'historique, l'activité de la session et l'en-tête du terminal ; l'onglet Coûts
+reste pour qui le cherche.
 
 Claude Code écrit le coût d'une session dans un event `cost-state`, cumulé et
 détaillé par modèle — mais pas toujours : sur le corpus de référence, 31 sessions sur

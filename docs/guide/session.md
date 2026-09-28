@@ -66,7 +66,7 @@ Trois cas l'empêchent, et la fenêtre dit lequel :
 
 - **le mode plein écran.** Claude Code y dessine lui-même son écran, dans le
   tampon secondaire du terminal, qui n'a pas d'historique. Le saut demande
-  l'interface `default` (Réglages → Interface), puis un onglet relancé ;
+  l'interface `default` (Réglages › Claude Code › Interface), puis un onglet relancé ;
 - **une ligne qui n'est plus affichée** : session reprise dans un nouvel onglet,
   `/clear`, compactage ;
 - **une session sans onglet ouvert**, ou l'activité d'un sous-agent, que le

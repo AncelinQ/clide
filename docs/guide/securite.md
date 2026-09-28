@@ -15,7 +15,7 @@ origine qui n'est pas la nôtre.
 
 ## Ce que les panneaux écrivent
 
-Le panneau Réglages présente `settings.json` en formulaire — général, permissions,
+La section Claude Code des Réglages présente `settings.json` en formulaire — général, permissions,
 hooks, environnement, plugins — avec le JSON brut replié en dessous. Chaque champ
 s'écrit seul, par une édition chirurgicale : les clés que le formulaire ne connaît
 pas, et la mise en forme du fichier, restent telles quelles. Une valeur vidée retire

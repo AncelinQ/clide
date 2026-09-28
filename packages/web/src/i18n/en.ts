@@ -645,4 +645,17 @@ export const EN: Record<string, string> = {
   "À quoi sert cette vue": "What this view is for",
   Guide: "Guide",
   "Tirer pour redimensionner, double-clic pour revenir à la hauteur par défaut": "Drag to resize, double-click to go back to the default height",
+  "Onglets du panneau global": "Global panel tabs",
+  "En colonne au bord de la fenêtre, comme les barres d'outils des IDE, ou en ligne au-dessus du panneau.":
+    "In a column at the window's edge, like IDE tool bars, or in a row above the panel.",
+  "En colonne": "In a column",
+  "En ligne": "In a row",
+  "Ce que coûtent les sessions, déduit de ce que Claude Code en a relevé. L'onglet Coûts du panneau global reste là pour qui le cherche.":
+    "What sessions cost, derived from what Claude Code recorded. The global panel's Costs tab stays for whoever looks for it.",
+  "Afficher les coûts": "Show costs",
+  "Dans l'historique, dans l'activité de la session et dans l'en-tête du terminal.": "In the history, in the session's activity and in the terminal's header.",
+  "Historique et coûts": "History and costs",
+  "Ces réglages sont ceux de Claude Code, dans son settings.json : ils valent pour toutes ses sessions, dans Clide ou non.":
+    "These are Claude Code's settings, in its settings.json: they apply to all its sessions, in Clide or not.",
+  "Réglages de Clide et de Claude Code.": "Clide and Claude Code settings.",
 };

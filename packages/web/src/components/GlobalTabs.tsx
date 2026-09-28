@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { t } from "@/i18n";
-import { setState, useStore, type TabLayout } from "@/state/store";
+import { openSettings, setState, useStore, type TabLayout } from "@/state/store";
 import { cn } from "cn";
 
 export const GLOBAL_TABS: { id: string; icon: LucideIcon; label: string }[] = [
@@ -42,7 +42,6 @@ export const GLOBAL_TABS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: "mcp", icon: Plug, label: "MCP" },
   { id: "usage", icon: Gauge, label: "Usage" },
   { id: "costs", icon: Coins, label: "Coûts" },
-  { id: "settings", icon: Settings, label: "Réglages" },
   { id: "notifications", icon: Bell, label: "Alertes" },
 ];
 
@@ -210,6 +209,9 @@ export function TabRail({ current }: { current: string }) {
       ))}
       <div className="flex-1" />
       <TabMenu current={current} overflow={hidden} />
+      <Button variant="ghost" size="icon" className="size-8" title={t("Réglages")} onClick={() => openSettings()}>
+        <Settings className="size-4" />
+      </Button>
     </nav>
   );
 }

@@ -42,6 +42,7 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
   const [removing, setRemoving] = useState<string>();
   const activeRoot = useStore((store) => store.activeRoot);
   const selectedSession = useStore(selectedSessionOf);
+  const showCosts = useStore((store) => store.showCosts);
 
   return (
     <Async state={state}>
@@ -107,7 +108,7 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
                       shortName(session.effectiveCwd ?? ""),
                       session.gitBranch,
                       t(session.fileCount === 1 ? "{count} fichier" : "{count} fichiers", { count: session.fileCount }),
-                      formatSessionCost(session.price),
+                      showCosts ? formatSessionCost(session.price) : undefined,
                     ]
                       .filter(Boolean)
                       .join("  ·  ")}

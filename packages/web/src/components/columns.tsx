@@ -20,7 +20,6 @@ import {
   HistoryPanel,
   NotificationsPanel,
   ProcessesPanel,
-  SettingsPanel,
   UserMcpPanel,
   UserSkillsPanel,
 } from "@/components/panels/global";
@@ -254,8 +253,6 @@ export function GlobalColumn() {
         return <UserSkillsPanel key={nonce} filter={filter} />;
       case "mcp":
         return <UserMcpPanel key={nonce} />;
-      case "settings":
-        return <SettingsPanel key={nonce} />;
       case "costs":
         return <CostsPanel key={nonce} />;
       case "usage":

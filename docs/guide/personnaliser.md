@@ -97,18 +97,25 @@ marque ◦ : dans un terminal, elles lui restent. Dans un navigateur, `Ctrl+W` f
 l'onglet du navigateur avant que Clide ne la voie ; elle ne vaut que dans
 l'application de bureau.
 
-## Préférences
+## Réglages
 
-Le bouton de réglage de la barre de titre ouvre les préférences propres à
-l'application, rangées avec le thème dans sa configuration — jamais dans
-`settings.json`, qui appartient à Claude Code. Elles portent pour l'instant la
-langue, l'apparence et les couleurs de l'interface, la police du terminal et sa
-taille, appliquées aussitôt aux terminaux ouverts, et les raccourcis.
+Une seule fenêtre, ouverte par la roue de la barre de titre, celle du bas de la
+barre d'onglets, ou `Ctrl+,`. Ses sections, à gauche :
 
-Les réglages de Claude Code — modèle par défaut, effort, interface, permissions —
-sont dans le panneau global, onglet **Réglages**, que les préférences ouvrent par
-un lien. Le modèle y fixe celui des nouvelles sessions ; celui de la session en
-cours change par le bouton « Modèle » de la barre du terminal.
+- **Général** : la langue de l'interface ;
+- **Apparence** : les couleurs de l'interface, et les onglets du panneau global en
+  colonne ou en ligne ;
+- **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
+- **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
+- **Historique et coûts** : afficher ou non ce que coûtent les sessions ;
+- **Claude Code** : le `settings.json` de Claude Code en formulaire — modèle par
+  défaut, effort, interface, permissions, hooks —, qui vaut pour toutes ses
+  sessions.
+
+Les cinq premières sont propres à Clide, rangées dans sa configuration, jamais dans
+`settings.json`, qui appartient à Claude Code ; la dernière l'édite, et le dit. Le
+modèle y fixe celui des nouvelles sessions ; celui de la session en cours change
+par `⋯` › « Changer de modèle », dans la barre du terminal.
 
 L'interface de Claude Code vaut `fullscreen` ou `default`. En plein écran, Claude
 Code dessine lui-même son écran ; en `default`, il écrit la conversation dans
