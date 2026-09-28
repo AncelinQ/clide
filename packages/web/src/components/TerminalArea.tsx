@@ -310,6 +310,8 @@ export function TerminalArea() {
   // Rattachée dès son démarrage par les hooks, une session n'a rien à montrer
   // avant son premier prompt : son transcript n'existe pas encore.
   const starting = followLive && current !== undefined && current.lastActivityAt === undefined;
+  // Une session de History est montrée alors que l'onglet actif en a une vivante.
+  const detached = !followLive && current !== undefined;
   // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
   const shown: (ShownSession & { title?: string }) | undefined = starting
     ? undefined
@@ -539,7 +541,23 @@ export function TerminalArea() {
         modes={modes}
         current={sessionMode}
         onPick={(id) => setState({ sessionMode: id })}
-        header={shown?.title}
+        header={
+          // Le titre se tronque, la puce reste entière : elle est ce qui dit que
+          // le bloc ne montre pas l'onglet.
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate">{shown?.title}</span>
+            {detached && (
+              <button
+                type="button"
+                className="shrink-0 rounded-full border px-1.5 text-[10px] hover:bg-accent hover:text-foreground"
+                title={t("Le bloc montre une session choisie dans History ; l'onglet actif en a une autre. Cliquer pour suivre l'onglet.")}
+                onClick={() => setState({ followLive: true })}
+              >
+                {t("détaché")}
+              </button>
+            )}
+          </span>
+        }
         collapsed={sessionCollapsed}
         onCollapse={(value) => setState({ sessionCollapsed: value })}
         className="max-h-[38%]"

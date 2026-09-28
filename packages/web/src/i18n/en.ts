@@ -601,4 +601,6 @@ export const EN: Record<string, string> = {
   "Retirer ces hooks": "Remove these hooks",
   "session rattachée": "session bound",
   "La session démarre : le bloc se remplit au premier prompt.": "The session is starting: the block fills in at the first prompt.",
+  "Le bloc montre une session choisie dans History ; l'onglet actif en a une autre. Cliquer pour suivre l'onglet.":
+    "The block shows a session picked in History; the active tab has another one. Click to follow the tab.",
 };

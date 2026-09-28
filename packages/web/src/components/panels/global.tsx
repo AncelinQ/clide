@@ -72,7 +72,20 @@ export function HistoryPanel({ filter }: { filter: string }) {
                   <Row
                     key={session.sessionId}
                     selected={selectedSession?.sessionId === session.sessionId}
-                    onClick={() => setState({ selectedSession: session, followLive: false, activityFocus: null })}
+                    onClick={() =>
+                      setState((current) => {
+                        // Choisir la session de l'onglet actif n'est pas s'en détacher :
+                        // le bloc continue de la suivre.
+                        const followed = current.activeTerminalId
+                          ? current.live[current.activeTerminalId]?.sessionId
+                          : undefined;
+                        return {
+                          selectedSession: session,
+                          followLive: followed === session.sessionId,
+                          activityFocus: null,
+                        };
+                      })
+                    }
                     title={session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)}
                     badges={
                       <>
