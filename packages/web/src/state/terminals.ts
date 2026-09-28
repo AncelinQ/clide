@@ -6,6 +6,7 @@ import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { pushBrowserFrame } from "@/state/browser";
+import { nativeZoom, onZoomChange } from "@/state/interface";
 import { applyMarkers } from "@/state/editor";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
@@ -503,7 +504,8 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   const { terminalFont } = getState();
   const term = new Terminal({
     fontFamily: fontStack(terminalFont.family),
-    fontSize: terminalFont.size,
+    // L'interface peut être agrandie par le zoom d'Electron : le terminal garde sa taille.
+    fontSize: terminalFont.size / nativeZoom(),
     cursorBlink: true,
     // Assez pour remonter une session entière en mode inline, où Claude Code
     // écrit la conversation dans l'historique du terminal.
@@ -536,10 +538,13 @@ export function fontStack(family: string): string {
  * Seul l'onglet visible est réajusté : un hôte masqué mesure zéro, et chaque
  * onglet se réajuste de toute façon quand il reprend le premier plan.
  */
+// L'échelle de l'interface change : la taille compensée du terminal suit.
+onZoomChange(() => applyTerminalFont(getState().terminalFont));
+
 export function applyTerminalFont(font: TerminalFont): void {
   for (const entry of attached.values()) {
     entry.term.options.fontFamily = fontStack(font.family);
-    entry.term.options.fontSize = font.size;
+    entry.term.options.fontSize = font.size / nativeZoom();
   }
   // Sans reprendre le focus : le réglage se fait depuis un champ qu'il ne faut
   // pas quitter à chaque chiffre tapé.

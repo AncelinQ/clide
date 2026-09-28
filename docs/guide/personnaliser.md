@@ -1,6 +1,19 @@
 # Personnaliser
 
-Apparence, langue, police du terminal et raccourcis clavier.
+Apparence, langue, polices de l'interface et du terminal, et raccourcis clavier.
+
+## Police de l'interface
+
+Réglages › Apparence › **Police de l'interface** règle les colonnes, les menus et
+les fenêtres, à part du terminal et de l'éditeur : une famille (les polices
+installées seulement, Segoe UI par défaut) et une taille, de 85 à 150 %. Le
+terminal garde sa police et sa taille, réglées dans Réglages › Terminal ;
+l'éditeur garde les siennes.
+
+Dans l'application de bureau, la taille passe par le zoom de la fenêtre, comme le
+zoom d'un navigateur, et le terminal comme l'éditeur le compensent. Dans un
+navigateur, elle agrandit la page sauf le terminal et l'éditeur ; les menus
+flottants y gardent leur taille normale.
 
 ## Thème
 

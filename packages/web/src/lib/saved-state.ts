@@ -52,6 +52,8 @@ export interface SavedPrefs {
   /** Thème VS Code importé, relu par `restoreImportedTheme` ; il l'emporte sur l'habillage et le mode. */
   vscodeTheme: unknown;
   terminalFont: { family: string; size: number };
+  /** Police de l'interface, et son échelle en pour cent : à part de celles du terminal. */
+  uiFont: { family: string; scale: number };
   shortcuts: Record<string, string | null>;
   language: "auto" | "fr" | "en";
   tabLayout: "row" | "column";
@@ -91,6 +93,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   look: undefined,
   vscodeTheme: null,
   terminalFont: { family: "", size: 13 },
+  uiFont: { family: "", scale: 100 },
   shortcuts: {},
   language: "auto",
   tabLayout: "column",
@@ -102,6 +105,9 @@ export const DEFAULT_PREFS: SavedPrefs = {
   showCosts: true,
   disabledModules: [],
 };
+
+/** Échelles proposées pour l'interface, en pour cent. */
+export const UI_SCALES = [85, 90, 100, 110, 125, 150] as const;
 
 export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   browsePath: "",
@@ -201,6 +207,8 @@ function layout(value: unknown): SavedLayout {
 function prefs(value: unknown): SavedPrefs {
   const source = isRecord(value) ? value : {};
   const font = isRecord(source["terminalFont"]) ? source["terminalFont"] : {};
+  const ui = isRecord(source["uiFont"]) ? source["uiFont"] : {};
+  const scale = number(ui["scale"], DEFAULT_PREFS.uiFont.scale);
   const visible = source["visibleTabs"];
   return {
     theme: oneOf(source["theme"], ["auto", "light", "dark"], DEFAULT_PREFS.theme),
@@ -209,6 +217,10 @@ function prefs(value: unknown): SavedPrefs {
     terminalFont: {
       family: text(font["family"], DEFAULT_PREFS.terminalFont.family),
       size: number(font["size"], DEFAULT_PREFS.terminalFont.size),
+    },
+    uiFont: {
+      family: text(ui["family"], DEFAULT_PREFS.uiFont.family),
+      scale: (UI_SCALES as readonly number[]).includes(scale) ? scale : DEFAULT_PREFS.uiFont.scale,
     },
     shortcuts: recordOf(source["shortcuts"], (item): item is string | null => item === null || typeof item === "string"),
     language: oneOf(source["language"], ["auto", "fr", "en"], DEFAULT_PREFS.language),

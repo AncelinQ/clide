@@ -61,6 +61,12 @@ export interface TerminalFont {
 
 export const DEFAULT_TERMINAL_FONT: TerminalFont = { family: "", size: 13 };
 
+/** Police de l'interface, hors terminal et éditeur : famille (vide pour Segoe UI) et échelle en pour cent. */
+export interface InterfaceFont {
+  family: string;
+  scale: number;
+}
+
 export interface State {
   projects: Project[];
   activeRoot: string | null;
@@ -102,6 +108,7 @@ export interface State {
   /** Thème VS Code importé : il remplace l'habillage, le mode clair ou sombre et les couleurs de l'éditeur. */
   vscodeTheme: ImportedTheme | null;
   terminalFont: TerminalFont;
+  uiFont: InterfaceFont;
   showLeft: boolean;
   showRight: boolean;
   /** Bloc session replié sous le terminal. */
@@ -163,7 +170,7 @@ export const DEFAULT_WIDTHS: Widths = DEFAULT_LAYOUT.widths;
 
 function restored(): Pick<
   State,
-  | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
+  | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
 > {
@@ -240,6 +247,7 @@ function persist(): void {
       look: state.look,
       vscodeTheme: state.vscodeTheme,
       terminalFont: state.terminalFont,
+      uiFont: state.uiFont,
       shortcuts: state.shortcuts,
       language: state.language,
       tabLayout: state.tabLayout,

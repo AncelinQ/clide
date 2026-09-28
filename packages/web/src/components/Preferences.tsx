@@ -22,6 +22,8 @@ import { cn } from "cn";
 import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type TabLayout, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
 import { setImportedTheme } from "@/state/theme";
+import { setInterfaceFont } from "@/state/interface";
+import { UI_SCALES } from "@/lib/saved-state";
 import { fromVscodeTheme, parseJsonc } from "@/lib/vscode-theme";
 
 /** Polices à chasse fixe courantes sous Windows ; seules celles installées sont proposées. */
@@ -42,6 +44,9 @@ const CANDIDATES = [
   "Lucida Console",
   "Courier New",
 ];
+
+/** Polices d'interface courantes sous Windows ; seules celles installées sont proposées. */
+const UI_CANDIDATES = ["Segoe UI Variable Text", "Aptos", "Inter", "Roboto", "Open Sans", "Source Sans 3", "Noto Sans", "Calibri", "Arial", "Verdana", "Tahoma"];
 
 const DEFAULT = "__default__";
 const MIN_SIZE = 9;
@@ -173,11 +178,59 @@ function VscodeThemeGroup() {
   );
 }
 
-function AppearanceSection() {
+/**
+ * Police et taille de l'interface — colonnes, menus, fenêtres —, à part de celles
+ * du terminal et de l'éditeur, qui gardent les leurs.
+ */
+function InterfaceFontGroup({ open }: { open: boolean }) {
+  const font = useStore((state) => state.uiFont);
+  const available = useMemo(() => (open ? UI_CANDIDATES.filter(installed) : []), [open]);
+  return (
+    <Group
+      title={t("Police de l'interface")}
+      hint={t("Colonnes, menus et fenêtres. Le terminal et l'éditeur gardent leur police et leur taille, réglées à part.")}
+    >
+      <Select value={font.family || DEFAULT} onValueChange={(value) => setInterfaceFont({ ...font, family: value === DEFAULT ? "" : value })}>
+        <SelectTrigger className="w-64" data-ui-font>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={DEFAULT}>{t("Par défaut (Segoe UI)")}</SelectItem>
+          {available.map((family) => (
+            <SelectItem key={family} value={family}>
+              <span style={{ fontFamily: `"${family}"` }}>{family}</span>
+            </SelectItem>
+          ))}
+          {font.family && !available.includes(font.family) && (
+            <SelectItem value={font.family}>{t("{family} (introuvable)", { family: font.family })}</SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+      <div className="grid gap-1.5">
+        <Label>{t("Taille")}</Label>
+        <Select value={String(font.scale)} onValueChange={(value) => setInterfaceFont({ ...font, scale: Number(value) })}>
+          <SelectTrigger className="w-32" data-ui-scale>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {UI_SCALES.map((scale) => (
+              <SelectItem key={scale} value={String(scale)}>
+                {scale === 100 ? t("{scale} % (par défaut)", { scale }) : `${scale} %`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </Group>
+  );
+}
+
+function AppearanceSection({ open }: { open: boolean }) {
   const tabLayout = useStore((state) => state.tabLayout);
   const imported = useStore((state) => state.vscodeTheme);
   return (
     <div className="grid gap-6">
+      <InterfaceFontGroup open={open} />
       <VscodeThemeGroup />
       {imported && <p className="-mt-3 text-[11px] text-muted-foreground">{t("Le thème VS Code chargé passe devant l'habillage choisi ci-dessous.")}</p>}
       <LookPicker />
@@ -210,7 +263,7 @@ function TerminalSection({ open }: { open: boolean }) {
   useEffect(() => setSize(String(font.size)), [font.size]);
 
   return (
-    <Group title={t("Police du terminal")}>
+    <Group title={t("Police du terminal")} hint={t("Le terminal seulement : l'interface a sa propre police, dans Apparence.")}>
       <Select value={font.family || DEFAULT} onValueChange={(value) => update({ ...font, family: value === DEFAULT ? "" : value })}>
         <SelectTrigger className="w-64">
           <SelectValue />
@@ -327,7 +380,7 @@ export function SettingsDialog() {
   const content = () => {
     switch (section) {
       case "appearance":
-        return <AppearanceSection />;
+        return <AppearanceSection open={open} />;
       case "terminal":
         return <TerminalSection open={open} />;
       case "shortcuts":

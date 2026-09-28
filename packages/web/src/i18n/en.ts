@@ -866,4 +866,10 @@ export const EN: Record<string, string> = {
   "Nom du groupe, par exemple Tout démarrer": "Group name, e.g. Start everything",
   "Ranger par dossier": "Group by directory",
   "Les fichiers modifiés du projet, à cocher, en liste ou rangés par dossier : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.": "The project's changed files, to tick, as a list or grouped by directory: only ticked files go, as they are on disk. Double-click: their diff.",
+  "Police de l'interface": "Interface font",
+  "Colonnes, menus et fenêtres. Le terminal et l'éditeur gardent leur police et leur taille, réglées à part.": "Columns, menus and windows. The terminal and the editor keep their own font and size, set separately.",
+  "Par défaut (Segoe UI)": "Default (Segoe UI)",
+  "Taille": "Size",
+  "{scale} % (par défaut)": "{scale} % (default)",
+  "Le terminal seulement : l'interface a sa propre police, dans Apparence.": "The terminal only: the interface has its own font, under Appearance.",
 };

@@ -44,6 +44,7 @@ describe("migrate depuis la version 1", () => {
       theme: "dark",
       look: V1.look,
       vscodeTheme: null,
+      uiFont: { family: "", scale: 100 },
       terminalFont: { family: "Cascadia Mono", size: 14 },
       shortcuts: { "tab.shell": "Ctrl+Shift+N", "tab.claude": null },
       language: "fr",
@@ -81,6 +82,12 @@ describe("migrate en version 2", () => {
   it("renvoie un bloc du bas resté sur le commit à son mode par défaut", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", bottomMode: "commit" }, { root: "C:\\b", bottomMode: "plan" }] });
     expect(state.projects.map((project) => project.bottomMode)).toEqual(["files", "plan"]);
+  });
+
+  it("garde la police de l'interface, et une échelle connue seulement", () => {
+    expect(migrate({ version: 2, prefs: { uiFont: { family: "Inter", scale: 125 } } }).prefs.uiFont).toEqual({ family: "Inter", scale: 125 });
+    expect(migrate({ version: 2, prefs: { uiFont: { scale: 333 } } }).prefs.uiFont).toEqual({ family: "", scale: 100 });
+    expect(migrate({ version: 2 }).prefs.uiFont).toEqual({ family: "", scale: 100 });
   });
 
   it("garde la source de l'aperçu, les serveurs par défaut", () => {
