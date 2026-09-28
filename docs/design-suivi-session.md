@@ -244,7 +244,8 @@ detached = !followLive && current !== undefined
 ### 4.2 L'en-tête dit « détaché »
 
 Quand `detached` est vrai, l'en-tête du bloc montre, après le titre de la session,
-une puce « détaché · suivre l'onglet » ; un clic remet `followLive: true`. La puce
+une puce « détaché » dont l'info-bulle dit qu'un clic ramène à l'onglet ; le clic
+remet `followLive: true`. Le titre se tronque, la puce reste entière. La puce
 n'apparaît que s'il y a un onglet vivant à suivre : sans session vivante, montrer
 une session de History n'est pas un détachement.
 

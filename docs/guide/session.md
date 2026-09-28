@@ -18,9 +18,11 @@ Ctrl+C ou un échec ne laisse pas l'onglet en mode Claude. Chaque lancement repa
 de zéro dans le suivi de session, sur la session neuve ou celle que nomme
 `--resume`.
 
-Le bloc session suit l'onglet Claude actif ; choisir une session dans History l'en
-détache jusqu'au prochain changement d'onglet. Le serveur relie chaque onglet
-Claude à son transcript, puis le lit par ajouts :
+Le bloc session suit l'onglet Claude actif. Choisir une session dans History l'en
+détache — sauf si c'est justement celle de l'onglet actif, qu'il continue de
+suivre — et le bloc le dit : une puce « détaché » dans son en-tête, qui ramène
+à l'onglet d'un clic ; un clic sur un onglet de terminal rattache aussi. Le serveur relie chaque onglet Claude à son transcript, puis le
+lit par ajouts :
 
 - **par les hooks**, quand ils sont installés : `SessionStart` donne la session
   et son transcript dès le démarrage, puis à chaque `/clear` ou reprise. L'onglet
