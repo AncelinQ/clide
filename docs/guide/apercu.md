@@ -28,3 +28,28 @@ contient : le serveur de l'application lit donc les en-têtes de l'adresse —
 `X-Frame-Options`, ou un `frame-ancestors` qui n'admet pas toute origine. Un
 serveur qui refuse le cadre le dit dans l'aperçu, avec un bouton pour l'ouvrir
 dans le navigateur. Seules les adresses de la machine sont sondées.
+
+## Le navigateur de Claude
+
+Le bouton 🤖 de la barre de l'aperçu, ou « Voir le navigateur de Claude » dans la
+palette, montre à la place le navigateur que Claude pilote par son MCP. Clide lance
+un Chrome (ou un Edge, à défaut) sans fenêtre, débogable sur `127.0.0.1:9333`
+seulement, avec un profil à lui dans les données de l'application : ni tes cookies
+ni tes sessions. Un navigateur qui écoute déjà sur ce port, lancé par un Clide
+précédent, est repris. ⏻ l'arrête ; il s'arrête aussi avec Clide.
+
+**Brancher Claude.** Le bouton 🔌 montre la commande qui déclare, pour le projet et
+en portée locale (à toi seul, rien dans le dépôt), un serveur MCP `clide-browser`
+branché sur ce port : `chrome-devtools-mcp` (`--browserUrl`) ou Playwright MCP
+(`--cdp-endpoint`). Le bouton la lance par `claude mcp add-json` ; les sessions
+Claude ouvertes ensuite dans le projet l'ont. Si un autre MCP navigateur est
+déclaré, demande à Claude d'utiliser les outils de `clide-browser`.
+
+**Voir et reprendre la main.** L'aperçu suit la page que Claude vient d'ouvrir ; le
+sélecteur passe d'une page à l'autre, la barre d'adresse navigue. L'image n'est
+produite que pendant qu'un aperçu la regarde. Un clic, la molette et la frappe sur
+l'image vont à la page — Entrée, Échap, Tab, les flèches et l'effacement comme
+touches, le reste comme texte tapé, et `Ctrl+V` colle.
+
+Jamais le port de débogage d'Electron : il donnerait la main sur toute
+l'application, jeton compris.

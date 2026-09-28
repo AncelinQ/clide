@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
-import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
+import type { BrowserState, ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
 import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
@@ -73,6 +73,10 @@ export interface State {
   files: Record<string, OpenFile>;
   /** Dernier rapport d'erreurs et de TODO de chaque projet, poussé par le serveur. */
   diagnostics: Record<string, DiagnosticsReport>;
+  /** Navigateur de Claude, tel que le serveur l'annonce ; inconnu avant la première réponse. */
+  browser?: BrowserState;
+  /** Ce que montre l'aperçu : un serveur de développement, ou le navigateur de Claude. */
+  previewSource: "servers" | "browser";
   /** Suites de tests de chaque projet, avec leurs derniers résultats. */
   tests: Record<string, TestSuite[]>;
   /** Lancements de tests en cours, par clé de script (`dossier|nom`) : ce qui tourne. */
@@ -154,7 +158,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
+  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
 > {
   let raw: unknown;
   try {
@@ -220,6 +224,7 @@ function persist(): void {
       showRight: state.showRight,
       sessionCollapsed: state.sessionCollapsed,
       previewOpen: state.previewOpen,
+      previewSource: state.previewSource,
       globalTab: state.globalTab,
     },
     prefs: {

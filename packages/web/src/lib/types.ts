@@ -247,7 +247,25 @@ export type ServerMessage =
   | { t: "resume"; terminalId: string }
   | { t: "live"; terminalId: string; session: LiveSession }
   | { t: "error"; message: string }
-  | { t: "diagnostics"; report: DiagnosticsReport };
+  | { t: "diagnostics"; report: DiagnosticsReport }
+  | { t: "browser"; state: BrowserState }
+  | { t: "browser.frame"; frame: BrowserFrame };
+
+/** Le navigateur que Claude pilote par son MCP : lancé ou non, ses pages, celle montrée. */
+export interface BrowserState {
+  status: "stopped" | "starting" | "running" | "error";
+  error?: string;
+  port: number;
+  pages: { id: string; url: string; title: string }[];
+  current?: string;
+}
+
+/** Une image de la page montrée (JPEG en base64), et sa taille en pixels CSS. */
+export interface BrowserFrame {
+  data: string;
+  width: number;
+  height: number;
+}
 
 /** Une erreur, un avertissement ou un TODO, à une place d'un fichier (lignes et colonnes à partir de 1). */
 export interface Diagnostic {

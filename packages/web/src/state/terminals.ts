@@ -5,6 +5,7 @@ import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
+import { pushBrowserFrame } from "@/state/browser";
 import { applyMarkers } from "@/state/editor";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
@@ -44,7 +45,10 @@ const backgroundScripts = new Set<string>();
 
 export function connect(): void {
   socket = new WebSocket(socketUrl("/pty"));
-  socket.addEventListener("open", () => setState({ connected: true }));
+  socket.addEventListener("open", () => {
+    setState({ connected: true });
+    for (const listener of openListeners) listener();
+  });
   socket.addEventListener("close", () => {
     setState({ connected: false });
     setTimeout(connect, 1500);
@@ -57,6 +61,17 @@ export function connect(): void {
 function send(message: unknown): void {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
+
+const openListeners = new Set<() => void>();
+
+/** Envoie un message au serveur, et prévient à chaque (re)connexion : un abonnement se redemande alors. */
+export const serverSocket = {
+  send,
+  onOpen(listener: () => void): () => void {
+    openListeners.add(listener);
+    return () => openListeners.delete(listener);
+  },
+};
 
 function onMessage(message: ServerMessage): void {
   switch (message.t) {
@@ -157,6 +172,12 @@ function onMessage(message: ServerMessage): void {
     case "diagnostics":
       setState((current) => ({ diagnostics: { ...current.diagnostics, [message.report.root]: message.report } }));
       applyMarkers(message.report);
+      break;
+    case "browser":
+      setState({ browser: message.state });
+      break;
+    case "browser.frame":
+      pushBrowserFrame(message.frame);
       break;
   }
 }
