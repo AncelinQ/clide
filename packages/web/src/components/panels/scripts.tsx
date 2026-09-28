@@ -206,7 +206,7 @@ export function ScriptsPanel({ root }: { root: string }) {
         if (empty) return <Empty icon={Package}>{t("Aucun script dans ce projet.")}</Empty>;
         const selected = [...checked.values()];
         return (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {running.length > 0 && (
               <div>
                 <p className="py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("En cours")}</p>
@@ -269,55 +269,13 @@ export function ScriptsPanel({ root }: { root: string }) {
               </div>
             )}
 
-            {selected.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-2 py-1.5 text-[12px]">
-                <span className="flex-1">{t("{count} script(s) coché(s)", { count: selected.length })}</span>
-                <Button size="sm" className="h-7" onClick={() => launch(selected)}>
-                  <Play className="size-3.5" /> {t("Lancer ({count})", { count: selected.length })}
-                </Button>
-                {naming === undefined ? (
-                  <Button size="sm" variant="outline" className="h-7" onClick={() => setNaming("")}>
-                    <Save className="size-3.5" /> {t("Enregistrer comme groupe")}
-                  </Button>
-                ) : (
-                  <form
-                    className="flex items-center gap-1"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (!naming.trim()) return;
-                      const group: ScriptGroup = {
-                        id: crypto.randomUUID(),
-                        label: naming.trim(),
-                        scripts: selected.map((item) => ({ directory: relativeTo(root, item.directory), name: item.name, run: item.run })),
-                      };
-                      void saveGroups([...groups, group]);
-                      setNaming(undefined);
-                      setChecked(new Map());
-                    }}
-                  >
-                    <Input
-                      autoFocus
-                      value={naming}
-                      onChange={(event) => setNaming(event.target.value)}
-                      placeholder={t("Tout démarrer")}
-                      className="h-7 w-40 text-[12px]"
-                      onKeyDown={(event) => event.key === "Escape" && setNaming(undefined)}
-                    />
-                    <Button type="submit" size="sm" className="h-7" disabled={!naming.trim()}>
-                      {t("Enregistrer")}
-                    </Button>
-                  </form>
-                )}
-              </div>
-            )}
-
             {error && <p className="text-[12px] text-destructive">{error}</p>}
 
             {folders.map(({ title, project: folder }) => {
               const sections = sectionsOf(folder);
               if (sections.length === 0) return null;
               return (
-                <div key={folder.root} className="grid gap-2">
+                <div key={folder.root} className="grid grid-cols-1 gap-2">
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="flex-1">
                       {title ?? (folder.managerDetected ? folder.manager : t("{manager} (défaut, aucun lockfile)", { manager: folder.manager }))}
@@ -351,6 +309,49 @@ export function ScriptsPanel({ root }: { root: string }) {
                 </div>
               );
             })}
+
+            {/* Collée en bas : on coche en défilant, le bouton pour lancer reste à portée. */}
+            {selected.length > 0 && (
+              <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[12px]" data-scripts-selection>
+                <span className="basis-full">{t("{count} script(s) coché(s)", { count: selected.length })}</span>
+                <Button size="sm" className="h-auto min-h-7 max-w-full whitespace-normal" onClick={() => launch(selected)}>
+                  <Play className="size-3.5" /> {t("Lancer ({count})", { count: selected.length })}
+                </Button>
+                {naming === undefined ? (
+                  <Button size="sm" variant="outline" className="h-auto min-h-7 max-w-full whitespace-normal text-left" onClick={() => setNaming("")}>
+                    <Save className="size-3.5" /> {t("Enregistrer comme groupe")}
+                  </Button>
+                ) : (
+                  <form
+                    className="flex min-w-0 flex-1 basis-full items-center gap-1"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!naming.trim()) return;
+                      const group: ScriptGroup = {
+                        id: crypto.randomUUID(),
+                        label: naming.trim(),
+                        scripts: selected.map((item) => ({ directory: relativeTo(root, item.directory), name: item.name, run: item.run })),
+                      };
+                      void saveGroups([...groups, group]);
+                      setNaming(undefined);
+                      setChecked(new Map());
+                    }}
+                  >
+                    <Input
+                      autoFocus
+                      value={naming}
+                      onChange={(event) => setNaming(event.target.value)}
+                      placeholder={t("Tout démarrer")}
+                      className="h-7 min-w-0 flex-1 text-[12px]"
+                      onKeyDown={(event) => event.key === "Escape" && setNaming(undefined)}
+                    />
+                    <Button type="submit" size="sm" className="h-7" disabled={!naming.trim()}>
+                      {t("Enregistrer")}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
         );
       }}
