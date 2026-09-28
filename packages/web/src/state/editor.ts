@@ -145,7 +145,14 @@ export async function openFile(path: string, at?: { line: number; column?: numbe
     openFiles: project.openFiles.includes(path) ? project.openFiles : [...project.openFiles, path],
     activeFile: path,
   }));
-  if (files[path] && files[path].kind !== "loading") return;
+  if (files[path] && files[path].kind !== "loading") {
+    // Déjà montré : l'éditeur ne se remonte pas, la ligne se pose ici.
+    if (at && shown === path && editor && editor.getModel() === documents.get(path)?.model) {
+      pendingReveal.delete(path);
+      reveal(editor, at);
+    }
+    return;
+  }
   try {
     const file = await read(path);
     if (file.kind === "text") {
@@ -187,6 +194,13 @@ function listen(path: string, model: Monaco.editor.ITextModel): void {
   });
 }
 
+/** Pose le curseur à une ligne et la centre. */
+function reveal(instance: Monaco.editor.IStandaloneCodeEditor, at: { line: number; column?: number }): void {
+  instance.setPosition({ lineNumber: at.line, column: at.column ?? 1 });
+  instance.revealLineInCenter(at.line);
+  instance.focus();
+}
+
 /** Prête l'éditeur à l'hôte visible et y montre le fichier. */
 export async function mountEditor(host: HTMLElement, path: string): Promise<void> {
   const instance = await ensureEditor();
@@ -203,11 +217,10 @@ export async function mountEditor(host: HTMLElement, path: string): Promise<void
   }
   shown = path;
   instance.layout();
-  const reveal = pendingReveal.get(path);
-  if (reveal) {
+  const at = pendingReveal.get(path);
+  if (at) {
     pendingReveal.delete(path);
-    instance.setPosition({ lineNumber: reveal.line, column: reveal.column ?? 1 });
-    instance.revealLineInCenter(reveal.line);
+    reveal(instance, at);
   }
   instance.focus();
   void checkOnDisk(path);

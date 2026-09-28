@@ -39,6 +39,7 @@ import {
   previewFile,
   listProjectFiles,
   rankFiles,
+  searchFiles,
   createEntry,
   renameEntry,
   transfer,
@@ -707,6 +708,31 @@ export const routes: Record<string, Handler> = {
   "/api/files/find": async (params) => {
     const root = requireParam(params, "root");
     return { files: rankFiles(await projectFiles(root), params.get("q") ?? "", 50) };
+  },
+
+  /**
+   * Cherche un texte ou une expression dans les fichiers du projet, ceux que la
+   * palette connaît. Une expression invalide rend son erreur, pas une exception :
+   * elle arrive à chaque frappe pendant qu'on l'écrit.
+   */
+  "/api/files/search": async (params) => {
+    const root = requireParam(params, "root");
+    const query = params.get("q") ?? "";
+    if (!query) return { files: [], truncated: false };
+    const flag = (name: string) => params.get(name) === "1";
+    try {
+      return await searchFiles(root, await projectFiles(root), {
+        query,
+        regex: flag("regex"),
+        caseSensitive: flag("case"),
+        wholeWord: flag("word"),
+        include: params.get("include") ?? "",
+        exclude: params.get("exclude") ?? "",
+      });
+    } catch (error) {
+      if (error instanceof SyntaxError) return { files: [], truncated: false, error: error.message };
+      throw error;
+    }
   },
 
   /** Un fichier pour l'éditeur : texte en `\n` avec sa fin de ligne d'origine, image, ou ce qui ne s'édite pas. */

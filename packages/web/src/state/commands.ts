@@ -6,7 +6,8 @@ import { post, quotePath } from "@/lib/api";
 import { activateProject, activeProject, closeProject, getState, openSettings, setBottomMode, setState, updateProject } from "@/state/store";
 import { orderTabs, shiftTab } from "@/lib/tab-order";
 import { cycleTheme } from "@/state/theme";
-import { closeFile, saveFile } from "@/state/editor";
+import { closeFile, saveFile, selectedText } from "@/state/editor";
+import { focusFileSearch } from "@/components/panels/file-search";
 import { cachedPrompts, runPrompt } from "@/state/prompts";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
@@ -101,6 +102,22 @@ export function commands(): Command[] {
     { id: "palette.files", group: t("Application"), label: t("Aller à un fichier du projet"), run: () => openPalette("") },
     { id: "palette.sessions", group: t("Application"), label: t("Aller à une session"), run: () => openPalette("@") },
     { id: "palette.search", group: t("Application"), label: t("Chercher dans les sessions"), run: () => openPalette("#") },
+    {
+      id: "search.files",
+      group: t("Application"),
+      label: t("Rechercher dans les fichiers"),
+      shortcut: "Ctrl+Shift+F",
+      run: () => {
+        const project = activeProject();
+        if (!project) return;
+        // Le texte choisi dans l'éditeur devient la recherche, comme dans VS Code.
+        const text = selectedText().split("\n")[0];
+        setState({ showLeft: true });
+        updateProject(project.root, { leftMode: "search" });
+        // La vue se monte au rendu suivant : le focus attend qu'elle soit là.
+        setTimeout(() => focusFileSearch(text), 50);
+      },
+    },
     {
       id: "terminal.focus",
       group: t("Onglets"),

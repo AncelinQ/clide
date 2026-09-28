@@ -84,6 +84,24 @@ Un clic sur un test ouvre son fichier à la ligne ; sur un test en échec, il d�
 aussi le message, avec **Corriger avec Claude**, qui l'écrit dans l'onglet Claude
 du projet sans le valider.
 
+## Rechercher dans les fichiers
+
+La vue **Recherche**, sous l'explorateur dans la barre d'activité, cherche un texte
+dans les fichiers du projet, ceux que connaît la palette : dépendances, sorties de
+build et caches (`node_modules`, `dist`, `.git`…) sont passés, comme les binaires
+et les fichiers de plus de 1 Mo. `Ctrl+Maj+F` l'ouvre, pré-remplie avec le texte
+choisi dans l'éditeur.
+
+- **Aa** respecte la casse, **ab** ne garde que les mots entiers, **.\*** lit la
+  recherche comme une expression régulière ; une expression invalide montre son
+  erreur au lieu des résultats.
+- Le bouton des filtres ouvre deux champs de motifs, séparés par des virgules :
+  à inclure (`src/**`, `*.ts`) et à exclure (`*.test.ts`, `docs`). Un motif sans
+  `/` vaut à toute profondeur, un nom de dossier pour tout ce qu'il contient.
+- Les résultats sont groupés par fichier, le passage surligné ; un clic ouvre le
+  fichier à la ligne et à la colonne. Au-delà de 2 000 résultats, la liste s'arrête
+  et le dit.
+
 ## Skills
 
 Les skills se lisent sur quatre portées : le projet (`.claude/skills`), le poste

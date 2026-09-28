@@ -348,10 +348,10 @@ sauvegardé (`projects` et `openFiles` sont déjà des listes ordonnées).
 
 Une vue **Recherche** dans la colonne du projet, à côté de l'explorateur : un texte
 ou une expression régulière, avec casse, mot entier et filtres de chemins (à
-inclure, à exclure), sur les fichiers que liste l'explorateur (`.gitignore`
-respecté). Les résultats sont groupés par fichier, la ligne trouvée surlignée ; un
-clic ouvre le fichier à la ligne. La palette y mène (`#` puis Entrée, ou
-Ctrl+Shift+F).
+inclure, à exclure), sur les fichiers que connaît la palette (dépendances, sorties
+de build et caches passés). Les résultats sont groupés par fichier, la ligne
+trouvée surlignée ; un clic ouvre le fichier à la ligne. La commande « Rechercher
+dans les fichiers » (`Ctrl+Shift+F`) y mène, avec le texte choisi dans l'éditeur.
 
 ## File d'implémentation
 

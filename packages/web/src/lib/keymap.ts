@@ -26,7 +26,6 @@ export const PRESETS: Record<Exclude<Keymap, "clide">, Record<string, Binding[]>
   vscode: {
     palette: [{ key: "F1" }],
     "palette.files": [{ key: "Ctrl+P", outside: true }],
-    "palette.search": [{ key: "Ctrl+Shift+F", outside: true }],
     "view.left": [{ key: "Ctrl+B", outside: true }],
     "session.toggle": [{ key: "Ctrl+J", outside: true }],
     "tab.next": [{ key: "Ctrl+PageDown", outside: true }],
@@ -39,7 +38,6 @@ export const PRESETS: Record<Exclude<Keymap, "clide">, Record<string, Binding[]>
   },
   jetbrains: {
     "palette.files": [{ key: "Ctrl+Shift+N", outside: true }],
-    "palette.search": [{ key: "Ctrl+Shift+F", outside: true }],
     "view.left": [{ key: "Alt+1", outside: true }],
     "tab.next": [{ key: "Alt+ArrowRight", outside: true }],
     "tab.previous": [{ key: "Alt+ArrowLeft", outside: true }],

@@ -59,7 +59,10 @@ La palette se lit à son premier caractère, comme celle de VS Code :
 | rien | un fichier du projet, lettres dans l'ordre (`stst` trouve `src/state/store.ts`) ; Entrée l'ouvre | `Ctrl+P` (VS Code), `Ctrl+Maj+N` (JetBrains) |
 | `>` | une action de l'application, par mots, avec son raccourci ; les dernières lancées en tête | `Ctrl+Maj+P`, `F1` |
 | `@` | une session, par titre, premier prompt, dossier ou branche ; Entrée la montre dans le bloc session | |
-| `#` | un passage dans le texte des sessions ; Entrée l'ouvre dans Activité | `Ctrl+Maj+F` |
+| `#` | un passage dans le texte des sessions ; Entrée l'ouvre dans Activité | |
+
+Chercher un texte dans les fichiers du projet, c'est la vue Recherche de la colonne
+du projet, par `Ctrl+Maj+F` ou « Rechercher dans les fichiers » dans la palette.
 
 La recherche de fichiers passe les dépendances, les sorties de build et les caches
 (`node_modules`, `dist`, `.git`…).
@@ -69,6 +72,7 @@ La recherche de fichiers passe les dépendances, les sorties de build et les cac
 | Palette de commandes | `Ctrl+Maj+P` |
 | Nouveau shell · nouvel onglet Claude | `Ctrl+Maj+T` · `Ctrl+Maj+A` |
 | Fermer l'onglet | `Ctrl+Maj+W` |
+| Rechercher dans les fichiers | `Ctrl+Maj+F` |
 | Onglet suivant · précédent | `Ctrl+Maj+Page suiv.` · `Ctrl+Maj+Page préc.` |
 | Déplacer l'onglet à droite · à gauche | `Alt+Maj+Page suiv.` · `Alt+Maj+Page préc.` |
 | Projet suivant · précédent | `Alt+Page suiv.` · `Alt+Page préc.` |
