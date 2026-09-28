@@ -91,6 +91,26 @@ async function git(cwd: string, args: string[]): Promise<string> {
 }
 
 /**
+ * Les fichiers d'un dossier que git ne dit pas ignorés, relatifs à ce dossier et
+ * séparés par `/` : suivis, et non suivis hors `.gitignore`, sans les suivis
+ * supprimés du disque. `undefined` hors d'un dépôt git, ou sans git.
+ */
+export async function gitFiles(cwd: string, maxFiles = 20_000): Promise<string[] | undefined> {
+  const list = async (args: string[]) => {
+    // `-z` : un chemin par NUL, jamais entre guillemets ni échappé, accents compris.
+    const { stdout } = await run("git", ["ls-files", "-z", ...args], { cwd, windowsHide: true, maxBuffer: 256 * 1024 * 1024 });
+    return stdout.split("\0").filter(Boolean);
+  };
+  try {
+    const [present, deleted] = await Promise.all([list(["--cached", "--others", "--exclude-standard"]), list(["--deleted"])]);
+    const gone = new Set(deleted);
+    return [...new Set(present)].filter((path) => !gone.has(path)).slice(0, maxFiles);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Sujets des derniers commits d'un dépôt, du plus récent au plus ancien : un
  * message rédigé pour ce dépôt en reprend la langue et la convention. Un dossier
  * hors de git n'en a pas.

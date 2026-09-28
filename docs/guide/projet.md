@@ -95,9 +95,10 @@ le fichier ou le test sélectionné, **Espace** ouvre le test à sa ligne.
 ## Rechercher dans les fichiers
 
 La vue **Recherche**, sous l'explorateur dans la barre d'activité, cherche un texte
-dans les fichiers du projet, ceux que connaît la palette : dépendances, sorties de
-build et caches (`node_modules`, `dist`, `.git`…) sont passés, comme les binaires
-et les fichiers de plus de 1 Mo. `Ctrl+Maj+F` l'ouvre, pré-remplie avec le texte
+dans les fichiers du projet, ceux que connaît la palette : dans un dépôt, ce que
+git ne dit pas ignoré ; hors dépôt, tout sauf dépendances, sorties de build et
+caches (`node_modules`, `dist`, `.git`…). Les binaires et les fichiers de plus de
+1 Mo sont passés. `Ctrl+Maj+F` l'ouvre, pré-remplie avec le texte
 choisi dans l'éditeur.
 
 - **Aa** respecte la casse, **ab** ne garde que les mots entiers, **.\*** lit la
