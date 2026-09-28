@@ -161,6 +161,7 @@ export interface ProcessNode {
   name: string;
   commandLine?: string;
   memoryMB: number;
+  startedAt?: string;
   link: { kind: "owned"; terminalId: string } | { kind: "inferred"; confidence: number } | { kind: "orphan" };
   children: ProcessNode[];
 }

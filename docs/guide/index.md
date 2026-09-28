@@ -59,6 +59,8 @@ droite = ce qui ne dépend d'aucun projet.**
 ```
 
 Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
+Sa pastille porte deux comptes : les onglets qui attendent une réponse, et, en
+vert, les Claude en cours.
 Un projet s'ouvre par le `+` de la barre de titre, ou par le bouton « Ouvrir un
 projet » des îlots vides ; son dossier se tape, ou se choisit par « Parcourir… »
 dans la fenêtre de sélection de Windows — ouverte par Electron dans l'application
