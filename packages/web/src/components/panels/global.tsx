@@ -26,9 +26,10 @@ import type {
 } from "@/lib/types";
 import { isInside } from "@/lib/workspace";
 import { getState, selectSession, selectedSessionOf, setState, useStore } from "@/state/store";
-import { resumeSession } from "@/state/terminals";
-import { openTranscript } from "@/state/editor";
+import { focusTerminal, resumeSession } from "@/state/terminals";
+import { openTranscript, showTerminals } from "@/state/editor";
 import { ownerOf } from "@/lib/workspace";
+import { isClaudeProcess, tabOf } from "@/lib/processes";
 import { agoLabel } from "@/components/panels/usage";
 
 // ─── History ────────────────────────────────────────────────────────────────
@@ -441,11 +442,16 @@ export function SettingsPanel() {
 
 // ─── Processus ──────────────────────────────────────────────────────────────
 
-function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: () => void; root?: boolean }) {
+function ProcessTree({ nodes, reload, root, tab: inherited }: { nodes: ProcessNode[]; reload: () => void; root?: boolean; tab?: string }) {
+  const terminals = useStore((store) => store.terminals);
   return (
     <ul className={root ? "m-0 list-none p-0" : "m-0 list-none border-l pl-3"}>
-      {nodes.map((node) => (
-        <li key={node.pid} className="py-1">
+      {nodes.map((node) => {
+        const tab = tabOf(node, inherited);
+        // Un processus Claude mène à l'onglet de Clide où il tourne, s'il est encore ouvert.
+        const reachable = tab && terminals[tab] && isClaudeProcess(node) ? tab : undefined;
+        return (
+        <li key={node.pid} className="py-1" data-process={node.name}>
           <div className="group/process flex flex-wrap items-baseline gap-1.5">
             <Badge variant={node.link.kind === "owned" ? "default" : "outline"}>
               {node.link.kind === "owned"
@@ -457,6 +463,19 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
             <span>
               {node.name} · {node.pid}
             </span>
+            {reachable && (
+              <button
+                type="button"
+                className="text-[11px] text-primary underline-offset-2 hover:underline"
+                title={terminals[reachable]?.info.title}
+                onClick={() => {
+                  focusTerminal(reachable);
+                  showTerminals();
+                }}
+              >
+                {t("aller à l'onglet")}
+              </button>
+            )}
             {node.link.kind !== "orphan" && (
               // Révélé au survol de sa ligne : un bouton d'arrêt sur chaque
               // processus en permanence noie l'arbre.
@@ -476,9 +495,10 @@ function ProcessTree({ nodes, reload, root }: { nodes: ProcessNode[]; reload: ()
               .filter(Boolean)
               .join("  ·  ")}
           </div>
-          {node.children.length > 0 && <ProcessTree nodes={node.children} reload={reload} />}
+          {node.children.length > 0 && <ProcessTree nodes={node.children} reload={reload} {...(tab ? { tab } : {})} />}
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
