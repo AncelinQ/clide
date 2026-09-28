@@ -592,7 +592,9 @@ Les quatorze MR sont fusionnées, dans cet ordre : #16 (isolation des projets), 
 (`WorkspaceRoots`), #19 (état v2), #20 (menus), #21 (commandes et palette), #22
 (disposition), #23 (fenêtre Réglages), #24 (modules), #25 (explorateur), #26
 (éditeur), #27 (Git), #28 (prompts), #29 (scripts), et celle des skills. Reste le
-lot 12 de `refonte-ui.md` (le navigateur que Claude pilote, dans l'aperçu).
+lot 12 de `refonte-ui.md` (le navigateur que Claude pilote, dans l'aperçu), et les
+lots 13 à 16, repris de ClaudeTerm 2.0.6 : erreurs et TODO du projet, tests,
+lancement depuis la marge de l'éditeur, onglets déplaçables.
 
 ## 14. Risques et points ouverts
 

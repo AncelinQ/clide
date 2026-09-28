@@ -294,6 +294,56 @@ développement : ce que le MCP navigateur de Claude affiche, en direct.
 - Coût : un processus Chromium de plus et le flux d'images, seulement quand l'aperçu
   montre cette source.
 
+## Lot 13 — Erreurs et TODO du projet
+
+Idée reprise de ClaudeTerm 2.0.6. Deux onglets du bloc du bas, portés par un module
+« Diagnostics » :
+
+- **Erreurs** : le `tsc` du projet (chaque `tsconfig` qui compile) et ESLint,
+  lancés en arrière-plan, à l'ouverture du projet, à l'enregistrement d'un fichier
+  et à la fin de chaque tour de Claude (l'event `Stop` des hooks), une file par
+  projet pour ne pas les empiler. Les erreurs sont groupées par fichier ; un clic
+  ouvre le fichier à la ligne dans l'éditeur, qui porte aussi les marqueurs. Les
+  erreurs sémantiques de Monaco restent coupées : il ne voit pas le projet comme
+  `tsc`.
+- **TODO** : les `TODO`, `FIXME`, `HACK`, `XXX` des commentaires et du Markdown,
+  groupés par fichier, un clic à la ligne.
+- Sur chaque entrée : **Corriger avec Claude**, qui tape dans l'onglet Claude du
+  projet un prompt désignant le fichier, la ligne et le message, sans l'envoyer
+  (un prompt enregistré en mode `insert`, lot 10).
+- Côté serveur : le binaire local du projet (`node_modules/.bin/tsc`, `eslint`),
+  sortie lue en format machine (`tsc --pretty false`, `eslint -f json`), chemins
+  normalisés sous Windows. Rien ne se lance sans l'outil installé dans le projet.
+
+## Lot 14 — Tests du projet
+
+Idée reprise de ClaudeTerm 2.0.6. Un onglet **Tests** dans la vue Scripts (ou son
+propre module) :
+
+- les suites Vitest, Jest et pytest de chaque package, et les tests lus dans les
+  fichiers (`describe` / `it` / `test`, `def test_`) ;
+- lancer tout, un fichier ou un seul test, dans l'onglet de script du package
+  (lot 11), avec un rapport machine écrit dans les données de Clide
+  (`--reporter=json`, `--json`, `--junitxml`), relu à la fin de la commande ;
+- statuts et nombre d'échecs par fichier et par test ; **Corriger avec Claude** sur
+  un échec, prompt tapé et non envoyé ;
+- dans l'éditeur, un bouton dans la marge de chaque test, coloré selon son dernier
+  résultat.
+
+## Lot 15 — Lancer depuis la marge de l'éditeur
+
+Idée reprise de ClaudeTerm 2.0.6. Dans Monaco, un bouton lancer / arrêter dans la
+marge sur chaque ligne qui se lance : un script de `package.json`, une cible de
+Makefile, une commande shell d'un bloc de code Markdown (`sh`, `bash`,
+`powershell`, `ps1`), un script `.ps1` ou `.sh` ouvert. Il passe par `runScript`
+(lot 11) : même onglet par script, même arrêt, même vue « En cours ».
+
+## Lot 16 — Onglets déplaçables
+
+Réordonner au glisser-déposer les onglets de projet de la barre de titre et les
+onglets du centre (terminaux, fichiers, diffs), l'ordre gardé dans l'état
+sauvegardé (`projects` et `openFiles` sont déjà des listes ordonnées).
+
 ## Autres idées à reprendre
 
 - Historique : reprendre au double-clic, ouvrir le transcript `.jsonl` dans l'éditeur.
@@ -317,6 +367,10 @@ développement : ce que le MCP navigateur de Claude affiche, en direct.
 | 10 Prompts enregistrés | 2, 9 | S |
 | 11 Scripts en parallèle, groupes | 2 | M |
 | 12 Navigateur de Claude dans l'aperçu | 6 (module Aperçu) | M |
+| 13 Erreurs et TODO (tsc, ESLint) | 8, 10 | M |
+| 14 Tests du projet | 11, 13 | M |
+| 15 Lancer depuis la marge de l'éditeur | 10, 11 | S |
+| 16 Onglets déplaçables | 3 | S |
 | 8 Skills | 4 | S |
 | 5 Git | 1, 4 | L |
 | 6 Modules | 5 | M |
