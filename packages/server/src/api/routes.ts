@@ -82,6 +82,7 @@ import { moveToRecycleBin } from "../platform/trash.js";
 import { calibrationOf, costOfSession, costReport } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
+import type { WorkspaceRoots } from "../workspace/roots.js";
 
 export interface ApiContext {
   index: SessionIndex;
@@ -98,6 +99,8 @@ export interface ApiContext {
    */
   settingsPath: string;
   dataDir: string;
+  /** Dossiers où les routes acceptent d'agir : projets ouverts, liens, worktrees. */
+  workspace: WorkspaceRoots;
 }
 
 export type Handler = (params: URLSearchParams, context: ApiContext) => Promise<unknown>;
@@ -957,9 +960,12 @@ export const mutations: Record<string, Mutation> = {
   },
 
   /** Crée un worktree pour une branche, neuve ou existante, et rend son chemin. */
-  "/api/git/worktree": async (_params, _context, body) => ({
-    path: await createWorktree(requireField(body, "root", isString), requireField(body, "branch", isString)),
-  }),
+  "/api/git/worktree": async (_params, { workspace }, body) => {
+    const path = await createWorktree(requireField(body, "root", isString), requireField(body, "branch", isString));
+    // Le worktree s'ouvre aussitôt dans un onglet : il doit déjà être accessible.
+    await workspace.refresh();
+    return { path };
+  },
 
   "/api/git/fetch": async (_params, _context, body) => {
     await gitFetch(requireField(body, "root", isString));
@@ -1168,13 +1174,25 @@ export const mutations: Record<string, Mutation> = {
     return { outcome: await openPath(absolutePath, body["reveal"] === true) };
   },
 
-  "/api/worktrees/remove": async (_params, _context, body) => {
+  "/api/worktrees/remove": async (_params, { workspace }, body) => {
     const root = requireField(body, "root", isString);
-    const path = requireField(body, "path", isString);
-    return new GitWorktrees().remove(root, path);
+    const path = await workspace.resolve(requireField(body, "path", isString));
+    const removed = await new GitWorktrees().remove(root, path);
+    await workspace.refresh();
+    return removed;
   },
 
-  "/api/links/save": async (_params, _context, body) => {
+  /**
+   * Projets ouverts dans l'interface. Le serveur en déduit les dossiers où il
+   * accepte d'agir ; le client attend la réponse avant ses autres appels, pour
+   * qu'un projet qu'on vient d'ouvrir ne soit pas refusé.
+   */
+  "/api/workspace/roots": async (_params, { workspace }, body) => {
+    await workspace.update(requireField(body, "projects", isArray).filter(isString));
+    return { roots: workspace.open };
+  },
+
+  "/api/links/save": async (_params, { workspace }, body) => {
     const root = requireField(body, "root", isString);
     const links = requireField(body, "links", isArray)
       .filter(isRecord)
@@ -1186,6 +1204,8 @@ export const mutations: Record<string, Mutation> = {
       }));
     const store = new LinkStore();
     await store.write(root, links);
+    // Un dossier lié devient accessible, un lien retiré ne l'est plus.
+    await workspace.refresh();
     return { links: await store.read(root) };
   },
 

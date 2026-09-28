@@ -8,7 +8,28 @@ export const TOKEN = new URLSearchParams(location.search).get("token") ?? "";
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 
+/**
+ * Envoi en cours de la liste des projets ouverts. Le serveur n'agit que dans les
+ * dossiers qu'elle couvre : un appel parti avant elle, sur un projet qu'on vient
+ * d'ouvrir, serait refusé.
+ */
+let workspaceSync: Promise<unknown> = Promise.resolve();
+
+/** Dit au serveur quels projets sont ouverts ; les appels suivants attendent sa réponse. */
+export function syncWorkspace(projects: string[]): void {
+  const previous = workspaceSync;
+  workspaceSync = previous
+    .catch(() => undefined)
+    .then(() => request("/api/workspace/roots", {}, { method: "POST", body: JSON.stringify({ projects }) }))
+    .catch((error: unknown) => console.error("[clide]", error));
+}
+
 export async function api<T>(path: string, params: Params = {}, init?: RequestInit): Promise<T> {
+  await workspaceSync;
+  return request<T>(path, params, init);
+}
+
+async function request<T>(path: string, params: Params = {}, init?: RequestInit): Promise<T> {
   const url = new URL(path, location.origin);
   url.searchParams.set("token", TOKEN);
   for (const [key, value] of Object.entries(params)) {

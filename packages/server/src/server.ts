@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { extname, normalize, resolve, sep } from "node:path";
+import { extname, join, normalize, resolve, sep } from "node:path";
 
 import {
   LinkStore,
@@ -25,6 +25,7 @@ import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
+import { OutsideWorkspace, WorkspaceRoots, checkRoots } from "./workspace/roots.js";
 
 export interface ServerOptions {
   /** Racine des fichiers statiques du client. */
@@ -204,6 +205,21 @@ async function migrateLegacyState(settingsPath: string): Promise<void> {
   }
 }
 
+/** Un chemin hors des projets ouverts est un refus, pas une requête mal formée. */
+function statusOf(error: unknown): number {
+  return error instanceof OutsideWorkspace ? 403 : 400;
+}
+
+/** Projets ouverts à la dernière sauvegarde de l'interface ; aucun si elle est absente ou illisible. */
+async function savedRoots(dataDir: string): Promise<string[]> {
+  try {
+    const saved = JSON.parse(await readFile(join(dataDir, "ui-state.json"), "utf8")) as { roots?: unknown };
+    return Array.isArray(saved.roots) ? saved.roots.filter((root): root is string => typeof root === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
   if (!options.dataDir) await migrateLegacyState(options.settingsPath ?? settingsFile());
   const token = options.token ?? randomBytes(24).toString("base64url");
@@ -219,7 +235,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     live,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
+    workspace: new WorkspaceRoots(),
   };
+  // Les projets de la dernière session, en attendant que le client redise les siens.
+  void context.workspace.update(await savedRoots(context.dataDir));
   await context.index.load();
   await notifications.start();
 
@@ -285,9 +304,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         }
         try {
           const body = await readBody(request);
+          await checkRoots(context.workspace, url.searchParams, body);
           send(response, 200, await mutation(url.searchParams, context, body));
         } catch (error) {
-          send(response, 400, { error: error instanceof Error ? error.message : String(error) });
+          send(response, statusOf(error), { error: error instanceof Error ? error.message : String(error) });
         }
         return;
       }
@@ -298,9 +318,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         return;
       }
       try {
+        await checkRoots(context.workspace, url.searchParams);
         send(response, 200, await handler(url.searchParams, context));
       } catch (error) {
-        send(response, 400, { error: error instanceof Error ? error.message : String(error) });
+        send(response, statusOf(error), { error: error instanceof Error ? error.message : String(error) });
       }
       return;
     }

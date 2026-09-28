@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
@@ -207,10 +208,26 @@ function persist(): void {
  */
 export function setState(patch: Partial<State> | ((current: State) => Partial<State>)): void {
   const next = typeof patch === "function" ? patch(state) : patch;
+  const before = state.projects;
   state = { ...state, ...next };
+  if (state.projects !== before) announceProjects();
   persist();
   for (const listener of listeners) listener();
 }
+
+let announced = "";
+
+/** Annonce au serveur les projets ouverts, quand leur liste change. */
+function announceProjects(): void {
+  const roots = state.projects.map((project) => project.root);
+  const key = roots.join("\n");
+  if (key === announced) return;
+  announced = key;
+  syncWorkspace(roots);
+}
+
+// Au démarrage, les projets relus de la mémoire.
+announceProjects();
 
 export function getState(): State {
   return state;
