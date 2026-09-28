@@ -586,6 +586,14 @@ Chaque MR se livre seule et laisse l'application utilisable.
 
 Les MR 1 et 2 corrigent des défauts actuels : à faire d'abord, quel que soit le reste.
 
+### État
+
+Les quatorze MR sont fusionnées, dans cet ordre : #16 (isolation des projets), #17
+(`WorkspaceRoots`), #19 (état v2), #20 (menus), #21 (commandes et palette), #22
+(disposition), #23 (fenêtre Réglages), #24 (modules), #25 (explorateur), #26
+(éditeur), #27 (Git), #28 (prompts), #29 (scripts), et celle des skills. Reste le
+lot 12 de `refonte-ui.md` (le navigateur que Claude pilote, dans l'aperçu).
+
 ## 14. Risques et points ouverts
 
 - **Taille de Monaco** (~5 Mo) : chargé à la demande ; à mesurer dans l'installateur.

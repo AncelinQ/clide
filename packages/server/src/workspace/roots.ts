@@ -38,7 +38,15 @@ export class WorkspaceRoots {
   #allowed: string[] = [];
   #pending: Promise<void> = Promise.resolve();
 
-  constructor(private readonly expand: Expand = linkedAndWorktrees) {}
+  /**
+   * `always` : dossiers accessibles quels que soient les projets ouverts — ceux où
+   * Claude Code range les skills et les commandes de l'utilisateur, que
+   * l'éditeur ouvre comme les fichiers d'un projet.
+   */
+  constructor(
+    private readonly expand: Expand = linkedAndWorktrees,
+    private readonly always: readonly string[] = [],
+  ) {}
 
   /** Projets ouverts dans l'interface, tels que le client les a envoyés. */
   get open(): readonly string[] {
@@ -63,7 +71,7 @@ export class WorkspaceRoots {
 
   async #compute(open: string[]): Promise<void> {
     const attached = await Promise.all(open.map((root) => this.expand(root)));
-    const all = [...open, ...attached.flat()].map((path) => resolve(path));
+    const all = [...open, ...attached.flat(), ...this.always].map((path) => resolve(path));
     const real = await Promise.all(all.map((path) => realPath(path)));
     if (open !== this.#open) return;
     this.#allowed = dedupe([...all, ...real]);

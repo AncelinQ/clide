@@ -777,4 +777,7 @@ export const EN: Record<string, string> = {
   "lié {name}": "linked {name}",
   "Scripts du package.json, espaces de travail compris, et commandes des autres outils (make, cargo, go, python, scripts). Chacun tourne dans son onglet ; cochés, ils se lancent ensemble.":
     "package.json scripts, workspaces included, and the other tools' commands (make, cargo, go, python, scripts). Each runs in its own tab; ticked, they start together.",
+  "Des dossiers liés": "From linked folders",
+  "insérer /{name}": "insert /{name}",
+  "Ouvre un onglet Claude dans ce projet pour y insérer « {text} ».": "Open a Claude tab in this project to insert \"{text}\" there.",
 };

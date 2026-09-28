@@ -9,6 +9,7 @@ import {
   SessionIndex,
   ChangedOnDisk,
   appDataDir,
+  claudeHome,
   legacyAppDataDir,
   migrateAppData,
   settingsFile,
@@ -243,7 +244,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     live,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
-    workspace: new WorkspaceRoots(),
+    workspace: new WorkspaceRoots(undefined, [join(claudeHome(), "skills"), join(claudeHome(), "commands")]),
   };
   // Les projets de la dernière session, en attendant que le client redise les siens.
   void context.workspace.update(await savedRoots(context.dataDir));

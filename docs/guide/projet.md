@@ -93,7 +93,16 @@ existant.
 Un nouveau skill peut être rédigé par Claude : l'éditeur écrit le squelette — nom,
 description, invocation — puis envoie à l'onglet Claude du projet une consigne qui
 désigne ce fichier. Claude reçoit un fichier existant à compléter plutôt qu'un
-emplacement à deviner.
+emplacement à deviner. Enregistré à la main, il s'ouvre aussitôt dans l'éditeur de
+Clide, là où l'on écrit ses instructions.
+
+Chaque skill porte son mode d'invocation — automatique et `/nom`, `/nom` seul
+(`disable-model-invocation`), automatique seul (`user-invocable: false`).
+« insérer /nom » le tape dans l'onglet Claude du projet sans valider, pour écrire la
+demande à la suite ; « ouvrir », ou un double-clic, ouvre son `SKILL.md` dans
+l'éditeur, skills du poste compris. Les skills des dossiers liés suivent ceux du
+projet, sous « Des dossiers liés », avec le nom du dossier : ils appartiennent à
+l'autre dépôt, on les ouvre et on les insère, on ne les modifie pas d'ici.
 
 Une commande envoyée à Claude Code part en deux temps : le texte, puis Entrée un
 instant après. Reçus d'un bloc, Claude Code les lit comme un collage, où Entrée

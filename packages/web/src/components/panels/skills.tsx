@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
-import { api, pickPath, post } from "@/lib/api";
+import { api, pickPath, post, shortName } from "@/lib/api";
 import type { Skill } from "@/lib/types";
 import { useStore } from "@/state/store";
+import { openFile } from "@/state/editor";
+import { runPrompt } from "@/state/prompts";
 import { claudeTabFor, sendToClaude } from "@/state/terminals";
 
 const INVOCATION_LABEL: Record<Skill["invocation"], string> = {
@@ -41,14 +43,26 @@ export function SkillRow({
 }) {
   const scoped = skill.scope === "project" ? { root } : {};
   const SCOPE_LABEL = { project: "projet", user: "perso", plugin: "plugin", synced: "synchronisé" } as const;
-  const readOnly = skill.scope === "plugin" || skill.scope === "synced";
+  // Un skill de plugin, synchronisé ou d'un dossier lié appartient à d'autres : il se lit et s'utilise, il ne s'édite pas d'ici.
+  const readOnly = skill.scope === "plugin" || skill.scope === "synced" || !!skill.linkedFrom;
+  // L'éditeur de Clide ouvre les skills du projet et de l'utilisateur ; ceux des plugins vivent dans leur cache.
+  const openable = skill.scope === "project" || skill.scope === "user";
+  const [notice, setNotice] = useState<string>();
+  const insert = async () =>
+    setNotice(await runPrompt({ id: skill.name, label: skill.name, text: `/${skill.name} `, mode: "insert", scope: "user" }));
   return (
     <Row
+      onDoubleClick={openable ? () => void openFile(skill.path) : undefined}
       title={skill.name}
-      sub={skill.description}
+      sub={notice ?? skill.description}
       badges={
         <>
           <Badge variant="secondary">{t(SCOPE_LABEL[skill.scope])}</Badge>
+          {skill.linkedFrom && (
+            <Badge variant="outline" title={skill.linkedFrom}>
+              {t("lié {name}", { name: shortName(skill.linkedFrom) })}
+            </Badge>
+          )}
           <Badge variant="outline">{t(INVOCATION_LABEL[skill.invocation])}</Badge>
           {skill.declaredName && (
             <Badge variant="outline" title={t("name déclaré dans SKILL.md, ignoré pour /nom")}>
@@ -58,7 +72,18 @@ export function SkillRow({
         </>
       }
       actions={
-        readOnly ? undefined : (
+        <>
+          {skill.invocation !== "auto-only" && (
+            <ActionButton variant="ghost" onAction={insert}>
+              {t("insérer /{name}", { name: skill.name })}
+            </ActionButton>
+          )}
+          {openable && (
+            <ActionButton variant="ghost" onAction={() => openFile(skill.path)}>
+              {t("ouvrir")}
+            </ActionButton>
+          )}
+        {readOnly ? null : (
           <>
           <ActionButton
             onAction={async () => {
@@ -98,7 +123,8 @@ export function SkillRow({
             }}
           />
           </>
-        )
+        )}
+        </>
       }
     />
   );
@@ -166,8 +192,10 @@ export function SkillEditor({
         <ActionButton
           variant="default"
           onAction={async () => {
-            await save(body);
+            const { skill: written } = await save(body);
             onDone();
+            // Un skill qu'on vient de créer s'ouvre dans l'éditeur : c'est là qu'on écrit ses instructions.
+            if (creating) void openFile(written.path);
           }}
         >
           {t("Enregistrer")}

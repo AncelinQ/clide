@@ -206,7 +206,7 @@ export function LinksPanel({ root }: { root: string }) {
 
 export function ProjectSkillsPanel({ root }: { root: string }) {
   const state = useAsync(
-    () => api<{ skills: Skill[]; commands: SlashCommand[] }>("/api/skills", { root }),
+    () => api<{ skills: Skill[]; commands: SlashCommand[]; linked?: Skill[] }>("/api/skills", { root }),
     [root],
   );
   const [editing, setEditing] = useState<Partial<Skill> | null>(null);
@@ -227,7 +227,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
 
   return (
     <Async state={state}>
-      {({ skills, commands }) => {
+      {({ skills, commands, linked = [] }) => {
         const needle = filter.trim().toLowerCase();
         const searching = needle.length > 0;
         const match = (text: string) => (searching ? text.toLowerCase().includes(needle) : true);
@@ -235,6 +235,7 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
         const own = all.filter((skill) =>
           match(`${skill.name} ${skill.declaredName ?? ""} ${skill.description ?? ""}`),
         );
+        const fromLinks = linked.filter((skill) => match(`${skill.name} ${skill.description ?? ""}`));
         const ownCommands = commands.filter(
           (command) => command.scope === "project" && match(`${command.name} ${command.description ?? ""}`),
         );
@@ -276,6 +277,15 @@ export function ProjectSkillsPanel({ root }: { root: string }) {
                 {t("Nouveau skill")}
               </Button>
             </SkillImport>
+            {fromLinks.length > 0 && (
+              <FoldSection id="project.linkedSkills" title={t("Des dossiers liés")} count={fromLinks.length} forceOpen={searching}>
+                <Rows>
+                  {fromLinks.map((skill) => (
+                    <SkillRow key={skill.path} skill={skill} root={root} onEdit={setEditing} onDone={state.reload} />
+                  ))}
+                </Rows>
+              </FoldSection>
+            )}
             {ownCommands.length > 0 && (
               <FoldSection id="project.commands" title={t("Commandes")} count={ownCommands.length} forceOpen={searching}>
                 <Rows>

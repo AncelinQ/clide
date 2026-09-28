@@ -84,6 +84,8 @@ export async function runPrompt(prompt: SavedPrompt): Promise<string | undefined
   if ("missing" in result) return t("« {label} » attend une valeur.", { label: prompt.label });
 
   const id = claudeTabFor(getState().activeRoot);
+  // Insérer, c'est taper sans valider : sans onglet Claude, il n'y a rien où taper.
+  if (!id && prompt.mode === "insert") return t("Ouvre un onglet Claude dans ce projet pour y insérer « {text} ».", { text: result.text.trim() });
   if (!id) {
     // Tapé dans PowerShell : une ligne, entre apostrophes doublées.
     const argument = result.text.replace(/\s*\n\s*/g, " ").replace(/'/g, "''");
