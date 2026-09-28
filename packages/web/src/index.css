@@ -261,3 +261,35 @@ input[type="color"]::-webkit-color-swatch {
   --vscode-ctp-mantle: #181825;
   --vscode-ctp-crust: #11111b;
 }
+
+/* Marge de l'éditeur : lancer, arrêter, et le dernier résultat d'un test. */
+.monaco-editor .clide-glyph {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.monaco-editor .clide-glyph:hover {
+  color: var(--foreground);
+}
+.monaco-editor .clide-glyph-run::before {
+  content: "▷";
+}
+.monaco-editor .clide-glyph-stop::before {
+  content: "■";
+  color: var(--destructive);
+}
+.monaco-editor .clide-glyph-running::before {
+  content: "●";
+  color: #0ea5e9;
+}
+.monaco-editor .clide-glyph-passed::before {
+  content: "▶";
+  color: #10b981;
+}
+.monaco-editor .clide-glyph-failed::before {
+  content: "▶";
+  color: var(--destructive);
+}

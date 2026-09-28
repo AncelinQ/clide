@@ -2,7 +2,8 @@ import { useSyncExternalStore } from "react";
 
 import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
-import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
+import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
@@ -70,6 +71,10 @@ export interface State {
   files: Record<string, OpenFile>;
   /** Dernier rapport d'erreurs et de TODO de chaque projet, poussé par le serveur. */
   diagnostics: Record<string, DiagnosticsReport>;
+  /** Suites de tests de chaque projet, avec leurs derniers résultats. */
+  tests: Record<string, TestSuite[]>;
+  /** Lancements de tests en cours, par clé de script (`dossier|nom`) : ce qui tourne. */
+  testRuns: Record<string, TestTarget>;
   /** Session vivante de chaque onglet Claude, par identifiant d'onglet. */
   live: Record<string, LiveSession>;
   /**
@@ -181,6 +186,8 @@ let state: State = {
   selectedSessions: {},
   files: {},
   diagnostics: {},
+  tests: {},
+  testRuns: {},
   live: {},
   followLive: true,
   notifications: [],
@@ -271,7 +278,8 @@ export function getState(): State {
   return state;
 }
 
-function subscribe(listener: () => void): () => void {
+/** Prévient à chaque changement d'état, hors de React : la marge de l'éditeur, le suivi des tests. */
+export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }

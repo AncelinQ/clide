@@ -39,6 +39,8 @@ const pending = new Map<string, string>();
 let socket: WebSocket | undefined;
 /** Projet auquel rattacher le prochain terminal ouvert. */
 let pendingOwner: string | null = null;
+/** Scripts ouverts en arrière-plan : leur nouvel onglet ne passe pas devant ce qu'on regarde. */
+const backgroundScripts = new Set<string>();
 
 export function connect(): void {
   socket = new WebSocket(socketUrl("/pty"));
@@ -68,6 +70,11 @@ function onMessage(message: ServerMessage): void {
       pendingOwner = null;
       if (!owner) return;
       const id = message.terminal.id;
+      const script = message.terminal.script;
+      if (script && backgroundScripts.delete(script)) {
+        setState((current) => ({ terminals: { ...current.terminals, [id]: { info: message.terminal, owner } } }));
+        break;
+      }
       setState((current) => ({
         terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
         // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
@@ -276,6 +283,7 @@ export function runScript(name: string, directory: string, command: string, opti
     return;
   }
   const folder = directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? directory;
+  if (options.focus === false) backgroundScripts.add(key);
   openTerminal("shell", { cwd: directory, command, label: `${folder} › ${name}`, script: key });
 }
 

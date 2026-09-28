@@ -3,6 +3,7 @@ import type * as Monaco from "monaco-editor";
 import { api, post } from "@/lib/api";
 import { ownerOf } from "@/lib/workspace";
 import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
+import { afterSave, installGutter } from "@/state/gutter";
 import { getState, setState, type OpenFile, type Project } from "@/state/store";
 
 /**
@@ -81,6 +82,13 @@ async function ensureEditor(): Promise<Monaco.editor.IStandaloneCodeEditor> {
   // Ctrl+S dans l'éditeur : l'écoute globale ne le voit pas, Monaco le garde pour lui.
   editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, () => {
     if (shown) void saveFile(shown);
+  });
+  // Le fichier montré se lit sur le modèle : `shown` change après `setModel`, qui prévient la marge.
+  const instance = editor;
+  installGutter(m, instance, () => {
+    const model = instance.getModel();
+    for (const [path, doc] of documents) if (doc.model === model) return path;
+    return undefined;
   });
   // Quitter l'éditeur relit l'état du fichier sur disque au retour : Claude a pu l'écrire entre-temps.
   editor.onDidFocusEditorText(() => {
@@ -277,6 +285,7 @@ export async function saveFile(path: string, options: { overwrite?: boolean } = 
     });
     Object.assign(doc, { saved: text, mtimeMs });
     patchFile(path, { dirty: isDirty(path), changedOnDisk: false, error: undefined });
+    afterSave(path);
     return true;
   } catch (error) {
     if ((error as { status?: number }).status === 409) patchFile(path, { changedOnDisk: true });

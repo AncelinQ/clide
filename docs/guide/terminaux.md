@@ -130,6 +130,25 @@ Les fichiers ouverts reviennent au lancement suivant. Un fichier renommé ou dé
 dans l'explorateur garde son onglet et ses modifications. Ouvrir un terminal ou
 cliquer son onglet le remet devant l'éditeur.
 
+### Lancer depuis la marge
+
+Une ligne qui se lance porte un bouton ▷ dans la marge, à gauche des numéros :
+
+- dans un `package.json`, chaque script, avec le gestionnaire de son dossier ;
+- dans un Makefile, chaque cible ;
+- dans un Markdown, chaque commande d'un bloc `sh`, `bash`, `powershell`, `ps1`
+  ou `console`, sans son invite (`$ `, `PS> `) ; dans un bloc `console`, seules
+  les lignes à invite, le reste étant leur sortie ;
+- dans un script `.ps1` ou `.sh`, la première ligne, qui lance le fichier ;
+- dans un fichier de test, chaque test, coloré par son dernier résultat : vert,
+  rouge, ● tant qu'il tourne.
+
+Le bouton passe par l'onglet du script, comme la vue Scripts : ■ l'arrête (Ctrl+C)
+tant qu'il tourne, et il apparaît dans « En cours ». Un script montre son onglet ;
+un test tourne dans l'onglet de sa suite, en arrière-plan, et son résultat revient
+dans la marge et dans la vue Tests. Les lignes d'un Markdown suivent la frappe ;
+celles d'un fichier de test sont relues à l'enregistrement.
+
 ## Largeur des colonnes
 
 Les poignées entre les colonnes se tirent à la souris, et un double-clic rend la
