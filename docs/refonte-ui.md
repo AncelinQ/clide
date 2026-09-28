@@ -355,8 +355,8 @@ dans les fichiers » (`Ctrl+Shift+F`) y mène, avec le texte choisi dans l'édit
 
 ## File d'implémentation
 
-Les MR 16 à 25 sont faites et fusionnées (#34 à #43), dans l'ordre ci-dessous ;
-les MR 26 et 27 reprennent ce qu'elles avaient laissé.
+Toute la file est faite et fusionnée (#34 à #45), dans l'ordre ci-dessous ; les
+MR 26 et 27 ont repris ce que les MR 16 à 25 avaient laissé.
 
 1. MR 16 — Tests du projet (lot 14, sans la marge de l'éditeur).
 2. MR 17 — Lancer depuis la marge de l'éditeur (lot 15, et la marge des tests du
