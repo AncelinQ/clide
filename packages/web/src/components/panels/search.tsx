@@ -5,7 +5,7 @@ import { Async, Empty, useAsync } from "@/components/common";
 import { t } from "@/i18n";
 import { api, formatDate, shortName } from "@/lib/api";
 import type { SessionSummary } from "@/lib/types";
-import { setState } from "@/state/store";
+import { selectSession, setState } from "@/state/store";
 
 interface Hit {
   sessionId: string;
@@ -116,18 +116,17 @@ export function SearchPanel({ query }: { query: string }) {
                   <button
                     type="button"
                     className="block w-full min-w-0 rounded px-1 py-1.5 text-left hover:bg-accent/50"
-                    onClick={() =>
+                    onClick={() => {
+                      selectSession({
+                        sessionId: hit.sessionId,
+                        ...(hit.title ? { title: hit.title } : {}),
+                      } as SessionSummary);
                       setState({
-                        selectedSession: {
-                          sessionId: hit.sessionId,
-                          ...(hit.title ? { title: hit.title } : {}),
-                        } as SessionSummary,
-                        followLive: false,
                         sessionMode: "activity",
                         sessionCollapsed: false,
                         activityFocus: { sessionId: hit.sessionId, index: hit.index },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <span className="flex items-baseline gap-2 text-[11px] text-muted-foreground">
                       <span className="w-16 shrink-0 truncate tracking-wide uppercase">

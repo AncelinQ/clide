@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n";
 import { api, formatDate, shortName } from "@/lib/api";
 import type { SessionSummary } from "@/lib/types";
-import { openProject, setState } from "@/state/store";
-import { openTerminal } from "@/state/terminals";
+import { selectSession } from "@/state/store";
+import { resumeSession } from "@/state/terminals";
 import { cn } from "cn";
 
 interface Chantier {
@@ -125,10 +125,7 @@ function ChantierRow({ chantier }: { chantier: Chantier }) {
                   )}
                   title={t(session.relation === "travaillée" ? "travaillée sur la branche du chantier" : "ticket consulté depuis une autre branche")}
                   onClick={() =>
-                    setState({
-                      selectedSession: { sessionId: session.sessionId, ...(session.title ? { title: session.title } : {}) } as SessionSummary,
-                      followLive: false,
-                    })
+                    selectSession({ sessionId: session.sessionId, ...(session.title ? { title: session.title } : {}) } as SessionSummary)
                   }
                 >
                   {session.title ?? session.sessionId.slice(0, 8)}
@@ -137,8 +134,7 @@ function ChantierRow({ chantier }: { chantier: Chantier }) {
                 <ActionButton
                   variant="ghost"
                   onAction={() => {
-                    if (session.cwd) openProject(session.cwd);
-                    openTerminal("claude", { cwd: session.cwd, command: `claude --resume ${session.sessionId}` });
+                    resumeSession(session.sessionId, session.cwd);
                   }}
                 >
                   {t("reprendre")}

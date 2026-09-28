@@ -28,7 +28,7 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { DEFAULT_WIDTHS, activeProject, getState, setState, useStore } from "@/state/store";
+import { DEFAULT_WIDTHS, activeProject, getState, selectedSessionOf, setState, useStore } from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import {
   closeTerminal,
@@ -283,7 +283,6 @@ export function TerminalArea() {
     activeTerminalId,
     attention,
     activeRoot,
-    selectedSession,
     sessionMode,
     live,
     followLive,
@@ -292,6 +291,7 @@ export function TerminalArea() {
     widths,
   } = useStore((state) => state);
   const project = useStore(activeProject);
+  const selectedSession = useStore(selectedSessionOf);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
@@ -488,7 +488,7 @@ export function TerminalArea() {
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
           {own.length === 0 && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
-            <TerminalHost key={info.id} info={info} active={info.id === activeTerminalId} />
+            <TerminalHost key={info.id} info={info} active={info.id === status?.id} />
           ))}
         </div>
         {previewOpen && project && (
