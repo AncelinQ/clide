@@ -49,6 +49,12 @@ Les scripts des dossiers liés sont listés à la suite, chacun avec le gestionn
 que désigne son propre lockfile : lancer les scripts d'un dépôt npm avec le `pnpm`
 du projet réécrirait son arbre de dépendances.
 
+Les scripts qu'on lance sans cesse — dev, start, build, test, lint, preview,
+typecheck — viennent en tête, en gras. « installer » lance `<gestionnaire>
+install` à la racine du dossier, dans un shell comme un script. Un script en
+cours ne propose plus « lancer » mais « arrêter », qui envoie Ctrl+C à son
+onglet, et « aller à l'onglet ».
+
 ## Skills
 
 Les skills se lisent sur quatre portées : le projet (`.claude/skills`), le poste
