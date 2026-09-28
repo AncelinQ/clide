@@ -433,6 +433,8 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             ...(message.rows !== undefined ? { rows: message.rows } : {}),
             ...(message.initialCommand ? { initialCommand: message.initialCommand } : {}),
             ...(message.owner ? { owner: message.owner } : {}),
+            ...(message.label ? { label: message.label } : {}),
+            ...(message.script ? { script: message.script } : {}),
           });
           if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, message.initialCommand);
           post({ t: "opened", terminal });

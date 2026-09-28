@@ -38,8 +38,6 @@ const pending = new Map<string, string>();
 let socket: WebSocket | undefined;
 /** Projet auquel rattacher le prochain terminal ouvert. */
 let pendingOwner: string | null = null;
-/** Script que l'onglet en cours d'ouverture va lancer, noté dès qu'on connaît son identifiant. */
-let pendingScript: string | null = null;
 
 export function connect(): void {
   socket = new WebSocket(socketUrl("/pty"));
@@ -67,10 +65,6 @@ function onMessage(message: ServerMessage): void {
       // se volent pas leur propriétaire.
       const owner = message.terminal.owner ?? pendingOwner;
       pendingOwner = null;
-      if (pendingScript) {
-        scripts.set(message.terminal.id, pendingScript);
-        pendingScript = null;
-      }
       if (!owner) return;
       const id = message.terminal.id;
       setState((current) => ({
@@ -197,7 +191,10 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
   });
 }
 
-export function openTerminal(kind: TerminalKind, options: { command?: string; cwd?: string } = {}): void {
+export function openTerminal(
+  kind: TerminalKind,
+  options: { command?: string; cwd?: string; label?: string; script?: string } = {},
+): void {
   const { activeRoot } = getState();
   if (!activeRoot) return;
   pendingOwner = activeRoot;
@@ -209,6 +206,8 @@ export function openTerminal(kind: TerminalKind, options: { command?: string; cw
     cols: 100,
     rows: 30,
     ...(options.command ? { initialCommand: options.command } : {}),
+    ...(options.label ? { label: options.label } : {}),
+    ...(options.script ? { script: options.script } : {}),
   });
 }
 
@@ -228,57 +227,57 @@ export function resumeSession(sessionId: string, cwd: string | undefined): void 
   openTerminal("claude", { ...(cwd ? { cwd } : {}), command: `claude --resume ${sessionId}` });
 }
 
-/** Script lancé dans chaque onglet, pour ne pas relancer celui qui tourne encore. */
-const scripts = new Map<string, string>();
-
 function samePath(a: string, b: string): boolean {
   const clean = (path: string) => path.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase();
   return clean(a) === clean(b);
 }
 
+/** Clé d'un script : son dossier et son nom. Le serveur la garde avec l'onglet. */
+export function scriptKey(directory: string, name: string): string {
+  return `${directory}|${name}`;
+}
+
+/** Onglet d'un script dans le projet actif, fini ou en cours, s'il en a un. */
+function scriptTab(key: string): TerminalInfo | undefined {
+  const { terminals, activeRoot } = getState();
+  return Object.values(terminals).find((entry) => entry.owner === activeRoot && entry.info.script === key && !entry.info.exited)
+    ?.info;
+}
+
 /**
- * Lance un script du projet.
+ * Lance un script dans son onglet, nommé `dossier › script`.
  *
- * Le même script encore en cours est ramené au premier plan plutôt que lancé une
- * seconde fois. Sinon, un shell du projet qui ne fait rien le reçoit, et un
- * onglet n'est ouvert qu'à défaut : chaque lancement en ouvrirait un de plus.
+ * Chaque script a le sien, qu'on retrouve : encore en cours, il est ramené au
+ * premier plan plutôt que lancé une seconde fois ; fini, il y est relancé ; sans
+ * onglet, un onglet s'ouvre. Plusieurs scripts tournent donc côte à côte, chacun
+ * dans le dossier de son projet ou de son dossier lié.
  *
- * La saisie commence par Échap, qui vide la ligne en cours sous PSReadLine, pour
+ * La relance commence par Échap, qui vide la ligne en cours sous PSReadLine, pour
  * ne pas coller la commande derrière ce qui y traînait.
  */
-export function runScript(name: string, directory: string, command: string): void {
-  const { terminals, activeRoot } = getState();
+export function runScript(name: string, directory: string, command: string, options: { focus?: boolean } = {}): void {
+  const { activeRoot } = getState();
   if (!activeRoot) return;
-  const key = `${directory}|${name}`;
-  const shells = Object.values(terminals)
-    .filter((entry) => entry.owner === activeRoot && entry.info.kind === "shell" && !entry.info.exited)
-    .map((entry) => entry.info);
-
-  const running = shells.find((info) => info.state === "running" && scripts.get(info.id) === key);
-  if (running) {
-    focusTerminal(running.id);
+  const key = scriptKey(directory, name);
+  const tab = scriptTab(key);
+  if (tab && tab.state === "running") {
+    if (options.focus !== false) focusTerminal(tab.id);
     return;
   }
-
-  const idle = shells.find((info) => info.state !== "running");
-  if (!idle) {
-    pendingScript = key;
-    openTerminal("shell", { cwd: directory, command });
+  if (tab) {
+    const move = samePath(tab.cwd, directory) ? "" : `Set-Location -LiteralPath '${directory.replace(/'/g, "''")}'; `;
+    typeInto(tab.id, `\u001b${move}${command}\r`);
+    if (options.focus !== false) focusTerminal(tab.id);
     return;
   }
-  const move = samePath(idle.cwd, directory) ? "" : `Set-Location -LiteralPath '${directory.replace(/'/g, "''")}'; `;
-  scripts.set(idle.id, key);
-  typeInto(idle.id, `\u001b${move}${command}\r`);
-  focusTerminal(idle.id);
+  const folder = directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? directory;
+  openTerminal("shell", { cwd: directory, command, label: `${folder} › ${name}`, script: key });
 }
 
 /** Onglet où un script tourne encore, s'il y en a un. */
 export function runningScriptTab(directory: string, name: string): string | undefined {
-  const key = `${directory}|${name}`;
-  return Object.values(getState().terminals).find(
-    (entry) =>
-      entry.info.kind === "shell" && !entry.info.exited && entry.info.state === "running" && scripts.get(entry.info.id) === key,
-  )?.info.id;
+  const tab = scriptTab(scriptKey(directory, name));
+  return tab?.state === "running" ? tab.id : undefined;
 }
 
 /** Interrompt ce qui tourne dans un onglet, par Ctrl+C, et le montre. */
@@ -288,7 +287,6 @@ export function interruptTerminal(id: string): void {
 }
 
 export function closeTerminal(id: string): void {
-  scripts.delete(id);
   pending.delete(id);
   send({ t: "close", id });
   attached.get(id)?.term.dispose();

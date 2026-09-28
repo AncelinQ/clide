@@ -22,6 +22,8 @@ export interface TerminalInfo {
   devUrl?: string;
   /** Projet de l'interface qui l'a ouvert, même quand l'onglet vit dans un worktree. */
   owner?: string;
+  /** Script que l'onglet fait tourner (`dossier|nom`). */
+  script?: string;
 }
 
 /** Coût d'une session, avec ce qu'il vaut : relevé, estimé, plancher ou inconnu. */
@@ -123,6 +125,8 @@ export interface ProjectScripts {
   manager: string;
   managerDetected: boolean;
   sources: { directory: string; relativePath: string; packageName?: string; scripts: { name: string; command: string }[] }[];
+  /** Les autres outils du dossier : make, cargo, go, python, scripts PowerShell et shell. */
+  tools: { tool: string; directory: string; commands: { name: string; run: string }[] }[];
 }
 
 export interface ProjectLink {

@@ -34,6 +34,12 @@ export interface TerminalInfo {
    * recharge.
    */
   owner?: string;
+  /**
+   * Script que l'onglet fait tourner (`dossier|nom`). Tenu ici plutôt que par la
+   * page : un rechargement retrouve l'onglet de chaque script, et le relancer
+   * reprend le même onglet au lieu d'en ouvrir un autre.
+   */
+  script?: string;
 }
 
 export interface SpawnOptions {
@@ -44,6 +50,9 @@ export interface SpawnOptions {
   /** Commande envoyée dès l'ouverture, `claude` pour un onglet Claude. */
   initialCommand?: string;
   owner?: string;
+  /** Nom de l'onglet, `projet › script` pour un script. */
+  label?: string;
+  script?: string;
 }
 
 export interface TerminalEvents {
@@ -55,6 +64,8 @@ export interface TerminalEvents {
 }
 
 interface Terminal {
+  /** Nom donné à l'ouverture, que l'onglet reprend quand `claude` en sort. */
+  label?: string;
   info: TerminalInfo;
   pty: IPty;
   scanner: OscScanner;
@@ -121,6 +132,7 @@ export class PtyManager {
 
     const terminal: Terminal = {
       pty,
+      ...(options.label ? { label: options.label } : {}),
       scanner: new OscScanner(),
       urls: new DevUrlScanner(),
       backlog: "",
@@ -130,9 +142,10 @@ export class PtyManager {
         projectRoot: options.projectRoot,
         cwd: options.projectRoot,
         state: "idle",
-        title: kind === "claude" ? "claude" : "shell",
+        title: options.label ?? (kind === "claude" ? "claude" : "shell"),
         exited: false,
         ...(options.owner ? { owner: options.owner } : {}),
+        ...(options.script ? { script: options.script } : {}),
       },
     };
     this.#terminals.set(id, terminal);
@@ -217,7 +230,8 @@ export class PtyManager {
           break;
         case "claude-end":
           terminal.info.kind = "shell";
-          terminal.info.title = "shell";
+          // Un onglet de script garde son nom : c'est par lui qu'on le retrouve.
+          terminal.info.title = terminal.label ?? "shell";
           changed = true;
           claude.push(undefined);
           break;

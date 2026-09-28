@@ -39,21 +39,30 @@ Trois choses méritent d'être dites :
 
 ## Lancer un script
 
-Un script déjà en cours n'est pas relancé : son onglet revient au premier plan.
-Sinon, un shell du projet qui ne fait rien le reçoit, et on n'ouvre un onglet que
-s'il n'y en a aucun. La commande est précédée d'Échap, qui vide la ligne en cours
-sous PSReadLine, et d'un `Set-Location` si le shell n'est pas déjà dans le bon
-dossier.
+Chaque script a **son onglet**, nommé `dossier › script` (`front › dev`,
+`api › dev`) : on en fait tourner plusieurs côte à côte, chacun dans le dossier de
+son projet ou de son dossier lié. Relancer un script reprend son onglet — encore en
+cours, il revient au premier plan sans être relancé ; fini, il y repart, précédé
+d'Échap qui vide la ligne en cours sous PSReadLine. Le serveur garde le script de
+chaque onglet : un rechargement de la page les retrouve.
+
+On coche des scripts, puis **Lancer (N)** les démarre ensemble ; **Enregistrer
+comme groupe** les garde sous un nom (« Tout démarrer »), dans
+`.claude/clide-scripts.json` du projet, avec des chemins relatifs à lui pour qu'un
+groupe se partage. Un groupe se lance ou s'arrête d'un bouton (Ctrl+C à chacun de
+ses onglets). En tête, **En cours** liste ce qui tourne, avec l'adresse qu'un
+serveur de développement a annoncée.
 
 Les scripts des dossiers liés sont listés à la suite, chacun avec le gestionnaire
 que désigne son propre lockfile : lancer les scripts d'un dépôt npm avec le `pnpm`
-du projet réécrirait son arbre de dépendances.
+du projet réécrirait son arbre de dépendances. Au-delà du `package.json`, la liste
+reconnaît les cibles d'un Makefile, les commandes courantes de cargo, de go et de
+python (pytest, pip, Django), et les scripts `.ps1` et `.sh` de la racine et de
+`scripts/`.
 
 Les scripts qu'on lance sans cesse — dev, start, build, test, lint, preview,
 typecheck — viennent en tête, en gras. « installer » lance `<gestionnaire>
-install` à la racine du dossier, dans un shell comme un script. Un script en
-cours ne propose plus « lancer » mais « arrêter », qui envoie Ctrl+C à son
-onglet, et « aller à l'onglet ».
+install` à la racine du dossier, dans son onglet comme un script.
 
 ## Skills
 
