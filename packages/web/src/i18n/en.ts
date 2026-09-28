@@ -609,4 +609,8 @@ export const EN: Record<string, string> = {
   "lancé {ago}": "started {ago}",
   "installer": "install",
   "aller à l'onglet": "go to the tab",
+  "Récents": "Recent",
+  "Des sessions Claude ont été lancées dans ce dossier": "Claude sessions were started in this folder",
+  "Plan de la session": "The session's plan",
+  "détacher": "detach",
 };

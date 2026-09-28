@@ -27,6 +27,7 @@ export default defineConfig({
           { text: "Présentation", link: "/" },
           { text: "Terminaux", link: "/terminaux" },
           { text: "La session", link: "/session" },
+          { text: "Différences avec ClaudeTerm", link: "/claudeterm" },
         ],
       },
       {

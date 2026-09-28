@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { breadcrumb, listDirectory } from "../src/files/browser.js";
+import { breadcrumb, listDirectory, markSessions } from "../src/files/browser.js";
+import { encodeProjectPath } from "../src/paths.js";
 
 let root: string;
 
@@ -90,5 +91,23 @@ describe("breadcrumb", () => {
 
   it("se réduit à la racine quand on y est", async () => {
     expect(breadcrumb(await listDirectory(root))).toHaveLength(1);
+  });
+});
+
+describe("markSessions", () => {
+  it("marque les dossiers où Claude Code a rangé des transcripts", async () => {
+    const home = join(root, ".claude-home");
+    const sessions = join(home, "projects", encodeProjectPath(join(root, "src")));
+    await mkdir(sessions, { recursive: true });
+    await writeFile(join(sessions, "abc.jsonl"), "{}\n", "utf8");
+    // Un dossier de projet vide ne compte pas : aucun transcript.
+    await mkdir(join(home, "projects", encodeProjectPath(join(root, "src", "pages"))), { recursive: true });
+
+    const listing = await markSessions(await listDirectory(root), home);
+    expect(listing.entries.find((entry) => entry.name === "src")?.hasSessions).toBe(true);
+    expect(listing.entries.find((entry) => entry.name === "README.md")?.hasSessions).toBeUndefined();
+
+    const inside = await markSessions(await listDirectory(root, "src"), home);
+    expect(inside.entries.find((entry) => entry.name === "pages")?.hasSessions).toBeUndefined();
   });
 });

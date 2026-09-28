@@ -17,10 +17,11 @@ import { ActivityDetailDialog } from "@/components/panels/activity-detail";
 import { Thumbnails } from "@/components/panels/captures";
 import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { decimal, t } from "@/i18n";
 import { api, formatDate, post } from "@/lib/api";
-import type { ActivityEntry, FileDiff as Diff, SessionCost, TokenUsage } from "@/lib/types";
+import type { ActivityEntry, FileDiff as Diff, PlanFileInfo, SessionCost, TokenUsage } from "@/lib/types";
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
 import { useNewestFirst } from "@/components/ModeBlock";
@@ -406,37 +407,69 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
   );
 }
 
+const OWN_PLAN = "__own__";
+
 export function PlanPanel({ session }: { session: ShownSession }) {
+  // Un autre plan de ~/.claude/plans, montré à la place de celui de la session,
+  // le temps de la session montrée : celui d'une autre session, ou rédigé à part.
+  const [linked, setLinked] = useState<string>();
+  useEffect(() => setLinked(undefined), [session.sessionId]);
   const state = useAsync(
     () =>
       api<{ plan?: { text: string; progress?: { done: number; total: number } }; mode?: string; planModeEntries: number }>(
         "/api/session/plan",
-        { id: session.sessionId },
+        { id: session.sessionId, ...(linked ? { path: linked } : {}) },
       ),
-    [session.sessionId],
+    [session.sessionId, linked],
     session.refresh,
   );
+  const plans = useAsync(() => api<{ plans: PlanFileInfo[] }>("/api/plans"), [session.sessionId]);
+  const choices = plans.data?.plans ?? [];
 
   return (
-    <Async state={state}>
-      {({ plan, mode, planModeEntries }) =>
-        !plan ? (
-          <Empty icon={ClipboardList}>
-            {planModeEntries > 0
-              ? t("Passée en mode plan, mais aucun plan soumis.")
-              : t("Jamais passée en mode plan. Mode courant : {mode}.", { mode: mode ?? t("inconnu") })}
-          </Empty>
-        ) : (
-          <>
-            {plan.progress && (
-              <p className="py-1 text-[11px] text-muted-foreground">
-                {t("{done} sur {total} étapes cochées", { done: plan.progress.done, total: plan.progress.total })}
-              </p>
-            )}
-            <Markdown text={plan.text} className="rounded-md border bg-muted/20 px-3 py-2" />
-          </>
-        )
-      }
-    </Async>
+    <>
+      {(choices.length > 0 || linked) && (
+        <div className="flex items-center gap-2 py-1">
+          <Select value={linked ?? OWN_PLAN} onValueChange={(value) => setLinked(value === OWN_PLAN ? undefined : value)}>
+            <SelectTrigger className="h-7 w-full text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={OWN_PLAN}>{t("Plan de la session")}</SelectItem>
+              {choices.map((plan) => (
+                <SelectItem key={plan.path} value={plan.path}>
+                  {plan.title ?? plan.name} · {formatDate(plan.modifiedAt)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {linked && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={() => setLinked(undefined)}>
+              {t("détacher")}
+            </Button>
+          )}
+        </div>
+      )}
+      <Async state={state}>
+        {({ plan, mode, planModeEntries }) =>
+          !plan ? (
+            <Empty icon={ClipboardList}>
+              {planModeEntries > 0
+                ? t("Passée en mode plan, mais aucun plan soumis.")
+                : t("Jamais passée en mode plan. Mode courant : {mode}.", { mode: mode ?? t("inconnu") })}
+            </Empty>
+          ) : (
+            <>
+              {plan.progress && (
+                <p className="py-1 text-[11px] text-muted-foreground">
+                  {t("{done} sur {total} étapes cochées", { done: plan.progress.done, total: plan.progress.total })}
+                </p>
+              )}
+              <Markdown text={plan.text} className="rounded-md border bg-muted/20 px-3 py-2" />
+            </>
+          )
+        }
+      </Async>
+    </>
   );
 }

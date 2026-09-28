@@ -25,6 +25,8 @@ import {
   discoverTranscripts,
   extractPlan,
   listDirectory,
+  listPlans,
+  markSessions,
   normalizePath,
   SearchIndex,
   buildChantiers,
@@ -33,6 +35,7 @@ import {
   safeServerName,
   redactServer,
   restoreMasked,
+  readPlanFile,
   withPlanFile,
   previewFile,
   resolveInside,
@@ -641,17 +644,27 @@ export const routes: Record<string, Handler> = {
     };
   },
 
+  /** Le plan de la session ; ou, avec `path`, un autre plan de `~/.claude/plans` montré à sa place. */
   "/api/session/plan": async (params) => {
     const id = requireParam(params, "id");
     const ref = await findSession(id);
     const { events } = await TranscriptReader.fromRef(ref).poll();
-    return withPlanFile(extractPlan(events));
+    const lookup = await withPlanFile(extractPlan(events));
+    const path = params.get("path");
+    if (!path) return lookup;
+    const plan = await readPlanFile(path);
+    if (!plan) throw new Error("plan introuvable, ou hors de ~/.claude/plans");
+    return { ...lookup, plan, linkedPath: path };
   },
 
+  "/api/plans": async () => ({ plans: await listPlans() }),
+
   "/api/files": async (params) => {
-    const listing = await listDirectory(requireParam(params, "root"), params.get("path") ?? "", {
-      hidden: params.get("hidden") === "1",
-    });
+    const listing = await markSessions(
+      await listDirectory(requireParam(params, "root"), params.get("path") ?? "", {
+        hidden: params.get("hidden") === "1",
+      }),
+    );
     return { ...listing, breadcrumb: breadcrumb(listing) };
   },
 

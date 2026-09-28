@@ -1,7 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 
-import { isInside, samePath } from "../paths.js";
+import { claudeHome, encodeProjectPath, isInside, projectsDir, samePath } from "../paths.js";
 
 export interface DirectoryEntry {
   name: string;
@@ -11,6 +11,8 @@ export interface DirectoryEntry {
   path: string;
   size?: number;
   mtimeMs?: number;
+  /** Des sessions Claude ont été lancées dans ce dossier. */
+  hasSessions?: boolean;
 }
 
 export interface DirectoryListing {
@@ -112,4 +114,24 @@ export function breadcrumb(listing: DirectoryListing): { name: string; relativeP
     out.push({ name: segment, relativePath: accumulated });
   }
   return out;
+}
+
+/**
+ * Marque les dossiers où des sessions Claude ont été lancées : Claude Code range
+ * ses transcripts par dossier de lancement, il suffit de regarder si le sien
+ * existe et contient un transcript.
+ */
+export async function markSessions(listing: DirectoryListing, home: string = claudeHome()): Promise<DirectoryListing> {
+  const entries = await Promise.all(
+    listing.entries.map(async (entry) => {
+      if (!entry.directory) return entry;
+      try {
+        const names = await readdir(join(projectsDir(home), encodeProjectPath(entry.path)));
+        return names.some((name) => name.endsWith(".jsonl")) ? { ...entry, hasSessions: true } : entry;
+      } catch {
+        return entry;
+      }
+    }),
+  );
+  return { ...listing, entries };
 }

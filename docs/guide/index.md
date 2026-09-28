@@ -65,7 +65,9 @@ Un projet s'ouvre par le `+` de la barre de titre, ou par le bouton « Ouvrir un
 projet » des îlots vides ; son dossier se tape, ou se choisit par « Parcourir… »
 dans la fenêtre de sélection de Windows — ouverte par Electron dans l'application
 de bureau, par le serveur local dans un navigateur, dont la page ne voit jamais le
-chemin d'un dossier. Choisir un dossier l'ouvre aussitôt.
+chemin d'un dossier. Choisir un dossier l'ouvre aussitôt. La fenêtre propose aussi
+les dossiers **récents** : ceux où des sessions Claude ont tourné, du plus récent
+au plus ancien, hors des projets déjà ouverts.
 
 Revenir sur un projet, par sa pastille ou `Alt+Page suiv.`, ramène l'onglet qu'on
 y regardait, ou son plus récent : le bloc session et le pied de la zone décrivent
