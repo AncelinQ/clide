@@ -77,7 +77,9 @@ dans la fenêtre de sélection de Windows — ouverte par Electron dans l'applic
 de bureau, par le serveur local dans un navigateur, dont la page ne voit jamais le
 chemin d'un dossier. Choisir un dossier l'ouvre aussitôt. La fenêtre propose aussi
 les dossiers **récents** : ceux où des sessions Claude ont tourné, du plus récent
-au plus ancien, hors des projets déjà ouverts.
+au plus ancien, avec leur nombre de sessions, hors des projets déjà ouverts et des
+dossiers temporaires. Sans aucun projet ouvert, l'écran d'accueil du centre les
+liste aussi, avec le jour de leur dernière session : un clic rouvre le projet.
 
 Les pastilles de projet et les onglets du centre — terminaux et fichiers mêlés —
 se rangent au glisser-déposer : un trait montre la place d'arrivée, Échap annule.

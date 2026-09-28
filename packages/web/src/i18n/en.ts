@@ -839,4 +839,6 @@ export const EN: Record<string, string> = {
   "transcript": "transcript",
   "Transcript de la session, en lecture seule : Claude Code l'écrit, Clide ne fait que le lire.": "Session transcript, read-only: Claude Code writes it, Clide only reads it.",
   "Transcript de plus de 20 Mo : seul son début est montré. Le fichier entier : {path}": "Transcript over 20 MB: only its beginning is shown. The whole file: {path}",
+  "{count} session": "{count} session",
+  "{count} sessions": "{count} sessions",
 };
