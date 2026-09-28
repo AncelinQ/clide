@@ -107,6 +107,21 @@ export async function checkRoots(
   }
 }
 
+/**
+ * Projets ouverts d'après un état de l'interface sauvegardé : `roots` en
+ * version 1, `projects[].root` à partir de la version 2.
+ */
+export function rootsOfSavedState(saved: unknown): string[] {
+  if (typeof saved !== "object" || saved === null) return [];
+  const { roots, projects } = saved as { roots?: unknown; projects?: unknown };
+  const listed = Array.isArray(projects)
+    ? projects.map((project: unknown) => (typeof project === "object" && project !== null ? (project as { root?: unknown }).root : undefined))
+    : Array.isArray(roots)
+      ? roots
+      : [];
+  return listed.filter((root): root is string => typeof root === "string" && root.length > 0);
+}
+
 function dedupe(paths: string[]): string[] {
   const kept: string[] = [];
   for (const path of paths) if (!kept.some((known) => samePath(known, path))) kept.push(path);

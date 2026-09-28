@@ -25,7 +25,7 @@ import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
-import { OutsideWorkspace, WorkspaceRoots, checkRoots } from "./workspace/roots.js";
+import { OutsideWorkspace, WorkspaceRoots, checkRoots, rootsOfSavedState } from "./workspace/roots.js";
 
 export interface ServerOptions {
   /** Racine des fichiers statiques du client. */
@@ -213,8 +213,7 @@ function statusOf(error: unknown): number {
 /** Projets ouverts à la dernière sauvegarde de l'interface ; aucun si elle est absente ou illisible. */
 async function savedRoots(dataDir: string): Promise<string[]> {
   try {
-    const saved = JSON.parse(await readFile(join(dataDir, "ui-state.json"), "utf8")) as { roots?: unknown };
-    return Array.isArray(saved.roots) ? saved.roots.filter((root): root is string => typeof root === "string") : [];
+    return rootsOfSavedState(JSON.parse(await readFile(join(dataDir, "ui-state.json"), "utf8")));
   } catch {
     return [];
   }

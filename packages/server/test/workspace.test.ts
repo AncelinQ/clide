@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { OutsideWorkspace, WorkspaceRoots, checkRoots, type Expand } from "../src/workspace/roots.js";
+import { OutsideWorkspace, WorkspaceRoots, checkRoots, rootsOfSavedState, type Expand } from "../src/workspace/roots.js";
 
 describe("WorkspaceRoots", () => {
   let scratch: string;
@@ -86,6 +86,17 @@ describe("WorkspaceRoots", () => {
     links = [linked];
     await workspace.refresh();
     expect(await workspace.resolve(linked)).toBe(linked);
+  });
+});
+
+describe("rootsOfSavedState", () => {
+  it("lit les projets d'un état v1 comme d'un état v2", () => {
+    expect(rootsOfSavedState({ roots: ["C:\a", "C:\b"] })).toEqual(["C:\a", "C:\b"]);
+    expect(rootsOfSavedState({ version: 2, projects: [{ root: "C:\a" }, { root: 3 }, null] })).toEqual(["C:\a"]);
+  });
+
+  it("ne rend rien pour un état absent ou d'une autre forme", () => {
+    for (const saved of [null, "texte", 4, {}, { roots: "C:\a" }]) expect(rootsOfSavedState(saved)).toEqual([]);
   });
 });
 
