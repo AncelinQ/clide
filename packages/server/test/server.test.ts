@@ -94,6 +94,11 @@ describe("serveur local", () => {
       settingsPath: join(scratch, "settings.json"),
       dataDir: join(scratch, "data"),
     });
+    // Le bac à sable est le projet ouvert : c'est ce que le client annonce à son démarrage.
+    await fetch(`http://127.0.0.1:${server.port}/api/workspace/roots?token=jeton-de-test`, {
+      method: "POST",
+      body: JSON.stringify({ projects: [scratch] }),
+    });
   });
 
   afterAll(async () => {
@@ -153,6 +158,32 @@ describe("serveur local", () => {
       { headers: { origin: "https://site-malveillant.invalid" } },
     );
     expect(response.status).toBe(401);
+  });
+
+  it("refuse une racine hors des projets ouverts, et l'accepte une fois ouverte", async () => {
+    const other = await mkdtemp(join(tmpdir(), "clide-autre-"));
+    try {
+      const url = `${base()}/api/files?root=${encodeURIComponent(other)}&token=${server.token}`;
+      expect((await fetch(url)).status).toBe(403);
+      const denied = await fetch(`${base()}/api/links/save?token=${server.token}`, {
+        method: "POST",
+        body: JSON.stringify({ root: other, links: [] }),
+      });
+      expect(denied.status).toBe(403);
+
+      const opened = await fetch(`${base()}/api/workspace/roots?token=${server.token}`, {
+        method: "POST",
+        body: JSON.stringify({ projects: [scratch, other] }),
+      });
+      expect(opened.status).toBe(200);
+      expect((await fetch(url)).status).toBe(200);
+    } finally {
+      await fetch(`${base()}/api/workspace/roots?token=${server.token}`, {
+        method: "POST",
+        body: JSON.stringify({ projects: [scratch] }),
+      });
+      await rm(other, { recursive: true, force: true });
+    }
   });
 
   it("signale un paramètre manquant plutôt que de deviner", async () => {
