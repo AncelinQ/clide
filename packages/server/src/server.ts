@@ -15,7 +15,9 @@ import {
 } from "@clide/core";
 import { WebSocketServer, type WebSocket } from "ws";
 
-import { mutations, routes, type ApiContext } from "./api/routes.js";
+import { mutations as baseMutations, routes as baseRoutes, type ApiContext } from "./api/routes.js";
+import { SERVER_MODULES } from "./modules/index.js";
+import { mountModules } from "./modules/module.js";
 import { legacyHookScripts, migrateHooks } from "./notifications/hook.js";
 import { terminalOf } from "./notifications/target.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
@@ -218,6 +220,9 @@ async function savedRoots(dataDir: string): Promise<string[]> {
     return [];
   }
 }
+
+/** Routes de base et routes des modules : un chemin en double arrête le démarrage. */
+const { routes, mutations } = mountModules({ routes: baseRoutes, mutations: baseMutations }, SERVER_MODULES);
 
 export async function startServer(options: ServerOptions): Promise<RunningServer> {
   if (!options.dataDir) await migrateLegacyState(options.settingsPath ?? settingsFile());

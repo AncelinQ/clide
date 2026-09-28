@@ -1,9 +1,11 @@
-import { Bot, Coins, Keyboard, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Blocks, Bot, Coins, Keyboard, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { LookPicker } from "@/components/LookPicker";
 import { ShortcutsEditor } from "@/components/ShortcutsEditor";
 import { SettingsPanel } from "@/components/panels/global";
+import { WEB_MODULES } from "@/modules";
+import type { WebModule } from "@/modules/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -208,7 +210,36 @@ function CostsSection() {
   );
 }
 
-export type SettingsSection = "general" | "appearance" | "terminal" | "shortcuts" | "costs" | "claude";
+function ModulesSection() {
+  const disabled = useStore((state) => state.disabledModules);
+  const toggle = (module: WebModule, on: boolean) =>
+    setState((current) => {
+      const disabledModules = on
+        ? current.disabledModules.filter((id) => id !== module.id)
+        : [...current.disabledModules, module.id];
+      // L'onglet ouvert disparaît avec son module : le panneau revient sur l'historique.
+      const closing = !on && (module.globalViews ?? []).some((view) => view.id === current.globalTab);
+      return { disabledModules, ...(closing ? { globalTab: "history" } : {}) };
+    });
+  return (
+    <Group
+      title={t("Modules")}
+      hint={t("Chaque module ajoute ses vues aux barres. Coupé, il n'apparaît plus nulle part ; rien de ce qu'il a écrit n'est effacé.")}
+    >
+      {WEB_MODULES.map((module) => (
+        <Toggle
+          key={module.id}
+          label={t(module.title)}
+          hint={t(module.description)}
+          checked={!disabled.includes(module.id)}
+          onChange={(on) => toggle(module, on)}
+        />
+      ))}
+    </Group>
+  );
+}
+
+export type SettingsSection = "general" | "appearance" | "terminal" | "shortcuts" | "costs" | "modules" | "claude";
 
 const SECTIONS: { id: SettingsSection; icon: LucideIcon; label: string }[] = [
   { id: "general", icon: Settings2, label: "Général" },
@@ -216,6 +247,7 @@ const SECTIONS: { id: SettingsSection; icon: LucideIcon; label: string }[] = [
   { id: "terminal", icon: SquareTerminal, label: "Terminal" },
   { id: "shortcuts", icon: Keyboard, label: "Raccourcis" },
   { id: "costs", icon: Coins, label: "Historique et coûts" },
+  { id: "modules", icon: Blocks, label: "Modules" },
   { id: "claude", icon: Bot, label: "Claude Code" },
 ];
 
@@ -240,6 +272,8 @@ export function SettingsDialog() {
         return <ShortcutsEditor />;
       case "costs":
         return <CostsSection />;
+      case "modules":
+        return <ModulesSection />;
       case "claude":
         return (
           <Group

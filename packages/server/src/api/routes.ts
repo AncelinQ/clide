@@ -8,7 +8,6 @@ import {
   planRestore,
   LinkStore,
   McpStore,
-  ScriptStore,
   SessionIndex,
   SettingsEditor,
   SkillStore,
@@ -54,7 +53,6 @@ import { GitWorktrees, realPath } from "../platform/git.js";
 import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
 import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
-import { installStatusline, readUsage, refreshApiUsage, uninstallStatusline } from "../platform/usage.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
 import { probeFrame } from "../platform/frame-probe.js";
 import { recentSubjects } from "../platform/git.js";
@@ -81,7 +79,7 @@ import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { LiveSessions } from "../sessions/live.js";
 import { moveToRecycleBin } from "../platform/trash.js";
-import { calibrationOf, costOfSession, costReport } from "../sessions/costs.js";
+import { calibrationOf, costOfSession } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
 import type { WorkspaceRoots } from "../workspace/roots.js";
@@ -142,7 +140,7 @@ function requireCliScope(body: Record<string, unknown>): CliScope {
   return scope;
 }
 
-function requireParam(params: URLSearchParams, name: string): string {
+export function requireParam(params: URLSearchParams, name: string): string {
   const value = params.get(name);
   if (!value) throw new Error(`paramètre \`${name}\` manquant`);
   return value;
@@ -447,13 +445,6 @@ export const routes: Record<string, Handler> = {
     };
   },
 
-  /** Consommation de toutes les sessions : totaux, jours, projets, modèles, tarifs déduits. */
-  "/api/costs": async (_params, { index }) => {
-    await index.refresh();
-    await index.save();
-    return costReport(index);
-  },
-
   "/api/session": async (params, { index }) => {
     const id = requireParam(params, "id");
     return { chain: index.chain(id), subagents: index.subagents(id) };
@@ -753,22 +744,6 @@ export const routes: Record<string, Handler> = {
     status: await readMcpStatus(params.get("root") ?? undefined),
   }),
 
-  /**
-   * Scripts du projet et de ses dossiers liés. Chaque dossier lié garde son
-   * gestionnaire : lancer ses scripts avec celui du projet réécrirait son arbre
-   * de dépendances.
-   */
-  "/api/scripts": async (params) => {
-    const root = requireParam(params, "root");
-    const store = new ScriptStore();
-    const links = await new LinkStore().read(root);
-    const linked = await Promise.all(links.map((link) => store.read(link.path).catch(() => undefined)));
-    return {
-      ...(await store.read(root)),
-      linked: linked.filter((item) => item !== undefined && item.sources.some((source) => source.scripts.length > 0)),
-    };
-  },
-
   "/api/links": async (params) => ({ links: await new LinkStore().read(requireParam(params, "root")) }),
 
   "/api/settings": async (_params, { settingsPath }) => new SettingsEditor().read(settingsPath),
@@ -824,9 +799,6 @@ export const routes: Record<string, Handler> = {
 
   /** Modèles qu'on peut choisir pour une session, depuis le catalogue de Claude Code. */
   "/api/models": async () => listModels(),
-
-  /** Limites de l'abonnement et usage des sessions, tels que les deux sources les ont relevés. */
-  "/api/usage": async (_params, { dataDir, settingsPath }) => readUsage(dataDir, settingsPath),
 };
 
 /**
@@ -842,21 +814,6 @@ export const mutations: Record<string, Mutation> = {
   "/api/notifications/install": async (_params, { dataDir, settingsPath }) => ({
     status: await installHooks(dataDir, settingsPath),
   }),
-
-  /** Déclare la ligne de statut qui relève l'usage. Action explicite, comme les hooks. */
-  "/api/usage/statusline/install": async (_params, { dataDir, settingsPath }) => ({
-    statusline: await installStatusline(dataDir, settingsPath),
-  }),
-
-  "/api/usage/statusline/uninstall": async (_params, { dataDir, settingsPath }) => ({
-    statusline: await uninstallStatusline(dataDir, settingsPath),
-  }),
-
-  /**
-   * Demande les limites à l'API d'usage de Claude Code. Jamais automatique :
-   * l'API n'est pas documentée et limite les appels.
-   */
-  "/api/usage/refresh": async (_params, { dataDir }) => ({ api: await refreshApiUsage(dataDir) }),
 
   /**
    * Édition ciblée de `settings.json`. Le chemin est une suite de clés, pas une

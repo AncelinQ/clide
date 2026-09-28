@@ -1,4 +1,4 @@
-import { FolderOpen, FolderTree, GitBranch, History, Info, Package, Plug, RefreshCw, Sparkles } from "lucide-react";
+import { FolderOpen, FolderTree, GitBranch, History, Info, Plug, RefreshCw, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileBrowser } from "@/components/FileBrowser";
@@ -6,14 +6,11 @@ import type { Activity } from "@/components/ActivityBar";
 import { Splitter, clamp } from "@/components/Splitter";
 import { TabRow } from "@/components/GlobalTabs";
 import { ChantiersPanel } from "@/components/panels/chantiers";
-import { CostsPanel } from "@/components/panels/costs";
-import { UsagePanel } from "@/components/panels/usage";
 import { SearchPanel } from "@/components/panels/search";
 import {
   LinksPanel,
   ProjectMcpPanel,
   ProjectSkillsPanel,
-  ScriptsPanel,
   WorktreesPanel,
 } from "@/components/panels/project";
 import {
@@ -29,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { docUrl } from "@/lib/api";
+import { moduleGlobalViews, moduleProjectViews } from "@/modules";
 import { activeProject, setState, useStore, type Project } from "@/state/store";
 
 /** Coquille commune des trois colonnes : un îlot posé sur la toile. */
@@ -47,9 +45,19 @@ export function Island({ className, children }: { className?: string; children: 
 
 // ─── Colonne du projet ──────────────────────────────────────────────────────
 
-/** Vues de la colonne du projet, dans l'ordre de sa barre d'activité. */
-export function projectActivities(): (Activity & { about: string; doc?: string })[] {
-  return [
+type ProjectActivity = Activity & { about: string; doc?: string; render?: (root: string) => React.ReactNode };
+
+/** Vues de la colonne du projet, dans l'ordre de sa barre d'activité : celles de l'application, celles des modules actifs après l'historique. */
+export function projectActivities(disabledModules: readonly string[]): ProjectActivity[] {
+  const fromModules: ProjectActivity[] = moduleProjectViews(disabledModules).map((view) => ({
+    id: view.id,
+    icon: view.icon,
+    label: t(view.label),
+    about: t(view.about),
+    ...(view.doc ? { doc: view.doc } : {}),
+    render: view.render,
+  }));
+  const core: ProjectActivity[] = [
     {
       id: "explorer",
       icon: FolderTree,
@@ -64,13 +72,6 @@ export function projectActivities(): (Activity & { about: string; doc?: string }
       icon: History,
       label: t("Historique du projet"),
       about: t("Les sessions de Claude Code lancées dans ce projet ou dessous."),
-    },
-    {
-      id: "scripts",
-      icon: Package,
-      label: "Scripts",
-      doc: "projet#lancer-un-script",
-      about: t("Scripts du package.json, espaces de travail compris. Le gestionnaire vient du lockfile."),
     },
     {
       id: "skills",
@@ -96,6 +97,7 @@ export function projectActivities(): (Activity & { about: string; doc?: string }
       about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),
     },
   ];
+  return [...core.slice(0, 2), ...fromModules, ...core.slice(2)];
 }
 
 /** En-tête d'une vue : son titre, ce qu'elle montre sur demande, et ses actions. */
@@ -171,6 +173,7 @@ function ExplorerStack({ project }: { project: Project }) {
 
 export function ProjectColumn() {
   const project = useStore(activeProject);
+  const disabledModules = useStore((state) => state.disabledModules);
   const [filter, setFilter] = useState("");
 
   if (!project) {
@@ -186,7 +189,7 @@ export function ProjectColumn() {
     );
   }
 
-  const activities = projectActivities();
+  const activities = projectActivities(disabledModules);
   const activity = activities.find((entry) => entry.id === project.leftMode) ?? (activities[0] as (typeof activities)[number]);
 
   if (activity.id === "explorer") {
@@ -198,11 +201,10 @@ export function ProjectColumn() {
   }
 
   const body = () => {
+    if (activity.render) return activity.render(project.root);
     switch (activity.id) {
       case "history":
         return <HistoryPanel filter={filter} fixedScope="project" />;
-      case "scripts":
-        return <ScriptsPanel root={project.root} />;
       case "skills":
         return <ProjectSkillsPanel root={project.root} />;
       case "mcp":
@@ -238,12 +240,19 @@ export function ProjectColumn() {
 
 export function GlobalColumn() {
   const globalTab = useStore((state) => state.globalTab);
+  const disabledModules = useStore((state) => state.disabledModules);
+  const moduleView = moduleGlobalViews(disabledModules).find((view) => view.id === globalTab);
   const [filter, setFilter] = useState("");
   const [nonce, setNonce] = useState(0);
   const searchable =
-    globalTab === "history" || globalTab === "skills" || globalTab === "chantiers" || globalTab === "search";
+    globalTab === "history" ||
+    globalTab === "skills" ||
+    globalTab === "chantiers" ||
+    globalTab === "search" ||
+    moduleView?.searchable === true;
 
   const panel = () => {
+    if (moduleView) return <div key={nonce}>{moduleView.render({ filter })}</div>;
     switch (globalTab) {
       case "processes":
         return <ProcessesPanel key={nonce} />;
@@ -253,10 +262,6 @@ export function GlobalColumn() {
         return <UserSkillsPanel key={nonce} filter={filter} />;
       case "mcp":
         return <UserMcpPanel key={nonce} />;
-      case "costs":
-        return <CostsPanel key={nonce} />;
-      case "usage":
-        return <UsagePanel key={nonce} />;
       case "chantiers":
         return <ChantiersPanel key={nonce} filter={filter} />;
       case "search":

@@ -4,7 +4,7 @@
 
 ## Onglets du panneau global
 
-Dix onglets ne tiennent pas dans la colonne de droite. Deux dispositions, au choix
+Les onglets ne tiennent pas tous en ligne dans la colonne de droite. Deux dispositions, au choix
 depuis le menu « ⋯ » :
 
 - **en ligne, en haut**, comme les outils de développement du navigateur : autant
@@ -41,7 +41,7 @@ qu'un résultat caché ne passe pas pour absent. La recherche porte sur le nom, 
 
 ## Usage de l'abonnement
 
-L'onglet Usage montre les limites de l'abonnement comme `/usage` les montre —
+L'onglet Consommation montre d'abord les limites de l'abonnement comme `/usage` les montre —
 session de 5 heures, semaine tous modèles, semaine d'un modèle, crédit
 supplémentaire —, avec le temps qui reste avant chaque réinitialisation, puis ce
 que chaque session récente a consommé : contexte, coût, durée, lignes modifiées.
@@ -111,7 +111,7 @@ liste montre d'abord ceux qui ont une branche ou une MR.
 ## Ce que coûtent les sessions
 
 Réglages › Historique et coûts › « Afficher les coûts » les masque dans
-l'historique, l'activité de la session et l'en-tête du terminal ; l'onglet Coûts
+l'historique, l'activité de la session et l'en-tête du terminal ; l'onglet Consommation
 reste pour qui le cherche.
 
 Claude Code écrit le coût d'une session dans un event `cost-state`, cumulé et

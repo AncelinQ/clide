@@ -53,6 +53,7 @@ describe("migrate depuis la version 1", () => {
       showHidden: true,
       keymap: "vscode",
       showCosts: true,
+      disabledModules: [],
     });
   });
 });
@@ -68,11 +69,11 @@ describe("migrate en version 2", () => {
       version: 2,
       projects: [{ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1" }],
       active: "C:\\a",
-      layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "costs" },
+      layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
     expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1" });
-    expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, previewOpen: true, globalTab: "costs" });
+    expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
 });
@@ -120,5 +121,19 @@ describe("migrate sur un état abîmé", () => {
 
   it("prend le premier projet quand le projet actif n'est plus ouvert", () => {
     expect(migrate({ roots: ["C:\\a", "C:\\b"], active: "C:\\fermé" }).active).toBe("C:\\a");
+  });
+});
+
+describe("migrate des onglets regroupés en module", () => {
+  it("rouvre l'onglet Consommation à la place de l'usage ou des coûts, dans la liste affichée aussi", () => {
+    const state = migrate({
+      version: 2,
+      projects: [],
+      layout: { globalTab: "costs" },
+      prefs: { visibleTabs: ["history", "usage", "costs"], disabledModules: ["scripts", 3] },
+    });
+    expect(state.layout.globalTab).toBe("consumption");
+    expect(state.prefs.visibleTabs).toEqual(["history", "consumption"]);
+    expect(state.prefs.disabledModules).toEqual(["scripts"]);
   });
 });

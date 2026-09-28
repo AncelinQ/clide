@@ -1,8 +1,6 @@
 import {
   Bell,
-  Coins,
   Cpu,
-  Gauge,
   History,
   Layers,
   MoreHorizontal,
@@ -12,7 +10,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,20 +28,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { t } from "@/i18n";
+import { moduleGlobalViews } from "@/modules";
 import { openSettings, setState, useStore, type TabLayout } from "@/state/store";
 import { cn } from "cn";
 
-export const GLOBAL_TABS: { id: string; icon: LucideIcon; label: string }[] = [
+export interface GlobalTab {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+}
+
+/** Onglets de l'application, hors modules ; les alertes restent en dernier. */
+const CORE_TABS: GlobalTab[] = [
   { id: "processes", icon: Cpu, label: "Process" },
   { id: "history", icon: History, label: "History" },
   { id: "search", icon: Search, label: "Recherche" },
   { id: "chantiers", icon: Layers, label: "Chantiers" },
   { id: "skills", icon: Sparkles, label: "Skills" },
   { id: "mcp", icon: Plug, label: "MCP" },
-  { id: "usage", icon: Gauge, label: "Usage" },
-  { id: "costs", icon: Coins, label: "Coûts" },
-  { id: "notifications", icon: Bell, label: "Alertes" },
 ];
+const LAST_TABS: GlobalTab[] = [{ id: "notifications", icon: Bell, label: "Alertes" }];
+
+/** Tous les onglets du panneau global : ceux de l'application, puis ceux des modules actifs. */
+export function globalTabs(disabledModules: readonly string[]): GlobalTab[] {
+  const fromModules = moduleGlobalViews(disabledModules).map(({ id, icon, label }) => ({ id, icon, label }));
+  return [...CORE_TABS, ...fromModules, ...LAST_TABS];
+}
+
+function useAllTabs(): GlobalTab[] {
+  const disabled = useStore((state) => state.disabledModules);
+  return useMemo(() => globalTabs(disabled), [disabled]);
+}
 
 /** Largeur d'un onglet de la ligne, et du bouton « ⋯ », en pixels. */
 const TAB_WIDTH = 54;
@@ -52,7 +67,8 @@ const MENU_WIDTH = 34;
 /** Onglets choisis pour la ligne ou la colonne, dans l'ordre de la liste ; tous par défaut. */
 function useShownTabs() {
   const visible = useStore((state) => state.visibleTabs);
-  return GLOBAL_TABS.filter((tab) => !visible || visible.includes(tab.id));
+  const all = useAllTabs();
+  return all.filter((tab) => !visible || visible.includes(tab.id));
 }
 
 function TabButton({
@@ -60,7 +76,7 @@ function TabButton({
   current,
   vertical,
 }: {
-  tab: (typeof GLOBAL_TABS)[number];
+  tab: GlobalTab;
   current: string;
   vertical?: boolean;
 }) {
@@ -98,16 +114,17 @@ function TabButton({
  * disposition. Masquer un onglet ne le rend pas inaccessible : il reste dans ce
  * menu.
  */
-function TabMenu({ current, overflow }: { current: string; overflow: typeof GLOBAL_TABS }) {
+function TabMenu({ current, overflow }: { current: string; overflow: GlobalTab[] }) {
   const visible = useStore((state) => state.visibleTabs);
+  const all = useAllTabs();
   const layout = useStore((state) => state.tabLayout);
-  const shown = new Set(visible ?? GLOBAL_TABS.map((tab) => tab.id));
+  const shown = new Set(visible ?? all.map((tab) => tab.id));
 
   const toggle = (id: string, on: boolean) => {
-    const next = GLOBAL_TABS.map((tab) => tab.id).filter((tabId) => (tabId === id ? on : shown.has(tabId)));
+    const next = all.map((tab) => tab.id).filter((tabId) => (tabId === id ? on : shown.has(tabId)));
     // Tout masquer ne laisserait rien à cliquer hors du menu : on garde au moins un onglet.
     if (next.length === 0) return;
-    setState({ visibleTabs: next.length === GLOBAL_TABS.length ? null : next });
+    setState({ visibleTabs: next.length === all.length ? null : next });
   };
 
   return (
@@ -134,7 +151,7 @@ function TabMenu({ current, overflow }: { current: string; overflow: typeof GLOB
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>{t("Onglets affichés")}</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {GLOBAL_TABS.map((tab) => (
+            {all.map((tab) => (
               <DropdownMenuCheckboxItem
                 key={tab.id}
                 checked={shown.has(tab.id)}
@@ -168,6 +185,7 @@ export function TabRow({ current }: { current: string }) {
   const nav = useRef<HTMLElement>(null);
   const [width, setWidth] = useState(0);
   const shown = useShownTabs();
+  const all = useAllTabs();
 
   useEffect(() => {
     const element = nav.current;
@@ -179,9 +197,9 @@ export function TabRow({ current }: { current: string }) {
 
   const capacity = Math.max(1, Math.floor((width - MENU_WIDTH) / (TAB_WIDTH + 2)));
   let inline = shown.slice(0, capacity);
-  const active = GLOBAL_TABS.find((tab) => tab.id === current);
+  const active = all.find((tab) => tab.id === current);
   if (active && !inline.includes(active)) inline = [...inline.slice(0, Math.max(0, capacity - 1)), active];
-  const overflow = GLOBAL_TABS.filter((tab) => !inline.includes(tab));
+  const overflow = all.filter((tab) => !inline.includes(tab));
 
   return (
     <nav ref={nav} className="flex shrink-0 items-center gap-0.5 border-b px-1.5 py-2">
@@ -200,7 +218,8 @@ export function TabRow({ current }: { current: string }) {
  */
 export function TabRail({ current }: { current: string }) {
   const shown = useShownTabs();
-  const hidden = GLOBAL_TABS.filter((tab) => !shown.includes(tab));
+  const all = useAllTabs();
+  const hidden = all.filter((tab) => !shown.includes(tab));
   return (
     // Défile quand la hauteur manque : les derniers onglets seraient sinon coupés, sans rien pour les atteindre.
     <nav className="on-canvas flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto px-0.5 py-1 [scrollbar-width:none]">

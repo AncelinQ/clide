@@ -1,3 +1,4 @@
+import { globalTabs } from "@/components/GlobalTabs";
 import { t } from "@/i18n";
 import { commandFor, focusOf } from "@/lib/keymap";
 import { openDoc } from "@/lib/api";
@@ -57,17 +58,7 @@ export async function captureInto(terminalId: string): Promise<void> {
  */
 export function commands(): Command[] {
   const { projects, activeRoot, globalTab } = getState();
-  const tabs: [string, string][] = [
-    ["processes", "Process"],
-    ["history", "History"],
-    ["search", "Recherche"],
-    ["chantiers", "Chantiers"],
-    ["skills", "Skills"],
-    ["mcp", "MCP"],
-    ["usage", "Usage"],
-    ["costs", "Coûts"],
-    ["notifications", "Alertes"],
-  ];
+  const tabs = globalTabs(getState().disabledModules).map((tab): [string, string] => [tab.id, tab.label]);
   const nextProject = (step: number) => {
     const root = cycle(
       projects.map((project) => project.root),
