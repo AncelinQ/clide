@@ -89,6 +89,8 @@ export interface State {
   hiddenModes: Record<string, string[]>;
   /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
   showCosts: boolean;
+  /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
+  disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
   settingsSection: string;
   /** Jeu de raccourcis ajouté aux défauts : VS Code, JetBrains, ou ceux de Clide seuls. */
@@ -121,7 +123,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks" | "showCosts"
+  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
 > {
   let raw: unknown;
   try {
@@ -197,6 +199,7 @@ function persist(): void {
       showHidden: state.showHidden,
       keymap: state.keymap,
       showCosts: state.showCosts,
+      disabledModules: state.disabledModules,
     },
   };
   const text = JSON.stringify(saved);

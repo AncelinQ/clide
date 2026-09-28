@@ -50,6 +50,8 @@ export interface SavedPrefs {
   keymap: "clide" | "vscode" | "jetbrains";
   /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
   showCosts: boolean;
+  /** Modules coupés dans les Réglages, par identifiant. */
+  disabledModules: string[];
 }
 
 export interface SavedState {
@@ -83,6 +85,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   showHidden: false,
   keymap: "vscode",
   showCosts: true,
+  disabledModules: [],
 };
 
 export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
@@ -136,6 +139,16 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
   };
 }
 
+/**
+ * Onglet du panneau global sous son nom courant. Les réglages de Claude Code ont
+ * rejoint la fenêtre Réglages ; l'usage et les coûts, l'onglet Consommation.
+ */
+function globalTabId(id: string): string {
+  if (id === "settings") return DEFAULT_LAYOUT.globalTab;
+  if (id === "usage" || id === "costs") return "consumption";
+  return id;
+}
+
 function layout(value: unknown): SavedLayout {
   const source = isRecord(value) ? value : {};
   const widths = isRecord(source["widths"]) ? source["widths"] : {};
@@ -151,8 +164,7 @@ function layout(value: unknown): SavedLayout {
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),
     previewOpen: flag(source["previewOpen"], DEFAULT_LAYOUT.previewOpen),
-    // Les réglages de Claude Code, un onglet du panneau global, ont rejoint la fenêtre Réglages.
-    globalTab: source["globalTab"] === "settings" ? DEFAULT_LAYOUT.globalTab : text(source["globalTab"], DEFAULT_LAYOUT.globalTab),
+    globalTab: globalTabId(text(source["globalTab"], DEFAULT_LAYOUT.globalTab)),
   };
 }
 
@@ -170,7 +182,7 @@ function prefs(value: unknown): SavedPrefs {
     shortcuts: recordOf(source["shortcuts"], (item): item is string | null => item === null || typeof item === "string"),
     language: oneOf(source["language"], ["auto", "fr", "en"], DEFAULT_PREFS.language),
     tabLayout: oneOf(source["tabLayout"], ["row", "column"], DEFAULT_PREFS.tabLayout),
-    visibleTabs: Array.isArray(visible) ? strings(visible) : null,
+    visibleTabs: Array.isArray(visible) ? [...new Set(strings(visible).map(globalTabId))] : null,
     hiddenModes: Object.fromEntries(
       Object.entries(isRecord(source["hiddenModes"]) ? source["hiddenModes"] : {}).map(([key, list]) => [key, strings(list)]),
     ),
@@ -178,6 +190,7 @@ function prefs(value: unknown): SavedPrefs {
     showHidden: flag(source["showHidden"], DEFAULT_PREFS.showHidden),
     keymap: oneOf(source["keymap"], ["clide", "vscode", "jetbrains"], DEFAULT_PREFS.keymap),
     showCosts: flag(source["showCosts"], DEFAULT_PREFS.showCosts),
+    disabledModules: strings(source["disabledModules"]),
   };
 }
 

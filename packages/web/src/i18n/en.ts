@@ -658,4 +658,11 @@ export const EN: Record<string, string> = {
   "Ces réglages sont ceux de Claude Code, dans son settings.json : ils valent pour toutes ses sessions, dans Clide ou non.":
     "These are Claude Code's settings, in its settings.json: they apply to all its sessions, in Clide or not.",
   "Réglages de Clide et de Claude Code.": "Clide and Claude Code settings.",
+  Modules: "Modules",
+  "Chaque module ajoute ses vues aux barres. Coupé, il n'apparaît plus nulle part ; rien de ce qu'il a écrit n'est effacé.":
+    "Each module adds its views to the bars. Turned off, it shows nowhere; nothing it wrote is deleted.",
+  Consommation: "Consumption",
+  "Les limites de l'abonnement et ce que coûtent les sessions.": "The plan's limits and what sessions cost.",
+  "Les scripts du package.json du projet et de ses dossiers liés, lancés dans un onglet.":
+    "The package.json scripts of the project and its linked folders, run in a tab.",
 };

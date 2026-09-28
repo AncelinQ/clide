@@ -249,14 +249,15 @@ barre, ni vue, ni commande, ni menu.
 ```ts
 interface ServerModule {
   id: string;
-  routes?: Record<string, Handler>;      // montées sous /api/<id>/…
+  routes?: Record<string, Handler>;      // chemins complets, sous /api/
   mutations?: Record<string, Mutation>;
   start?: (ctx: ApiContext) => void | Promise<void>;   // surveillances
   stop?: () => void | Promise<void>;
 }
 ```
 
-Le routeur fusionne les routes de base et celles des modules ; deux modules ne peuvent
+Les routes gardent leurs chemins d'avant les modules (`/api/usage`, `/api/scripts`) : les
+regrouper sous `/api/<id>/` casserait le client sans rien gagner. Le routeur fusionne les routes de base et celles des modules ; deux modules ne peuvent
 pas déclarer le même chemin (échec au démarrage, testé). Un module désactivé côté client
 garde ses routes : la désactivation est une affaire d'interface.
 

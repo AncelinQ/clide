@@ -108,11 +108,14 @@ barre d'onglets, ou `Ctrl+,`. Ses sections, à gauche :
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
 - **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
 - **Historique et coûts** : afficher ou non ce que coûtent les sessions ;
+- **Modules** : couper une fonction qu'on n'utilise pas — Scripts (colonne du
+  projet), Consommation (panneau global) ; elle disparaît des barres, de la palette
+  et des menus, sans rien effacer ;
 - **Claude Code** : le `settings.json` de Claude Code en formulaire — modèle par
   défaut, effort, interface, permissions, hooks —, qui vaut pour toutes ses
   sessions.
 
-Les cinq premières sont propres à Clide, rangées dans sa configuration, jamais dans
+Les premières sont propres à Clide, rangées dans sa configuration, jamais dans
 `settings.json`, qui appartient à Claude Code ; la dernière l'édite, et le dit. Le
 modèle y fixe celui des nouvelles sessions ; celui de la session en cours change
 par `⋯` › « Changer de modèle », dans la barre du terminal.

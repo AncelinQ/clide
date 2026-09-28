@@ -20,7 +20,7 @@ const MIDDLE_MIN = 420;
 const CHROME = 110;
 
 export function App() {
-  const { showLeft, showRight, attention, widths, tabLayout, globalTab } = useStore((state) => state);
+  const { showLeft, showRight, attention, widths, tabLayout, globalTab, disabledModules } = useStore((state) => state);
   const project = useStore(activeProject);
   // Changer de langue redessine tout ce qui affiche du texte.
   const language = useLanguage();
@@ -82,7 +82,7 @@ export function App() {
           {project && (
             <ActivityBar
               side="left"
-              activities={projectActivities()}
+              activities={projectActivities(disabledModules)}
               current={project.leftMode}
               open={showLeft}
               onPick={(id) => updateProject(project.root, { leftMode: id })}
