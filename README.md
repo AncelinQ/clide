@@ -220,3 +220,8 @@ qui exige qu'aucun transcript n'ait changé entre deux passes échoue au hasard.
 assertions portent donc sur des propriétés stables — « le rafraîchissement réutilise
 l'essentiel de l'index et coûte une fraction de l'indexation complète » — et jamais
 sur l'immobilité du disque.
+
+## Licence
+
+Clide est publié sous licence MIT, reproduite dans `LICENSE`. ClaudeTerm, dont
+vient l'idée, garde sa propre licence : aucun de ses fichiers n'est repris ici.
