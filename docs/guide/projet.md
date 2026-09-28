@@ -64,6 +64,26 @@ Les scripts qu'on lance sans cesse — dev, start, build, test, lint, preview,
 typecheck — viennent en tête, en gras. « installer » lance `<gestionnaire>
 install` à la racine du dossier, dans son onglet comme un script.
 
+## Lancer les tests
+
+La vue **Tests** liste les suites Vitest, Jest et pytest du projet et de ses
+espaces de travail : Vitest ou Jest quand le `package.json` en dépend ou en a la
+configuration, pytest quand le dossier a un `pyproject.toml`, un `pytest.ini` ou un
+`setup.cfg`. Les tests sont lus dans les fichiers (`describe`, `it`, `test`,
+`def test_…`, classes `Test…`) : un nom construit à l'exécution n'y figure pas.
+
+Chaque suite a son onglet (`web › tests`, `api › pytest`), où ▶ lance toute la
+suite, un fichier ou un seul test. La commande est celle du projet, lancée par
+`npx --no-install` ou `python -m pytest`, avec un rapport machine écrit dans les
+données de Clide, jamais dans le projet. À la fin de la commande, Clide relit ce
+rapport et colore chaque test : vert, rouge, gris s'il est sauté, cerclé tant qu'il
+n'a pas tourné. Un lancement partiel garde le dernier résultat des autres tests, et
+les résultats restent d'une session à l'autre.
+
+Un clic sur un test ouvre son fichier à la ligne ; sur un test en échec, il déplie
+aussi le message, avec **Corriger avec Claude**, qui l'écrit dans l'onglet Claude
+du projet sans le valider.
+
 ## Skills
 
 Les skills se lisent sur quatre portées : le projet (`.claude/skills`), le poste

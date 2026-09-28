@@ -114,6 +114,19 @@ export { ChangedOnDisk, EDIT_LIMIT, dominantEol, modifiedAt, readEditable, write
 export { PromptStore, projectPromptsFile, slashCommandOf, topCommands, type SavedPrompt } from "./prompts/store.js";
 export { findTodos, parseEslint, parseTsc, type Diagnostic, type DiagnosticsReport, type Severity, type ToolReport } from "./diagnostics/parse.js";
 export {
+  detectTests,
+  mergeResults,
+  parseJsonReport,
+  parseJunit,
+  parseTestNames,
+  resultKey,
+  type Framework,
+  type TestCase,
+  type TestFile,
+  type TestResult,
+  type TestSuite,
+} from "./tests/tests.js";
+export {
   LOG_FORMAT,
   graphRows,
   parseChanges,
