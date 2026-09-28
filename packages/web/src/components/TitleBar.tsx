@@ -44,6 +44,7 @@ import { cn } from "cn";
 import { t } from "@/i18n";
 import { api, openDoc } from "@/lib/api";
 import { dropTab } from "@/lib/tab-order";
+import { recentProjects } from "@/lib/recents";
 import type { SessionSummary } from "@/lib/types";
 import { activateProject, closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
@@ -74,15 +75,7 @@ export function TitleBar() {
     () => (adding ? api<{ sessions: SessionSummary[] }>("/api/sessions") : Promise.resolve({ sessions: [] })),
     [adding],
   );
-  const open = new Set(projects.map((project) => project.root.toLowerCase()));
-  // `projectDir` est le nom encodé du dossier de transcripts ; seul `effectiveCwd`
-  // est un chemin. Un dossier temporaire n'est pas un projet qu'on rouvre.
-  const recents = [...(known.data?.sessions ?? [])]
-    .sort((a, b) => (b.lastActivityAt ?? "").localeCompare(a.lastActivityAt ?? ""))
-    .map((session) => session.effectiveCwd)
-    .filter((root): root is string => Boolean(root) && !/[\\/]AppData[\\/]Local[\\/]Temp[\\/]/i.test(root ?? ""))
-    .filter((root, index, all) => !open.has(root.toLowerCase()) && all.indexOf(root) === index)
-    .slice(0, 8);
+  const recents = recentProjects(known.data?.sessions ?? [], projects.map((project) => project.root));
 
   const ThemeIcon = THEME_ICON[theme];
 
@@ -303,7 +296,7 @@ export function TitleBar() {
           {recents.length > 0 && (
             <div className="grid gap-0.5">
               <span className="px-2 text-[11px] text-muted-foreground">{t("Récents")}</span>
-              {recents.map((root) => (
+              {recents.map(({ root, sessions }) => (
                 <button
                   key={root}
                   type="button"
@@ -311,7 +304,10 @@ export function TitleBar() {
                   onClick={() => confirm(root)}
                 >
                   <span className="shrink-0 font-medium">{root.split(/[\\/]/).pop()}</span>
-                  <span className="truncate text-[11px] text-muted-foreground">{root}</span>
+                  <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{root}</span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                    {t(sessions === 1 ? "{count} session" : "{count} sessions", { count: sessions })}
+                  </span>
                 </button>
               ))}
             </div>
