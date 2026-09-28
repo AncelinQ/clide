@@ -804,4 +804,8 @@ export const EN: Record<string, string> = {
   "Lancer toute la suite": "Run the whole suite",
   "Lancer ce fichier": "Run this file",
   "Lancer ce test": "Run this test",
+  "En cours : « {name} »": "Running: “{name}”",
+  "Lancer le test « {name} »": "Run the test “{name}”",
+  "Arrêter « {name} » (Ctrl+C)": "Stop “{name}” (Ctrl+C)",
+  "Lancer « {name} » dans son onglet": "Run “{name}” in its tab",
 };
