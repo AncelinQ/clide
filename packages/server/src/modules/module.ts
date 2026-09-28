@@ -1,4 +1,4 @@
-import type { Handler, Mutation } from "../api/routes.js";
+import type { ApiContext, Handler, Mutation } from "../api/routes.js";
 
 /**
  * Un module du serveur : les routes d'une fonction de Clide qui peut s'activer
@@ -15,6 +15,8 @@ export interface ServerModule {
   routes?: Record<string, Handler>;
   /** Routes qui agissent, réservées à POST. */
   mutations?: Record<string, Mutation>;
+  /** Appelé une fois, au démarrage du serveur : le module s'abonne à ce qu'il suit. */
+  start?: (context: ApiContext) => void;
 }
 
 export interface RouteTable {

@@ -112,6 +112,7 @@ export { SKIPPED_DIRECTORIES, fuzzyScore, listProjectFiles, rankFiles } from "./
 export { checkName, createEntry, keepBothName, renameEntry, transfer, type OnConflict, type Outcome } from "./files/operations.js";
 export { ChangedOnDisk, EDIT_LIMIT, dominantEol, modifiedAt, readEditable, writeEditable, type EditableFile } from "./files/editing.js";
 export { PromptStore, projectPromptsFile, slashCommandOf, topCommands, type SavedPrompt } from "./prompts/store.js";
+export { findTodos, parseEslint, parseTsc, type Diagnostic, type DiagnosticsReport, type Severity, type ToolReport } from "./diagnostics/parse.js";
 export {
   LOG_FORMAT,
   graphRows,

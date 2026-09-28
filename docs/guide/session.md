@@ -211,3 +211,28 @@ Rien n'est écrit dans git : le texte se copie et se relit avant de commiter. Co
 dans l'onglet Fichiers, l'état « après » d'un fichier est son contenu actuel sur le
 disque : rédigé pour une session ancienne, le brouillon compte aussi ce qui a
 changé depuis. Il sert d'abord à la session en cours, avant son commit.
+
+## Erreurs et TODO
+
+Deux onglets du bloc, **Erreurs** et **TODO**, portent sur le projet plutôt que sur
+la session. Le serveur les recalcule seul, sans qu'on demande rien : à l'ouverture
+du projet, à chaque fichier enregistré par Clide, et à chaque fin de tour de Claude
+(le hook `Stop`) — un tour qui écrit vingt fichiers ne vérifie qu'une fois. Une
+vérification en cours absorbe celles qui arrivent pendant qu'elle tourne ; deux
+projets au plus sont vérifiés à la fois.
+
+- **Erreurs** : le `tsc` du projet, pour chaque `tsconfig.json` qui compile, et son
+  ESLint s'il a une configuration. Ce sont les outils installés dans
+  `node_modules`, jamais une version globale ni téléchargée : un projet sans eux
+  n'a pas cette part. Un outil qui ne peut pas tourner (configuration refusée) le
+  dit en rouge au lieu d'afficher zéro erreur.
+- **TODO** : les `TODO`, `FIXME`, `HACK` et `XXX` des commentaires, et du Markdown
+  en entier ; un `TODO` dans une chaîne n'en est pas un.
+
+Les entrées sont groupées par fichier ; un clic ouvre le fichier à la ligne dans
+l'éditeur, où les erreurs sont soulignées. **Corriger avec Claude** (l'étincelle au
+survol) tape dans l'onglet Claude du projet une demande qui désigne le fichier, la
+ligne et le message, sans l'envoyer. Les erreurs de typage que Monaco calculerait
+seul restent coupées : il ne voit ni le `tsconfig` ni les dépendances, et en
+inventerait.
+

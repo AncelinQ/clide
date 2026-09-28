@@ -12,7 +12,9 @@ import { useLanguage } from "@/i18n";
 import { DEFAULT_WIDTHS, activeProject, getState, setState, updateProject, useStore } from "@/state/store";
 import { badgeImage } from "@/state/notify";
 import { listenShortcuts } from "@/state/commands";
-import { restoreOpenFiles } from "@/state/editor";
+import { applyMarkers, restoreOpenFiles } from "@/state/editor";
+import { api } from "@/lib/api";
+import type { DiagnosticsReport } from "@/lib/types";
 import { loadPrompts } from "@/state/prompts";
 import { PromptInputDialog } from "@/components/PromptsPanel";
 import { resizeActive } from "@/state/terminals";
@@ -36,6 +38,16 @@ export function App() {
   const activeRoot = useStore((state) => state.activeRoot);
   useEffect(() => {
     void loadPrompts(activeRoot).catch(() => undefined);
+    // Le dernier rapport d'erreurs du projet, s'il est arrivé avant la page.
+    if (activeRoot) {
+      void api<{ report: DiagnosticsReport | null }>("/api/diagnostics", { root: activeRoot })
+        .then(({ report }) => {
+          if (!report) return;
+          setState((current) => ({ diagnostics: { ...current.diagnostics, [report.root]: report } }));
+          applyMarkers(report);
+        })
+        .catch(() => undefined);
+    }
   }, [activeRoot]);
 
 

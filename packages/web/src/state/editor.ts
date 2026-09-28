@@ -2,6 +2,7 @@ import type * as Monaco from "monaco-editor";
 
 import { api, post } from "@/lib/api";
 import { ownerOf } from "@/lib/workspace";
+import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
 import { getState, setState, type OpenFile, type Project } from "@/state/store";
 
 /**
@@ -29,6 +30,10 @@ type Readable =
   | { kind: "binary" | "too-large"; mtimeMs: number };
 
 let loading: Promise<MonacoModule> | undefined;
+/** Ligne où poser le curseur quand le fichier se montre : une erreur, un TODO, un test. */
+const pendingReveal = new Map<string, { line: number; column?: number }>();
+/** Diagnostics de `tsc` et d'ESLint par fichier, posés en marqueurs sur son modèle. */
+const markersByPath = new Map<string, Diagnostic[]>();
 let monaco: MonacoModule | undefined;
 let editor: Monaco.editor.IStandaloneCodeEditor | undefined;
 /** Nœud qui porte l'éditeur ; il change d'hôte sans être recréé. */
@@ -42,6 +47,11 @@ const textListeners = new Map<string, Set<(text: string) => void>>();
 function load(): Promise<MonacoModule> {
   loading ??= import("@/lib/monaco").then((module) => {
     monaco = module.monaco;
+    // Monaco ne voit ni le tsconfig ni les dépendances : ses erreurs de typage
+    // seraient fausses. Celles du vrai tsc du projet arrivent en marqueurs.
+    const defaults = { noSemanticValidation: true, noSyntaxValidation: false };
+    module.monaco.typescript?.typescriptDefaults?.setDiagnosticsOptions(defaults);
+    module.monaco.typescript?.javascriptDefaults?.setDiagnosticsOptions(defaults);
     return module.monaco;
   });
   return loading;
@@ -115,9 +125,10 @@ async function read(path: string): Promise<Readable> {
  * binaire ou un fichier trop lourd s'ouvre avec l'application par défaut : rien
  * à en montrer ici.
  */
-export async function openFile(path: string): Promise<void> {
+export async function openFile(path: string, at?: { line: number; column?: number }): Promise<void> {
   const owner = projectFor(path);
   if (!owner) return;
+  if (at) pendingReveal.set(path, at);
   const { files } = getState();
   if (!files[path]) {
     setState((current) => ({ files: { ...current.files, [path]: { kind: "loading", dirty: false, changedOnDisk: false } } }));
@@ -156,6 +167,7 @@ async function adopt(path: string, file: Extract<Readable, { kind: "text" }>): P
   const model = m.editor.createModel(file.text, undefined, m.Uri.file(path));
   documents.set(path, { model, saved: file.text, mtimeMs: file.mtimeMs, eol: file.eol, bom: file.bom });
   listen(path, model);
+  setMarkers(path);
 }
 
 /** Tient à jour la marque « modifié » et l'aperçu d'un fichier à chaque frappe. */
@@ -183,8 +195,54 @@ export async function mountEditor(host: HTMLElement, path: string): Promise<void
   }
   shown = path;
   instance.layout();
+  const reveal = pendingReveal.get(path);
+  if (reveal) {
+    pendingReveal.delete(path);
+    instance.setPosition({ lineNumber: reveal.line, column: reveal.column ?? 1 });
+    instance.revealLineInCenter(reveal.line);
+  }
   instance.focus();
   void checkOnDisk(path);
+}
+
+/** Clé de comparaison d'un chemin : casse et séparateurs de Windows ignorés. */
+function pathKey(path: string): string {
+  return path.replace(/\//g, "\\").toLowerCase();
+}
+
+function setMarkers(path: string): void {
+  const doc = documents.get(path);
+  if (!doc || !monaco) return;
+  const m = monaco;
+  const list = markersByPath.get(pathKey(path)) ?? [];
+  m.editor.setModelMarkers(
+    doc.model,
+    "clide",
+    list.map((item) => ({
+      startLineNumber: item.line,
+      startColumn: item.column,
+      endLineNumber: item.line,
+      endColumn: doc.model.getLineMaxColumn(Math.min(item.line, doc.model.getLineCount())),
+      message: item.code ? `${item.message} (${item.code})` : item.message,
+      source: item.source,
+      severity: item.severity === "error" ? m.MarkerSeverity.Error : item.severity === "warning" ? m.MarkerSeverity.Warning : m.MarkerSeverity.Info,
+    })),
+  );
+}
+
+/** Pose les erreurs d'un rapport en marqueurs sur les fichiers ouverts de son projet. */
+export function applyMarkers(report: DiagnosticsReport): void {
+  for (const key of [...markersByPath.keys()]) {
+    if (key.startsWith(pathKey(report.root))) markersByPath.delete(key);
+  }
+  for (const tool of report.tools) {
+    if (tool.tool === "todo") continue;
+    for (const item of tool.diagnostics) {
+      const key = pathKey(item.path);
+      markersByPath.set(key, [...(markersByPath.get(key) ?? []), item]);
+    }
+  }
+  for (const path of documents.keys()) setMarkers(path);
 }
 
 /** Texte courant d'un fichier ouvert, et ses changements : l'aperçu Markdown s'en nourrit. */
