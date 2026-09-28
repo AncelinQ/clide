@@ -63,6 +63,7 @@ export function commands(): Command[] {
     ["chantiers", "Chantiers"],
     ["skills", "Skills"],
     ["mcp", "MCP"],
+    ["usage", "Usage"],
     ["costs", "Coûts"],
     ["settings", "Réglages"],
     ["notifications", "Alertes"],
