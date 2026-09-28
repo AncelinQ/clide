@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { restoreLook, type LookPair } from "@/lib/looks";
 import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -47,6 +48,8 @@ export interface State {
   notifications: ClaudeNotification[];
   connected: boolean;
   theme: Theme;
+  /** Couleurs de l'interface, par mode ; le terminal n'en dépend pas. */
+  look: LookPair;
   terminalFont: TerminalFont;
   showLeft: boolean;
   showRight: boolean;
@@ -93,13 +96,14 @@ export const DEFAULT_WIDTHS: Widths = { left: 290, right: 340, preview: 0.5 };
 
 function restored(): Pick<
   State,
-  "projects" | "activeRoot" | "theme" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths"
+  "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout" | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths"
 > {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVED) ?? localStorage.getItem(LEGACY_SAVED) ?? "{}") as {
       roots?: string[];
       active?: string;
       theme?: Theme;
+      look?: unknown;
       terminalFont?: Partial<TerminalFont>;
       shortcuts?: Record<string, string | null>;
       language?: Language;
@@ -115,6 +119,7 @@ function restored(): Pick<
       projects,
       activeRoot: saved.active ?? projects[0]?.root ?? null,
       theme: saved.theme ?? "auto",
+      look: restoreLook(saved.look),
       terminalFont: { ...DEFAULT_TERMINAL_FONT, ...saved.terminalFont },
       shortcuts: saved.shortcuts ?? {},
       language: saved.language ?? "auto",
@@ -127,7 +132,7 @@ function restored(): Pick<
     };
   } catch {
     // Rien de mémorisé, ou mémoire illisible : on démarre sans projet ouvert.
-    return { projects: [], activeRoot: null, theme: "auto", terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS };
+    return { projects: [], activeRoot: null, theme: "auto", look: restoreLook(undefined), terminalFont: DEFAULT_TERMINAL_FONT, shortcuts: {}, language: "auto", tabLayout: "row", visibleTabs: null, hiddenModes: {}, newestFirst: {}, showHidden: false, widths: DEFAULT_WIDTHS };
   }
 }
 
@@ -172,6 +177,7 @@ function persist(): void {
     roots: state.projects.map((project) => project.root),
     active: state.activeRoot,
     theme: state.theme,
+    look: state.look,
     terminalFont: state.terminalFont,
     shortcuts: state.shortcuts,
     language: state.language,
