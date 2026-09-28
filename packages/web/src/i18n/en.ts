@@ -716,8 +716,6 @@ export const EN: Record<string, string> = {
     "The branch and its actions, the files to commit, the log with its graph, the diffs.",
   "La branche courante, son écart avec l'amont, et les autres branches du dépôt.":
     "The current branch, how far it is from its upstream, and the repository's other branches.",
-  "Les fichiers modifiés du projet, à cocher : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.":
-    "The project's changed files, to tick: only ticked files go, as they are on disk. Double-click: their diff.",
   "Le journal de toutes les branches avec son graphe ; un commit montre son message et ses fichiers.":
     "The log of all branches with its graph; a commit shows its message and files.",
   Commits: "Commits",
@@ -866,4 +864,6 @@ export const EN: Record<string, string> = {
   "Masquer les fichiers cachés et ignorés": "Hide hidden and ignored files",
   "Afficher les fichiers cachés (.env, .claude…) et ceux que git ignore": "Show hidden files (.env, .claude…) and those git ignores",
   "Nom du groupe, par exemple Tout démarrer": "Group name, e.g. Start everything",
+  "Ranger par dossier": "Group by directory",
+  "Les fichiers modifiés du projet, à cocher, en liste ou rangés par dossier : seuls les fichiers cochés partent, dans leur état sur disque. Double-clic : leur diff.": "The project's changed files, to tick, as a list or grouped by directory: only ticked files go, as they are on disk. Double-click: their diff.",
 };

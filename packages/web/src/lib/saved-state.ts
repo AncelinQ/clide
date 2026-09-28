@@ -145,6 +145,12 @@ function leftActivity(value: unknown): string {
   return text(value, DEFAULT_PROJECT.leftMode);
 }
 
+/** Mode du bloc session. Le commit, un temps en bas, vit dans la colonne du projet. */
+function bottomActivity(value: unknown): string {
+  if (value === "commit") return DEFAULT_PROJECT.bottomMode;
+  return text(value, DEFAULT_PROJECT.bottomMode);
+}
+
 function project(value: unknown, fallbackTab?: string): SavedProject | undefined {
   if (!isRecord(value) || typeof value["root"] !== "string" || !trimRoot(value["root"])) return undefined;
   const tab = value["activeTab"] ?? fallbackTab;
@@ -154,7 +160,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     root: trimRoot(value["root"]),
     browsePath: text(value["browsePath"], DEFAULT_PROJECT.browsePath),
     leftMode: leftActivity(value["leftMode"]),
-    bottomMode: text(value["bottomMode"], DEFAULT_PROJECT.bottomMode),
+    bottomMode: bottomActivity(value["bottomMode"]),
     activeTab: typeof tab === "string" ? tab : null,
     openFiles,
     activeFile,

@@ -78,6 +78,11 @@ describe("migrate en version 2", () => {
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
 
+  it("renvoie un bloc du bas resté sur le commit à son mode par défaut", () => {
+    const state = migrate({ version: 2, projects: [{ root: "C:\\a", bottomMode: "commit" }, { root: "C:\\b", bottomMode: "plan" }] });
+    expect(state.projects.map((project) => project.bottomMode)).toEqual(["files", "plan"]);
+  });
+
   it("garde la source de l'aperçu, les serveurs par défaut", () => {
     expect(migrate({ version: 2, layout: { previewSource: "browser" } }).layout.previewSource).toBe("browser");
     expect(migrate({ version: 2, layout: { previewSource: "écran" } }).layout.previewSource).toBe("servers");

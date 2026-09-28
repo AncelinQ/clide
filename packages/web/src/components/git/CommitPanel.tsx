@@ -1,5 +1,5 @@
-import { GitCommitHorizontal, RefreshCw, Sparkles, Upload } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, FolderTree, GitCommitHorizontal, RefreshCw, Sparkles, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { FileIcon } from "@/components/FileIcon";
 import { PushDialog } from "@/components/GitChip";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { resolvedLanguage, t } from "@/i18n";
 import { api, post } from "@/lib/api";
+import { changeTree, filesUnder, type ChangeDir } from "@/lib/change-tree";
 import { cn } from "cn";
 import { openDiff, openFile } from "@/state/editor";
 import { getState, selectedSessionOf } from "@/state/store";
@@ -53,6 +54,25 @@ function TriCheck({ state, onChange }: { state: boolean | "mixed"; onChange: (va
   );
 }
 
+/** Rangement par dossier, gardé dans ce navigateur : une commodité de la vue, rien de plus. */
+const BY_DIRECTORY_KEY = "clide.commit.by-directory";
+
+function readByDirectory(): boolean {
+  try {
+    return localStorage.getItem(BY_DIRECTORY_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeByDirectory(value: boolean): void {
+  try {
+    localStorage.setItem(BY_DIRECTORY_KEY, value ? "1" : "0");
+  } catch {
+    // Mémoire du navigateur indisponible : le choix vaut pour la page.
+  }
+}
+
 /** Session dont on peut tirer un message : celle de l'onglet Claude regardé, sinon celle choisie dans History. */
 function currentSessionId(): string | undefined {
   const state = getState();
@@ -76,6 +96,8 @@ export function CommitPanel({ root }: { root: string }) {
   const [busy, setBusy] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [drafting, setDrafting] = useState(false);
+  const [byDirectory, setByDirectory] = useState(readByDirectory);
+  const [folded, setFolded] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -177,6 +199,81 @@ export function CommitPanel({ root }: { root: string }) {
 
   if (changes === undefined) return <p className="py-2 text-[12px] text-muted-foreground">{t("Lecture de l'état git…")}</p>;
 
+  const fileRow = (change: Change, depth: number) => (
+    <ContextArea
+      key={change.path}
+      items={[
+        { kind: "item", label: t("Voir le diff"), run: () => diff(change) },
+        {
+          kind: "item",
+          label: t("Ouvrir le fichier"),
+          disabled: change.kind === "deleted",
+          run: () => void openFile(`${root}\\${change.path.replace(/\//g, "\\")}`),
+        },
+      ]}
+    >
+      <li
+        title={change.from ? `${change.from} → ${change.path}` : change.path}
+        onDoubleClick={() => diff(change)}
+        className="flex cursor-default items-center gap-2 rounded px-1 py-0.5 text-[12px] hover:bg-accent"
+        style={depth > 0 ? { paddingLeft: `${depth * 14 + 4}px` } : undefined}
+        data-change={change.path}
+      >
+        <TriCheck state={checked.has(change.path)} onChange={(value) => setMany([change.path], value)} />
+        <FileIcon name={change.path.split("/").pop() ?? change.path} directory={false} className="size-3.5" />
+        <span className={cn("min-w-0 truncate", change.kind === "deleted" && "line-through opacity-70", byDirectory && "flex-1")}>
+          {change.path.split("/").pop()}
+        </span>
+        {/* Rangé par dossier, le chemin est dans l'arbre : on ne le répète pas. */}
+        {!byDirectory && (
+          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+            {change.path.includes("/") ? change.path.slice(0, change.path.lastIndexOf("/")) : ""}
+          </span>
+        )}
+        <span className={cn("w-3 shrink-0 text-center font-mono text-[11px]", MARK[change.kind].className)}>
+          {MARK[change.kind].letter}
+        </span>
+      </li>
+    </ContextArea>
+  );
+
+  /** Un dossier et son contenu, repliable, coché d'un coup. */
+  const dirRows = (dir: ChangeDir<Change>, group: string, depth: number): ReactNode[] => {
+    const key = `${group}|${dir.path}`;
+    const isFolded = folded.has(key);
+    const paths = filesUnder(dir).map((change) => change.path);
+    const on = paths.filter((path) => checked.has(path)).length;
+    return [
+      <li
+        key={`dir:${key}`}
+        className="flex cursor-default items-center gap-1.5 rounded px-1 py-0.5 text-[12px] hover:bg-accent"
+        style={{ paddingLeft: `${depth * 14 + 4}px` }}
+        data-change-dir={dir.path}
+      >
+        <button
+          type="button"
+          className="grid size-4 shrink-0 place-items-center"
+          title={isFolded ? t("Déplier") : t("Replier")}
+          onClick={() =>
+            setFolded((current) => {
+              const next = new Set(current);
+              if (next.has(key)) next.delete(key);
+              else next.add(key);
+              return next;
+            })
+          }
+        >
+          {isFolded ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+        <TriCheck state={on === 0 ? false : on === paths.length ? true : "mixed"} onChange={(value) => setMany(paths, value)} />
+        <FileIcon name={dir.name} directory open={!isFolded} className="size-3.5" />
+        <span className="min-w-0 flex-1 truncate">{dir.name}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{paths.length}</span>
+      </li>,
+      ...(isFolded ? [] : [...dir.dirs.flatMap((child) => dirRows(child, group, depth + 1)), ...dir.files.map((change) => fileRow(change, depth + 1))]),
+    ];
+  };
+
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -185,6 +282,20 @@ export function CommitPanel({ root }: { root: string }) {
             ? t("Rien à commiter.")
             : t("{selected} fichier(s) choisi(s) sur {total}", { selected: selected.length, total: changes.length })}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("size-6", byDirectory && "bg-accent text-primary")}
+          aria-pressed={byDirectory}
+          title={t("Ranger par dossier")}
+          onClick={() => {
+            writeByDirectory(!byDirectory);
+            setByDirectory(!byDirectory);
+          }}
+          data-by-directory
+        >
+          <FolderTree className="size-3.5" />
+        </Button>
         <Button variant="ghost" size="icon" className="size-6" title={t("Recharger")} onClick={() => void load()}>
           <RefreshCw className="size-3.5" />
         </Button>
@@ -204,38 +315,12 @@ export function CommitPanel({ root }: { root: string }) {
               {t(group.label)} <span className="font-normal normal-case">({items.length})</span>
             </label>
             <ul className="m-0 list-none p-0">
-              {items.map((change) => (
-                <ContextArea
-                  key={change.path}
-                  items={[
-                    { kind: "item", label: t("Voir le diff"), run: () => diff(change) },
-                    {
-                      kind: "item",
-                      label: t("Ouvrir le fichier"),
-                      disabled: change.kind === "deleted",
-                      run: () => void openFile(`${root}\\${change.path.replace(/\//g, "\\")}`),
-                    },
-                  ]}
-                >
-                  <li
-                    title={change.from ? `${change.from} → ${change.path}` : change.path}
-                    onDoubleClick={() => diff(change)}
-                    className="flex cursor-default items-center gap-2 rounded px-1 py-0.5 text-[12px] hover:bg-accent"
-                  >
-                    <TriCheck state={checked.has(change.path)} onChange={(value) => setMany([change.path], value)} />
-                    <FileIcon name={change.path.split("/").pop() ?? change.path} directory={false} className="size-3.5" />
-                    <span className={cn("min-w-0 truncate", change.kind === "deleted" && "line-through opacity-70")}>
-                      {change.path.split("/").pop()}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
-                      {change.path.includes("/") ? change.path.slice(0, change.path.lastIndexOf("/")) : ""}
-                    </span>
-                    <span className={cn("w-3 shrink-0 text-center font-mono text-[11px]", MARK[change.kind].className)}>
-                      {MARK[change.kind].letter}
-                    </span>
-                  </li>
-                </ContextArea>
-              ))}
+              {byDirectory
+                ? (() => {
+                    const tree = changeTree(items);
+                    return [...tree.dirs.flatMap((dir) => dirRows(dir, group.id, 0)), ...tree.files.map((change) => fileRow(change, 0))];
+                  })()
+                : items.map((change) => fileRow(change, 0))}
             </ul>
           </div>
         );
