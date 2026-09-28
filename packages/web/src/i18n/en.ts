@@ -841,4 +841,10 @@ export const EN: Record<string, string> = {
   "Transcript de plus de 20 Mo : seul son début est montré. Le fichier entier : {path}": "Transcript over 20 MB: only its beginning is shown. The whole file: {path}",
   "{count} session": "{count} session",
   "{count} sessions": "{count} sessions",
+  "api": "api",
+  "front": "front end",
+  "back": "back end",
+  "design system": "design system",
+  "bibliothèque partagée": "shared library",
+  "documentation": "documentation",
 };

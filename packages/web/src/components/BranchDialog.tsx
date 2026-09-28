@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SuggestionChips } from "@/components/SuggestionChips";
 import { Input } from "@/components/ui/input";
+import { branchPrefixes } from "@/lib/suggestions";
 import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
 import { openTerminal } from "@/state/terminals";
@@ -149,6 +151,9 @@ export function BranchDialog({
               onChange={(event) => setFilter(event.target.value)}
               className="h-8 font-mono text-[12px]"
             />
+            {!filter.includes("/") && (
+              <SuggestionChips mono items={branchPrefixes((branches ?? []).map((branch) => branch.name))} onPick={(prefix) => setFilter(prefix + filter)} />
+            )}
             {fetching && (
               <p className="text-[11px] text-muted-foreground">{t("Récupération des branches distantes…")}</p>
             )}

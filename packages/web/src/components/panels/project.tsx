@@ -23,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
 import type { McpServer, ProjectLink, Skill, SlashCommand, Worktree } from "@/lib/types";
+import { COMMON_ROLES, roleSuggestions } from "@/lib/suggestions";
+import { SuggestionChips } from "@/components/SuggestionChips";
 import { openProject, useStore } from "@/state/store";
 import { openTerminal } from "@/state/terminals";
 
@@ -163,6 +165,7 @@ export function LinksPanel({ root }: { root: string }) {
               <FolderInput value={path} onChange={setPath} title={t("Lier un dossier")} placeholder={t("C:\\Projets\\api")} />
               <Label>{t("Rôle")}</Label>
               <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("api, design system…")} />
+              {!role.trim() && <SuggestionChips items={roleSuggestions(links.map((link) => link.role), role, COMMON_ROLES.map((item) => t(item)))} onPick={setRole} />}
               <Label>{t("Accès")}</Label>
               <Select value={readOnly} onValueChange={setReadOnly}>
                 <SelectTrigger>

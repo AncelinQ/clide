@@ -37,6 +37,9 @@ que sur un dépôt distant — les choisir crée la branche locale qui les suit.
 fenêtre fait un fetch à l'ouverture et complète la liste : une branche poussée par
 un collègue y apparaît sans fetch préalable. Elle s'ouvre aussi par un clic droit
 sur l'onglet d'un projet, quel qu'il soit, et sur un dossier lié par son menu « ⋯ ».
+Sous le champ, des pastilles proposent les préfixes que portent au moins deux
+branches du dépôt (`aqn/feat/`, `aqn/fix/`) : un clic les met en tête du nom, et
+l'on continue à taper.
 
 - **Changer de branche** avec des modifications non commitées de fichiers suivis
   ne se fait pas en silence : la fenêtre dit combien de fichiers sont en jeu et

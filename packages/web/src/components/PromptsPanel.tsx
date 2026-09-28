@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
+import { pushRecent } from "@/lib/suggestions";
+import { SuggestionChips } from "@/components/SuggestionChips";
 import { cachedPrompts, loadPrompts, onPromptsChange, runPrompt, type SavedPrompt } from "@/state/prompts";
 import { setState, useStore } from "@/state/store";
 
@@ -185,12 +187,35 @@ export function PromptsPanel({ root }: { root: string }) {
   );
 }
 
+/** Dernières réponses données à `{saisie}`, par prompt : une commodité de ce navigateur, rien de plus. */
+const ANSWERS_KEY = "clide.prompt-answers";
+
+function readAnswers(): Record<string, string[]> {
+  try {
+    const value = JSON.parse(localStorage.getItem(ANSWERS_KEY) ?? "{}") as unknown;
+    return typeof value === "object" && value !== null ? (value as Record<string, string[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberAnswer(label: string, text: string): void {
+  try {
+    const all = readAnswers();
+    localStorage.setItem(ANSWERS_KEY, JSON.stringify({ ...all, [label]: pushRecent(Array.isArray(all[label]) ? all[label] : [], text) }));
+  } catch {
+    // Mémoire du navigateur indisponible : la suggestion manquera, rien d'autre.
+  }
+}
+
 /** Demande la valeur de `{saisie}` quand un prompt enregistré en porte une. */
 export function PromptInputDialog() {
   const request = useStore((state) => state.promptInput);
   const [value, setValue] = useState("");
   useEffect(() => setValue(""), [request]);
+  const past = request ? (readAnswers()[request.label] ?? []).filter((item) => typeof item === "string") : [];
   const answer = (text: string | undefined) => {
+    if (request && text) rememberAnswer(request.label, text);
     request?.resolve(text);
     setState({ promptInput: null });
   };
@@ -213,6 +238,7 @@ export function PromptInputDialog() {
             }
           }}
         />
+        {!value.trim() && <SuggestionChips items={past} onPick={setValue} />}
         <DialogFooter>
           <Button variant="ghost" onClick={() => answer(undefined)}>
             {t("Annuler")}
