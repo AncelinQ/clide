@@ -836,4 +836,7 @@ export const EN: Record<string, string> = {
   "Lancer le navigateur": "Start the browser",
   "Clics, molette et frappe vont à la page": "Clicks, wheel and typing go to the page",
   "En attente de la première image…": "Waiting for the first frame…",
+  "transcript": "transcript",
+  "Transcript de la session, en lecture seule : Claude Code l'écrit, Clide ne fait que le lire.": "Session transcript, read-only: Claude Code writes it, Clide only reads it.",
+  "Transcript de plus de 20 Mo : seul son début est montré. Le fichier entier : {path}": "Transcript over 20 MB: only its beginning is shown. The whole file: {path}",
 };

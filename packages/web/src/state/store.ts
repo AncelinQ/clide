@@ -37,8 +37,12 @@ export interface OpenFile {
   changedOnDisk: boolean;
   /** Image : de quoi la montrer. */
   src?: string;
-  /** Diff : son titre d'onglet. */
+  /** Diff, transcript : son titre d'onglet. */
   title?: string;
+  /** Texte en lecture seule : un transcript, qui ne s'enregistre pas. */
+  readOnly?: boolean;
+  /** Ce qu'il faut savoir en ouvrant : un transcript montré en partie. */
+  notice?: string;
   error?: string;
 }
 

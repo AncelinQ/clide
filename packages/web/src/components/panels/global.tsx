@@ -27,6 +27,8 @@ import type {
 import { isInside } from "@/lib/workspace";
 import { getState, selectSession, selectedSessionOf, setState, useStore } from "@/state/store";
 import { resumeSession } from "@/state/terminals";
+import { openTranscript } from "@/state/editor";
+import { ownerOf } from "@/lib/workspace";
 import { agoLabel } from "@/components/panels/usage";
 
 // ─── History ────────────────────────────────────────────────────────────────
@@ -43,6 +45,12 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
   const activeRoot = useStore((store) => store.activeRoot);
   const selectedSession = useStore(selectedSessionOf);
   const showCosts = useStore((store) => store.showCosts);
+  // Le transcript s'ouvre dans le projet ouvert qui contient la session, sinon dans le projet actif.
+  const showTranscript = (session: SessionSummary) => {
+    const roots = getState().projects.map((project) => project.root);
+    const owner = (session.effectiveCwd ? ownerOf(session.effectiveCwd, roots) : undefined) ?? activeRoot;
+    if (owner) void openTranscript(owner, session);
+  };
 
   return (
     <Async state={state}>
@@ -122,6 +130,9 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
                         }}
                       >
                         {t("reprendre")}
+                      </ActionButton>
+                      <ActionButton variant="ghost" onAction={() => showTranscript(session)}>
+                        {t("transcript")}
                       </ActionButton>
                       <ActionButton variant="ghost" onAction={() => setRemoving(session.sessionId)}>
                         {t("retirer")}

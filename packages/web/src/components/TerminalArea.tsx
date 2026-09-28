@@ -26,7 +26,7 @@ import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
 import { BrowserPreview } from "@/components/BrowserPreview";
-import { closeFile, saveFile, showFile, showTerminals } from "@/state/editor";
+import { closeFile, isDiff, isTranscript, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
@@ -252,8 +252,13 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
     <ContextArea
       items={[
         { kind: "item", label: t("Fermer"), icon: X, run: onClose },
-        { kind: "separator" },
-        { kind: "item", label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(path) },
+        // Un diff ou un transcript n'a pas de chemin de fichier à copier.
+        ...(isDiff(path) || isTranscript(path)
+          ? []
+          : [
+              { kind: "separator" as const },
+              { kind: "item" as const, label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(path) },
+            ]),
       ]}
     >
       <div
@@ -266,7 +271,7 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
         )}
       >
         <FileIcon name={iconName} directory={false} className="size-3.5" />
-        {title && <span className="text-[10px] text-muted-foreground">±</span>}
+        {isDiff(path) && <span className="text-[10px] text-muted-foreground">±</span>}
         <span className={cn(dirty && "italic")}>{name}</span>
         {/* Le point d'un fichier modifié laisse place à la croix au survol, comme dans VS Code. */}
         <span className="relative size-3">
