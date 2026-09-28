@@ -109,6 +109,17 @@ export {
 } from "./files/browser.js";
 export { IMAGE_LIMIT, TEXT_LIMIT, previewFile, type FilePreview } from "./files/preview.js";
 export { SKIPPED_DIRECTORIES, fuzzyScore, listProjectFiles, rankFiles } from "./files/find.js";
+export {
+  buildMatcher,
+  filterPaths,
+  globToRegExp,
+  searchFiles,
+  searchText,
+  type FileSearchFile,
+  type FileSearchMatch,
+  type FileSearchOptions,
+  type FileSearchResult,
+} from "./files/search.js";
 export { checkName, createEntry, keepBothName, renameEntry, transfer, type OnConflict, type Outcome } from "./files/operations.js";
 export { ChangedOnDisk, EDIT_LIMIT, dominantEol, modifiedAt, readEditable, writeEditable, type EditableFile } from "./files/editing.js";
 export { PromptStore, projectPromptsFile, slashCommandOf, topCommands, type SavedPrompt } from "./prompts/store.js";

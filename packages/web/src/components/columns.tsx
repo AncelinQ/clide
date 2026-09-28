@@ -1,4 +1,4 @@
-import { FolderGit2, FolderOpen, FolderTree, History, Info, Plug, RefreshCw, Sparkles } from "lucide-react";
+import { FolderGit2, FolderOpen, FolderTree, History, Info, Plug, RefreshCw, Search, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileTree } from "@/components/FileTree";
@@ -20,6 +20,7 @@ import {
   UserMcpPanel,
   UserSkillsPanel,
 } from "@/components/panels/global";
+import { FileSearchPanel } from "@/components/panels/file-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,6 +69,15 @@ export function projectActivities(disabledModules: readonly string[]): ProjectAc
       ),
     },
     {
+      id: "search",
+      icon: Search,
+      label: t("Recherche"),
+      doc: "projet#rechercher-dans-les-fichiers",
+      about: t(
+        "Un texte ou une expression dans les fichiers du projet, hors dépendances et sorties de build, groupés par fichier. Un clic ouvre le fichier à la ligne.",
+      ),
+    },
+    {
       id: "history",
       icon: History,
       label: t("Historique du projet"),
@@ -97,7 +107,7 @@ export function projectActivities(disabledModules: readonly string[]): ProjectAc
       about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),
     },
   ];
-  return [...core.slice(0, 2), ...fromModules, ...core.slice(2)];
+  return [...core.slice(0, 3), ...fromModules, ...core.slice(3)];
 }
 
 /** En-tête d'une vue : son titre, ce qu'elle montre sur demande, et ses actions. */
@@ -203,6 +213,8 @@ export function ProjectColumn() {
   const body = () => {
     if (activity.render) return activity.render(project.root);
     switch (activity.id) {
+      case "search":
+        return <FileSearchPanel root={project.root} />;
       case "history":
         return <HistoryPanel filter={filter} fixedScope="project" />;
       case "skills":
