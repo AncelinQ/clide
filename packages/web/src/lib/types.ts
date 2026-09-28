@@ -141,6 +141,8 @@ export interface FileDiff {
   deleted: boolean;
   binary: boolean;
   beforeMissing: boolean;
+  /** Écrit par une commande Bash : diff relevé par Claude Code, pas de sauvegarde. */
+  viaBash: boolean;
   linesAdded: number;
   linesRemoved: number;
   unified: string;

@@ -344,7 +344,9 @@ Claude Code ont écrit.
 [`design-suivi-session.md`](design-suivi-session.md) : rattachement par les hooks
 avec `SessionStart` et l'onglet nommé dans l'environnement, reprise des hooks
 ClaudeTerm et claude-ide ; History ne détache plus la session vivante et le bloc
-dit « détaché » ; changer de projet réactive son dernier onglet.
+dit « détaché » ; changer de projet réactive son dernier onglet. En plus, le mode
+Fichiers lit les écritures des commandes Bash (`bashEditDiff`), que ClaudeTerm
+lisait et que le port avait laissées de côté.
 
 ---
 

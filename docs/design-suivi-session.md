@@ -35,9 +35,10 @@ ce qui se passe :
    actif reste celui de l'autre projet ; le bloc n'a plus rien à suivre et retombe
    sur la dernière sélection de History, ou sur rien, jusqu'à un clic sur un onglet.
 
-Le mode Fichiers a une limite à part, qui reste : il ne voit que les fichiers
-écrits par les outils d'édition de Claude Code, ceux dont il garde une sauvegarde.
-Un fichier modifié par un script lancé en Bash n'y paraît pas.
+Le mode Fichiers avait une limite à part : il ne voyait que les fichiers écrits
+par les outils d'édition de Claude Code, ceux dont il garde une sauvegarde. Il lit
+désormais aussi le relevé `bashEditDiff` des commandes Bash — sans sauvegarde,
+donc sans restauration.
 
 ---
 

@@ -201,12 +201,14 @@ type Projection = Awaited<ReturnType<TranscriptReader["poll"]>>["projection"];
  * Un fichier touché par la session, désigné par son chemin de suivi, et le
  * dossier qui le situe : la session peut avoir déménagé ou vivre dans un
  * worktree. Un chemin absent des fichiers de la session est refusé : il vient
- * de la page, et ne doit désigner que ce que la session a touché.
+ * de la page, et ne doit désigner que ce que la session a touché. Un fichier
+ * que seule une commande a écrit n'a pas de suivi : `track` manque.
  */
 function locateFile(projection: Projection, trackingPath: string) {
   const root = projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
   const track = projection.files.find((file) => file.trackingPath === trackingPath);
-  if (!root || !track) throw new Error(`${trackingPath} n'est pas un fichier de cette session`);
+  const viaBash = projection.bashEdits.some((edit) => edit.path === trackingPath);
+  if (!root || (!track && !viaBash)) throw new Error(`${trackingPath} n'est pas un fichier de cette session`);
   return { root, track, absolutePath: isAbsolute(trackingPath) ? trackingPath : join(root, trackingPath) };
 }
 
@@ -223,6 +225,7 @@ async function restorePlan(id: string, trackingPath: string, { live }: ApiContex
   if (!main) throw new Error(`session ${id} introuvable`);
   const { events, projection } = await TranscriptReader.fromRef(main).poll();
   const { root, track } = locateFile(projection, trackingPath);
+  if (!track) throw new Error(`${trackingPath} a été écrit par une commande : aucune sauvegarde à restaurer`);
 
   // Les écritures d'un sous-agent sont sauvegardées dans la session, mais ses
   // appels d'outils sont dans son propre transcript.
@@ -453,7 +456,7 @@ export const routes: Record<string, Handler> = {
       params.get("root") ?? projection.relocatedCwd ?? projection.worktreePath ?? projection.cwd;
     if (!root) return { root: undefined, diffs: [] };
 
-    const diffs = await new FileHistoryResolver().diffSession(id, projection.files, root);
+    const diffs = await new FileHistoryResolver().diffSession(id, projection.files, root, projection.bashEdits);
     return { root, diffs };
   },
 

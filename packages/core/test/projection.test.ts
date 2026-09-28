@@ -279,3 +279,52 @@ describe("SessionProjector", () => {
     expect(projectEvents(SID, [op("enqueue", "a"), op("enqueue", "b"), op("popAll", "a")]).queue).toEqual([]);
   });
 });
+
+describe("écritures des commandes Bash", () => {
+  const bashResult = (files: unknown[], timestamp?: string): TranscriptEvent => ({
+    type: "user",
+    ...(timestamp ? { timestamp } : {}),
+    toolUseResult: { stdout: "", stderr: "", bashEditDiff: { files, moreFiles: 0, changedFiles: files.length } },
+  });
+
+  it("relève le diff que Claude Code joint au résultat d'une commande", () => {
+    const projection = projectEvents(SID, [
+      bashResult(
+        [
+          {
+            filePath: "C:\\Projets\\app\\src\\a.ts",
+            hunks: [{ oldStart: 1, oldLines: 2, newStart: 1, newLines: 3, lines: [" a", "+b", " c"] }],
+          },
+        ],
+        "2026-09-28T10:00:00.000Z",
+      ),
+    ]);
+    expect(projection.bashEdits).toEqual([
+      {
+        path: "C:\\Projets\\app\\src\\a.ts",
+        hunks: ["@@ -1,2 +1,3 @@\n a\n+b\n c"],
+        at: "2026-09-28T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("cumule les morceaux d'un même fichier, commande après commande", () => {
+    const hunk = { oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ["-x", "+y"] };
+    const projection = projectEvents(SID, [
+      bashResult([{ filePath: "C:\\a.ts", hunks: [hunk] }], "2026-09-28T10:00:00.000Z"),
+      bashResult([{ filePath: "C:\\a.ts", hunks: [hunk] }], "2026-09-28T10:05:00.000Z"),
+    ]);
+    expect(projection.bashEdits).toHaveLength(1);
+    expect(projection.bashEdits[0]?.hunks).toHaveLength(2);
+    expect(projection.bashEdits[0]?.at).toBe("2026-09-28T10:05:00.000Z");
+  });
+
+  it("ignore un résultat sans diff, ou mal formé", () => {
+    const projection = projectEvents(SID, [
+      { type: "user", toolUseResult: { stdout: "ok" } },
+      bashResult([{ filePath: "", hunks: [] }, { hunks: "non" }, "rien"]),
+      { type: "user", toolUseResult: "texte" },
+    ]);
+    expect(projection.bashEdits).toEqual([]);
+  });
+});

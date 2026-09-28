@@ -170,7 +170,15 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                         {diff.created && <Badge variant="secondary">{t("créé")}</Badge>}
                         {diff.deleted && <Badge variant="outline">{t("supprimé")}</Badge>}
                         {diff.binary && <Badge variant="outline">{t("binaire")}</Badge>}
-                        {diff.beforeMissing && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
+                        {diff.viaBash && (
+                          <Badge
+                            variant="outline"
+                            title={t("Écrit par une commande : Claude Code en a relevé le diff, il n'y a pas de sauvegarde à restaurer.")}
+                          >
+                            {t("commande")}
+                          </Badge>
+                        )}
+                        {diff.beforeMissing && !diff.viaBash && <Badge variant="outline">{t("sauvegarde absente")}</Badge>}
                       </>
                     }
                     actions={

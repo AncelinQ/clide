@@ -20,6 +20,19 @@ export interface FileTrack {
   backups: FileBackupRef[];
 }
 
+/**
+ * Modification faite par une commande Bash, relevée par Claude Code dans le
+ * résultat de l'outil. Sans sauvegarde : le diff est tout ce qu'on en sait.
+ */
+export interface BashEdit {
+  /** Chemin tel que Claude Code le donne, absolu. */
+  path: string;
+  /** Morceaux au format unifié — l'en-tête `@@` puis ses lignes —, dans l'ordre des commandes. */
+  hunks: string[];
+  /** Dernière commande qui a touché le fichier. */
+  at?: string;
+}
+
 export interface QueuedPrompt {
   text: string;
   at?: string;
@@ -88,6 +101,7 @@ export interface SessionProjection {
   continuedInSessionId?: string;
   prLinks: PrLink[];
   files: FileTrack[];
+  bashEdits: BashEdit[];
   messageCount: number;
   eventCount: number;
   /** Types jamais vus dans le corpus de référence, avec leur nombre d'occurrences. */
@@ -104,6 +118,7 @@ export interface SessionProjection {
  */
 export class SessionProjector {
   readonly #files = new Map<string, FileTrack>();
+  readonly #bashEdits = new Map<string, BashEdit>();
   readonly #unknown = new Map<string, number>();
   readonly #prLinks: PrLink[] = [];
   /**
@@ -115,7 +130,7 @@ export class SessionProjector {
   #lastUsage: { context: number; model?: string } | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
-  #state: Omit<SessionProjection, "files" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
+  #state: Omit<SessionProjection, "files" | "bashEdits" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
   readonly #tickets = new TicketTracker();
   #queue: QueuedPrompt[] = [];
 
@@ -153,6 +168,7 @@ export class SessionProjector {
           s.permissionMode = mode;
           s.planMode = mode === "plan";
         }
+        this.#applyBashEdits(event);
         break;
       }
 
@@ -384,6 +400,42 @@ export class SessionProjector {
     return this.#state.relocatedCwd ?? this.#state.worktreePath ?? this.#state.cwd;
   }
 
+  /**
+   * Le résultat d'une commande Bash porte, quand Claude Code l'a relevé, le diff
+   * des fichiers qu'elle a changés : c'est la seule trace d'une écriture faite
+   * hors des outils d'édition, qui n'a pas de sauvegarde.
+   */
+  #applyBashEdits(event: TranscriptEvent): void {
+    const result = event["toolUseResult"];
+    if (typeof result !== "object" || result === null) return;
+    const diff = (result as Record<string, unknown>)["bashEditDiff"];
+    if (typeof diff !== "object" || diff === null) return;
+    const files = (diff as Record<string, unknown>)["files"];
+    if (!Array.isArray(files)) return;
+    const at = readString(event, "timestamp");
+
+    for (const file of files) {
+      if (typeof file !== "object" || file === null) continue;
+      const record = file as Record<string, unknown>;
+      const path = record["filePath"];
+      if (typeof path !== "string" || path.length === 0) continue;
+      const hunks = Array.isArray(record["hunks"]) ? (record["hunks"] as unknown[]) : [];
+      const texts: string[] = [];
+      for (const hunk of hunks) {
+        if (typeof hunk !== "object" || hunk === null) continue;
+        const h = hunk as Record<string, unknown>;
+        const lines = Array.isArray(h["lines"]) ? (h["lines"] as unknown[]).filter((line): line is string => typeof line === "string") : [];
+        const number = (key: string): number => (typeof h[key] === "number" ? (h[key] as number) : 0);
+        texts.push([`@@ -${number("oldStart")},${number("oldLines")} +${number("newStart")},${number("newLines")} @@`, ...lines].join("\n"));
+      }
+      if (texts.length === 0) continue;
+      const edit = this.#bashEdits.get(path) ?? { path, hunks: [] };
+      edit.hunks.push(...texts);
+      if (at) edit.at = at;
+      this.#bashEdits.set(path, edit);
+    }
+  }
+
   snapshot(): SessionProjection {
     return {
       ...this.#state,
@@ -392,6 +444,7 @@ export class SessionProjector {
       queue: [...this.#queue],
       tickets: this.#tickets.snapshot(),
       files: [...this.#files.values()],
+      bashEdits: [...this.#bashEdits.values()],
       unknownTypes: Object.fromEntries(this.#unknown),
     };
   }

@@ -43,6 +43,7 @@ export {
 export {
   SessionProjector,
   projectEvents,
+  type BashEdit,
   type FileTrack,
   type QueuedPrompt,
   type SessionProjection,
