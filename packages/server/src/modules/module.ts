@@ -17,6 +17,8 @@ export interface ServerModule {
   mutations?: Record<string, Mutation>;
   /** Appelé une fois, au démarrage du serveur : le module s'abonne à ce qu'il suit. */
   start?: (context: ApiContext) => void;
+  /** Appelé à l'arrêt du serveur : le module libère ce qu'il a lancé. */
+  stop?: () => Promise<void> | void;
 }
 
 export interface RouteTable {

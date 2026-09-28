@@ -1,6 +1,7 @@
 import { ExternalLink, MonitorPlay, RotateCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { PreviewSourceSwitch } from "@/components/BrowserPreview";
 import { Empty, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -136,6 +137,7 @@ export function DevPreview({ servers }: { servers: DevServer[] }) {
             </a>
           </Button>
         )}
+        <PreviewSourceSwitch />
         <Button
           variant="ghost"
           size="icon"

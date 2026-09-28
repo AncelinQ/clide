@@ -40,6 +40,8 @@ export interface SavedLayout {
   showRight: boolean;
   sessionCollapsed: boolean;
   previewOpen: boolean;
+  /** Ce que montre l'aperçu : les serveurs de développement, ou le navigateur de Claude. */
+  previewSource: "servers" | "browser";
   globalTab: string;
 }
 
@@ -78,6 +80,7 @@ export const DEFAULT_LAYOUT: SavedLayout = {
   showRight: true,
   sessionCollapsed: false,
   previewOpen: false,
+  previewSource: "servers",
   globalTab: "history",
 };
 
@@ -181,6 +184,7 @@ function layout(value: unknown): SavedLayout {
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),
     previewOpen: flag(source["previewOpen"], DEFAULT_LAYOUT.previewOpen),
+    previewSource: source["previewSource"] === "browser" ? "browser" : "servers",
     globalTab: globalTabId(text(source["globalTab"], DEFAULT_LAYOUT.globalTab)),
   };
 }

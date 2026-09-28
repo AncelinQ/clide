@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
+import { BrowserPreview } from "@/components/BrowserPreview";
 import { closeFile, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -336,6 +337,7 @@ export function TerminalArea() {
   const sessionMode = useStore(bottomModeOf);
   const disabledModules = useStore((state) => state.disabledModules);
   const showCosts = useStore((state) => state.showCosts);
+  const previewSource = useStore((state) => state.previewSource);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
@@ -574,7 +576,7 @@ export function TerminalArea() {
               }
             />
             <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ width: `${widths.preview * 100}%`, maxWidth: `calc(100% - ${TERMINAL_MIN}px)` }}>
-              <DevPreview servers={servers} />
+              {previewSource === "browser" ? <BrowserPreview /> : <DevPreview servers={servers} />}
             </div>
           </>
         )}

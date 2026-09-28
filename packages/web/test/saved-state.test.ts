@@ -77,6 +77,11 @@ describe("migrate en version 2", () => {
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
 
+  it("garde la source de l'aperçu, les serveurs par défaut", () => {
+    expect(migrate({ version: 2, layout: { previewSource: "browser" } }).layout.previewSource).toBe("browser");
+    expect(migrate({ version: 2, layout: { previewSource: "écran" } }).layout.previewSource).toBe("servers");
+  });
+
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
     expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
