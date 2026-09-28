@@ -2,23 +2,26 @@ import { useEffect, useRef } from "react";
 
 import { CommandPalette } from "@/components/CommandPalette";
 import { Splitter, clamp } from "@/components/Splitter";
-import { GlobalColumn, ProjectColumn } from "@/components/columns";
+import { ActivityBar } from "@/components/ActivityBar";
+import { GlobalColumn, ProjectColumn, projectActivities } from "@/components/columns";
+import { TabRail } from "@/components/GlobalTabs";
 import { TerminalArea } from "@/components/TerminalArea";
 import { TitleBar } from "@/components/TitleBar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useLanguage } from "@/i18n";
-import { DEFAULT_WIDTHS, getState, setState, useStore } from "@/state/store";
+import { DEFAULT_WIDTHS, activeProject, getState, setState, updateProject, useStore } from "@/state/store";
 import { badgeImage } from "@/state/notify";
 import { listenShortcuts } from "@/state/commands";
 import { resizeActive } from "@/state/terminals";
 
 /** Le terminal garde de quoi afficher une ligne de commande lisible. */
 const MIDDLE_MIN = 420;
-/** Marges de la page et poignées, qui prennent leur part de la largeur. */
-const CHROME = 16;
+/** Marges de la page, poignées et barres d'activité, qui prennent leur part de la largeur. */
+const CHROME = 110;
 
 export function App() {
-  const { showLeft, showRight, attention, widths } = useStore((state) => state);
+  const { showLeft, showRight, attention, widths, tabLayout, globalTab } = useStore((state) => state);
+  const project = useStore(activeProject);
   // Changer de langue redessine tout ce qui affiche du texte.
   const language = useLanguage();
 
@@ -76,6 +79,16 @@ export function App() {
         <main
           className="flex min-h-0 flex-1 px-1 pb-1"
         >
+          {project && (
+            <ActivityBar
+              side="left"
+              activities={projectActivities()}
+              current={project.leftMode}
+              open={showLeft}
+              onPick={(id) => updateProject(project.root, { leftMode: id })}
+              onToggle={(open) => setState({ showLeft: open })}
+            />
+          )}
           {showLeft && (
             <>
               <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ width: widths.left }}>
@@ -119,6 +132,7 @@ export function App() {
               </div>
             </>
           )}
+          {tabLayout === "column" && <TabRail current={globalTab} />}
         </main>
       </div>
     </TooltipProvider>

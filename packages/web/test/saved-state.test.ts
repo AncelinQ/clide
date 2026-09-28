@@ -35,8 +35,8 @@ describe("migrate depuis la version 1", () => {
   });
 
   it("donne aux modes et à la disposition, absents en v1, leur valeur par défaut", () => {
-    expect(state.projects[0]).toMatchObject({ browsePath: "", leftMode: "links", bottomMode: "files" });
-    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, preview: 0.5 } });
+    expect(state.projects[0]).toMatchObject({ browsePath: "", leftMode: "explorer", bottomMode: "files" });
+    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, preview: 0.5, bottom: 0.38 } });
   });
 
   it("reprend toutes les préférences", () => {
@@ -101,9 +101,14 @@ describe("migrate sur un état abîmé", () => {
     expect(state.prefs.theme).toBe("auto");
     expect(state.prefs.language).toBe("auto");
     expect(state.prefs.terminalFont).toEqual({ family: "Consolas", size: 13 });
-    expect(state.layout.widths).toEqual({ left: 290, right: 400, preview: 0.5 });
+    expect(state.layout.widths).toEqual({ left: 290, right: 400, preview: 0.5, bottom: 0.38 });
     expect(state.prefs.hiddenModes).toEqual({ session: ["plan"] });
     expect(state.prefs.shortcuts).toEqual({ a: "Ctrl+A" });
+  });
+
+  it("range les dossiers liés, ancien mode à part, sous l'explorateur", () => {
+    const state = migrate({ version: 2, projects: [{ root: "C:\a", leftMode: "links" }, { root: "C:\b", leftMode: "mcp" }] });
+    expect(state.projects.map((project) => project.leftMode)).toEqual(["explorer", "mcp"]);
   });
 
   it("prend le premier projet quand le projet actif n'est plus ouvert", () => {

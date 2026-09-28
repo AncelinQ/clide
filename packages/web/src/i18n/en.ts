@@ -637,4 +637,12 @@ export const EN: Record<string, string> = {
   "{shortcut} est à plusieurs actions : {labels}.": "{shortcut} is bound to several actions: {labels}.",
   "hors du terminal": "outside the terminal",
   "Clide seul": "Clide only",
+  Explorateur: "Explorer",
+  "Historique du projet": "Project history",
+  "Les sessions de Claude Code lancées dans ce projet ou dessous.": "The Claude Code sessions started in this project or below it.",
+  "Les fichiers du projet, puis les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json, qui en donne l'accès à Claude ; leurs rôles vont dans un fichier de prompt que chaque session reçoit, qui lui dit à quoi ils servent.":
+    "The project's files, then the other projects it depends on. Their paths go into .claude/settings.local.json, which gives Claude access to them; their roles go into a prompt file every session receives, which tells it what they are for.",
+  "À quoi sert cette vue": "What this view is for",
+  Guide: "Guide",
+  "Tirer pour redimensionner, double-clic pour revenir à la hauteur par défaut": "Drag to resize, double-click to go back to the default height",
 };

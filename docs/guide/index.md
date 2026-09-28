@@ -46,17 +46,27 @@ Celle de ClaudeTerm, et sa règle : **gauche = le projet, centre = la session,
 droite = ce qui ne dépend d'aucun projet.**
 
 ```
-┌ barre de titre : (projet A) (projet B) (+)  ⑂ branche ↑1 !12 ●3   📖 ◐ ⚙      ┐
-├──────────────┬──────────────────────────────────────┬─────────────────────────┤
-│ fil d'Ariane │ onglets terminaux   + 📷 🖥 ✦claude    │ Process History         │
-│ fichiers     │ ┌────────────────────┐┌────────────┐ │ Recherche Chantiers ⋯   │
-│              │ │ terminal           ││ aperçu     │ │ filtre                  │
-│              │ └────────────────────┘└────────────┘ │                         │
-│ ──────────── │ dossier · mode · état                │ panneau choisi          │
-│ 🔗📦✦⛓⑂  ⓘ ˅ │ ──────────────────────────────────── │                         │
-│ mode courant │ 📋 📈 🖼 📄 🔀 ✎  bloc session   ⓘ ˅ │                         │
-└──────────────┴──────────────────────────────────────┴─────────────────────────┘
+┌ barre de titre : (projet A) (projet B) (+)  ⑂ branche ↑1 !12 ●3   📖 ◐ ⚙          ┐
+├──┬──────────────┬──────────────────────────────────────┬────────────────────┬──┤
+│🗂│ fichiers     │ onglets terminaux               + ⋯   │ filtre             │⚙ │
+│🕘│              │ ┌────────────────────┐┌────────────┐ │                    │🕘│
+│📦│              │ │ terminal           ││ aperçu     │ │ panneau choisi     │🔍│
+│✦ │              │ └────────────────────┘└────────────┘ │                    │▦ │
+│⛓ │ ──────────── │ dossier · mode · état                │                    │✦ │
+│⑂ │ DOSSIERS LIÉS├──────── poignée ─────────────────────┤                    │⛓ │
+│  │              │ 📋 📈 🖼 📄 🔀 ✎  bloc session   ⓘ ˅ │                    │… │
+└──┴──────────────┴──────────────────────────────────────┴────────────────────┴──┘
 ```
+
+Deux barres d'icônes bordent la fenêtre. À gauche, les vues du projet :
+Explorateur (ses fichiers, et dessous ses dossiers liés), Historique du projet,
+Scripts, Skills, MCP, Worktrees. À droite, les onglets du panneau global. Cliquer
+une icône ouvre sa vue ; cliquer celle qui est ouverte replie la colonne, et la
+barre reste là pour la rouvrir. Au centre, le terminal et le bloc session sont
+deux îlots : la poignée qui les sépare règle la hauteur du bloc, un double-clic la
+remet par défaut. Largeurs, hauteurs, colonnes repliées et vue de chaque projet
+reviennent au lancement suivant. Le menu `⋯` du panneau global peut remettre ses
+onglets en ligne, au-dessus du panneau.
 
 Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
 Sa pastille porte deux comptes : les onglets qui attendent une réponse, et, en
@@ -76,8 +86,8 @@ préférences reviennent au lancement suivant. Le serveur les garde dans `ui-sta
 plutôt que dans le seul `localStorage`, propre à une origine : le port change d'un
 lancement à l'autre, et l'application rouvrirait sans rien. Les dossiers liés
 reviennent avec leur projet, qui les porte.
-Les blocs à modes se replient (`˅`) et expliquent le mode courant (`ⓘ`), avec un
-lien vers la page de ce guide qui le détaille. Le bouton 📖 de la barre de titre,
+Le bloc session se replie (`˅`) ; lui et les vues de la colonne du projet disent à
+quoi ils servent (`ⓘ`), avec un lien vers la page de ce guide qui les détaille. Le bouton 📖 de la barre de titre,
 ou `Ctrl+Maj+H`, ouvre ce guide.
 
 Les terminaux vivent dans le serveur, pas dans la page : un rechargement les

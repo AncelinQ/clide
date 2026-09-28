@@ -24,15 +24,21 @@ import type {
   Skill,
   SlashCommand,
 } from "@/lib/types";
+import { isInside } from "@/lib/workspace";
 import { getState, selectSession, selectedSessionOf, setState, useStore } from "@/state/store";
 import { resumeSession } from "@/state/terminals";
 import { agoLabel } from "@/components/panels/usage";
 
 // ─── History ────────────────────────────────────────────────────────────────
 
-export function HistoryPanel({ filter }: { filter: string }) {
+/**
+ * Sessions de Claude Code. À droite, tous les projets ou celui-ci, au choix ;
+ * dans la colonne du projet, `fixedScope` les borne au projet, sans choix.
+ */
+export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScope?: "project" }) {
   const state = useAsync(() => api<{ sessions: SessionSummary[] }>("/api/sessions"), []);
-  const [scope, setScope] = useState("all");
+  const [chosenScope, setScope] = useState("all");
+  const scope = fixedScope ?? chosenScope;
   const [removing, setRemoving] = useState<string>();
   const activeRoot = useStore((store) => store.activeRoot);
   const selectedSession = useStore(selectedSessionOf);
@@ -41,10 +47,9 @@ export function HistoryPanel({ filter }: { filter: string }) {
     <Async state={state}>
       {({ sessions }) => {
         const needle = filter.trim().toLowerCase();
-        const root = activeRoot?.toLowerCase();
         const shown = sessions
           .filter((session) =>
-            scope === "project" && root ? (session.effectiveCwd ?? "").toLowerCase().startsWith(root) : true,
+            scope === "project" && activeRoot ? isInside(activeRoot, session.effectiveCwd ?? session.projectDir) : true,
           )
           .filter((session) =>
             needle
@@ -56,15 +61,17 @@ export function HistoryPanel({ filter }: { filter: string }) {
 
         return (
           <>
-            <Select value={scope} onValueChange={setScope}>
-              <SelectTrigger className="mb-1 h-7 w-full text-[12px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("Tous les projets")}</SelectItem>
-                <SelectItem value="project">{t("Ce projet")}</SelectItem>
-              </SelectContent>
-            </Select>
+            {!fixedScope && (
+              <Select value={scope} onValueChange={setScope}>
+                <SelectTrigger className="mb-1 h-7 w-full text-[12px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("Tous les projets")}</SelectItem>
+                  <SelectItem value="project">{t("Ce projet")}</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             {shown.length === 0 ? (
               <Empty icon={History}>{t("Aucune session.")}</Empty>

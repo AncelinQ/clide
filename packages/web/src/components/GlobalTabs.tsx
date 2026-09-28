@@ -65,16 +65,23 @@ function TabButton({
   current: string;
   vertical?: boolean;
 }) {
+  const open = useStore((state) => state.showRight);
+  const active = open && tab.id === current;
   return (
     <button
       type="button"
       data-tab={tab.id}
-      onClick={() => setState({ globalTab: tab.id, showRight: true })}
+      aria-pressed={active}
+      // Dans la barre verticale, qui reste visible colonne repliée, cliquer
+      // l'onglet ouvert replie la colonne ; cliquer un autre la rouvre dessus.
+      onClick={() =>
+        vertical && active ? setState({ showRight: false }) : setState({ globalTab: tab.id, showRight: true })
+      }
       title={vertical ? t(tab.label) : undefined}
       className={cn(
         "flex shrink-0 flex-col items-center gap-1 rounded-lg border py-1.5 text-[10px] whitespace-nowrap transition-colors",
         vertical ? "w-12 px-0.5" : "px-1.5",
-        tab.id === current
+        (vertical ? active : tab.id === current)
           ? "border-primary bg-primary text-primary-foreground"
           : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
@@ -197,7 +204,7 @@ export function TabRail({ current }: { current: string }) {
   const hidden = GLOBAL_TABS.filter((tab) => !shown.includes(tab));
   return (
     // Défile quand la hauteur manque : les derniers onglets seraient sinon coupés, sans rien pour les atteindre.
-    <nav className="flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-l px-1 py-2 [scrollbar-width:none]">
+    <nav className="on-canvas flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto px-0.5 py-1 [scrollbar-width:none]">
       {shown.map((tab) => (
         <TabButton key={tab.id} tab={tab} current={current} vertical />
       ))}
