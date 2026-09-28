@@ -109,5 +109,8 @@ le projet ouvert qui la contient : Claude Code l'écrit, Clide ne fait que le li
 Au-delà de 20 Mo, seul le début est montré, avec le chemin du fichier entier ; ce
 transcript ne revient pas au rechargement.
 
-Les fichiers cachés sont écartés de la liste, sauf à les afficher par l'œil de son
-en-tête ; `node_modules` et `.git` le sont toujours.
+Les fichiers cachés et ceux que git ignore (`.gitignore`) sont écartés de la liste,
+sauf à les afficher par l'œil de son en-tête : les ignorés reviennent alors en
+italique, en retrait. Un fichier suivi par git reste visible même si un motif
+l'attrape, et hors d'un dépôt rien n'est ignoré ; `node_modules` et `.git` sont
+toujours écartés.

@@ -862,4 +862,7 @@ export const EN: Record<string, string> = {
   "échecs": "failures",
   "Un clic ou Espace ouvre un test, ▶ ou Entrée le lance ; flèches pour parcourir, → et ← pour déplier et replier.": "Click or Space opens a test, ▶ or Enter runs it; arrows to move, → and ← to expand and collapse.",
   "Aucun test ne répond au filtre.": "No test matches the filter.",
+  "Ignoré par git (.gitignore)": "Ignored by git (.gitignore)",
+  "Masquer les fichiers cachés et ignorés": "Hide hidden and ignored files",
+  "Afficher les fichiers cachés (.env, .claude…) et ceux que git ignore": "Show hidden files (.env, .claude…) and those git ignores",
 };

@@ -13,6 +13,8 @@ export interface DirectoryEntry {
   mtimeMs?: number;
   /** Des sessions Claude ont été lancées dans ce dossier. */
   hasSessions?: boolean;
+  /** Git ignore cette entrée (`.gitignore`) : montrée seulement avec les fichiers cachés, en retrait. */
+  ignored?: boolean;
 }
 
 export interface DirectoryListing {
