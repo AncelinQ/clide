@@ -17,7 +17,12 @@ import { DevPreview, useDevServers } from "@/components/DevPreview";
 import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { ContextArea } from "@/components/Menu";
+import { EditorPane } from "@/components/EditorPane";
+import { FileIcon } from "@/components/FileIcon";
 import { NewTabMenu, ToolsMenu, tabItems } from "@/components/TerminalMenus";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { baseName } from "@/lib/fs";
+import { closeFile, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
@@ -233,6 +238,81 @@ function QueueStrip({ queue }: { queue: { text: string; at?: string }[] }) {
   );
 }
 
+/** Onglet d'un fichier ouvert : son icône, un point tant qu'il n'est pas enregistré. */
+function FileTab({ path, active, onClose }: { path: string; active: boolean; onClose: () => void }) {
+  const dirty = useStore((state) => state.files[path]?.dirty === true);
+  const name = baseName(path);
+  return (
+    <ContextArea
+      items={[
+        { kind: "item", label: t("Fermer"), icon: X, run: onClose },
+        { kind: "separator" },
+        { kind: "item", label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(path) },
+      ]}
+    >
+      <div
+        title={path}
+        onClick={() => showFile(path)}
+        onAuxClick={(event) => event.button === 1 && onClose()}
+        className={cn(
+          "group flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 transition-colors",
+          active ? "border-border bg-muted text-foreground" : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+        )}
+      >
+        <FileIcon name={name} directory={false} className="size-3.5" />
+        <span className={cn(dirty && "italic")}>{name}</span>
+        {/* Le point d'un fichier modifié laisse place à la croix au survol, comme dans VS Code. */}
+        <span className="relative size-3">
+          {dirty && <span className="absolute inset-0.5 rounded-full bg-foreground/70 group-hover:hidden" />}
+          <X
+            className={cn("absolute inset-0 size-3 opacity-50 hover:opacity-100", dirty && "hidden group-hover:block")}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+          />
+        </span>
+      </div>
+    </ContextArea>
+  );
+}
+
+/** Fermer un fichier modifié : enregistrer, abandonner les changements, ou y rester. */
+function CloseFileDialog({ path, onDone }: { path: string | undefined; onDone: () => void }) {
+  return (
+    <Dialog open={!!path} onOpenChange={(open) => !open && onDone()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("Enregistrer {name} ?", { name: path ? baseName(path) : "" })}</DialogTitle>
+          <DialogDescription>{t("Ses changements seront perdus s'ils ne sont pas enregistrés.")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onDone}>
+            {t("Annuler")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (path) closeFile(path, { discard: true });
+              onDone();
+            }}
+          >
+            {t("Ne pas enregistrer")}
+          </Button>
+          <Button
+            onClick={async () => {
+              if (path && (await saveFile(path))) closeFile(path);
+              onDone();
+            }}
+          >
+            {t("Enregistrer")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TerminalArea() {
   const {
     terminals,
@@ -252,6 +332,13 @@ export function TerminalArea() {
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
+  const openFiles = project?.openFiles ?? [];
+  const activeFile = project?.activeFile ?? null;
+  const [closing, setClosing] = useState<string>();
+  // Un fichier modifié ne se ferme pas sans qu'on ait choisi quoi faire de ses changements.
+  const requestClose = (path: string) => {
+    if (!closeFile(path)) setClosing(path);
+  };
   const current = status ? live[status.id] : undefined;
   const servers = useDevServers(own.map((entry) => entry.info), previewOpen);
   const serving = servers.length > 0;
@@ -363,10 +450,13 @@ export function TerminalArea() {
           {own.map(({ info }) => (
             <ContextArea key={info.id} items={() => tabItems(info, own.map((entry) => entry.info.id))}>
             <div
-              onClick={() => focusTerminal(info.id)}
+              onClick={() => {
+                focusTerminal(info.id);
+                showTerminals();
+              }}
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
-                info.id === activeTerminalId
+                info.id === activeTerminalId && !activeFile
                   ? "border-border bg-muted text-foreground"
                   : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
@@ -406,6 +496,9 @@ export function TerminalArea() {
             </div>
             </ContextArea>
           ))}
+          {openFiles.map((path) => (
+            <FileTab key={path} path={path} active={path === activeFile} onClose={() => requestClose(path)} />
+          ))}
         </nav>
         <NewTabMenu disabled={!project} terminalId={status?.id} />
         <ToolsMenu
@@ -417,12 +510,19 @@ export function TerminalArea() {
         />
       </div>
 
+      <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
+
       <div ref={zone} className="mx-2 flex min-h-0 flex-1">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
-          {own.length === 0 && <Welcome root={project?.root} />}
+          {own.length === 0 && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
-            <TerminalHost key={info.id} info={info} active={info.id === status?.id} />
+            <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
+          {activeFile && (
+            <div className="absolute inset-0 bg-background">
+              <EditorPane path={activeFile} />
+            </div>
+          )}
         </div>
         {previewOpen && project && (
           <>

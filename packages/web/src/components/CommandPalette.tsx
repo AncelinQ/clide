@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { api, formatDate, post, shortName } from "@/lib/api";
+import { api, formatDate, shortName } from "@/lib/api";
 import { bindingsOf } from "@/lib/keymap";
 import type { SessionSummary } from "@/lib/types";
 import { commands, type Command } from "@/state/commands";
+import { openFile } from "@/state/editor";
 import { getState, selectSession, setBottomMode, setState, useStore } from "@/state/store";
 import { resizeActive } from "@/state/terminals";
 
@@ -133,7 +134,7 @@ function useEntries(open: boolean, mode: Mode, text: string): { entries: Entry[]
           id: `file:${path}`,
           label: shortName(path),
           ...(path.includes("/") ? { detail: path.slice(0, path.lastIndexOf("/")) } : {}),
-          run: () => void post("/api/files/open", { root, path, reveal: false }),
+          run: () => void openFile(`${root}\\${path.replace(/\//g, "\\")}`),
         }));
       }
       if (debounced.length < 2) return [];

@@ -215,6 +215,26 @@ describe("serveur local", () => {
     expect((await post("/api/fs/trash", { paths: [scratch] })).status).toBe(400);
   });
 
+  it("lit et enregistre un fichier pour l'éditeur, et refuse (409) s'il a changé entre-temps", async () => {
+    const path = join(scratch, "edite.md");
+    await writeFile(path, "v1\r\n");
+    const read = (await (await fetch(`${base()}/api/fs/read?path=${encodeURIComponent(path)}&token=${server.token}`)).json()) as {
+      text: string;
+      eol: string;
+      mtimeMs: number;
+    };
+    expect(read).toMatchObject({ text: "v1\n", eol: "\r\n" });
+    const write = (expectedMtimeMs: number) =>
+      fetch(`${base()}/api/fs/write?token=${server.token}`, {
+        method: "POST",
+        body: JSON.stringify({ path, text: "v2\n", expectedMtimeMs, eol: read.eol, bom: false }),
+      });
+    const saved = await write(read.mtimeMs);
+    expect(saved.status).toBe(200);
+    expect(await readFile(path, "utf8")).toBe("v2\r\n");
+    expect((await write(read.mtimeMs - 60_000)).status).toBe(409);
+  });
+
   it("signale un paramètre manquant plutôt que de deviner", async () => {
     const response = await fetch(`${base()}/api/files?token=${server.token}`);
     expect(response.status).toBe(400);

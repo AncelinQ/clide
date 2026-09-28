@@ -75,7 +75,10 @@ function onMessage(message: ServerMessage): void {
       const id = message.terminal.id;
       setState((current) => ({
         terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
-        projects: rememberTab(current.projects, owner, id),
+        // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
+        projects: rememberTab(current.projects, owner, id).map((project) =>
+          project.root === owner && owner === current.activeRoot && project.activeFile ? { ...project, activeFile: null } : project,
+        ),
         // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
         // reprend une session choisie dans History — sauf si l'on a changé de
         // projet entre la demande et la réponse : il attend qu'on y revienne.
@@ -374,7 +377,10 @@ export function focusTerminal(id: string): void {
       attention,
       activeRoot: entry.owner,
       followLive: true,
-      projects: rememberTab(current.projects, entry.owner, id),
+      // Regarder un terminal le remet au premier plan, devant un fichier ouvert.
+      projects: rememberTab(current.projects, entry.owner, id).map((project) =>
+        project.root === entry.owner && project.activeFile ? { ...project, activeFile: null } : project,
+      ),
     };
   });
   requestAnimationFrame(() => resize(id));

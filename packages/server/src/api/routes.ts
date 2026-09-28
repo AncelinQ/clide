@@ -42,6 +42,9 @@ import {
   createEntry,
   renameEntry,
   transfer,
+  readEditable,
+  writeEditable,
+  modifiedAt,
   resolveInside,
   settingsFile,
   type Scope,
@@ -703,6 +706,20 @@ export const routes: Record<string, Handler> = {
     return { files: rankFiles(await projectFiles(root), params.get("q") ?? "", 50) };
   },
 
+  /** Un fichier pour l'éditeur : texte en `\n` avec sa fin de ligne d'origine, image, ou ce qui ne s'édite pas. */
+  "/api/fs/read": async (params, { workspace }) => readEditable(await workspace.resolve(requireParam(params, "path"))),
+
+  /** Horodatage d'un fichier ouvert : l'éditeur le compare au sien au retour du focus. */
+  "/api/fs/stat": async (params, { workspace }) => ({
+    mtimeMs: await modifiedAt(await workspace.resolve(requireParam(params, "path"))),
+  }),
+
+  /** Chemin absolu d'un fichier touché par une session, pour l'ouvrir dans l'éditeur. */
+  "/api/session/files/path": async (params) => {
+    const { projection } = await TranscriptReader.fromRef(await findSession(requireParam(params, "id"))).poll();
+    return { path: locateFile(projection, requireParam(params, "path")).absolutePath };
+  },
+
   "/api/files/preview": async (params) =>
     previewFile(requireParam(params, "root"), requireParam(params, "path")),
 
@@ -1200,6 +1217,25 @@ export const mutations: Record<string, Mutation> = {
    */
   "/api/fs/copy": async (_params, context, body) => fsTransfer("copy", context, body),
   "/api/fs/move": async (_params, context, body) => fsTransfer("move", context, body),
+
+  /**
+   * Enregistre un fichier de l'éditeur. Refusé (409) s'il a changé sur disque
+   * depuis sa lecture : l'écraser effacerait ce qu'un autre y a écrit.
+   */
+  "/api/fs/write": async (_params, { workspace }, body) => {
+    const path = await workspace.resolve(requireField(body, "path", isString));
+    const text = body["text"];
+    const expectedMtimeMs = body["expectedMtimeMs"];
+    if (typeof text !== "string") throw new Error("champ `text` manquant ou invalide");
+    if (typeof expectedMtimeMs !== "number") throw new Error("champ `expectedMtimeMs` manquant ou invalide");
+    return {
+      mtimeMs: await writeEditable(path, text, {
+        expectedMtimeMs,
+        eol: body["eol"] === "\r\n" ? "\r\n" : "\n",
+        bom: body["bom"] === true,
+      }),
+    };
+  },
 
   /** Met à la corbeille de Windows, d'où l'on récupère ce qu'on regrette. */
   "/api/fs/trash": async (_params, { workspace, dataDir }, body) => {

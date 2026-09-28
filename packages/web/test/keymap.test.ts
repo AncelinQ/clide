@@ -37,6 +37,10 @@ describe("commandFor", () => {
     expect(commandFor("Ctrl+B", "other", COMMANDS, "vscode", {})).toBe("view.left");
   });
 
+  it("donne ses touches d'IDE à l'éditeur de fichiers, qui n'est pas un simple champ", () => {
+    expect(commandFor("Ctrl+B", "editor", COMMANDS, "vscode", {})).toBe("view.left");
+  });
+
   it("prend un défaut partout, terminal compris", () => {
     expect(commandFor("Ctrl+Shift+B", "terminal", COMMANDS, "vscode", {})).toBe("view.left");
   });

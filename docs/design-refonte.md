@@ -449,7 +449,11 @@ sequenceDiagram
   par chemin, l'état de vue sauvé à chaque changement d'onglet. Monaco se charge à la
   demande (import dynamique) pour ne pas alourdir le démarrage.
 - Renommer ou déplacer un fichier ouvert (§7) remplace l'uri du modèle sans perdre
-  l'historique d'annulation.
+  son texte.
+- Réalisé sans surveillance de fichiers : l'éditeur compare l'horodatage du disque
+  au sien quand il reprend le focus (`/api/fs/stat`), ce qui suffit à voir ce que
+  Claude a écrit entre-temps, sans `fs.watch` et ses pertes d'événements sous
+  Windows.
 - Diff : `DiffSource = { kind: "session"; sessionId; path } | { kind: "git"; root; path;
   ref: "HEAD" | "index" | commit } | { kind: "text"; original; modified }`, résolu par une
   route, rendu par l'éditeur de diff Monaco en lecture seule.

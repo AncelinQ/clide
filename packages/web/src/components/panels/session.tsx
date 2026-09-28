@@ -25,6 +25,7 @@ import type { ActivityEntry, FileDiff as Diff, PlanFileInfo, SessionCost, TokenU
 import { describeSessionCost, formatSessionCost } from "@/components/panels/costs";
 import { cn } from "cn";
 import { useNewestFirst } from "@/components/ModeBlock";
+import { openFile } from "@/state/editor";
 import { setState, useStore } from "@/state/store";
 
 /**
@@ -151,9 +152,20 @@ export function FilesPanel({ session }: { session: ShownSession }) {
                         ) : (
                           <button
                             type="button"
-                            title={t("Ouvrir avec l'application par défaut ; Maj+clic : afficher dans l'Explorateur")}
+                            title={t("Ouvrir dans Clide ; Maj+clic : avec l'application par défaut")}
                             className="text-left underline-offset-2 hover:text-primary hover:underline"
-                            onClick={(event) => openOnDisk(diff.trackingPath, event.shiftKey)}
+                            onClick={(event) => {
+                              if (event.shiftKey) {
+                                openOnDisk(diff.trackingPath, false);
+                                return;
+                              }
+                              setNotice(undefined);
+                              api<{ path: string }>("/api/session/files/path", { id: session.sessionId, path: diff.trackingPath })
+                                .then(({ path }) => openFile(path))
+                                .catch((error: unknown) =>
+                                  setNotice(t("Ouverture impossible : {error}", { error: (error as Error).message })),
+                                );
+                            }}
                           >
                             {diff.trackingPath}
                           </button>
