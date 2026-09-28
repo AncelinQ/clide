@@ -221,7 +221,8 @@ const ACTIVITY_LABEL: Record<string, string> = {
 /** Volume et coût de la session, en tête de son activité. */
 function Consumption({ session }: { session: ShownSession }) {
   const { tokens, price } = session;
-  const cost = formatSessionCost(price);
+  const showCosts = useStore((state) => state.showCosts);
+  const cost = showCosts ? formatSessionCost(price) : undefined;
   if (!tokens && !cost) return null;
   const parts = [
     tokens && t("contexte {tokens}", { tokens: formatTokens(tokens.context) }),
@@ -231,7 +232,7 @@ function Consumption({ session }: { session: ShownSession }) {
     cost,
   ].filter(Boolean);
   return (
-    <p className="py-1 text-[11px] text-muted-foreground" title={[tokens?.model, describeSessionCost(price)].filter(Boolean).join(" · ")}>
+    <p className="py-1 text-[11px] text-muted-foreground" title={[tokens?.model, showCosts && describeSessionCost(price)].filter(Boolean).join(" · ")}>
       {parts.join("  ·  ")}
     </p>
   );

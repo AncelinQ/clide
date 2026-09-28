@@ -52,6 +52,7 @@ describe("migrate depuis la version 1", () => {
       newestFirst: { activity: false },
       showHidden: true,
       keymap: "vscode",
+      showCosts: true,
     });
   });
 });
@@ -104,6 +105,12 @@ describe("migrate sur un état abîmé", () => {
     expect(state.layout.widths).toEqual({ left: 290, right: 400, preview: 0.5, bottom: 0.38 });
     expect(state.prefs.hiddenModes).toEqual({ session: ["plan"] });
     expect(state.prefs.shortcuts).toEqual({ a: "Ctrl+A" });
+  });
+
+  it("rouvre l'historique à la place de l'ancien onglet des réglages, et garde les coûts masqués", () => {
+    const state = migrate({ version: 2, projects: [], layout: { globalTab: "settings" }, prefs: { showCosts: false } });
+    expect(state.layout.globalTab).toBe("history");
+    expect(state.prefs.showCosts).toBe(false);
   });
 
   it("range les dossiers liés, ancien mode à part, sous l'explorateur", () => {

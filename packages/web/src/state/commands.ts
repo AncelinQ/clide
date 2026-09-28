@@ -2,7 +2,7 @@ import { t } from "@/i18n";
 import { commandFor, focusOf } from "@/lib/keymap";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
-import { activateProject, closeProject, getState, setBottomMode, setState } from "@/state/store";
+import { activateProject, closeProject, getState, openSettings, setBottomMode, setState } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
@@ -66,7 +66,6 @@ export function commands(): Command[] {
     ["mcp", "MCP"],
     ["usage", "Usage"],
     ["costs", "Coûts"],
-    ["settings", "Réglages"],
     ["notifications", "Alertes"],
   ];
   const nextProject = (step: number) => {
@@ -96,7 +95,13 @@ export function commands(): Command[] {
         if (id) focusTerminal(id);
       },
     },
-    { id: "preferences", group: t("Application"), label: t("Préférences"), run: () => setState({ preferencesOpen: true }) },
+    { id: "preferences", group: t("Application"), label: t("Réglages"), run: () => openSettings() },
+    {
+      id: "preferences.claude",
+      group: t("Application"),
+      label: t("Réglages de Claude Code (modèle, interface, permissions…)"),
+      run: () => openSettings("claude"),
+    },
     { id: "theme", group: t("Application"), label: t("Changer de thème"), run: cycleTheme },
 
     { id: "project.open", group: t("Projets"), label: t("Ouvrir un projet"), shortcut: "Ctrl+Shift+O", run: () => setState({ addingProject: true }) },

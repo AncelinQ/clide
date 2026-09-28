@@ -87,6 +87,10 @@ export interface State {
   visibleTabs: string[] | null;
   /** Modes masqués de chaque bloc à modes (`session`, `project`) ; ils restent dans son menu « ⋯ ». */
   hiddenModes: Record<string, string[]>;
+  /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
+  showCosts: boolean;
+  /** Section ouverte de la fenêtre Réglages. */
+  settingsSection: string;
   /** Jeu de raccourcis ajouté aux défauts : VS Code, JetBrains, ou ceux de Clide seuls. */
   keymap: Keymap;
   /** Ce que la palette montre à son ouverture : `>` commandes, `@` sessions, `#` recherche, rien pour les fichiers. */
@@ -117,7 +121,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks"
+  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks" | "showCosts"
 > {
   let raw: unknown;
   try {
@@ -159,6 +163,7 @@ let state: State = {
   paletteQuery: ">",
   addingProject: false,
   preferencesOpen: false,
+  settingsSection: "general",
   ...restored(),
 };
 
@@ -191,6 +196,7 @@ function persist(): void {
       newestFirst: state.newestFirst,
       showHidden: state.showHidden,
       keymap: state.keymap,
+      showCosts: state.showCosts,
     },
   };
   const text = JSON.stringify(saved);
@@ -298,6 +304,11 @@ export const bottomModeOf = (current: State = state): string =>
 /** Change le mode du bloc session d'un projet, l'actif par défaut. */
 export function setBottomMode(mode: string, root: string | null = state.activeRoot): void {
   if (root) updateProject(root, { bottomMode: mode });
+}
+
+/** Ouvre la fenêtre Réglages, sur une section au besoin. */
+export function openSettings(section?: string): void {
+  setState({ preferencesOpen: true, ...(section ? { settingsSection: section } : {}) });
 }
 
 /** Session choisie dans History pour le projet actif, s'il y en a une. */

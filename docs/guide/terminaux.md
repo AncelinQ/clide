@@ -47,7 +47,7 @@ ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 `haiku`, que Claude Code accepte toujours.
 
 C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
-le panneau global, onglet Réglages.
+Réglages › Claude Code.
 
 Le bouton `⋯` porte un point vert quand un serveur de développement tourne ; l'aperçu
 ouvert est coché dans son menu. Aucun bouton de la barre n'est coloré au repos, ce

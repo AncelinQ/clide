@@ -20,7 +20,7 @@ import { FolderInput } from "@/components/FolderInput";
 import { useAsync } from "@/components/common";
 import { GitChip, RepoMarks } from "@/components/GitChip";
 import { PullReportDialog, pullRepositories, usePullRunning } from "@/components/GitSync";
-import { PreferencesDialog } from "@/components/Preferences";
+import { SettingsDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +56,6 @@ export function TitleBar() {
   );
   const adding = useStore((state) => state.addingProject);
   const setAdding = (value: boolean) => setState({ addingProject: value });
-  const preferences = useStore((state) => state.preferencesOpen);
   const setPreferences = (value: boolean) => setState({ preferencesOpen: value });
   const [draft, setDraft] = useState("");
   const [branching, setBranching] = useState<string>();
@@ -255,9 +254,9 @@ export function TitleBar() {
             <Settings2 />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{t("Préférences")}</TooltipContent>
+        <TooltipContent>{t("Réglages")}</TooltipContent>
       </Tooltip>
-      <PreferencesDialog open={preferences} onOpenChange={setPreferences} />
+      <SettingsDialog />
 
       <Tooltip>
         <TooltipTrigger asChild>

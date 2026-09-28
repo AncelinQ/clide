@@ -248,6 +248,7 @@ export function TerminalArea() {
   const project = useStore(activeProject);
   const selectedSession = useStore(selectedSessionOf);
   const sessionMode = useStore(bottomModeOf);
+  const showCosts = useStore((state) => state.showCosts);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
@@ -459,7 +460,7 @@ export function TerminalArea() {
                   ? t("permissions {mode}", { mode: current.permissionMode })
                   : "",
               current?.tokens ? t("contexte {tokens}", { tokens: formatTokens(current.tokens.context) }) : "",
-              formatSessionCost(current?.price) ?? "",
+              (showCosts && formatSessionCost(current?.price)) || "",
             ]
               .filter(Boolean)
               .join("   ·   ")
