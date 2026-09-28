@@ -82,6 +82,8 @@ export interface State {
   newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
+  /** Dernier onglet regardé dans chaque projet, par racine ; jamais mémorisé. */
+  lastTab: Record<string, string>;
 }
 
 export interface Widths {
@@ -166,6 +168,7 @@ let state: State = {
   paletteOpen: false,
   addingProject: false,
   preferencesOpen: false,
+  lastTab: {},
   ...restored(),
 };
 
@@ -238,8 +241,23 @@ export function openProject(root: string, activate = true): void {
     projects: current.projects.some((existing) => existing.root === project.root)
       ? current.projects
       : [...current.projects, project],
-    ...(activate ? { activeRoot: project.root } : {}),
   }));
+  if (activate) activateProject(project.root);
+}
+
+/**
+ * Rend un projet actif avec l'onglet qu'on y regardait, ou son plus récent.
+ *
+ * Changer de projet sans changer d'onglet actif laisserait le bloc session et
+ * le pied de la zone décrire l'onglet de l'autre projet, jusqu'à un clic.
+ */
+export function activateProject(root: string): void {
+  setState((current) => {
+    const own = Object.entries(current.terminals).filter(([, entry]) => entry.owner === root);
+    const remembered = current.lastTab[root];
+    const id = remembered && own.some(([candidate]) => candidate === remembered) ? remembered : (own.at(-1)?.[0] ?? null);
+    return { activeRoot: root, activeTerminalId: id, followLive: true };
+  });
 }
 
 export function updateProject(root: string, patch: Partial<Project>): void {
@@ -251,11 +269,10 @@ export function updateProject(root: string, patch: Partial<Project>): void {
 }
 
 export function closeProject(root: string): void {
-  setState((current) => {
-    const projects = current.projects.filter((project) => project.root !== root);
-    return {
-      projects,
-      activeRoot: current.activeRoot === root ? (projects[0]?.root ?? null) : current.activeRoot,
-    };
-  });
+  const projects = getState().projects.filter((project) => project.root !== root);
+  setState({ projects });
+  if (getState().activeRoot !== root) return;
+  const next = projects[0]?.root;
+  if (next) activateProject(next);
+  else setState({ activeRoot: null, activeTerminalId: null });
 }

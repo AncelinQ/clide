@@ -65,8 +65,10 @@ dans la fenêtre de sélection de Windows — ouverte par Electron dans l'applic
 de bureau, par le serveur local dans un navigateur, dont la page ne voit jamais le
 chemin d'un dossier. Choisir un dossier l'ouvre aussitôt.
 
-Les projets ouverts, le projet actif et les préférences reviennent au lancement
-suivant. Le serveur les garde dans `ui-state.json` des données de l'application
+Revenir sur un projet, par sa pastille ou `Alt+Page suiv.`, ramène l'onglet qu'on
+y regardait, ou son plus récent : le bloc session et le pied de la zone décrivent
+ce projet, pas l'onglet de l'autre. Les projets ouverts, le projet actif et les
+préférences reviennent au lancement suivant. Le serveur les garde dans `ui-state.json` des données de l'application
 plutôt que dans le seul `localStorage`, propre à une origine : le port change d'un
 lancement à l'autre, et l'application rouvrirait sans rien. Les dossiers liés
 reviennent avec leur projet, qui les porte.

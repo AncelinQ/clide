@@ -315,8 +315,15 @@ export function focusTerminal(id: string): void {
     const attention = { ...current.attention };
     delete attention[id];
     // Regarder un terminal d'un autre projet suit ce projet : la colonne de
-    // gauche doit décrire ce qu'on regarde.
-    return { activeTerminalId: id, attention, activeRoot: entry.owner, followLive: true };
+    // gauche doit décrire ce qu'on regarde. Le projet retient l'onglet, pour
+    // le rendre quand on y revient.
+    return {
+      activeTerminalId: id,
+      attention,
+      activeRoot: entry.owner,
+      followLive: true,
+      lastTab: { ...current.lastTab, [entry.owner]: id },
+    };
   });
   requestAnimationFrame(() => resize(id));
 }
