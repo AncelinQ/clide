@@ -43,6 +43,7 @@ describe("migrate depuis la version 1", () => {
     expect(state.prefs).toEqual({
       theme: "dark",
       look: V1.look,
+      vscodeTheme: null,
       terminalFont: { family: "Cascadia Mono", size: 14 },
       shortcuts: { "tab.shell": "Ctrl+Shift+N", "tab.claude": null },
       language: "fr",

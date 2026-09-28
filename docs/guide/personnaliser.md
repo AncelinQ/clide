@@ -40,6 +40,24 @@ selon le mode : une toile bourgogne sous des îlots blancs s'écrit en clair. Le
 menus et fenêtres flottants ne sont pas sur la toile ; ils gardent les couleurs
 des îlots.
 
+## Thème VS Code
+
+Réglages › Apparence › **Charger un thème…** prend le `.json` d'un thème VS Code
+tel quel — celui du dossier `themes/` de son extension, commentaires et virgules
+finales compris ; ceux fournis avec VS Code sont sous
+`resources\app\extensions\theme-*\themes\` de son dossier d'installation.
+
+- Ses `colors` vont aux couleurs de l'interface (fond, texte, accent, bordures,
+  champs, menus), à la toile, au terminal (`terminal.background`, les seize
+  `terminal.ansi*`) et à l'éditeur ; une couleur que le thème ne donne pas garde
+  celle de Clide.
+- Ses `tokenColors` colorent l'éditeur : les portées TextMate courantes
+  (`comment`, `string`, `keyword`, `constant.numeric`, `entity.name.type`…) sont
+  traduites en jetons de Monaco, la plus générale l'emportant.
+- Le thème impose son mode, clair ou sombre, et passe devant l'habillage choisi
+  plus haut. **Retirer** rend les couleurs de Clide ; le thème est gardé avec les
+  préférences jusque-là.
+
 ## Langue
 
 L'interface est en français ou en anglais, au choix dans les préférences, ou selon

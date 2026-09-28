@@ -4,6 +4,7 @@ import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
 import { ownerOf } from "@/lib/workspace";
 import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
+import type { EditorTheme } from "@/lib/vscode-theme";
 import { afterSave, installGutter } from "@/state/gutter";
 import { getState, setState, type OpenFile, type Project } from "@/state/store";
 
@@ -65,6 +66,24 @@ function isDark(): boolean {
   return document.documentElement.classList.contains("dark");
 }
 
+/** Couleurs d'un thème VS Code importé ; sans lui, les thèmes de Monaco suivent le mode. */
+let importedTheme: EditorTheme | null = null;
+
+function applyMonacoTheme(m: MonacoModule): void {
+  if (!importedTheme) {
+    m.editor.setTheme(isDark() ? "vs-dark" : "vs");
+    return;
+  }
+  m.editor.defineTheme("clide-imported", { base: importedTheme.base, inherit: true, rules: importedTheme.rules, colors: importedTheme.colors });
+  m.editor.setTheme("clide-imported");
+}
+
+/** Donne à l'éditeur les couleurs d'un thème importé, ou les lui retire. */
+export function setEditorTheme(theme: EditorTheme | null): void {
+  importedTheme = theme;
+  if (monaco) applyMonacoTheme(monaco);
+}
+
 /** L'éditeur, créé une fois ; son thème suit celui de l'application. */
 async function ensureEditor(): Promise<Monaco.editor.IStandaloneCodeEditor> {
   const m = await load();
@@ -78,7 +97,8 @@ async function ensureEditor(): Promise<Monaco.editor.IStandaloneCodeEditor> {
     renderWhitespace: "selection",
     tabSize: 2,
   });
-  new MutationObserver(() => m.editor.setTheme(isDark() ? "vs-dark" : "vs")).observe(document.documentElement, {
+  applyMonacoTheme(m);
+  new MutationObserver(() => applyMonacoTheme(m)).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["class"],
   });
