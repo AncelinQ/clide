@@ -8,6 +8,7 @@ import { bindingsOf } from "@/lib/keymap";
 import type { SessionSummary } from "@/lib/types";
 import { commands, type Command } from "@/state/commands";
 import { openFile } from "@/state/editor";
+import { cachedPrompts, runPrompt } from "@/state/prompts";
 import { getState, selectSession, setBottomMode, setState, useStore } from "@/state/store";
 import { resizeActive } from "@/state/terminals";
 
@@ -35,7 +36,7 @@ interface Entry {
   run: () => void;
 }
 
-type Mode = "files" | "commands" | "sessions" | "search";
+type Mode = "files" | "commands" | "sessions" | "search" | "prompts";
 
 /** La source se lit au premier caractère, comme dans VS Code. */
 function modeOf(query: string): { mode: Mode; text: string } {
@@ -43,11 +44,13 @@ function modeOf(query: string): { mode: Mode; text: string } {
   if (first === ">") return { mode: "commands", text: query.slice(1).trim() };
   if (first === "@") return { mode: "sessions", text: query.slice(1).trim() };
   if (first === "#") return { mode: "search", text: query.slice(1).trim() };
+  if (first === "/") return { mode: "prompts", text: query.slice(1).trim() };
   return { mode: "files", text: query.trim() };
 }
 
 const PLACEHOLDER: Record<Mode, string> = {
-  files: "Fichier du projet — > commandes, @ sessions, # recherche",
+  files: "Fichier du projet — > commandes, @ sessions, # recherche, / prompts et skills",
+  prompts: "Prompt enregistré ou skill, envoyé à l'onglet Claude…",
   commands: "Chercher une action…",
   sessions: "Chercher une session…",
   search: "Chercher dans les sessions…",
@@ -106,6 +109,7 @@ function useEntries(open: boolean, mode: Mode, text: string): { entries: Entry[]
   const debounced = useDebounced(text, mode === "search" ? 250 : 120);
   const [remote, setRemote] = useState<{ key: string; entries: Entry[] }>({ key: "", entries: [] });
   const [sessions, setSessions] = useState<SessionSummary[]>();
+  const [skills, setSkills] = useState<{ name: string; description?: string }[]>();
   const root = useStore((state) => state.activeRoot);
 
   const all = useMemo(() => (open ? commands().filter((command) => command.id !== "palette") : []), [open]);
@@ -113,14 +117,20 @@ function useEntries(open: boolean, mode: Mode, text: string): { entries: Entry[]
   useEffect(() => {
     if (!open) {
       setSessions(undefined);
+      setSkills(undefined);
       return;
+    }
+    if (mode === "prompts" && !skills) {
+      void api<{ skills: { name: string; description?: string }[] }>("/api/skills", root ? { root } : {})
+        .then((result) => setSkills(result.skills))
+        .catch(() => setSkills([]));
     }
     if (mode === "sessions" && !sessions) {
       void api<{ sessions: SessionSummary[] }>("/api/sessions")
         .then((result) => setSessions(result.sessions))
         .catch(() => setSessions([]));
     }
-  }, [open, mode, sessions]);
+  }, [open, mode, sessions, skills, root]);
 
   const key = `${mode}|${debounced}|${root}`;
   useEffect(() => {
@@ -183,6 +193,30 @@ function useEntries(open: boolean, mode: Mode, text: string): { entries: Entry[]
         };
       });
     return { entries, loading: false };
+  }
+
+  if (mode === "prompts") {
+    const prompts = cachedPrompts()
+      .filter((prompt) => hasWords(`${prompt.label} ${prompt.text}`, text))
+      .map((prompt) => ({
+        id: `prompt:${prompt.id}`,
+        aside: prompt.scope === "project" ? t("projet") : t("perso"),
+        label: prompt.label,
+        detail: prompt.text,
+        run: () => void runPrompt(prompt),
+      }));
+    const skillEntries = (skills ?? [])
+      .filter((skill) => hasWords(`${skill.name} ${skill.description ?? ""}`, text))
+      .slice(0, 40)
+      .map((skill) => ({
+        id: `skill:${skill.name}`,
+        aside: t("skill"),
+        label: `/${skill.name}`,
+        ...(skill.description ? { detail: skill.description } : {}),
+        // Un skill s'insère : ce qui suit son nom est la demande, à écrire.
+        run: () => void runPrompt({ id: skill.name, label: skill.name, text: `/${skill.name} `, mode: "insert", scope: "user" }),
+      }));
+    return { entries: [...prompts, ...skillEntries], loading: false };
   }
 
   if (mode === "sessions") {

@@ -134,3 +134,27 @@ Un serveur qui demande une authentification porte un bouton `/mcp` : il tape la
 commande dans l'onglet Claude du projet, l'actif s'il en est un, où Claude Code
 mène l'authentification. Sans Échap devant, contrairement aux shells : dans Claude
 Code, Échap interrompt le tour en cours.
+
+## Prompts enregistrés
+
+Ce qu'on envoie souvent à Claude — `/sc:brainstorm`, une consigne récurrente — se
+range dans la vue Prompts de la colonne du projet. Un prompt a un nom, un texte, et
+une manière de partir : **envoyer**, ou **insérer** pour compléter avant d'envoyer.
+Ceux du projet vont dans `.claude/clide-prompts.json`, qu'on peut versionner et
+partager ; les siens dans les données de Clide, pour tous les projets.
+
+Le texte peut porter des variables, remplacées à l'envoi : `{sélection}` (le texte
+choisi dans l'éditeur), `{fichier}` (le fichier ouvert au centre), `{branche}`,
+`{saisie}` (demandée dans une petite fenêtre). Une variable sans valeur arrête
+l'envoi et le dit : « explique {sélection} » ne part pas sans sélection.
+
+Un prompt part dans l'onglet Claude du projet ; sans onglet Claude, un onglet
+s'ouvre avec le prompt en argument de `claude`. On le lance d'un clic dans la vue,
+par la palette (`/` puis son nom — les skills y sont aussi), par `⋯` › Prompts dans
+la barre du terminal, ou par un raccourci : chaque prompt est une commande, à qui
+Réglages › Raccourcis donne une touche.
+
+Sous la liste, **Souvent tapées** relève les commandes `/…` tapées au moins trois
+fois ces trente derniers jours, hors de celles de Claude Code lui-même et de celles
+déjà enregistrées ; « Enregistrer » en fait un prompt en un clic.
+

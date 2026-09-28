@@ -195,7 +195,7 @@ function projectFiles(root: string): Promise<string[]> {
 let searchRefreshedAt = 0;
 let searchRefreshing: Promise<void> | undefined;
 
-async function refreshSearch(search: SearchIndex): Promise<void> {
+export async function refreshSearch(search: SearchIndex): Promise<void> {
   if (Date.now() - searchRefreshedAt < 10_000) return;
   searchRefreshing ??= (async () => {
     await search.refresh();

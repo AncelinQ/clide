@@ -472,3 +472,11 @@ export function dirtyFiles(root?: string): string[] {
     .flatMap((project) => project.openFiles)
     .filter((path) => files[path]?.dirty);
 }
+
+/** Texte sélectionné dans le fichier montré, pour la variable `{sélection}` des prompts. */
+export function selectedText(): string {
+  const selection = editor?.getSelection();
+  const model = editor?.getModel();
+  if (!selection || !model || selection.isEmpty()) return "";
+  return model.getValueInRange(selection);
+}
