@@ -39,17 +39,17 @@ describe("tabToShow", () => {
   };
 
   it("rend l'onglet qu'on regardait dans le projet", () => {
-    expect(tabToShow(terminals, { A: "a1" }, "A")).toBe("a1");
+    expect(tabToShow(terminals, "a1", "A")).toBe("a1");
   });
 
   it("prend le plus récent quand l'onglet retenu est fermé ou inconnu", () => {
-    expect(tabToShow(terminals, { A: "fermé" }, "A")).toBe("a2");
-    expect(tabToShow(terminals, {}, "A")).toBe("a2");
+    expect(tabToShow(terminals, "fermé", "A")).toBe("a2");
+    expect(tabToShow(terminals, null, "A")).toBe("a2");
   });
 
   it("ne rend jamais l'onglet d'un autre projet", () => {
-    expect(tabToShow(terminals, { A: "b1" }, "A")).toBe("a2");
-    expect(tabToShow(terminals, {}, "C")).toBeNull();
+    expect(tabToShow(terminals, "b1", "A")).toBe("a2");
+    expect(tabToShow(terminals, undefined, "C")).toBeNull();
   });
 });
 

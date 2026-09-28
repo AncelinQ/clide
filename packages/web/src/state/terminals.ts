@@ -6,7 +6,15 @@ import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { dismissSystem, notifySystem } from "@/state/notify";
-import { activateProject, getState, openProject, setState, type TerminalFont } from "@/state/store";
+import {
+  activateProject,
+  forgetTab,
+  getState,
+  openProject,
+  rememberTab,
+  setState,
+  type TerminalFont,
+} from "@/state/store";
 
 /**
  * Les instances xterm vivent hors de React.
@@ -67,7 +75,7 @@ function onMessage(message: ServerMessage): void {
       const id = message.terminal.id;
       setState((current) => ({
         terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
-        lastTab: { ...current.lastTab, [owner]: id },
+        projects: rememberTab(current.projects, owner, id),
         // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
         // reprend une session choisie dans History — sauf si l'on a changé de
         // projet entre la demande et la réponse : il attend qu'on y revienne.
@@ -129,9 +137,12 @@ function onMessage(message: ServerMessage): void {
           previous?.planMode !== true &&
           message.terminalId === current.activeTerminalId &&
           current.followLive;
+        const owner = current.terminals[message.terminalId]?.owner;
         return {
           live: { ...current.live, [message.terminalId]: message.session },
-          ...(entering ? { sessionMode: "plan" } : {}),
+          ...(entering && owner
+            ? { projects: current.projects.map((project) => (project.root === owner ? { ...project, bottomMode: "plan" } : project)) }
+            : {}),
         };
       });
       break;
@@ -177,7 +188,9 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
     terminals: next,
     activeTerminalId:
       ownActiveTab(next, current.activeTerminalId, current.activeRoot) ??
-      (current.activeRoot ? tabToShow(next, current.lastTab, current.activeRoot) : null),
+      (current.activeRoot
+        ? tabToShow(next, current.projects.find((project) => project.root === current.activeRoot)?.activeTab, current.activeRoot)
+        : null),
   });
 }
 
@@ -285,12 +298,11 @@ export function closeTerminal(id: string): void {
     const live = { ...current.live };
     delete live[id];
     const remaining = Object.values(terminals).filter((entry) => entry.owner === current.activeRoot);
-    const lastTab = Object.fromEntries(Object.entries(current.lastTab).filter(([, tab]) => tab !== id));
     return {
       terminals,
       attention,
       live,
-      lastTab,
+      projects: forgetTab(current.projects, id),
       activeTerminalId:
         current.activeTerminalId === id ? (remaining[0]?.info.id ?? null) : current.activeTerminalId,
     };
@@ -362,7 +374,7 @@ export function focusTerminal(id: string): void {
       attention,
       activeRoot: entry.owner,
       followLive: true,
-      lastTab: { ...current.lastTab, [entry.owner]: id },
+      projects: rememberTab(current.projects, entry.owner, id),
     };
   });
   requestAnimationFrame(() => resize(id));

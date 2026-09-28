@@ -5,7 +5,7 @@ import { Async, Empty, useAsync } from "@/components/common";
 import { t } from "@/i18n";
 import { api, formatDate, shortName } from "@/lib/api";
 import type { SessionSummary } from "@/lib/types";
-import { selectSession, setState } from "@/state/store";
+import { selectSession, setBottomMode, setState } from "@/state/store";
 
 interface Hit {
   sessionId: string;
@@ -121,8 +121,8 @@ export function SearchPanel({ query }: { query: string }) {
                         sessionId: hit.sessionId,
                         ...(hit.title ? { title: hit.title } : {}),
                       } as SessionSummary);
+                      setBottomMode("activity");
                       setState({
-                        sessionMode: "activity",
                         sessionCollapsed: false,
                         activityFocus: { sessionId: hit.sessionId, index: hit.index },
                       });

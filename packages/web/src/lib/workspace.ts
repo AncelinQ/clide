@@ -42,13 +42,12 @@ export function ownerOf(path: string, roots: readonly string[]): string | undefi
  */
 export function tabToShow(
   terminals: Record<string, { owner: string }>,
-  lastTab: Record<string, string>,
+  remembered: string | null | undefined,
   root: string,
 ): string | null {
   const own = Object.entries(terminals)
     .filter(([, entry]) => entry.owner === root)
     .map(([id]) => id);
-  const remembered = lastTab[root];
   if (remembered && own.includes(remembered)) return remembered;
   return own.at(-1) ?? null;
 }
