@@ -665,4 +665,18 @@ export const EN: Record<string, string> = {
   "Les limites de l'abonnement et ce que coûtent les sessions.": "The plan's limits and what sessions cost.",
   "Les scripts du package.json du projet et de ses dossiers liés, lancés dans un onglet.":
     "The package.json scripts of the project and its linked folders, run in a tab.",
+  "Nouveau fichier": "New file",
+  "Nouveau dossier": "New folder",
+  Couper: "Cut",
+  Coller: "Paste",
+  Dupliquer: "Duplicate",
+  Renommer: "Rename",
+  "Ouvrir avec l'application par défaut": "Open with the default app",
+  Masquer: "Hide",
+  "Des noms sont déjà pris": "Some names are taken",
+  "{names} existe déjà dans {folder}.": "{names} already exists in {folder}.",
+  "Remplacer envoie l'existant à la corbeille ; garder les deux nomme la copie « nom (2) ».":
+    "Replace sends the existing one to the Recycle Bin; keep both names the copy \"name (2)\".",
+  "Garder les deux": "Keep both",
+  Remplacer: "Replace",
 };

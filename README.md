@@ -225,3 +225,8 @@ sur l'immobilité du disque.
 
 Clide est publié sous licence MIT, reproduite dans `LICENSE`. ClaudeTerm, dont
 vient l'idée, garde sa propre licence : aucun de ses fichiers n'est repris ici.
+
+Les icônes de fichiers et de dossiers sont celles de
+[Catppuccin pour VS Code](https://github.com/catppuccin/vscode-icons) (MIT), recopiées
+par `node --import tsx tools/vendor-icons.mjs` dans `packages/web/public/catppuccin`,
+avec leur licence.

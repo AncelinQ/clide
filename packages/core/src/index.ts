@@ -109,6 +109,7 @@ export {
 } from "./files/browser.js";
 export { IMAGE_LIMIT, TEXT_LIMIT, previewFile, type FilePreview } from "./files/preview.js";
 export { SKIPPED_DIRECTORIES, fuzzyScore, listProjectFiles, rankFiles } from "./files/find.js";
+export { checkName, createEntry, keepBothName, renameEntry, transfer, type OnConflict, type Outcome } from "./files/operations.js";
 
 export {
   SettingsEditor,

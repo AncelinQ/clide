@@ -39,6 +39,9 @@ import {
   previewFile,
   listProjectFiles,
   rankFiles,
+  createEntry,
+  renameEntry,
+  transfer,
   resolveInside,
   settingsFile,
   type Scope,
@@ -159,6 +162,20 @@ function uiStateFile(dataDir: string): string {
 
 /** Borne l'état reçu : il s'écrit sur le disque à chaque changement. */
 const UI_STATE_MAX_BYTES = 256 * 1024;
+
+async function fsTransfer(mode: "copy" | "move", context: ApiContext, body: Record<string, unknown>) {
+  const { workspace, dataDir } = context;
+  const sources = await Promise.all(requireField(body, "sources", isArray).filter(isString).map((path) => workspace.resolve(path)));
+  if (sources.length === 0) throw new Error("rien à copier ni à déplacer");
+  const targetDir = await workspace.resolve(requireField(body, "targetDir", isString));
+  const onConflict = body["onConflict"] === "keepBoth" || body["onConflict"] === "replace" ? body["onConflict"] : "ask";
+  return {
+    outcomes: await transfer(mode, sources, targetDir, {
+      onConflict,
+      trash: (paths) => moveToRecycleBin(paths, dataDir),
+    }),
+  };
+}
 
 /** Fichiers de chaque projet, pour la recherche par nom, avec l'heure de leur relevé. */
 const fileLists = new Map<string, { files: Promise<string[]>; at: number }>();
@@ -1161,6 +1178,37 @@ export const mutations: Record<string, Mutation> = {
     const removed = await new GitWorktrees().remove(root, path);
     await workspace.refresh();
     return removed;
+  },
+
+  /** Crée un fichier vide ou un dossier dans un dossier des projets ouverts. */
+  "/api/fs/create": async (_params, { workspace }, body) => {
+    const parent = await workspace.resolve(requireField(body, "parent", isString));
+    const kind = body["kind"] === "dir" ? "dir" : "file";
+    return { path: await createEntry(parent, requireField(body, "name", isString), kind) };
+  },
+
+  /** Renomme sur place : le nouveau nom reste dans le même dossier. */
+  "/api/fs/rename": async (_params, { workspace }, body) => {
+    const path = await workspace.resolve(requireField(body, "path", isString));
+    return { path: await renameEntry(path, requireField(body, "name", isString)) };
+  },
+
+  /**
+   * Copie ou déplace des éléments vers un dossier. Sources et cible sont bornées
+   * aux projets ouverts, aux dossiers liés et aux worktrees ; rien n'est écrasé :
+   * `ask` rend les conflits, `replace` met d'abord la cible à la corbeille.
+   */
+  "/api/fs/copy": async (_params, context, body) => fsTransfer("copy", context, body),
+  "/api/fs/move": async (_params, context, body) => fsTransfer("move", context, body),
+
+  /** Met à la corbeille de Windows, d'où l'on récupère ce qu'on regrette. */
+  "/api/fs/trash": async (_params, { workspace, dataDir }, body) => {
+    const paths = await Promise.all(requireField(body, "paths", isArray).filter(isString).map((path) => workspace.resolve(path)));
+    for (const path of paths) {
+      if (workspace.open.some((root) => normalizePath(root) === normalizePath(path))) throw new Error("un projet ouvert ne se met pas à la corbeille");
+    }
+    await moveToRecycleBin(paths, dataDir);
+    return { trashed: paths };
   },
 
   /**
