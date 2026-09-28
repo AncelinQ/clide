@@ -43,6 +43,8 @@ export interface SavedPrefs {
   hiddenModes: Record<string, string[]>;
   newestFirst: Record<string, boolean>;
   showHidden: boolean;
+  /** Jeu de raccourcis ajouté aux défauts de Clide. */
+  keymap: "clide" | "vscode" | "jetbrains";
 }
 
 export interface SavedState {
@@ -73,6 +75,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   hiddenModes: {},
   newestFirst: {},
   showHidden: false,
+  keymap: "vscode",
 };
 
 export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
@@ -154,6 +157,7 @@ function prefs(value: unknown): SavedPrefs {
     ),
     newestFirst: recordOf(source["newestFirst"], (item): item is boolean => typeof item === "boolean"),
     showHidden: flag(source["showHidden"], DEFAULT_PREFS.showHidden),
+    keymap: oneOf(source["keymap"], ["clide", "vscode", "jetbrains"], DEFAULT_PREFS.keymap),
   };
 }
 

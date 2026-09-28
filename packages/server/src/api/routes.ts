@@ -38,6 +38,8 @@ import {
   readPlanFile,
   withPlanFile,
   previewFile,
+  listProjectFiles,
+  rankFiles,
   resolveInside,
   settingsFile,
   type Scope,
@@ -159,6 +161,18 @@ function uiStateFile(dataDir: string): string {
 
 /** Borne l'état reçu : il s'écrit sur le disque à chaque changement. */
 const UI_STATE_MAX_BYTES = 256 * 1024;
+
+/** Fichiers de chaque projet, pour la recherche par nom, avec l'heure de leur relevé. */
+const fileLists = new Map<string, { files: Promise<string[]>; at: number }>();
+const FILE_LIST_TTL_MS = 15_000;
+
+function projectFiles(root: string): Promise<string[]> {
+  const cached = fileLists.get(root);
+  if (cached && Date.now() - cached.at < FILE_LIST_TTL_MS) return cached.files;
+  const files = listProjectFiles(root);
+  fileLists.set(root, { files, at: Date.now() });
+  return files;
+}
 
 let searchRefreshedAt = 0;
 let searchRefreshing: Promise<void> | undefined;
@@ -669,6 +683,16 @@ export const routes: Record<string, Handler> = {
       }),
     );
     return { ...listing, breadcrumb: breadcrumb(listing) };
+  },
+
+  /**
+   * Fichiers du projet dont le chemin répond à une recherche approximative, pour
+   * la palette. La liste d'un projet est gardée quelques secondes : chaque touche
+   * tapée relance la recherche, pas le parcours de l'arbre.
+   */
+  "/api/files/find": async (params) => {
+    const root = requireParam(params, "root");
+    return { files: rankFiles(await projectFiles(root), params.get("q") ?? "", 50) };
   },
 
   "/api/files/preview": async (params) =>

@@ -1,4 +1,5 @@
 import { t } from "@/i18n";
+import { commandFor, focusOf } from "@/lib/keymap";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
 import { activateProject, closeProject, getState, setBottomMode, setState } from "@/state/store";
@@ -82,7 +83,19 @@ export function commands(): Command[] {
   };
 
   return [
-    { id: "palette", group: t("Application"), label: t("Palette de commandes"), shortcut: "Ctrl+Shift+P", run: () => setState({ paletteOpen: true }) },
+    { id: "palette", group: t("Application"), label: t("Palette de commandes"), shortcut: "Ctrl+Shift+P", run: () => openPalette(">") },
+    { id: "palette.files", group: t("Application"), label: t("Aller à un fichier du projet"), run: () => openPalette("") },
+    { id: "palette.sessions", group: t("Application"), label: t("Aller à une session"), run: () => openPalette("@") },
+    { id: "palette.search", group: t("Application"), label: t("Chercher dans les sessions"), run: () => openPalette("#") },
+    {
+      id: "terminal.focus",
+      group: t("Onglets"),
+      label: t("Revenir au terminal"),
+      run: () => {
+        const id = activeTab();
+        if (id) focusTerminal(id);
+      },
+    },
     { id: "preferences", group: t("Application"), label: t("Préférences"), run: () => setState({ preferencesOpen: true }) },
     { id: "theme", group: t("Application"), label: t("Changer de thème"), run: cycleTheme },
 
@@ -197,6 +210,11 @@ export function commands(): Command[] {
   ];
 }
 
+/** Ouvre la palette sur un préfixe : `>` commandes, `@` sessions, `#` recherche, rien pour les fichiers. */
+export function openPalette(prefix: string): void {
+  setState({ paletteOpen: true, paletteQuery: prefix });
+}
+
 /** Raccourci effectif d'une commande : celui de l'utilisateur, sinon le défaut. */
 export function effectiveShortcut(command: Command, overrides: Record<string, string | null>): string | undefined {
   if (command.id in overrides) return overrides[command.id] ?? undefined;
@@ -218,9 +236,12 @@ export function shortcutOf(event: KeyboardEvent): string | undefined {
   return [event.ctrlKey && "Ctrl", event.altKey && "Alt", event.shiftKey && "Shift", key].filter(Boolean).join("+");
 }
 
-/** Une combinaison qui ne porte ni Ctrl ni Alt se tape : elle ne peut pas servir de raccourci. */
+/**
+ * Une combinaison qui ne porte ni Ctrl ni Alt se tape : elle ne peut pas servir
+ * de raccourci. Les touches de fonction font exception, elles n'écrivent rien.
+ */
 export function isUsableShortcut(shortcut: string): boolean {
-  return /^(Ctrl|Alt)\+/.test(shortcut);
+  return /^(Ctrl|Alt)\+/.test(shortcut) || /^(Shift\+)?F([1-9]|1[0-2])$/.test(shortcut);
 }
 
 /**
@@ -237,8 +258,10 @@ export function listenShortcuts(): () => void {
     if (document.body.dataset["recordingShortcut"] === "true") return;
     const shortcut = shortcutOf(event);
     if (!shortcut || !isUsableShortcut(shortcut)) return;
-    const { shortcuts } = getState();
-    const command = commands().find((entry) => effectiveShortcut(entry, shortcuts) === shortcut);
+    const { shortcuts, keymap } = getState();
+    const all = commands();
+    const id = commandFor(shortcut, focusOf(event.target), all, keymap, shortcuts);
+    const command = all.find((entry) => entry.id === id);
     if (!command) return;
     event.preventDefault();
     event.stopPropagation();
