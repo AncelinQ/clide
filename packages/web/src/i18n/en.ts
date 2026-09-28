@@ -808,4 +808,6 @@ export const EN: Record<string, string> = {
   "Lancer le test « {name} »": "Run the test “{name}”",
   "Arrêter « {name} » (Ctrl+C)": "Stop “{name}” (Ctrl+C)",
   "Lancer « {name} » dans son onglet": "Run “{name}” in its tab",
+  "Déplacer l'onglet à gauche": "Move tab left",
+  "Déplacer l'onglet à droite": "Move tab right",
 };

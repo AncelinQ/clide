@@ -16,6 +16,7 @@ import {
 import { useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
+import { Reorderable } from "@/components/Reorderable";
 import { FolderInput } from "@/components/FolderInput";
 import { useAsync } from "@/components/common";
 import { GitChip, RepoMarks } from "@/components/GitChip";
@@ -42,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { api, openDoc } from "@/lib/api";
+import { dropTab } from "@/lib/tab-order";
 import type { SessionSummary } from "@/lib/types";
 import { activateProject, closeProject, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
@@ -56,6 +58,12 @@ export function TitleBar() {
   );
   const adding = useStore((state) => state.addingProject);
   const setAdding = (value: boolean) => setState({ addingProject: value });
+  // Ranger les projets, c'est réordonner leur liste : c'est elle qui est sauvegardée.
+  const dropProject = (moved: string, target: string, side: "before" | "after") =>
+    setState((current) => {
+      const order = dropTab(current.projects.map((project) => project.root), moved, target, side);
+      return { projects: order.map((root) => current.projects.find((project) => project.root === root)).filter((project) => project !== undefined) };
+    });
   const setPreferences = (value: boolean) => setState({ preferencesOpen: value });
   const [draft, setDraft] = useState("");
   const [branching, setBranching] = useState<string>();
@@ -122,71 +130,73 @@ export function TitleBar() {
           ).length;
           const active = project.root === activeRoot;
           return (
-            <ContextMenu key={project.root}>
-              <ContextMenuTrigger asChild>
-                <div
-                  title={project.root}
-                  onClick={() => activateProject(project.root)}
-                  className={cn(
-                    "group flex max-w-64 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 transition-colors",
-                    active
-                      ? "border-border bg-card text-foreground shadow-sm"
-                      : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  <SquareDashed className="size-3.5 shrink-0" />
-                  <span className="truncate">{project.name}</span>
-                  <RepoMarks root={project.root} />
-                  {waiting > 0 && (
-                    <Badge className="h-4 min-w-4 justify-center rounded-full px-1 text-[10px] tabular-nums">
-                      {waiting}
-                    </Badge>
-                  )}
-                  {busy > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="h-4 min-w-4 justify-center rounded-full border-emerald-500/60 px-1 text-[10px] text-emerald-600 tabular-nums dark:text-emerald-400"
-                      title={t("{count} Claude en cours", { count: busy })}
-                    >
-                      {busy}
-                    </Badge>
-                  )}
-                  <X
-                    className="size-3.5 shrink-0 rounded-full opacity-50 hover:bg-accent hover:opacity-100"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      close(project.root);
-                    }}
-                  />
-                </div>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem
-                  disabled={pulling}
-                  onSelect={() => void pullRepositories([project.root], { label: t("Mettre à jour {name}", { name: project.name }) })}
-                >
-                  <CloudDownload /> {t("Mettre à jour (git pull)")}
-                </ContextMenuItem>
-                <ContextMenuItem
-                  disabled={pulling}
-                  onSelect={() =>
-                    void pullRepositories([project.root], {
-                      withLinks: true,
-                      label: t("Mettre à jour {name} et ses dossiers liés", { name: project.name }),
-                    })
-                  }
-                >
-                  <CloudDownload /> {t("Mettre à jour avec les dossiers liés")}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={() => setBranching(project.root)}>
-                  <GitBranch /> {t("Changer de branche…")}
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem onSelect={() => close(project.root)}>
-                  <X /> {t("Fermer le projet")}
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
+            <Reorderable key={project.root} group="projects" id={project.root} onDrop={dropProject}>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div
+                    title={project.root}
+                    onClick={() => activateProject(project.root)}
+                    className={cn(
+                      "group flex max-w-64 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 transition-colors",
+                      active
+                        ? "border-border bg-card text-foreground shadow-sm"
+                        : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                  >
+                    <SquareDashed className="size-3.5 shrink-0" />
+                    <span className="truncate">{project.name}</span>
+                    <RepoMarks root={project.root} />
+                    {waiting > 0 && (
+                      <Badge className="h-4 min-w-4 justify-center rounded-full px-1 text-[10px] tabular-nums">
+                        {waiting}
+                      </Badge>
+                    )}
+                    {busy > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="h-4 min-w-4 justify-center rounded-full border-emerald-500/60 px-1 text-[10px] text-emerald-600 tabular-nums dark:text-emerald-400"
+                        title={t("{count} Claude en cours", { count: busy })}
+                      >
+                        {busy}
+                      </Badge>
+                    )}
+                    <X
+                      className="size-3.5 shrink-0 rounded-full opacity-50 hover:bg-accent hover:opacity-100"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        close(project.root);
+                      }}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem
+                    disabled={pulling}
+                    onSelect={() => void pullRepositories([project.root], { label: t("Mettre à jour {name}", { name: project.name }) })}
+                  >
+                    <CloudDownload /> {t("Mettre à jour (git pull)")}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    disabled={pulling}
+                    onSelect={() =>
+                      void pullRepositories([project.root], {
+                        withLinks: true,
+                        label: t("Mettre à jour {name} et ses dossiers liés", { name: project.name }),
+                      })
+                    }
+                  >
+                    <CloudDownload /> {t("Mettre à jour avec les dossiers liés")}
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => setBranching(project.root)}>
+                    <GitBranch /> {t("Changer de branche…")}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onSelect={() => close(project.root)}>
+                    <X /> {t("Fermer le projet")}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            </Reorderable>
           );
         })}
       </nav>

@@ -79,6 +79,11 @@ chemin d'un dossier. Choisir un dossier l'ouvre aussitôt. La fenêtre propose a
 les dossiers **récents** : ceux où des sessions Claude ont tourné, du plus récent
 au plus ancien, hors des projets déjà ouverts.
 
+Les pastilles de projet et les onglets du centre — terminaux et fichiers mêlés —
+se rangent au glisser-déposer : un trait montre la place d'arrivée, Échap annule.
+Au clavier, `Alt+Maj+Page préc./suiv.` décale l'onglet montré d'un cran. Un onglet
+ne quitte pas son projet, et l'ordre revient au lancement suivant.
+
 Revenir sur un projet, par sa pastille ou `Alt+Page suiv.`, ramène l'onglet qu'on
 y regardait, ou son plus récent : le bloc session et le pied de la zone décrivent
 ce projet, pas l'onglet de l'autre. Les projets ouverts, le projet actif et les

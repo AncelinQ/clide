@@ -413,6 +413,7 @@ export function followRename(from: string, to: string): void {
         ...project,
         openFiles: project.openFiles.map(swap),
         activeFile: project.activeFile ? swap(project.activeFile) : null,
+        tabOrder: project.tabOrder.map(swap),
       })),
     };
   });

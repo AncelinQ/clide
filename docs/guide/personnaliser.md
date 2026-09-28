@@ -70,6 +70,7 @@ La recherche de fichiers passe les dépendances, les sorties de build et les cac
 | Nouveau shell · nouvel onglet Claude | `Ctrl+Maj+T` · `Ctrl+Maj+A` |
 | Fermer l'onglet | `Ctrl+Maj+W` |
 | Onglet suivant · précédent | `Ctrl+Maj+Page suiv.` · `Ctrl+Maj+Page préc.` |
+| Déplacer l'onglet à droite · à gauche | `Alt+Maj+Page suiv.` · `Alt+Maj+Page préc.` |
 | Projet suivant · précédent | `Alt+Page suiv.` · `Alt+Page préc.` |
 | Ouvrir un projet | `Ctrl+Maj+O` |
 | Replier le bloc session | `Ctrl+Maj+J` |

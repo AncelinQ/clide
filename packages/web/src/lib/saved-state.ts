@@ -24,6 +24,11 @@ export interface SavedProject {
   openFiles: string[];
   /** Fichier montré au centre ; `null` quand c'est un terminal. */
   activeFile: string | null;
+  /**
+   * Ordre des onglets du centre, terminaux et fichiers mêlés, tel qu'on l'a
+   * rangé. Vide, ou pour un onglet qui n'y figure pas : l'ordre d'ouverture.
+   */
+  tabOrder: string[];
 }
 
 export interface SavedLayout {
@@ -99,6 +104,7 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   activeTab: null,
   openFiles: [],
   activeFile: null,
+  tabOrder: [],
 };
 
 type Json = Record<string, unknown>;
@@ -146,6 +152,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     activeTab: typeof tab === "string" ? tab : null,
     openFiles,
     activeFile,
+    tabOrder: [...new Set(strings(value["tabOrder"]))],
   };
 }
 
