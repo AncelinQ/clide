@@ -146,6 +146,7 @@ export function Row({
   actions,
   children,
   onClick,
+  onDoubleClick,
   selected,
 }: {
   title: ReactNode;
@@ -154,11 +155,13 @@ export function Row({
   actions?: ReactNode;
   children?: ReactNode;
   onClick?: () => void;
+  onDoubleClick?: (() => void) | undefined;
   selected?: boolean;
 }) {
   return (
     <li
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       className={cn(
         "flex flex-col gap-1 border-b py-2 last:border-0",
         onClick && "-mx-3 cursor-pointer px-3 hover:bg-accent/50",

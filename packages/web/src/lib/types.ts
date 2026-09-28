@@ -89,6 +89,8 @@ export interface Skill {
   plugin?: string;
   /** Fournisseur d'un skill synchronisé depuis claude.ai. */
   origin?: "anthropic" | "organisation";
+  /** Dossier lié dont vient le skill : il appartient à cet autre dépôt, et se lit d'ici. */
+  linkedFrom?: string;
 }
 
 export interface SlashCommand {

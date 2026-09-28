@@ -13,6 +13,15 @@ type MarkdownMode = "code" | "split" | "preview";
 /** Mode choisi pour les fichiers Markdown, gardé le temps de la page. */
 let lastMarkdownMode: MarkdownMode = "split";
 
+/**
+ * Le texte sans son en-tête YAML (`---` … `---`), que l'aperçu rendrait en
+ * paragraphe : un SKILL.md ou une page de guide en portent un.
+ */
+function withoutFrontmatter(text: string): string {
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(text);
+  return match ? text.slice(match[0].length) : text;
+}
+
 /** Aperçu d'un Markdown, rendu sans HTML brut comme le plan de session. */
 function MarkdownPreview({ path }: { path: string }) {
   const [text, setText] = useState("");
@@ -21,7 +30,7 @@ function MarkdownPreview({ path }: { path: string }) {
     // L'aperçu suit la frappe après une courte pause : le rendre à chaque touche saccaderait la saisie.
     const stop = watchText(path, (value) => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => setText(value), 120);
+      timer = setTimeout(() => setText(withoutFrontmatter(value)), 120);
     });
     return () => {
       if (timer) clearTimeout(timer);

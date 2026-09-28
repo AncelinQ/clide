@@ -731,7 +731,24 @@ export const routes: Record<string, Handler> = {
     }
   },
 
-  "/api/skills": async (params) => new SkillStore().listAll(params.get("root") || undefined),
+  /**
+   * Skills et commandes du projet et de l'utilisateur ; avec un projet, aussi les
+   * skills de ses dossiers liés, rangés à part : ils appartiennent à l'autre
+   * dépôt, et ne masquent ni ne sont masqués par ceux du projet.
+   */
+  "/api/skills": async (params) => {
+    const root = params.get("root") || undefined;
+    const store = new SkillStore();
+    const listed = await store.listAll(root);
+    if (!root) return listed;
+    const links = await new LinkStore().read(root).catch(() => []);
+    const linked = await Promise.all(
+      links.map(async (link) =>
+        (await store.listProjectSkills(link.path).catch(() => [])).map((skill) => ({ ...skill, linkedFrom: link.path })),
+      ),
+    );
+    return { ...listed, linked: linked.flat() };
+  },
 
   "/api/skill": async (params) => {
     const scope = skillScope(params.get("scope"));

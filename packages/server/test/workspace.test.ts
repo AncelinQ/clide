@@ -130,3 +130,24 @@ describe("checkRoots", () => {
     await expect(checkRoots(workspace, new URLSearchParams({ id: "session" }), { scope: "user" })).resolves.toBeUndefined();
   });
 });
+
+describe("dossiers toujours accessibles", () => {
+  let scratch: string;
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "clide-always-"));
+    await mkdir(join(scratch, "skills", "revue"), { recursive: true });
+  });
+
+  afterAll(async () => {
+    await rm(scratch, { recursive: true, force: true });
+  });
+
+  it("ouvre les skills de l'utilisateur sans projet ouvert, et rien d'autre", async () => {
+    const workspace = new WorkspaceRoots(async () => [], [join(scratch, "skills")]);
+    await workspace.update([]);
+    const skill = join(scratch, "skills", "revue", "SKILL.md");
+    expect(await workspace.resolve(skill)).toBe(skill);
+    await expect(workspace.resolve(join(scratch, "ailleurs.md"))).rejects.toBeInstanceOf(OutsideWorkspace);
+  });
+});
