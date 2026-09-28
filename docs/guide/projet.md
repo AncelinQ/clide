@@ -1,6 +1,6 @@
 # La colonne du projet
 
-À gauche, ce qui appartient au projet ouvert : ses fichiers, puis un bloc à modes — dossiers liés, scripts, skills, serveurs MCP, worktrees.
+À gauche, ce qui appartient au projet ouvert, une vue par icône de la barre d'activité : l'explorateur et ses dossiers liés, l'historique des sessions du projet, les scripts, les skills, les serveurs MCP, les worktrees.
 
 ## Dossiers liés
 

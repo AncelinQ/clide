@@ -23,7 +23,10 @@ export interface SavedProject {
 }
 
 export interface SavedLayout {
-  widths: { left: number; right: number; preview: number };
+  /** Colonnes en pixels ; aperçu et îlot du bas en part de la zone qu'ils partagent. */
+  widths: { left: number; right: number; preview: number; bottom: number };
+  /** Hauteur du bas de chaque pile de vues, en pixels, par identifiant de pile. */
+  stacks: Record<string, number>;
   showLeft: boolean;
   showRight: boolean;
   sessionCollapsed: boolean;
@@ -56,7 +59,8 @@ export interface SavedState {
 }
 
 export const DEFAULT_LAYOUT: SavedLayout = {
-  widths: { left: 290, right: 340, preview: 0.5 },
+  widths: { left: 290, right: 340, preview: 0.5, bottom: 0.38 },
+  stacks: {},
   showLeft: true,
   showRight: true,
   sessionCollapsed: false,
@@ -70,7 +74,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   terminalFont: { family: "", size: 13 },
   shortcuts: {},
   language: "auto",
-  tabLayout: "row",
+  tabLayout: "column",
   visibleTabs: null,
   hiddenModes: {},
   newestFirst: {},
@@ -80,7 +84,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
 
 export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   browsePath: "",
-  leftMode: "links",
+  leftMode: "explorer",
   bottomMode: "files",
   activeTab: null,
 };
@@ -108,13 +112,22 @@ export function trimRoot(root: string): string {
   return root.replace(/[\\/]+$/, "");
 }
 
+/**
+ * Activité de la colonne gauche. Les dossiers liés, un mode à part avant les
+ * barres d'activité, vivent désormais sous l'explorateur.
+ */
+function leftActivity(value: unknown): string {
+  if (value === "links") return "explorer";
+  return text(value, DEFAULT_PROJECT.leftMode);
+}
+
 function project(value: unknown, fallbackTab?: string): SavedProject | undefined {
   if (!isRecord(value) || typeof value["root"] !== "string" || !trimRoot(value["root"])) return undefined;
   const tab = value["activeTab"] ?? fallbackTab;
   return {
     root: trimRoot(value["root"]),
     browsePath: text(value["browsePath"], DEFAULT_PROJECT.browsePath),
-    leftMode: text(value["leftMode"], DEFAULT_PROJECT.leftMode),
+    leftMode: leftActivity(value["leftMode"]),
     bottomMode: text(value["bottomMode"], DEFAULT_PROJECT.bottomMode),
     activeTab: typeof tab === "string" ? tab : null,
   };
@@ -128,7 +141,9 @@ function layout(value: unknown): SavedLayout {
       left: number(widths["left"], DEFAULT_LAYOUT.widths.left),
       right: number(widths["right"], DEFAULT_LAYOUT.widths.right),
       preview: number(widths["preview"], DEFAULT_LAYOUT.widths.preview),
+      bottom: number(widths["bottom"], DEFAULT_LAYOUT.widths.bottom),
     },
+    stacks: recordOf(source["stacks"], (item): item is number => typeof item === "number" && Number.isFinite(item)),
     showLeft: flag(source["showLeft"], DEFAULT_LAYOUT.showLeft),
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),

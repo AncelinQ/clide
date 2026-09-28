@@ -97,6 +97,8 @@ export interface State {
   newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
+  /** Hauteur du bas de chaque pile de vues, en pixels. */
+  stacks: Record<string, number>;
 }
 
 export interface Widths {
@@ -104,6 +106,8 @@ export interface Widths {
   right: number;
   /** Part de la zone du terminal laissée à l'aperçu, entre 0 et 1. */
   preview: number;
+  /** Part de la hauteur du centre laissée à l'îlot du bas, entre 0 et 1. */
+  bottom: number;
 }
 
 export const DEFAULT_WIDTHS: Widths = DEFAULT_LAYOUT.widths;
@@ -113,7 +117,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "terminalFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap"
+  | "sessionCollapsed" | "previewOpen" | "globalTab" | "keymap" | "stacks"
 > {
   let raw: unknown;
   try {
@@ -168,6 +172,7 @@ function persist(): void {
     active: state.activeRoot,
     layout: {
       widths: state.widths,
+      stacks: state.stacks,
       showLeft: state.showLeft,
       showRight: state.showRight,
       sessionCollapsed: state.sessionCollapsed,

@@ -43,6 +43,8 @@ import type { TerminalInfo } from "@/lib/types";
 
 /** Largeur que l'aperçu laisse toujours au terminal, en pixels. */
 const TERMINAL_MIN = 240;
+/** Hauteur que le terminal garde quand on agrandit l'îlot du bas. */
+const TERMINAL_MIN_HEIGHT = 160;
 
 /** Accueil affiché tant qu'aucun terminal n'est ouvert pour ce projet. */
 function Welcome({ root }: { root?: string }) {
@@ -256,9 +258,11 @@ export function TerminalArea() {
   // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
   useEffect(() => {
     requestAnimationFrame(resizeActive);
-  }, [previewOpen, widths.preview]);
+  }, [previewOpen, widths.preview, widths.bottom, sessionCollapsed]);
 
   const zone = useRef<HTMLDivElement>(null);
+  const center = useRef<HTMLDivElement>(null);
+  const bottomStart = useRef(0);
   const previewStart = useRef(0);
 
   // Rattachée dès son démarrage par les hooks, une session n'a rien à montrer
@@ -351,7 +355,8 @@ export function TerminalArea() {
   ];
 
   return (
-    <Island>
+    <div ref={center} className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <Island className="min-h-0 flex-1">
       <div className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
           {own.map(({ info }) => (
@@ -462,7 +467,34 @@ export function TerminalArea() {
       </footer>
 
       {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
+    </Island>
 
+    {!sessionCollapsed && (
+      <Splitter
+        orientation="horizontal"
+        className="on-canvas"
+        onStart={() => (bottomStart.current = getState().widths.bottom)}
+        onDrag={(dy) => {
+          const height = center.current?.clientHeight ?? 1;
+          // Le terminal garde de quoi lire quelques lignes, le bloc de quoi montrer ses modes.
+          const max = 1 - TERMINAL_MIN_HEIGHT / height;
+          setState((current) => ({
+            widths: { ...current.widths, bottom: clamp(bottomStart.current - dy / height, 0.12, max) },
+          }));
+          requestAnimationFrame(resizeActive);
+        }}
+        onReset={() => {
+          setState((current) => ({ widths: { ...current.widths, bottom: DEFAULT_WIDTHS.bottom } }));
+          requestAnimationFrame(resizeActive);
+        }}
+      />
+    )}
+
+    <div
+      className={cn("flex min-h-0 shrink-0 [&>*]:flex-1", sessionCollapsed && "mt-1")}
+      style={sessionCollapsed ? undefined : { height: `${widths.bottom * 100}%` }}
+    >
+    <Island>
       <ModeBlock
         block="session"
         modes={modes}
@@ -486,9 +518,14 @@ export function TerminalArea() {
           </span>
         }
         collapsed={sessionCollapsed}
-        onCollapse={(value) => setState({ sessionCollapsed: value })}
-        className="max-h-[38%]"
+        onCollapse={(value) => {
+          setState({ sessionCollapsed: value });
+          requestAnimationFrame(resizeActive);
+        }}
+        className="border-t-0"
       />
     </Island>
+    </div>
+    </div>
   );
 }
