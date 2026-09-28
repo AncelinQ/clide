@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { realpath } from "node:fs/promises";
 import { promisify } from "node:util";
 
@@ -89,6 +89,27 @@ async function git(cwd: string, args: string[]): Promise<string> {
   const { stdout } = await run("git", args, { cwd, windowsHide: true, maxBuffer: 8 * 1024 * 1024 });
   return stdout;
 }
+
+/**
+ * Parmi des chemins relatifs à `cwd` (séparés par `/`, un dossier finissant par
+ * `/`), ceux que git ignore. Un fichier suivi ne l'est jamais, même si un motif
+ * l'attrape. Hors d'un dépôt, ou sans git, rien n'est ignoré.
+ */
+export function ignoredPaths(cwd: string, paths: readonly string[]): Promise<Set<string>> {
+  if (paths.length === 0) return Promise.resolve(new Set());
+  return new Promise((resolve) => {
+    const child = spawn("git", ["check-ignore", "-z", "--stdin"], { cwd, windowsHide: true });
+    let out = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => (out += chunk));
+    child.on("error", () => resolve(new Set()));
+    // 0 : des chemins ignorés ; 1 : aucun ; 128 : pas un dépôt, ou git en erreur.
+    child.on("close", (code) => resolve(code === 0 ? new Set(out.split(NUL).filter(Boolean)) : new Set()));
+    child.stdin.end(paths.join(NUL) + NUL);
+  });
+}
+
+const NUL = String.fromCharCode(0);
 
 /**
  * Les fichiers d'un dossier que git ne dit pas ignorés, relatifs à ce dossier et

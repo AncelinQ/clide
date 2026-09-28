@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { gitFiles } from "../src/platform/git.js";
+import { gitFiles, ignoredPaths } from "../src/platform/git.js";
 
 describe("gitFiles", () => {
   let repo: string;
@@ -43,5 +43,14 @@ describe("gitFiles", () => {
 
   it("ne rend rien hors d'un dépôt", async () => {
     expect(await gitFiles(plain)).toBeUndefined();
+    expect(await ignoredPaths(plain, ["a.ts"])).toEqual(new Set());
+  });
+
+  it("dit quelles entrées git ignore, dossiers compris, jamais un fichier suivi", async () => {
+    const ignored = await ignoredPaths(repo, ["a.ts", "ignoré.txt", "dist/", "src/", "src/nouveau é.ts"]);
+    expect([...ignored].sort()).toEqual(["dist/", "ignoré.txt"]);
+    // `a.ts` est suivi : un motif qui l'attrape ne le cache pas.
+    await writeFile(join(repo, ".gitignore"), "ignoré.txt\ndist/\na.ts\n");
+    expect(await ignoredPaths(repo, ["a.ts"])).toEqual(new Set());
   });
 });

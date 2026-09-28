@@ -472,7 +472,7 @@ export function FileTree({ project }: { project: Project }) {
           size="icon"
           className={cn("size-6", showHidden && "text-primary")}
           onClick={() => setState({ showHidden: !showHidden })}
-          title={showHidden ? t("Masquer les fichiers cachés") : t("Afficher les fichiers cachés (.env, .claude…)")}
+          title={showHidden ? t("Masquer les fichiers cachés et ignorés") : t("Afficher les fichiers cachés (.env, .claude…) et ceux que git ignore")}
         >
           {showHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </Button>
@@ -560,7 +560,9 @@ export function FileTree({ project }: { project: Project }) {
                     {renaming ? (
                       <NameInput initial={entry.name} onSubmit={(value) => void submitEdit(value)} onCancel={() => setEditing(undefined)} />
                     ) : (
-                      <span className={cn("truncate", entry.name.startsWith(".") && "opacity-60")}>{entry.name}</span>
+                      <span className={cn("truncate", (entry.name.startsWith(".") || entry.ignored) && "opacity-60", entry.ignored && "italic")} title={entry.ignored ? t("Ignoré par git (.gitignore)") : undefined}>
+                        {entry.name}
+                      </span>
                     )}
                     {entry.hasSessions && (
                       <span className="shrink-0 text-[10px] text-primary" title={t("Des sessions Claude ont été lancées dans ce dossier")}>

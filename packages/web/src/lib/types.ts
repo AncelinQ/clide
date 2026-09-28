@@ -58,6 +58,8 @@ export interface DirectoryEntry {
   path: string;
   /** Des sessions Claude ont été lancées dans ce dossier. */
   hasSessions?: boolean;
+  /** Git ignore cette entrée : montrée seulement avec les fichiers cachés, en retrait. */
+  ignored?: boolean;
 }
 
 /** Un plan de `~/.claude/plans`. */

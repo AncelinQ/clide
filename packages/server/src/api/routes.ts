@@ -1,5 +1,5 @@
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, sep } from "node:path";
 
 import {
   FileHistoryResolver,
@@ -24,6 +24,7 @@ import {
   discoverTranscripts,
   extractPlan,
   listDirectory,
+  type DirectoryEntry,
   listPlans,
   markSessions,
   normalizePath,
@@ -56,7 +57,7 @@ import {
 } from "@clide/core";
 
 import { hooksStatus, installHooks, pruneLegacyHooks, uninstallHooks } from "../notifications/hook.js";
-import { GitWorktrees, gitFiles, realPath } from "../platform/git.js";
+import { GitWorktrees, gitFiles, ignoredPaths, realPath } from "../platform/git.js";
 import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capture.js";
 import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
@@ -718,13 +719,22 @@ export const routes: Record<string, Handler> = {
 
   "/api/plans": async () => ({ plans: await listPlans() }),
 
+  /**
+   * Un dossier de l'explorateur. Ce que git ignore en disparaît, comme les fichiers
+   * cachés ; avec eux (`hidden`), il revient marqué `ignored`, pour être montré en
+   * retrait.
+   */
   "/api/files": async (params) => {
-    const listing = await markSessions(
-      await listDirectory(requireParam(params, "root"), params.get("path") ?? "", {
-        hidden: params.get("hidden") === "1",
-      }),
-    );
-    return { ...listing, breadcrumb: breadcrumb(listing) };
+    const root = requireParam(params, "root");
+    const hidden = params.get("hidden") === "1";
+    const listing = await markSessions(await listDirectory(root, params.get("path") ?? "", { hidden }));
+    const key = (entry: DirectoryEntry) => `${entry.relativePath.split(sep).join("/")}${entry.directory ? "/" : ""}`;
+    const ignored = await ignoredPaths(root, listing.entries.map(key));
+    const entries = hidden
+      ? listing.entries.map((entry) => (ignored.has(key(entry)) ? { ...entry, ignored: true } : entry))
+      : listing.entries.filter((entry) => !ignored.has(key(entry)));
+    const shown = { ...listing, entries };
+    return { ...shown, breadcrumb: breadcrumb(shown) };
   },
 
   /**
