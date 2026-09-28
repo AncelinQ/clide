@@ -246,7 +246,24 @@ export type ServerMessage =
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
   | { t: "resume"; terminalId: string }
   | { t: "live"; terminalId: string; session: LiveSession }
-  | { t: "error"; message: string };
+  | { t: "error"; message: string }
+  | { t: "diagnostics"; report: DiagnosticsReport };
+
+/** Une erreur, un avertissement ou un TODO, à une place d'un fichier (lignes et colonnes à partir de 1). */
+export interface Diagnostic {
+  path: string;
+  line: number;
+  column: number;
+  severity: "error" | "warning" | "info";
+  message: string;
+  source: "tsc" | "eslint" | "todo";
+  code?: string;
+}
+
+export interface DiagnosticsReport {
+  root: string;
+  tools: { tool: Diagnostic["source"]; ranAt: string; durationMs: number; diagnostics: Diagnostic[]; error?: string }[];
+}
 
 /** Une limite de l'abonnement ; `kind` reprend les noms de l'API d'usage. */
 export interface UsageLimit {

@@ -5,6 +5,7 @@ import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
+import { applyMarkers } from "@/state/editor";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
   activateProject,
@@ -145,6 +146,10 @@ function onMessage(message: ServerMessage): void {
       break;
     case "error":
       console.error("[clide]", message.message);
+      break;
+    case "diagnostics":
+      setState((current) => ({ diagnostics: { ...current.diagnostics, [message.report.root]: message.report } }));
+      applyMarkers(message.report);
       break;
   }
 }

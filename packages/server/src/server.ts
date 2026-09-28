@@ -30,6 +30,7 @@ import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
 import { OutsideWorkspace, WorkspaceRoots, checkRoots, rootsOfSavedState } from "./workspace/roots.js";
+import { ServerBus } from "./bus.js";
 
 export interface ServerOptions {
   /** Racine des fichiers statiques du client. */
@@ -245,7 +246,9 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
     workspace: new WorkspaceRoots(undefined, [join(claudeHome(), "skills"), join(claudeHome(), "commands")]),
+    bus: new ServerBus(),
   };
+  for (const module of SERVER_MODULES) module.start?.(context);
   // Les projets de la dernière session, en attendant que le client redise les siens.
   void context.workspace.update(await savedRoots(context.dataDir));
   await context.index.load();
@@ -377,6 +380,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       manager.on("state", (terminal) => post({ t: "state", terminal })),
       manager.on("exit", (id, exitCode) => post({ t: "exit", id, exitCode })),
       live.on((terminalId, session) => post({ t: "live", terminalId, session })),
+      context.bus.on("broadcast", post),
       notifications.on((notification) => {
         // Un rattachement de session a fait son office côté serveur : rien à montrer.
         if (notification.kind === "session") return;

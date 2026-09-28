@@ -89,6 +89,7 @@ import { calibrationOf, costOfSession } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
 import type { WorkspaceRoots } from "../workspace/roots.js";
+import type { ServerBus } from "../bus.js";
 
 export interface ApiContext {
   index: SessionIndex;
@@ -107,6 +108,8 @@ export interface ApiContext {
   dataDir: string;
   /** Dossiers où les routes acceptent d'agir : projets ouverts, liens, worktrees. */
   workspace: WorkspaceRoots;
+  /** Canal interne : ce que les routes ont fait, que les modules suivent. */
+  bus: ServerBus;
 }
 
 export type Handler = (params: URLSearchParams, context: ApiContext) => Promise<unknown>;
@@ -167,17 +170,17 @@ function uiStateFile(dataDir: string): string {
 const UI_STATE_MAX_BYTES = 256 * 1024;
 
 async function fsTransfer(mode: "copy" | "move", context: ApiContext, body: Record<string, unknown>) {
-  const { workspace, dataDir } = context;
+  const { workspace, dataDir, bus } = context;
   const sources = await Promise.all(requireField(body, "sources", isArray).filter(isString).map((path) => workspace.resolve(path)));
   if (sources.length === 0) throw new Error("rien à copier ni à déplacer");
   const targetDir = await workspace.resolve(requireField(body, "targetDir", isString));
   const onConflict = body["onConflict"] === "keepBoth" || body["onConflict"] === "replace" ? body["onConflict"] : "ask";
-  return {
-    outcomes: await transfer(mode, sources, targetDir, {
-      onConflict,
-      trash: (paths) => moveToRecycleBin(paths, dataDir),
-    }),
-  };
+  const outcomes = await transfer(mode, sources, targetDir, {
+    onConflict,
+    trash: (paths) => moveToRecycleBin(paths, dataDir),
+  });
+  bus.emit("files", outcomes.flatMap((outcome) => (mode === "move" ? [outcome.source, outcome.target] : [outcome.target])));
+  return { outcomes };
 }
 
 /** Fichiers de chaque projet, pour la recherche par nom, avec l'heure de leur relevé. */
@@ -1215,16 +1218,20 @@ export const mutations: Record<string, Mutation> = {
   },
 
   /** Crée un fichier vide ou un dossier dans un dossier des projets ouverts. */
-  "/api/fs/create": async (_params, { workspace }, body) => {
+  "/api/fs/create": async (_params, { workspace, bus }, body) => {
     const parent = await workspace.resolve(requireField(body, "parent", isString));
     const kind = body["kind"] === "dir" ? "dir" : "file";
-    return { path: await createEntry(parent, requireField(body, "name", isString), kind) };
+    const path = await createEntry(parent, requireField(body, "name", isString), kind);
+    bus.emit("files", [path]);
+    return { path };
   },
 
   /** Renomme sur place : le nouveau nom reste dans le même dossier. */
-  "/api/fs/rename": async (_params, { workspace }, body) => {
+  "/api/fs/rename": async (_params, { workspace, bus }, body) => {
     const path = await workspace.resolve(requireField(body, "path", isString));
-    return { path: await renameEntry(path, requireField(body, "name", isString)) };
+    const renamed = await renameEntry(path, requireField(body, "name", isString));
+    bus.emit("files", [path, renamed]);
+    return { path: renamed };
   },
 
   /**
@@ -1239,28 +1246,31 @@ export const mutations: Record<string, Mutation> = {
    * Enregistre un fichier de l'éditeur. Refusé (409) s'il a changé sur disque
    * depuis sa lecture : l'écraser effacerait ce qu'un autre y a écrit.
    */
-  "/api/fs/write": async (_params, { workspace }, body) => {
+  "/api/fs/write": async (_params, { workspace, bus }, body) => {
     const path = await workspace.resolve(requireField(body, "path", isString));
     const text = body["text"];
     const expectedMtimeMs = body["expectedMtimeMs"];
     if (typeof text !== "string") throw new Error("champ `text` manquant ou invalide");
     if (typeof expectedMtimeMs !== "number") throw new Error("champ `expectedMtimeMs` manquant ou invalide");
-    return {
+    const written = {
       mtimeMs: await writeEditable(path, text, {
         expectedMtimeMs,
         eol: body["eol"] === "\r\n" ? "\r\n" : "\n",
         bom: body["bom"] === true,
       }),
     };
+    bus.emit("files", [path]);
+    return written;
   },
 
   /** Met à la corbeille de Windows, d'où l'on récupère ce qu'on regrette. */
-  "/api/fs/trash": async (_params, { workspace, dataDir }, body) => {
+  "/api/fs/trash": async (_params, { workspace, dataDir, bus }, body) => {
     const paths = await Promise.all(requireField(body, "paths", isArray).filter(isString).map((path) => workspace.resolve(path)));
     for (const path of paths) {
       if (workspace.open.some((root) => normalizePath(root) === normalizePath(path))) throw new Error("un projet ouvert ne se met pas à la corbeille");
     }
     await moveToRecycleBin(paths, dataDir);
+    bus.emit("files", paths);
     return { trashed: paths };
   },
 
@@ -1269,8 +1279,9 @@ export const mutations: Record<string, Mutation> = {
    * accepte d'agir ; le client attend la réponse avant ses autres appels, pour
    * qu'un projet qu'on vient d'ouvrir ne soit pas refusé.
    */
-  "/api/workspace/roots": async (_params, { workspace }, body) => {
+  "/api/workspace/roots": async (_params, { workspace, bus }, body) => {
     await workspace.update(requireField(body, "projects", isArray).filter(isString));
+    bus.emit("roots", workspace.open);
     return { roots: workspace.open };
   },
 

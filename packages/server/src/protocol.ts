@@ -1,3 +1,5 @@
+import type { DiagnosticsReport } from "@clide/core";
+
 import type { ClaudeNotification } from "./notifications/watcher.js";
 import type { LiveSession } from "./sessions/live.js";
 import type { TerminalInfo, TerminalKind } from "./pty/manager.js";
@@ -32,7 +34,9 @@ export type ServerMessage =
   | { t: "notification"; notification: ClaudeNotification; terminalId?: string }
   | { t: "resume"; terminalId: string }
   | { t: "live"; terminalId: string; session: LiveSession }
-  | { t: "error"; message: string };
+  | { t: "error"; message: string }
+  /** Erreurs et TODO d'un projet, à chaque vérification terminée. */
+  | { t: "diagnostics"; report: DiagnosticsReport };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
-import type { ClaudeNotification, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
+import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
@@ -68,6 +68,8 @@ export interface State {
   selectedSessions: Record<string, SessionSummary>;
   /** État des fichiers ouverts dans l'éditeur, par chemin : ce que les onglets affichent. */
   files: Record<string, OpenFile>;
+  /** Dernier rapport d'erreurs et de TODO de chaque projet, poussé par le serveur. */
+  diagnostics: Record<string, DiagnosticsReport>;
   /** Session vivante de chaque onglet Claude, par identifiant d'onglet. */
   live: Record<string, LiveSession>;
   /**
@@ -178,6 +180,7 @@ let state: State = {
   attention: {},
   selectedSessions: {},
   files: {},
+  diagnostics: {},
   live: {},
   followLive: true,
   notifications: [],

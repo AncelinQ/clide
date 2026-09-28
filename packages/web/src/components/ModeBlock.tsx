@@ -180,6 +180,8 @@ export function ModeBlock({
           <Tooltip key={entry.id}>
             <TooltipTrigger asChild>
               <Button
+                aria-label={entry.title}
+                data-mode={entry.id}
                 variant="ghost"
                 size="icon"
                 className={cn("size-7", entry.id === current && "bg-accent text-primary")}
