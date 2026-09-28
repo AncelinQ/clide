@@ -276,6 +276,24 @@ script, gênant pour en tenir plusieurs en route.
 - Les onglets de scripts se rangent dans un sous-groupe replié de la barre d'onglets pour
   ne pas noyer les onglets Claude.
 
+## Lot 12 — Voir le navigateur que Claude pilote
+
+Dans l'aperçu, une source « Navigateur de Claude » à côté des serveurs de
+développement : ce que le MCP navigateur de Claude affiche, en direct.
+
+- **Claude in Chrome** (l'extension) pilote le Chrome de l'utilisateur : une fenêtre
+  qu'il voit déjà, et qu'une page ne peut ni capturer ni incruster. Rien à faire.
+- **Un MCP qui parle CDP** (`chrome-devtools`, `playwright`) : Clide lance un Chromium
+  dédié avec un port de débogage sur `127.0.0.1`, et le MCP s'y branche
+  (`--browserUrl` / `--cdp-endpoint`, posé par `claude mcp add` au niveau du projet,
+  jamais en écrivant `~/.claude.json`). L'aperçu reçoit les images de
+  `Page.startScreencast` par le serveur de Clide, et peut relayer clics et frappes
+  (`Input.dispatch*`) pour reprendre la main.
+- Jamais le port de débogage d'Electron lui-même : il donnerait la main sur toute
+  l'application, jeton compris.
+- Coût : un processus Chromium de plus et le flux d'images, seulement quand l'aperçu
+  montre cette source.
+
 ## Autres idées à reprendre
 
 - Historique : reprendre au double-clic, ouvrir le transcript `.jsonl` dans l'éditeur.
@@ -298,6 +316,7 @@ script, gênant pour en tenir plusieurs en route.
 | 9 Raccourcis VS Code et palette | 0 | S |
 | 10 Prompts enregistrés | 2, 9 | S |
 | 11 Scripts en parallèle, groupes | 2 | M |
+| 12 Navigateur de Claude dans l'aperçu | 6 (module Aperçu) | M |
 | 8 Skills | 4 | S |
 | 5 Git | 1, 4 | L |
 | 6 Modules | 5 | M |

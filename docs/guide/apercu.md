@@ -4,8 +4,9 @@ Le rendu de l'application qu'on développe, à côté du terminal, sans rien con
 
 Une commande du shell qui annonce une adresse locale en démarrant — la ligne
 `Local: http://localhost:5173/` de `vite`, `next dev` et consorts — la fait
-connaître à l'onglet : le bouton d'aperçu de la barre des onglets s'allume, et
-l'ouvre à côté du terminal (`Ctrl+Maj+U`). Plusieurs serveurs se choisissent dans
+connaître à l'onglet : le bouton `⋯` de la barre des onglets prend un point vert, et
+son entrée « Aperçu du serveur de développement » l'ouvre à côté du terminal
+(`Ctrl+Maj+U`). Plusieurs serveurs se choisissent dans
 l'en-tête de l'aperçu ; l'adresse s'oublie quand la commande se termine.
 
 Un serveur que Claude lance lui-même en arrière-plan n'écrit rien dans l'onglet :

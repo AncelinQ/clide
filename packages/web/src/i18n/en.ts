@@ -613,4 +613,12 @@ export const EN: Record<string, string> = {
   "Des sessions Claude ont été lancées dans ce dossier": "Claude sessions were started in this folder",
   "Plan de la session": "The session's plan",
   "détacher": "detach",
+  "Claude avec le modèle": "Claude with the model",
+  "Nouvel onglet": "New tab",
+  "Changer de modèle": "Change model",
+  "un serveur tourne": "a server is running",
+  "aucun serveur de développement ne tourne": "no development server is running",
+  "Copier le dossier de l'onglet": "Copy the tab's folder",
+  "Fermer les autres onglets": "Close other tabs",
+  "Onglet et aperçu": "Tab and preview",
 };
