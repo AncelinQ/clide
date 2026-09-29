@@ -148,7 +148,7 @@ export function CommitsPanel({ root }: { root: string }) {
   const current = log.commits.find((commit) => commit.hash === selected);
 
   return (
-    <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-2">
       <div className="flex items-center gap-2">
         <input
           value={filter}

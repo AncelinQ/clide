@@ -96,8 +96,10 @@ export function GitView({ root }: { root: string }) {
     );
 
   return (
-    <div className="grid gap-3">
-      <div className="flex items-center gap-2">
+    // Une colonne qui peut rétrécir : sinon la grille prend la largeur de sa plus
+    // longue ligne, et l'îlot étroit en rogne la droite.
+    <div className="grid grid-cols-1 gap-3">
+      <div className="flex min-w-0 items-center gap-2">
         <GitChip root={root} />
         <div className="flex-1" />
         <Button variant="ghost" size="icon" className="size-6" title={t("Recharger")} onClick={() => { load(); void refreshStatus(); }}>
