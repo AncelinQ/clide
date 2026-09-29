@@ -138,6 +138,8 @@ export interface State {
   hiddenModes: Record<string, string[]>;
   /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
   showCosts: boolean;
+  /** Dossier où s'ouvre le sélecteur de dossier quand son champ est vide. */
+  projectsFolder: string;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -172,7 +174,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
+  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
 > {
   let raw: unknown;
   try {
@@ -258,6 +260,7 @@ function persist(): void {
       keymap: state.keymap,
       showCosts: state.showCosts,
       disabledModules: state.disabledModules,
+      projectsFolder: state.projectsFolder,
     },
   };
   const text = JSON.stringify(saved);

@@ -1,6 +1,7 @@
 import { Blocks, Bot, Coins, Keyboard, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { FolderInput } from "@/components/FolderInput";
 import { LookPicker } from "@/components/LookPicker";
 import { ShortcutsEditor } from "@/components/ShortcutsEditor";
 import { SettingsPanel } from "@/components/panels/global";
@@ -106,19 +107,33 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint?: stri
 
 function GeneralSection() {
   const language = useStore((state) => state.language);
+  const projectsFolder = useStore((state) => state.projectsFolder);
   return (
-    <Group title={t("Langue de l'interface")}>
-      <Select value={language} onValueChange={(value) => setState({ language: value as Language })}>
-        <SelectTrigger className="w-64">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="auto">{t("Celle du système")}</SelectItem>
-          <SelectItem value="fr">{t("Français")}</SelectItem>
-          <SelectItem value="en">{t("Anglais")}</SelectItem>
-        </SelectContent>
-      </Select>
-    </Group>
+    <div className="grid gap-6">
+      <Group title={t("Langue de l'interface")}>
+        <Select value={language} onValueChange={(value) => setState({ language: value as Language })}>
+          <SelectTrigger className="w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">{t("Celle du système")}</SelectItem>
+            <SelectItem value="fr">{t("Français")}</SelectItem>
+            <SelectItem value="en">{t("Anglais")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </Group>
+      <Group
+        title={t("Dossier des projets")}
+        hint={t("Là où s'ouvre « Parcourir… » quand le champ est vide : ouvrir un projet, lier un dossier.")}
+      >
+        <FolderInput
+          value={projectsFolder}
+          onChange={(value) => setState({ projectsFolder: value })}
+          title={t("Dossier des projets")}
+          placeholder={t("C:\\Projets")}
+        />
+      </Group>
+    </div>
   );
 }
 

@@ -622,6 +622,8 @@ export const EN: Record<string, string> = {
   "aucun serveur de développement ne tourne": "no development server is running",
   "Copier le dossier de l'onglet": "Copy the tab's folder",
   "Fermer les autres onglets": "Close other tabs",
+  "Dossier des projets": "Projects folder",
+  "Là où s'ouvre « Parcourir… » quand le champ est vide : ouvrir un projet, lier un dossier.": "Where “Browse…” opens when the field is empty: opening a project, linking a folder.",
   "Pour la session et les suivantes du modèle (/effort)": "For this session and the model's next ones (/effort)",
   "Changer d'effort": "Change effort",
   "Effort": "Effort",

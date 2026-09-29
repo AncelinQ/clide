@@ -56,6 +56,7 @@ describe("migrate depuis la version 1", () => {
       keymap: "vscode",
       showCosts: true,
       disabledModules: [],
+      projectsFolder: "",
     });
   });
 });

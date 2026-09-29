@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { pickPath } from "@/lib/api";
+import { getState } from "@/state/store";
 
 /**
  * Chemin de dossier : à taper, à coller, ou à choisir dans la fenêtre du système.
@@ -38,7 +39,8 @@ export function FolderInput({
     setBusy(true);
     setError(undefined);
     try {
-      const start = value.trim();
+      // Champ vide : le dossier des projets des Réglages, plutôt que celui que Windows retient.
+      const start = value.trim() || getState().projectsFolder.trim();
       const path = await pickPath({ kind: "folder", ...(title ? { title } : {}), ...(start ? { start } : {}) });
       if (path) {
         onChange(path);
