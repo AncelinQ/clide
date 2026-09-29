@@ -284,7 +284,7 @@ export function TitleBar() {
             onKeyDown={(event) => event.key === "Enter" && confirm()}
           />
           {recents.length > 0 && (
-            <div className="grid gap-0.5">
+            <div className="grid grid-cols-1 gap-0.5">
               <span className="px-2 text-[11px] text-muted-foreground">{t("Récents")}</span>
               {recents.map(({ root, sessions }) => (
                 <button
