@@ -3,6 +3,14 @@ import { join } from "node:path";
 
 import { claudeHome } from "@clide/core";
 
+/** Un niveau d'effort qu'on peut donner à `/effort` ou à `claude --effort`. */
+export interface EffortChoice {
+  id: string;
+  name: string;
+  /** Le niveau que Claude Code recommande pour ce modèle. */
+  recommended?: boolean;
+}
+
 /** Un modèle qu'on peut donner à `/model` ou à `claude --model`. */
 export interface ModelChoice {
   /** Ce qu'on passe à Claude Code : un identifiant complet, ou un alias. */
@@ -11,6 +19,11 @@ export interface ModelChoice {
   description?: string;
   /** Proposé en premier par Claude Code ; les autres sont des versions antérieures. */
   main: boolean;
+  /**
+   * Niveaux d'effort que le modèle accepte, dans l'ordre du catalogue ; vide s'il
+   * n'en a pas, absent quand le catalogue manque et qu'on ne sait pas.
+   */
+  efforts?: EffortChoice[];
 }
 
 /**
@@ -28,6 +41,25 @@ const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
 const asString = (value: unknown): string | undefined => (typeof value === "string" && value ? value : undefined);
 
+/** Niveaux d'effort d'un modèle du catalogue : ceux de `thinking.effort_options`. */
+function effortsOf(model: Record<string, unknown> | undefined): EffortChoice[] {
+  const thinking = asRecord(model?.["thinking"]);
+  const options = thinking?.["type"] === "effort" ? thinking["effort_options"] : undefined;
+  if (!Array.isArray(options)) return [];
+  const out: EffortChoice[] = [];
+  for (const item of options) {
+    const option = asRecord(item);
+    const id = asString(option?.["id"]);
+    if (!id) continue;
+    out.push({
+      id,
+      name: asString(option?.["name"]) ?? id,
+      ...(asRecord(option?.["badge"])?.["message"] === "Recommended" ? { recommended: true } : {}),
+    });
+  }
+  return out;
+}
+
 /** Modèles d'un catalogue lu, dans son ordre ; ceux de la section `main` d'abord. */
 export function modelsFromCatalog(document: unknown): ModelChoice[] {
   const models = asRecord(asRecord(asRecord(document)?.["catalog"])?.["config"])?.["models"];
@@ -43,6 +75,7 @@ export function modelsFromCatalog(document: unknown): ModelChoice[] {
       name: asString(model?.["name"]) ?? id,
       ...(description ? { description } : {}),
       main: model?.["section"] === "main" || model?.["quick_select"] === true,
+      efforts: effortsOf(model),
     });
   }
   return [...out.filter((model) => model.main), ...out.filter((model) => !model.main)];

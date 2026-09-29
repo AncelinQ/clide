@@ -1,4 +1,4 @@
-import { BrainCircuit, Camera, Copy, Ellipsis, MessageSquareText, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
+import { BrainCircuit, Camera, Copy, Gauge, MessageSquareText, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
 import { useState } from "react";
 
 import { MenuButton, type MenuItem } from "@/components/Menu";
@@ -8,7 +8,7 @@ import { t } from "@/i18n";
 import { post } from "@/lib/api";
 import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
-import { sameModel, useModels, type ModelChoice } from "@/state/models";
+import { effortsFor, sameModel, useModels, type ModelChoice } from "@/state/models";
 import { getState, setState, useStore } from "@/state/store";
 import { runPrompt } from "@/state/prompts";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
@@ -133,117 +133,98 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
 }
 
 /**
- * Ce qui porte sur l'onglet actif et la zone du terminal : le modèle de la
- * session Claude, l'aperçu du serveur de développement, les autres onglets. Le
- * déclencheur montre le modèle en cours, qu'on lisait sur le bouton du même nom.
+ * Barre flottante d'un onglet Claude, dans le coin du terminal comme les modes
+ * d'un Markdown : le modèle et l'effort de la session, les prompts, l'aperçu du
+ * serveur de développement. Chaque bouton montre la valeur en cours ; l'effort
+ * n'apparaît que si le modèle en a un réglable.
  */
-export function ToolsMenu({
-  disabled,
-  active,
+export function ClaudeToolbar({
   currentModel,
+  currentEffort,
   serving,
-  ownTabs,
 }: {
-  disabled: boolean;
-  active: TerminalInfo | undefined;
   currentModel: string | undefined;
+  currentEffort: string | undefined;
   serving: boolean;
-  ownTabs: string[];
 }) {
   const models = useModels();
   const prompts = usePrompts();
   const previewOpen = useStore((state) => state.previewOpen);
-  const claude = active?.kind === "claude" && !active.exited;
   const model = models.find((choice) => sameModel(choice, currentModel));
-  const modelLabel = model?.name ?? currentModel?.replace(/^claude-/, "");
+  const modelLabel = model?.name ?? currentModel?.replace(/^claude-/, "") ?? t("Modèle");
+  const efforts = effortsFor(model);
+  const effort = efforts.find((choice) => choice.id === currentEffort);
 
-  const items = (): MenuItem[] => [
-    ...(claude
-      ? ([
-          {
-            kind: "submenu",
-            label: t("Changer de modèle"),
-            icon: BrainCircuit,
-            items: [
-              { kind: "label", label: t("Pour la session en cours (/model)") },
-              ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), currentModel ?? ""),
-            ],
-          },
-          { kind: "separator" },
-        ] as MenuItem[])
-      : []),
-    ...(prompts.length > 0
-      ? ([
-          {
-            kind: "submenu",
-            label: t("Prompts"),
-            icon: MessageSquareText,
-            items: prompts.map((prompt) => ({
-              kind: "item",
-              label: prompt.label,
-              hint: prompt.text,
-              run: () => void runPrompt(prompt),
-            })),
-          },
-          { kind: "separator" },
-        ] as MenuItem[])
-      : []),
-    {
-      kind: "item",
-      label: t("Aperçu du serveur de développement"),
-      icon: MonitorPlay,
-      checked: previewOpen,
-      hint: serving ? t("un serveur tourne") : t("aucun serveur de développement ne tourne"),
-      run: () => setState({ previewOpen: !previewOpen }),
-    },
-    { kind: "separator" },
-    ...(active
-      ? ([
-          {
-            kind: "item",
-            label: t("Copier le dossier de l'onglet"),
-            icon: Copy,
-            run: () => void navigator.clipboard.writeText(active.cwd),
-          },
-          {
-            kind: "item",
-            label: t("Fermer les autres onglets"),
-            icon: X,
-            disabled: ownTabs.length < 2,
-            run: () => {
-              for (const id of ownTabs) if (id !== active.id) closeTerminal(id);
-            },
-          },
-        ] as MenuItem[])
-      : []),
+  const modelMenu = (): MenuItem[] => [
+    { kind: "label", label: t("Pour la session en cours (/model)") },
+    ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), currentModel ?? ""),
   ];
+  const effortMenu = (): MenuItem[] => [
+    { kind: "label", label: t("Pour la session et les suivantes du modèle (/effort)") },
+    ...efforts.map(
+      (choice): MenuItem => ({
+        kind: "item",
+        label: choice.name,
+        ...(choice.recommended ? { hint: t("recommandé") } : {}),
+        checked: choice.id === currentEffort,
+        run: () => void sendToClaude(`/effort ${choice.id}`),
+      }),
+    ),
+  ];
+  const promptMenu = (): MenuItem[] =>
+    prompts.map((prompt) => ({ kind: "item", label: prompt.label, hint: prompt.text, run: () => void runPrompt(prompt) }));
 
+  const button = "h-6 gap-1 px-1.5 text-[11px] [&_svg]:size-3.5";
   return (
-    <MenuButton
-      hover
-      items={items}
-      className="min-w-64"
-      trigger={
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn("relative h-7 gap-1 px-2 text-[12px]", !claude && "w-7 px-0")}
-          disabled={disabled}
-          title={t("Onglet et aperçu")}
-        >
-          {claude && modelLabel ? (
-            <>
-              <BrainCircuit />
-              {modelLabel}
-            </>
-          ) : (
-            <Ellipsis />
-          )}
-          {/* Un serveur tourne : un point, pas une couleur, qui ferait croire le bouton enfoncé. */}
-          {serving && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-emerald-500" />}
-        </Button>
-      }
-    />
+    // Discrète au repos : elle couvre le coin du terminal, où Claude écrit parfois.
+    <div className="absolute top-2 right-4 z-10 flex gap-0.5 rounded-md border bg-card p-0.5 opacity-70 shadow-sm transition-opacity hover:opacity-100 focus-within:opacity-100">
+      <MenuButton
+        hover
+        items={modelMenu}
+        className="min-w-64"
+        trigger={
+          <Button variant="ghost" size="sm" className={button} title={t("Changer de modèle")}>
+            <BrainCircuit />
+            {modelLabel}
+          </Button>
+        }
+      />
+      {efforts.length > 0 && (
+        <MenuButton
+          hover
+          items={effortMenu}
+          trigger={
+            <Button variant="ghost" size="sm" className={button} title={t("Changer d'effort")}>
+              <Gauge />
+              {effort?.name ?? currentEffort ?? t("Effort")}
+            </Button>
+          }
+        />
+      )}
+      {prompts.length > 0 && (
+        <MenuButton
+          hover
+          items={promptMenu}
+          className="min-w-64"
+          trigger={
+            <Button variant="ghost" size="icon" className="size-6 [&_svg]:size-3.5" title={t("Prompts")}>
+              <MessageSquareText />
+            </Button>
+          }
+        />
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn("relative size-6 [&_svg]:size-3.5", previewOpen && "bg-accent text-primary")}
+        title={`${t("Aperçu du serveur de développement")} — ${serving ? t("un serveur tourne") : t("aucun serveur de développement ne tourne")}`}
+        onClick={() => setState({ previewOpen: !previewOpen })}
+      >
+        <MonitorPlay />
+        {/* Un serveur tourne : un point, pas une couleur, qui se confondrait avec l'aperçu ouvert. */}
+        {serving && <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-emerald-500" />}
+      </Button>
+    </div>
   );
 }
 

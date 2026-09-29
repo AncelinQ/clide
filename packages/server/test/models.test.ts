@@ -30,9 +30,39 @@ describe("catalogue des modèles", () => {
       },
     });
     expect(models).toEqual([
-      { id: "claude-opus-5-5", name: "Opus 5.5", description: "Le plus capable", main: true },
-      { id: "claude-haiku", name: "Haiku", main: true },
-      { id: "claude-opus-5", name: "Opus 5", main: false },
+      { id: "claude-opus-5-5", name: "Opus 5.5", description: "Le plus capable", main: true, efforts: [] },
+      { id: "claude-haiku", name: "Haiku", main: true, efforts: [] },
+      { id: "claude-opus-5", name: "Opus 5", main: false, efforts: [] },
+    ]);
+  });
+
+  it("lit les niveaux d'effort du modèle et celui qui est recommandé", () => {
+    const [model] = modelsFromCatalog({
+      catalog: {
+        config: {
+          models: [
+            {
+              id: "claude-opus-5-5",
+              name: "Opus 5.5",
+              section: "main",
+              thinking: {
+                type: "effort",
+                effort_options: [
+                  { id: "low", name: "Low" },
+                  { id: "medium", name: "Medium", badge: { message: "Recommended", variant: "neutral" } },
+                  { id: "xhigh", name: "Extra" },
+                  { name: "sans identifiant" },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+    expect(model?.efforts).toEqual([
+      { id: "low", name: "Low" },
+      { id: "medium", name: "Medium", recommended: true },
+      { id: "xhigh", name: "Extra" },
     ]);
   });
 
@@ -48,7 +78,7 @@ describe("catalogue des modèles", () => {
     );
     expect(await listModels(home)).toEqual({
       source: "catalog",
-      models: [{ id: "claude-sonnet-5", name: "Sonnet 5", main: true }],
+      models: [{ id: "claude-sonnet-5", name: "Sonnet 5", main: true, efforts: [] }],
     });
   });
 });

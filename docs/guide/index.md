@@ -48,7 +48,7 @@ droite = ce qui ne dépend d'aucun projet.**
 ```
 ┌ barre de titre : (projet A) (projet B) (+)  ⑂ branche ↑1 !12 ●3   📖 ◐ ⚙          ┐
 ├──┬──────────────┬──────────────────────────────────────┬────────────────────┬──┤
-│🗂│ fichiers     │ onglets terminaux               + ⋯   │ filtre             │⚙ │
+│🗂│ fichiers     │ onglets terminaux                 +   │ filtre             │⚙ │
 │🕘│              │ ┌────────────────────┐┌────────────┐ │                    │🕘│
 │📦│              │ │ terminal           ││ aperçu     │ │ panneau choisi     │🔍│
 │✦ │              │ └────────────────────┘└────────────┘ │                    │▦ │

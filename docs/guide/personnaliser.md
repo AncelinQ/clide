@@ -156,7 +156,7 @@ barre d'onglets, ou `Ctrl+,`. Ses sections, à gauche :
 Les premières sont propres à Clide, rangées dans sa configuration, jamais dans
 `settings.json`, qui appartient à Claude Code ; la dernière l'édite, et le dit. Le
 modèle y fixe celui des nouvelles sessions ; celui de la session en cours change
-par `⋯` › « Changer de modèle », dans la barre du terminal.
+par le bouton du modèle, dans la barre flottante d'un onglet Claude.
 
 L'interface de Claude Code vaut `fullscreen` ou `default`. En plein écran, Claude
 Code dessine lui-même son écran ; en `default`, il écrit la conversation dans

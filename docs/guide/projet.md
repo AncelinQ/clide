@@ -221,8 +221,8 @@ sélection.
 
 Un prompt part dans l'onglet Claude du projet ; sans onglet Claude, un onglet
 s'ouvre avec le prompt en argument de `claude`. On le lance d'un clic dans la vue,
-par la palette (`/` puis son nom — les skills y sont aussi), par `⋯` › Prompts dans
-la barre du terminal, ou par un raccourci : chaque prompt est une commande, à qui
+par la palette (`/` puis son nom — les skills y sont aussi), par le bouton des prompts
+de la barre flottante d'un onglet Claude, ou par un raccourci : chaque prompt est une commande, à qui
 Réglages › Raccourcis donne une touche.
 
 Sous la liste, **Souvent tapées** relève les commandes `/…` tapées au moins trois

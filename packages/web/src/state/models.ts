@@ -2,11 +2,33 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 
+export interface EffortChoice {
+  id: string;
+  name: string;
+  recommended?: boolean;
+}
+
 export interface ModelChoice {
   id: string;
   name: string;
   description?: string;
   main: boolean;
+  /** Vide : le modèle n'a pas d'effort réglable. Absent : le catalogue manque. */
+  efforts?: EffortChoice[];
+}
+
+/** Les niveaux que `/effort` accepte, quand le catalogue ne dit pas ceux du modèle. */
+const EFFORTS: EffortChoice[] = [
+  { id: "low", name: "Low" },
+  { id: "medium", name: "Medium" },
+  { id: "high", name: "High" },
+  { id: "xhigh", name: "Extra" },
+  { id: "max", name: "Max" },
+];
+
+/** Niveaux d'effort proposés pour un modèle, connu ou non. */
+export function effortsFor(model: ModelChoice | undefined): EffortChoice[] {
+  return model?.efforts ?? EFFORTS;
 }
 
 /** Catalogue lu une fois par page : il ne change qu'aux mises à jour de Claude Code. */

@@ -20,7 +20,7 @@ import { ContextArea } from "@/components/Menu";
 import { EditorPane } from "@/components/EditorPane";
 import { moduleBottomViews } from "@/modules";
 import { FileIcon } from "@/components/FileIcon";
-import { NewTabMenu, ToolsMenu, tabItems } from "@/components/TerminalMenus";
+import { ClaudeToolbar, NewTabMenu, tabItems } from "@/components/TerminalMenus";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
@@ -576,13 +576,6 @@ export function TerminalArea() {
           })}
         </nav>
         <NewTabMenu disabled={!project} terminalId={status?.id} />
-        <ToolsMenu
-          disabled={!project}
-          active={status}
-          currentModel={current?.tokens?.model}
-          serving={serving}
-          ownTabs={own.map((entry) => entry.info.id)}
-        />
       </div>
 
       <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
@@ -593,6 +586,9 @@ export function TerminalArea() {
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
+          {status?.kind === "claude" && !status.exited && !activeFile && (
+            <ClaudeToolbar currentModel={current?.tokens?.model} currentEffort={current?.tokens?.effort} serving={serving} />
+          )}
           {activeFile && (
             <div className="absolute inset-0 bg-background">
               <EditorPane path={activeFile} />
