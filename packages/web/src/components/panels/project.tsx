@@ -129,23 +129,26 @@ export function LinksPanel({ root }: { root: string }) {
           {links.length === 0 ? (
             <Empty icon={Link2}>{t("Les autres dépôts dont celui-ci dépend.")}</Empty>
           ) : (
-            <>
-              <Rows>
-                {links.map((link) => (
-                  <LinkRow
-                    key={link.path}
-                    link={link}
-                    onToggleReadOnly={() =>
-                      save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
-                    }
-                    onUnlink={() => save(links.filter((l) => l.path !== link.path))}
-                  />
-                ))}
-              </Rows>
+            <Rows>
+              {links.map((link) => (
+                <LinkRow
+                  key={link.path}
+                  link={link}
+                  onToggleReadOnly={() =>
+                    save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
+                  }
+                  onUnlink={() => save(links.filter((l) => l.path !== link.path))}
+                />
+              ))}
+            </Rows>
+          )}
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {links.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-2 h-7"
+                className="h-auto min-h-7 max-w-full whitespace-normal text-left"
                 disabled={pulling}
                 onClick={() =>
                   void pullRepositories(
@@ -156,11 +159,16 @@ export function LinksPanel({ root }: { root: string }) {
               >
                 <CloudDownload /> {t("Mettre à jour les dossiers liés")}
               </Button>
-            </>
-          )}
+            )}
+            {!open && (
+              <Button variant="outline" size="sm" className="h-auto min-h-7 max-w-full whitespace-normal text-left" onClick={() => setOpen(true)}>
+                {t("Lier un dossier")}
+              </Button>
+            )}
+          </div>
 
-          {open ? (
-            <div className="mt-3 flex flex-col gap-2">
+          {open && (
+            <div className="mt-2 flex flex-col gap-2">
               <Label>{t("Chemin")}</Label>
               <FolderInput value={path} onChange={setPath} title={t("Lier un dossier")} placeholder={t("C:\\Projets\\api")} />
               <Label>{t("Rôle")}</Label>
@@ -194,10 +202,6 @@ export function LinksPanel({ root }: { root: string }) {
                 <ActionButton onAction={() => setOpen(false)}>{t("Annuler")}</ActionButton>
               </div>
             </div>
-          ) : (
-            <Button variant="outline" size="sm" className="mt-3 h-7" onClick={() => setOpen(true)}>
-              {t("Lier un dossier")}
-            </Button>
           )}
         </>
       )}
