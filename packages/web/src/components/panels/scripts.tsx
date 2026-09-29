@@ -129,7 +129,7 @@ function ScriptLine({
           </Button>
         </>
       ) : (
-        <Button variant="ghost" size="icon" className="size-6" title={t("Lancer dans son onglet")} onClick={() => runScript(item.name, item.directory, item.run)}>
+        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Lancer dans son onglet")} onClick={() => runScript(item.name, item.directory, item.run)}>
           <Play className="size-3.5" />
         </Button>
       )}
@@ -216,7 +216,7 @@ export function ScriptsPanel({ root }: { root: string }) {
                       <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
                       <span className="min-w-0 flex-1 truncate">{info.title}</span>
                       {info.devUrl && (
-                        <a href={info.devUrl} target="_blank" rel="noreferrer" className="shrink-0 font-mono text-[11px] text-primary hover:underline">
+                        <a href={info.devUrl} target="_blank" rel="noreferrer" title={info.devUrl} className="max-w-[45%] min-w-0 truncate font-mono text-[11px] text-muted-foreground hover:text-foreground hover:underline">
                           {info.devUrl.replace(/^https?:\/\//, "")}
                         </a>
                       )}
@@ -276,15 +276,15 @@ export function ScriptsPanel({ root }: { root: string }) {
               if (sections.length === 0) return null;
               return (
                 <div key={folder.root} className="grid grid-cols-1 gap-2">
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="flex-1">
+                  <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="min-w-0 flex-1 truncate">
                       {title ?? (folder.managerDetected ? folder.manager : t("{manager} (défaut, aucun lockfile)", { manager: folder.manager }))}
                     </span>
                     {folder.sources.length > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-1.5 text-[11px]"
+                        className="h-6 shrink-0 px-1.5 text-[11px]"
                         onClick={() => runScript("install", folder.root, `${folder.manager} install`)}
                       >
                         {t("installer")}
@@ -293,7 +293,7 @@ export function ScriptsPanel({ root }: { root: string }) {
                   </div>
                   {sections.map((section) => (
                     <div key={`${folder.root}|${section.title}`}>
-                      <p className="py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{section.title}</p>
+                      <p className="truncate py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase" title={section.title}>{section.title}</p>
                       <ul className="m-0 list-none p-0">
                         {section.items.map((item) => (
                           <ScriptLine

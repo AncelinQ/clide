@@ -5,6 +5,7 @@ import { restoreLook, type LookPair } from "@/lib/looks";
 import { restoreImportedTheme, type ImportedTheme } from "@/lib/vscode-theme";
 import type { BrowserState, ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
 import type { TestTarget } from "@/lib/test-commands";
+import { followPreview, previewOf } from "@/lib/project-preview";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
@@ -25,6 +26,9 @@ export interface Project {
   activeFile: string | null;
   /** Ordre des onglets du centre, terminaux et fichiers mêlés (`orderTabs`). */
   tabOrder: string[];
+  /** Aperçu du projet : `previewOpen` et `previewSource` de l'état en sont la copie pour le projet actif. */
+  previewOpen: boolean;
+  previewSource: "servers" | "browser";
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -138,6 +142,8 @@ export interface State {
   hiddenModes: Record<string, string[]>;
   /** Les coûts des sessions s'affichent dans l'historique, l'activité et l'en-tête du terminal. */
   showCosts: boolean;
+  /** Dossier où s'ouvre le sélecteur de dossier quand son champ est vide. */
+  projectsFolder: string;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -172,7 +178,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules"
+  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
 > {
   let raw: unknown;
   try {
@@ -185,6 +191,7 @@ function restored(): Pick<
     projects: saved.projects.map((project) => ({ ...project, name: nameOf(project.root) })),
     activeRoot: saved.active,
     ...saved.layout,
+    ...previewOf(saved.projects.find((project) => project.root === saved.active)),
     ...saved.prefs,
     look: restoreLook(saved.prefs.look),
     vscodeTheme: restoreImportedTheme(saved.prefs.vscodeTheme),
@@ -258,6 +265,7 @@ function persist(): void {
       keymap: state.keymap,
       showCosts: state.showCosts,
       disabledModules: state.disabledModules,
+      projectsFolder: state.projectsFolder,
     },
   };
   const text = JSON.stringify(saved);
@@ -277,8 +285,10 @@ function persist(): void {
  */
 export function setState(patch: Partial<State> | ((current: State) => Partial<State>)): void {
   const next = typeof patch === "function" ? patch(state) : patch;
-  const before = state.projects;
+  const previous = state;
   state = { ...state, ...next };
+  state = { ...state, ...followPreview(previous, state, Object.keys(next)) };
+  const before = previous.projects;
   if (state.projects !== before) announceProjects();
   persist();
   for (const listener of listeners) listener();

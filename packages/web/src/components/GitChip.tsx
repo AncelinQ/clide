@@ -428,32 +428,32 @@ export function GitChip({ root }: { root: string }) {
               pendingSummary(status),
             ].join("\n")}
             className={cn(
-              "flex max-w-72 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] hover:bg-accent",
+              "flex min-w-0 max-w-72 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] hover:bg-accent",
               message?.error && "border-destructive/60",
             )}
           >
             <GitBranch className={cn("size-3.5 shrink-0", busy && "animate-pulse")} />
             <span className="truncate font-mono">{name}</span>
             {status.ahead > 0 && status.behind > 0 && (
-              <span className="flex items-center gap-0.5 tabular-nums text-destructive">
+              <span className="flex shrink-0 items-center gap-0.5 tabular-nums text-destructive">
                 <ArrowDownUp className="size-3" />
                 {t("divergée")}
               </span>
             )}
             {status.ahead > 0 && (
-              <span className="flex items-center tabular-nums text-primary">
+              <span className="flex shrink-0 items-center tabular-nums text-primary">
                 <ArrowUp className="size-3" />
                 {status.ahead}
               </span>
             )}
             {status.behind > 0 && (
-              <span className="flex items-center tabular-nums text-amber-600">
+              <span className="flex shrink-0 items-center tabular-nums text-amber-600">
                 <ArrowDown className="size-3" />
                 {status.behind}
               </span>
             )}
             {review && tag && (
-              <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
+              <span className="flex shrink-0 items-center gap-1 tabular-nums text-muted-foreground">
                 <GitPullRequest className="size-3" />
                 {tag}
                 {review.ci && <span className={cn("size-1.5 rounded-full", CI_DOT[review.ci])} />}
@@ -461,7 +461,7 @@ export function GitChip({ root }: { root: string }) {
             )}
             {status.changed + status.untracked + status.conflicted > 0 && (
               <span
-                className={cn("tabular-nums", status.conflicted > 0 ? "text-destructive" : "text-muted-foreground")}
+                className={cn("shrink-0 tabular-nums", status.conflicted > 0 ? "text-destructive" : "text-muted-foreground")}
                 title={t("{count} fichier(s) touché(s)", {
                   count: status.changed + status.untracked + status.conflicted,
                 })}

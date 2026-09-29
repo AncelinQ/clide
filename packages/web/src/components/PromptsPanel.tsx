@@ -146,7 +146,7 @@ export function PromptsPanel({ root }: { root: string }) {
     );
 
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setEditing(EMPTY)}>
         <MessageSquarePlus className="size-3.5" />
         {t("Nouveau prompt")}

@@ -29,6 +29,9 @@ export interface SavedProject {
    * rangé. Vide, ou pour un onglet qui n'y figure pas : l'ordre d'ouverture.
    */
   tabOrder: string[];
+  /** Aperçu ouvert à côté du terminal du projet, et ce qu'il montre. */
+  previewOpen: boolean;
+  previewSource: "servers" | "browser";
 }
 
 export interface SavedLayout {
@@ -67,6 +70,8 @@ export interface SavedPrefs {
   showCosts: boolean;
   /** Modules coupés dans les Réglages, par identifiant. */
   disabledModules: string[];
+  /** Dossier où s'ouvre le sélecteur quand son champ est vide ; vide, Windows choisit. */
+  projectsFolder: string;
 }
 
 export interface SavedState {
@@ -104,6 +109,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   keymap: "vscode",
   showCosts: true,
   disabledModules: [],
+  projectsFolder: "",
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -117,6 +123,8 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   openFiles: [],
   activeFile: null,
   tabOrder: [],
+  previewOpen: false,
+  previewSource: "servers",
 };
 
 type Json = Record<string, unknown>;
@@ -171,6 +179,8 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     openFiles,
     activeFile,
     tabOrder: [...new Set(strings(value["tabOrder"]))],
+    previewOpen: flag(value["previewOpen"], DEFAULT_PROJECT.previewOpen),
+    previewSource: value["previewSource"] === "browser" ? "browser" : "servers",
   };
 }
 
@@ -234,6 +244,7 @@ function prefs(value: unknown): SavedPrefs {
     keymap: oneOf(source["keymap"], ["clide", "vscode", "jetbrains"], DEFAULT_PREFS.keymap),
     showCosts: flag(source["showCosts"], DEFAULT_PREFS.showCosts),
     disabledModules: strings(source["disabledModules"]),
+    projectsFolder: text(source["projectsFolder"], DEFAULT_PREFS.projectsFolder),
   };
 }
 

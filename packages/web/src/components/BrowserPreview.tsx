@@ -1,4 +1,4 @@
-import { Bot, Globe, Plug, Power, X } from "lucide-react";
+import { Bot, Globe, Info, Plug, Power, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type WheelEvent } from "react";
 
 import { Empty } from "@/components/common";
@@ -26,10 +26,18 @@ type McpKind = "chrome-devtools" | "playwright";
 
 const MCP_LABEL: Record<McpKind, string> = { "chrome-devtools": "chrome-devtools-mcp", playwright: "Playwright MCP" };
 
-/** Ligne de commande équivalente, montrée avant de l'exécuter : elle change la configuration de Claude Code. */
+/** Ligne de commande équivalente, au survol du bouton qui l'exécute : elle change la configuration de Claude Code. */
 function mcpCommand(info: BrowserInfo, kind: McpKind): string {
   return `claude mcp add-json -s local ${info.mcp.name} '${JSON.stringify({ type: "stdio", ...info.mcp.configs[kind] })}'`;
 }
+
+/**
+ * Page du navigateur regardée par projet : le même Chrome sert tous les projets,
+ * et revenir sur un projet remontre la sienne. Clide ne navigue jamais à la
+ * place de Claude ; il ne fait que choisir parmi les pages ouvertes.
+ */
+const pageByProject = new Map<string, string>();
+let shownFor: string | null = null;
 
 /** Bascule de l'aperçu entre les serveurs de développement et le navigateur de Claude. */
 export function PreviewSourceSwitch() {
@@ -56,6 +64,10 @@ export function PreviewSourceSwitch() {
 export function BrowserPreview() {
   const state = useStore((store) => store.browser);
   const root = useStore((store) => store.activeRoot);
+  // Adresse annoncée par un serveur de développement du projet : l'adresse proposée d'une page vide.
+  const devUrl = useStore(
+    (store) => Object.values(store.terminals).find((entry) => entry.owner === root && entry.info.devUrl && !entry.info.exited)?.info.devUrl,
+  );
   const [info, setInfo] = useState<BrowserInfo>();
   const [frame, setFrame] = useState<BrowserFrame>();
   const [error, setError] = useState<string>();
@@ -81,8 +93,21 @@ export function BrowserPreview() {
 
   const page = state?.pages.find((item) => item.id === state.current);
   useEffect(() => {
-    setAddress(page?.url === "about:blank" ? "" : (page?.url ?? ""));
-  }, [page?.url]);
+    setAddress(page?.url && page.url !== "about:blank" ? page.url : (devUrl ?? ""));
+  }, [page?.url, devUrl]);
+
+  useEffect(() => {
+    if (!running || !root || !state?.current) return;
+    if (shownFor !== root) {
+      shownFor = root;
+      const wanted = pageByProject.get(root);
+      if (wanted && wanted !== state.current && state.pages.some((item) => item.id === wanted)) {
+        void selectBrowserPage(wanted).catch(() => undefined);
+        return;
+      }
+    }
+    pageByProject.set(root, state.current);
+  }, [running, root, state?.current, state?.pages]);
 
   const act = (run: () => Promise<unknown>) => {
     setError(undefined);
@@ -178,24 +203,35 @@ export function BrowserPreview() {
       </div>
 
       {wiring && info && (
-        <div className="grid shrink-0 grid-cols-1 gap-1.5 border-b px-3 py-2 text-[11px]">
-          <p className="text-muted-foreground">
-            {t(
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b px-2 py-1 text-[11px]">
+          <span
+            className="flex min-w-0 items-center gap-1 text-muted-foreground"
+            title={t(
               "Déclare pour ce projet, en portée locale (à toi seul, rien dans le dépôt), un serveur MCP « {name} » branché sur ce navigateur. Claude doit ensuite utiliser ses outils, pas ceux d'un autre MCP navigateur.",
               { name: info.mcp.name },
             )}
-          </p>
+          >
+            <Info className="size-3 shrink-0" />
+            <span className="truncate">{t("Déclarer « {name} » via", { name: info.mcp.name })}</span>
+          </span>
           {(["chrome-devtools", "playwright"] as const).map((kind) => (
-            <div key={kind} className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[10.5px]" title={mcpCommand(info, kind)}>
-                {mcpCommand(info, kind)}
-              </code>
-              <Button size="sm" variant="outline" className="h-6 shrink-0 text-[11px]" disabled={!root} onClick={() => wire(kind)}>
-                {MCP_LABEL[kind]}
-              </Button>
-            </div>
+            <Button
+              key={kind}
+              size="sm"
+              variant="outline"
+              className="h-6 shrink-0 px-2 text-[11px]"
+              disabled={!root}
+              title={mcpCommand(info, kind)}
+              onClick={() => wire(kind)}
+            >
+              {MCP_LABEL[kind]}
+            </Button>
           ))}
-          {wired && <p className="text-emerald-600 dark:text-emerald-400">{wired}</p>}
+          {wired && (
+            <span className="min-w-0 basis-full truncate text-emerald-600 dark:text-emerald-400" title={wired}>
+              {wired}
+            </span>
+          )}
         </div>
       )}
 
