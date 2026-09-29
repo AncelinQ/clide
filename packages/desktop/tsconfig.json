@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": ".", "types": ["node"], "module": "Preserve", "moduleResolution": "Bundler" },
-  "include": ["src/**/*.ts", "build.mjs"]
+  "compilerOptions": { "rootDir": ".", "types": ["node"], "module": "Preserve", "moduleResolution": "Bundler", "allowJs": true },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.mts", "build.mjs"]
 }

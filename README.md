@@ -120,6 +120,14 @@ du processus principal d'Electron avec le `PATH` de la session Windows : rien à
 configurer de plus que pour la version navigateur. **Il n'est pas signé** :
 SmartScreen avertira au premier lancement.
 
+**Releases.** Chaque push sur `main` qui ne touche pas que la doc publie une
+release GitHub (`.github/workflows/release.yml`) : typecheck, tests, puis
+l'installeur, son `.blockmap` et `latest.yml`, déposés dans un brouillon rendu
+public une fois le build réussi. La version est le dernier tag `v*` + 1 patch, ou
+celle de `packages/desktop/package.json` quand elle est plus haute : on la monte
+pour une mineure ou une majeure (`packages/desktop/scripts/next-version.mjs`).
+Une pull request construit sans publier et garde l'installeur en artefact.
+
 Le logo a pour source `assets/brand/logo.webp` (580 × 510). Ses déclinaisons en
 sont tirées, centrées sur un carré transparent sans être déformées :
 `assets/brand/logo.png` (512 px), l'icône multi-tailles

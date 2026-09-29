@@ -1,12 +1,13 @@
 {
   "name": "@clide/desktop",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "main": "dist/main.cjs",
   "scripts": {
     "build": "pnpm --filter @clide/web build && pnpm -w docs:build && node build.mjs",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "start": "electron .",
     "package": "node build.mjs && electron-builder --win --config electron-builder.yml",
     "package:dir": "node build.mjs && electron-builder --win --dir --config electron-builder.yml"

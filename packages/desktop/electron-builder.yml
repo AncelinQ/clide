@@ -37,3 +37,15 @@ nsis:
   shortcutName: Clide
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
+  # Sans espace : c'est le nom de la pièce jointe de la release et de l'entrée
+  # de latest.yml, que la mise à jour intégrée télécharge.
+  artifactName: Clide-Setup-${version}.${ext}
+
+# Releases GitHub : l'installeur, son .blockmap et latest.yml. La CI publie
+# d'abord un brouillon, rendu public une fois le build réussi
+# (.github/workflows/release.yml).
+publish:
+  provider: github
+  owner: AncelinQ
+  repo: clide
+  releaseType: draft
