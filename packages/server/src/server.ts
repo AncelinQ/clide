@@ -26,7 +26,6 @@ import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
 import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
-import { excludeClideFiles } from "./platform/git-actions.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
 import { parseClientMessage, type ServerMessage, type WatchTopic } from "./protocol.js";
@@ -442,7 +441,6 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
           } catch {
             // Projet en lecture seule, ou disparu depuis son ouverture.
           }
-          void excludeClideFiles(message.projectRoot);
 
           const terminal = await manager.open({
             projectRoot: message.projectRoot,

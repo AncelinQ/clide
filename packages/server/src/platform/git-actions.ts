@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -463,13 +463,19 @@ async function excludeWorktrees(root: string): Promise<void> {
  * de lier un dossier paraît modifié. Claude Code ignore `settings.local.json` de
  * lui-même, mais seulement une fois qu'il l'a créé.
  *
- * Ne lève pas : hors d'un dépôt, il n'y a rien à exclure.
+ * Seuls les fichiers présents sont exclus : un projet sans dossier lié garde un
+ * `.git/info/exclude` intact. Ne lève pas : hors d'un dépôt, il n'y a rien à exclure.
  */
 export async function excludeClideFiles(root: string): Promise<void> {
-  await excludeLocally(root, CLIDE_FILES).catch(() => undefined);
+  const present = await Promise.all(
+    CLIDE_FILES.map((file) => stat(join(root, file)).then(() => true, () => false)),
+  );
+  const patterns = CLIDE_FILES.filter((_, index) => present[index]).map((file) => `/${file.replace(/\\/g, "/")}`);
+  if (patterns.length === 0) return;
+  await excludeLocally(root, patterns).catch(() => undefined);
 }
 
-const CLIDE_FILES = [LINKS_SETTINGS, LINKS_ROLES, LINKS_PROMPT].map((file) => `/${file.replace(/\\/g, "/")}`);
+const CLIDE_FILES = [LINKS_SETTINGS, LINKS_ROLES, LINKS_PROMPT];
 
 /** Fichiers modifiés, ajoutés, supprimés, renommés, non suivis ou en conflit. */
 export async function gitChanges(root: string): Promise<Change[]> {

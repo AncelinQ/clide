@@ -1345,6 +1345,8 @@ export const mutations: Record<string, Mutation> = {
    */
   "/api/workspace/roots": async (_params, { workspace, bus }, body) => {
     await workspace.update(requireField(body, "projects", isArray).filter(isString));
+    // Un projet déjà lié ne doit pas paraître modifié dès son ouverture.
+    for (const root of workspace.open) void excludeClideFiles(root);
     bus.emit("roots", workspace.open);
     return { roots: workspace.open };
   },
