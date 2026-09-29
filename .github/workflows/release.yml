@@ -53,7 +53,9 @@ jobs:
       # le client construit d'abord : le serveur le sert dans ses tests
       - run: pnpm build
       - run: pnpm test
-      - run: pnpm --filter @clide/desktop package --publish ${{ needs.version.outputs.publish == 'true' && 'always' || 'never' }} -c.extraMetadata.version=${{ needs.version.outputs.version }}
+      # bash : PowerShell découpe `--config.extraMetadata.version=…` à son premier point
+      - run: pnpm --filter @clide/desktop package --publish ${{ needs.version.outputs.publish == 'true' && 'always' || 'never' }} --config.extraMetadata.version=${{ needs.version.outputs.version }}
+        shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
