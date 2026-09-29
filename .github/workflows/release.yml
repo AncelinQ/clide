@@ -1,0 +1,73 @@
+name: release
+# Chaque push sur main (hors doc) publie une release : version = dernier tag v* + 1 patch, ou celle de
+# packages/desktop/package.json quand elle est plus haute (la monter pour une mineure / majeure). L'installeur est
+# déposé dans un brouillon, rendu public seulement une fois le build réussi : la mise à jour intégrée
+# (releases/latest) ne voit jamais une release incomplète. La CI ne committe rien.
+# Une pull request construit sans publier ; workflow_dispatch construit, et publie si on le demande.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md', 'LICENSE']
+  workflow_dispatch:
+    inputs:
+      publish: { description: 'Publier une release', type: boolean, default: false }
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'release' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: write
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: v
+        run: |
+          echo "version=$(node packages/desktop/scripts/next-version.mjs)" >> "$GITHUB_OUTPUT"
+          echo "publish=${{ github.event_name == 'push' || inputs.publish == true }}" >> "$GITHUB_OUTPUT"
+      - name: brouillon de release (celui d'un run échoué est remplacé)
+        if: steps.v.outputs.publish == 'true'
+        run: |
+          V=v${{ steps.v.outputs.version }}
+          if gh release view "$V" --json isDraft -q .isDraft 2>/dev/null | grep -q true; then gh release delete "$V" --yes; fi
+          gh release create "$V" --draft --target "$GITHUB_SHA" --title "Clide ${V#v}" --generate-notes
+  build:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # le client construit d'abord : le serveur le sert dans ses tests
+      - run: pnpm build
+      - run: pnpm test
+      # bash : PowerShell découpe `--config.extraMetadata.version=…` à son premier point
+      - run: pnpm --filter @clide/desktop package --publish ${{ needs.version.outputs.publish == 'true' && 'always' || 'never' }} --config.extraMetadata.version=${{ needs.version.outputs.version }}
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clide-${{ needs.version.outputs.version }}
+          path: |
+            packages/desktop/release/*.exe
+            packages/desktop/release/*.blockmap
+            packages/desktop/release/latest.yml
+  publish:
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release edit "v${{ needs.version.outputs.version }}" -R "$GITHUB_REPOSITORY" --draft=false --latest
