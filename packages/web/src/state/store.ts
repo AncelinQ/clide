@@ -5,6 +5,7 @@ import { restoreLook, type LookPair } from "@/lib/looks";
 import { restoreImportedTheme, type ImportedTheme } from "@/lib/vscode-theme";
 import type { BrowserState, ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
 import type { TestTarget } from "@/lib/test-commands";
+import { followPreview, previewOf } from "@/lib/project-preview";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
@@ -25,6 +26,9 @@ export interface Project {
   activeFile: string | null;
   /** Ordre des onglets du centre, terminaux et fichiers mêlés (`orderTabs`). */
   tabOrder: string[];
+  /** Aperçu du projet : `previewOpen` et `previewSource` de l'état en sont la copie pour le projet actif. */
+  previewOpen: boolean;
+  previewSource: "servers" | "browser";
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -187,6 +191,7 @@ function restored(): Pick<
     projects: saved.projects.map((project) => ({ ...project, name: nameOf(project.root) })),
     activeRoot: saved.active,
     ...saved.layout,
+    ...previewOf(saved.projects.find((project) => project.root === saved.active)),
     ...saved.prefs,
     look: restoreLook(saved.prefs.look),
     vscodeTheme: restoreImportedTheme(saved.prefs.vscodeTheme),
@@ -280,8 +285,10 @@ function persist(): void {
  */
 export function setState(patch: Partial<State> | ((current: State) => Partial<State>)): void {
   const next = typeof patch === "function" ? patch(state) : patch;
-  const before = state.projects;
+  const previous = state;
   state = { ...state, ...next };
+  state = { ...state, ...followPreview(previous, state, Object.keys(next)) };
+  const before = previous.projects;
   if (state.projects !== before) announceProjects();
   persist();
   for (const listener of listeners) listener();
