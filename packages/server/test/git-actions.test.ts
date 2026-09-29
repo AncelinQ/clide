@@ -5,10 +5,13 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { LinkStore } from "@clide/core";
+
 import {
   DirtyTreeError,
   createBranch,
   createWorktree,
+  excludeClideFiles,
   gitPull,
   gitPush,
   gitStatus,
@@ -261,6 +264,19 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     expect(exclude.split("\n").filter((line) => line === "/.claude/worktrees/")).toHaveLength(1);
     await git(mine, "worktree", "remove", path);
     await git(mine, "worktree", "remove", join(mine, ".claude", "worktrees", "aqn-feat-encore"));
+  }, 30_000);
+
+  it("exclut les fichiers que Clide écrit pour les dossiers liés, une seule fois", async () => {
+    await new LinkStore().write(mine, [{ path: scratch, role: "voisin", readOnly: true }]);
+    expect((await gitStatus(mine))?.untracked).toBeGreaterThan(0);
+
+    await excludeClideFiles(mine);
+    await excludeClideFiles(mine);
+    expect((await gitStatus(mine))?.untracked).toBe(0);
+    const exclude = await readFile(join(mine, ".git", "info", "exclude"), "utf8");
+    expect(exclude.split("\n").filter((line) => line === "/.claude/clide.json")).toHaveLength(1);
+    await expect(excludeClideFiles(scratch)).resolves.toBeUndefined();
+    await rm(join(mine, ".claude"), { recursive: true, force: true });
   }, 30_000);
 
   it("change de branche malgré un fichier non suivi, sans rien mettre de côté", async () => {

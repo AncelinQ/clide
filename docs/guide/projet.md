@@ -18,6 +18,10 @@ attend un commit ou un push ; son menu « ⋯ » le met à jour ou change sa bra
 | `.claude/clide.json` | les rôles, qui n'ont pas d'équivalent natif |
 | `.claude/clide-prompt.md` | le texte décrivant les liens, passé à Claude en `--append-system-prompt-file` |
 
+Ils portent des chemins absolus de cette machine, et sont donc exclus de git dans
+`.git/info/exclude`, propre au clone : lier un dossier ne fait pas paraître le
+projet modifié, et aucun `.gitignore` n'est touché.
+
 Trois choses méritent d'être dites :
 
 - **L'accès et le sens sont deux mécanismes distincts.** `additionalDirectories`

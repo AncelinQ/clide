@@ -3,7 +3,7 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
-import { LOG_FORMAT, parseChanges, parseCommits, parseNameStatus, type Change, type Commit, type CommitFile } from "@clide/core";
+import { LINKS_PROMPT, LINKS_ROLES, LINKS_SETTINGS, LOG_FORMAT, parseChanges, parseCommits, parseNameStatus, type Change, type Commit, type CommitFile } from "@clide/core";
 
 const run = promisify(execFile);
 
@@ -434,21 +434,42 @@ export async function createWorktree(root: string, branch: string): Promise<stri
 }
 
 /**
- * Un worktree rangé dans le dépôt y apparaît comme un dossier non suivi : il
- * compterait parmi les modifications, et chaque changement de branche proposerait
- * de le mettre de côté. Le dossier est exclu dans `.git/info/exclude`, propre à ce
- * clone, qui ne se commite pas et ne touche à aucun `.gitignore`.
+ * Ajoute des motifs à `.git/info/exclude`, propre à ce clone : il ne se commite
+ * pas et ne touche à aucun `.gitignore`. Un motif déjà présent n'est pas répété.
  */
-async function excludeWorktrees(root: string): Promise<void> {
+async function excludeLocally(root: string, patterns: readonly string[]): Promise<void> {
   const common = (await git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"], 15_000)).trim();
   const file = join(common, "info", "exclude");
   const current = await readFile(file, "utf8").catch(() => "");
-  if (current.split(/\r?\n/).includes(WORKTREES_EXCLUDE)) return;
+  const lines = new Set(current.split(/\r?\n/));
+  const missing = patterns.filter((pattern) => !lines.has(pattern));
+  if (missing.length === 0) return;
   await mkdir(dirname(file), { recursive: true });
-  await appendFile(file, `${current && !current.endsWith("\n") ? "\n" : ""}${WORKTREES_EXCLUDE}\n`);
+  await appendFile(file, `${current && !current.endsWith("\n") ? "\n" : ""}${missing.join("\n")}\n`);
 }
 
-const WORKTREES_EXCLUDE = "/.claude/worktrees/";
+/**
+ * Un worktree rangé dans le dépôt y apparaît comme un dossier non suivi : il
+ * compterait parmi les modifications, et chaque changement de branche proposerait
+ * de le mettre de côté.
+ */
+async function excludeWorktrees(root: string): Promise<void> {
+  await excludeLocally(root, ["/.claude/worktrees/"]);
+}
+
+/**
+ * Les fichiers des dossiers liés portent des chemins absolus de cette machine :
+ * ils n'ont rien à faire dans le dépôt, et sans exclusion un projet où l'on vient
+ * de lier un dossier paraît modifié. Claude Code ignore `settings.local.json` de
+ * lui-même, mais seulement une fois qu'il l'a créé.
+ *
+ * Ne lève pas : hors d'un dépôt, il n'y a rien à exclure.
+ */
+export async function excludeClideFiles(root: string): Promise<void> {
+  await excludeLocally(root, CLIDE_FILES).catch(() => undefined);
+}
+
+const CLIDE_FILES = [LINKS_SETTINGS, LINKS_ROLES, LINKS_PROMPT].map((file) => `/${file.replace(/\\/g, "/")}`);
 
 /** Fichiers modifiés, ajoutés, supprimés, renommés, non suivis ou en conflit. */
 export async function gitChanges(root: string): Promise<Change[]> {
