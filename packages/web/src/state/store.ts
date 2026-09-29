@@ -144,6 +144,8 @@ export interface State {
   showCosts: boolean;
   /** Dossier où s'ouvre le sélecteur de dossier quand son champ est vide. */
   projectsFolder: string;
+  /** L'application de bureau cherche seule ses nouvelles versions. */
+  autoUpdate: boolean;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -179,6 +181,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
+  | "autoUpdate"
 > {
   let raw: unknown;
   try {
@@ -266,6 +269,7 @@ function persist(): void {
       showCosts: state.showCosts,
       disabledModules: state.disabledModules,
       projectsFolder: state.projectsFolder,
+      autoUpdate: state.autoUpdate,
     },
   };
   const text = JSON.stringify(saved);

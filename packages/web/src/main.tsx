@@ -19,11 +19,13 @@ async function boot(): Promise<void> {
     import("@/state/terminals"),
     import("@/state/interface"),
   ]);
+  const { syncAutoUpdate } = await import("@/state/update");
 
   applyTheme();
   applyInterfaceFont();
   watchSystemTheme();
   connect();
+  syncAutoUpdate();
 
   createRoot(document.querySelector("#root") as HTMLElement).render(
     <StrictMode>

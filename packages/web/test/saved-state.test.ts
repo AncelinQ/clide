@@ -57,6 +57,7 @@ describe("migrate depuis la version 1", () => {
       showCosts: true,
       disabledModules: [],
       projectsFolder: "",
+      autoUpdate: true,
     });
   });
 });

@@ -72,6 +72,8 @@ export interface SavedPrefs {
   disabledModules: string[];
   /** Dossier où s'ouvre le sélecteur quand son champ est vide ; vide, Windows choisit. */
   projectsFolder: string;
+  /** L'application de bureau cherche seule ses nouvelles versions. */
+  autoUpdate: boolean;
 }
 
 export interface SavedState {
@@ -110,6 +112,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   showCosts: true,
   disabledModules: [],
   projectsFolder: "",
+  autoUpdate: true,
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -245,6 +248,7 @@ function prefs(value: unknown): SavedPrefs {
     showCosts: flag(source["showCosts"], DEFAULT_PREFS.showCosts),
     disabledModules: strings(source["disabledModules"]),
     projectsFolder: text(source["projectsFolder"], DEFAULT_PREFS.projectsFolder),
+    autoUpdate: flag(source["autoUpdate"], DEFAULT_PREFS.autoUpdate),
   };
 }
 

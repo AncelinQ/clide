@@ -1,6 +1,7 @@
 import {
   Bell,
   Cpu,
+  Download,
   History,
   Layers,
   MoreHorizontal,
@@ -30,6 +31,7 @@ import {
 import { t } from "@/i18n";
 import { moduleGlobalViews } from "@/modules";
 import { openSettings, setState, useStore, type TabLayout } from "@/state/store";
+import { useAppUpdate } from "@/state/update";
 import { cn } from "cn";
 
 export interface GlobalTab {
@@ -228,9 +230,32 @@ export function TabRail({ current }: { current: string }) {
       ))}
       <div className="flex-1" />
       <TabMenu current={current} overflow={hidden} />
+      <UpdateButton />
       <Button variant="ghost" size="icon" className="size-8" title={t("Réglages")} onClick={() => openSettings()}>
         <Settings className="size-4" />
       </Button>
     </nav>
+  );
+}
+
+/**
+ * Une version téléchargée s'installe d'ici, au-dessus des réglages, sans attendre
+ * la fermeture de Clide. La pastille la distingue : sur la toile, l'accent se
+ * confond avec le texte.
+ */
+function UpdateButton() {
+  const update = useAppUpdate();
+  if (update?.status !== "ready") return null;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="relative size-8"
+      title={t("Version {version} prête : redémarrer pour l'installer (les terminaux seront fermés)", { version: update.version ?? "" })}
+      onClick={() => window.clide?.update.install()}
+    >
+      <Download className="size-4" />
+      <span className="absolute top-1 right-1 size-1.5 rounded-full bg-emerald-500" />
+    </Button>
   );
 }
