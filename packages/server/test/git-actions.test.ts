@@ -271,3 +271,67 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     await rm(join(mine, "brouillon-non-suivi.txt"));
   }, 30_000);
 });
+
+/** Ce que le pull groupé ne peut que rapporter : l'état n'est connu qu'après le fetch. */
+describe("pull groupé : amont supprimé, divergé ou réécrit", () => {
+  let scratch: string;
+  let remote: string;
+  let mine: string;
+  let theirs: string;
+
+  const commit = async (cwd: string, file: string, text: string) => {
+    await writeFile(join(cwd, file), text);
+    await git(cwd, "add", file);
+    await git(cwd, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", `ajoute ${file}`);
+  };
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "clide-pull-"));
+    remote = join(scratch, "remote.git");
+    mine = join(scratch, "mine");
+    theirs = join(scratch, "theirs");
+    await git(scratch, "init", "--bare", "-b", "main", remote);
+    await git(scratch, "clone", remote, mine);
+    await git(mine, "checkout", "-b", "main");
+    await commit(mine, "a.txt", "a");
+    await git(mine, "push", "-u", "origin", "main");
+    await git(scratch, "clone", remote, theirs);
+  }, 60_000);
+
+  afterAll(async () => {
+    await rm(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  });
+
+  it("écarte une branche supprimée sur le serveur dont la ref de suivi locale existe encore", async () => {
+    await git(mine, "checkout", "-b", "aqn/fix/fusionnee");
+    await git(mine, "push", "-u", "origin", "aqn/fix/fusionnee");
+    await git(theirs, "push", "origin", "--delete", "aqn/fix/fusionnee");
+    expect((await gitStatus(mine))?.upstreamGone).toBeUndefined();
+
+    expect(await pullMany([mine])).toEqual([{ root: mine, outcome: "skipped", reason: "upstream-gone" }]);
+    await git(mine, "checkout", "main");
+  }, 30_000);
+
+  it("rapporte une branche divergée sans rien fusionner", async () => {
+    await commit(theirs, "distant.txt", "d");
+    await git(theirs, "push");
+    await commit(mine, "local.txt", "l");
+    const head = (await git(mine, "rev-parse", "HEAD")).stdout.trim();
+
+    expect(await pullMany([mine])).toEqual([
+      { root: mine, outcome: "diverged", branch: "main", ahead: 1, behind: 1, unrelated: false },
+    ]);
+    expect((await git(mine, "rev-parse", "HEAD")).stdout.trim()).toBe(head);
+    await git(mine, "reset", "--hard", "origin/main");
+  }, 30_000);
+
+  it("reconnaît un amont réécrit, sans ancêtre commun", async () => {
+    await git(theirs, "checkout", "--orphan", "neuf");
+    await commit(theirs, "v2.txt", "v2");
+    await git(theirs, "push", "--force", "origin", "neuf:main");
+
+    expect(await pullMany([mine])).toEqual([
+      { root: mine, outcome: "diverged", branch: "main", ahead: 2, behind: 1, unrelated: true },
+    ]);
+  }, 30_000);
+});

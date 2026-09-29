@@ -110,27 +110,43 @@ export type PullOutcome =
   | { root: string; outcome: "updated"; branch: string; commits: number }
   | { root: string; outcome: "up-to-date"; branch: string }
   | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" | "upstream-gone" }
+  /** Avance rapide impossible ; `unrelated` : aucun ancêtre commun, l'amont a été réécrit. */
+  | { root: string; outcome: "diverged"; branch: string; ahead: number; behind: number; unrelated: boolean }
   | { root: string; outcome: "error"; message: string };
 
 /**
  * Tire un dépôt en avance rapide et dit ce qui s'est passé.
  *
  * Ne lève jamais : un pull groupé doit rapporter chaque dépôt, et l'échec de l'un
- * — une branche qui a divergé, une modification locale sur un fichier entrant —
- * ne doit pas masquer le sort des autres. Ce qui ne peut pas être tiré (hors
- * d'un dépôt, HEAD détaché, sans amont) est écarté sans lancer git pull.
+ * — une modification locale sur un fichier entrant, un réseau absent — ne doit
+ * pas masquer le sort des autres. Ce qui ne peut pas être tiré (hors d'un dépôt,
+ * HEAD détaché, sans amont) est écarté sans rien lancer.
+ *
+ * L'état est relu après un `fetch --prune` : avant, la ref de suivi locale d'une
+ * branche supprimée sur le serveur existe encore, et l'écart est celui du
+ * dernier fetch. Une branche divergée est rapportée sans tenter la fusion.
  */
 export async function pullReport(root: string): Promise<PullOutcome> {
-  const status = await gitStatus(root);
-  if (!status) return { root, outcome: "skipped", reason: "not-a-repo" };
-  if (!status.branch) return { root, outcome: "skipped", reason: "detached" };
-  if (!status.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
-  if (status.upstreamGone) return { root, outcome: "skipped", reason: "upstream-gone" };
+  const local = await gitStatus(root);
+  if (!local) return { root, outcome: "skipped", reason: "not-a-repo" };
+  if (!local.branch) return { root, outcome: "skipped", reason: "detached" };
+  if (!local.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
   try {
+    await gitFetch(root);
+    const status = await gitStatus(root);
+    if (!status?.branch) throw new Error("git status a échoué après le fetch");
+    if (status.upstreamGone) return { root, outcome: "skipped", reason: "upstream-gone" };
+    if (status.behind === 0) return { root, outcome: "up-to-date", branch: status.branch };
+    if (status.ahead > 0) {
+      const unrelated = await git(root, ["merge-base", "HEAD", "@{upstream}"], 15_000).then(
+        () => false,
+        () => true,
+      );
+      return { root, outcome: "diverged", branch: status.branch, ahead: status.ahead, behind: status.behind, unrelated };
+    }
     const before = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
-    await gitPull(root);
+    await git(root, ["merge", "--ff-only", "@{upstream}"]);
     const after = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
-    if (before === after) return { root, outcome: "up-to-date", branch: status.branch };
     const commits = Number((await git(root, ["rev-list", "--count", `${before}..${after}`], 15_000)).trim());
     return { root, outcome: "updated", branch: status.branch, commits };
   } catch (error) {

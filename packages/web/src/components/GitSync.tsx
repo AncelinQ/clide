@@ -10,6 +10,7 @@ export type PullOutcome =
   | { root: string; outcome: "updated"; branch: string; commits: number }
   | { root: string; outcome: "up-to-date"; branch: string }
   | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" | "upstream-gone" }
+  | { root: string; outcome: "diverged"; branch: string; ahead: number; behind: number; unrelated: boolean }
   | { root: string; outcome: "error"; message: string };
 
 interface PullState {
@@ -87,7 +88,18 @@ function OutcomeLine({ result }: { result: PullOutcome }) {
         ? [CheckCircle2, "text-muted-foreground", t("{branch} : déjà à jour", { branch: result.branch })]
         : result.outcome === "skipped"
           ? [CircleMinus, "text-muted-foreground", t("ignoré : {reason}", { reason: t(SKIP_REASON[result.reason]) })]
-          : [CircleAlert, "text-destructive", result.message];
+          : result.outcome === "diverged"
+            ? [
+                CircleAlert,
+                "text-amber-600",
+                t(
+                  result.unrelated
+                    ? "{branch} : aucun ancêtre commun avec l'amont, son historique a été réécrit ({ahead} commits locaux, {behind} distants)"
+                    : "{branch} : a divergé de l'amont ({ahead} commits locaux, {behind} distants), à fusionner ou rebaser à la main",
+                  { branch: result.branch, ahead: result.ahead, behind: result.behind },
+                ),
+              ]
+            : [CircleAlert, "text-destructive", result.message];
 
   return (
     <li className="flex gap-2 py-1.5">
@@ -109,7 +121,7 @@ export function PullReportDialog() {
   const state = usePull();
   const results = state.results ?? [];
   const updated = results.filter((result) => result.outcome === "updated").length;
-  const failed = results.filter((result) => result.outcome === "error").length;
+  const failed = results.filter((result) => result.outcome === "error" || result.outcome === "diverged").length;
 
   return (
     <Dialog open={state.open} onOpenChange={(open) => setPull({ open })}>

@@ -477,6 +477,8 @@ export const EN: Record<string, string> = {
   "{branch} : {count} commit récupéré": "{branch}: {count} commit pulled",
   "{branch} : {count} commits récupérés": "{branch}: {count} commits pulled",
   "{branch} : déjà à jour": "{branch}: already up to date",
+  "{branch} : aucun ancêtre commun avec l'amont, son historique a été réécrit ({ahead} commits locaux, {behind} distants)": "{branch}: no common ancestor with the upstream, its history was rewritten ({ahead} local commits, {behind} remote)",
+  "{branch} : a divergé de l'amont ({ahead} commits locaux, {behind} distants), à fusionner ou rebaser à la main": "{branch}: diverged from the upstream ({ahead} local commits, {behind} remote), merge or rebase by hand",
   "ignoré : {reason}": "skipped: {reason}",
   "pas un dépôt git": "not a git repository",
   "HEAD détaché": "detached HEAD",
