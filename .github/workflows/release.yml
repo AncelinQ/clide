@@ -50,8 +50,9 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm test
+      # le client construit d'abord : le serveur le sert dans ses tests
       - run: pnpm build
+      - run: pnpm test
       - run: pnpm --filter @clide/desktop package --publish ${{ needs.version.outputs.publish == 'true' && 'always' || 'never' }} -c.extraMetadata.version=${{ needs.version.outputs.version }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
