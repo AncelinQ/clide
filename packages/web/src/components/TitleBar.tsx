@@ -8,7 +8,6 @@ import {
   PanelLeft,
   PanelRight,
   Plus,
-  Settings2,
   SquareDashed,
   Sun,
   X,
@@ -65,7 +64,6 @@ export function TitleBar() {
       const order = dropTab(current.projects.map((project) => project.root), moved, target, side);
       return { projects: order.map((root) => current.projects.find((project) => project.root === root)).filter((project) => project !== undefined) };
     });
-  const setPreferences = (value: boolean) => setState({ preferencesOpen: value });
   const [draft, setDraft] = useState("");
   const [branching, setBranching] = useState<string>();
   const pulling = usePullRunning();
@@ -251,14 +249,6 @@ export function TitleBar() {
         <TooltipContent>{t(THEME_LABEL[theme])}</TooltipContent>
       </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setPreferences(true)}>
-            <Settings2 />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t("Réglages")}</TooltipContent>
-      </Tooltip>
       <SettingsDialog />
 
       <Tooltip>

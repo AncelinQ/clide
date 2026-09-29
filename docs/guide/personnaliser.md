@@ -137,8 +137,8 @@ l'application de bureau.
 
 ## Réglages
 
-Une seule fenêtre, ouverte par la roue de la barre de titre, celle du bas de la
-barre d'onglets, ou `Ctrl+,`. Ses sections, à gauche :
+Une seule fenêtre, ouverte par la roue en bas à droite, sous la barre d'onglets du
+panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 
 - **Général** : la langue de l'interface ;
 - **Apparence** : les couleurs de l'interface, et les onglets du panneau global en
