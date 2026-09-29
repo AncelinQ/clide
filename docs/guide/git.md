@@ -116,11 +116,16 @@ fenêtre rend compte de chacun : combien de commits sont arrivés, qu'il était 
 jour, pourquoi il a été écarté, ou l'erreur de git telle quelle. Le pull d'un dépôt
 n'arrête pas celui des autres.
 
-Sont écartés sans lancer `git pull` : un dossier qui n'est pas un dépôt, un HEAD
-détaché, une branche sans amont, et une branche dont l'amont a disparu. Ce dernier
-cas est celui d'une branche de MR supprimée après sa fusion : git répondrait « no
-such ref was fetched », et il n'y a en effet rien à tirer — il faut repasser sur la
-branche principale.
+Sont écartés sans rien lancer : un dossier qui n'est pas un dépôt, un HEAD détaché
+et une branche sans amont. Les autres sont d'abord récupérés (`git fetch --prune`),
+puis leur état est relu, ce qui écarte aussi une branche dont l'amont a disparu :
+une branche de MR supprimée après sa fusion. Il n'y a rien à tirer, et il faut
+repasser sur la branche principale.
+
+Une branche qui a divergé de son amont n'est pas fusionnée. La fenêtre donne le
+nombre de commits locaux et distants, à fusionner ou rebaser à la main. Quand les
+deux côtés n'ont aucun ancêtre commun, c'est que l'historique distant a été réécrit
+(un push forcé d'un nouveau départ) : la fenêtre le dit.
 
 ## Worktrees
 

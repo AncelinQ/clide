@@ -68,6 +68,7 @@ import {
   DirtyTreeError,
   createBranch,
   createWorktree,
+  excludeClideFiles,
   gitFetch,
   gitPull,
   gitPush,
@@ -1360,6 +1361,7 @@ export const mutations: Record<string, Mutation> = {
       }));
     const store = new LinkStore();
     await store.write(root, links);
+    await excludeClideFiles(root);
     // Un dossier lié devient accessible, un lien retiré ne l'est plus.
     await workspace.refresh();
     return { links: await store.read(root) };

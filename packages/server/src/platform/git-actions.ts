@@ -3,7 +3,7 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
-import { LOG_FORMAT, parseChanges, parseCommits, parseNameStatus, type Change, type Commit, type CommitFile } from "@clide/core";
+import { LINKS_PROMPT, LINKS_ROLES, LINKS_SETTINGS, LOG_FORMAT, parseChanges, parseCommits, parseNameStatus, type Change, type Commit, type CommitFile } from "@clide/core";
 
 const run = promisify(execFile);
 
@@ -110,27 +110,43 @@ export type PullOutcome =
   | { root: string; outcome: "updated"; branch: string; commits: number }
   | { root: string; outcome: "up-to-date"; branch: string }
   | { root: string; outcome: "skipped"; reason: "not-a-repo" | "detached" | "no-upstream" | "upstream-gone" }
+  /** Avance rapide impossible ; `unrelated` : aucun ancêtre commun, l'amont a été réécrit. */
+  | { root: string; outcome: "diverged"; branch: string; ahead: number; behind: number; unrelated: boolean }
   | { root: string; outcome: "error"; message: string };
 
 /**
  * Tire un dépôt en avance rapide et dit ce qui s'est passé.
  *
  * Ne lève jamais : un pull groupé doit rapporter chaque dépôt, et l'échec de l'un
- * — une branche qui a divergé, une modification locale sur un fichier entrant —
- * ne doit pas masquer le sort des autres. Ce qui ne peut pas être tiré (hors
- * d'un dépôt, HEAD détaché, sans amont) est écarté sans lancer git pull.
+ * — une modification locale sur un fichier entrant, un réseau absent — ne doit
+ * pas masquer le sort des autres. Ce qui ne peut pas être tiré (hors d'un dépôt,
+ * HEAD détaché, sans amont) est écarté sans rien lancer.
+ *
+ * L'état est relu après un `fetch --prune` : avant, la ref de suivi locale d'une
+ * branche supprimée sur le serveur existe encore, et l'écart est celui du
+ * dernier fetch. Une branche divergée est rapportée sans tenter la fusion.
  */
 export async function pullReport(root: string): Promise<PullOutcome> {
-  const status = await gitStatus(root);
-  if (!status) return { root, outcome: "skipped", reason: "not-a-repo" };
-  if (!status.branch) return { root, outcome: "skipped", reason: "detached" };
-  if (!status.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
-  if (status.upstreamGone) return { root, outcome: "skipped", reason: "upstream-gone" };
+  const local = await gitStatus(root);
+  if (!local) return { root, outcome: "skipped", reason: "not-a-repo" };
+  if (!local.branch) return { root, outcome: "skipped", reason: "detached" };
+  if (!local.upstream) return { root, outcome: "skipped", reason: "no-upstream" };
   try {
+    await gitFetch(root);
+    const status = await gitStatus(root);
+    if (!status?.branch) throw new Error("git status a échoué après le fetch");
+    if (status.upstreamGone) return { root, outcome: "skipped", reason: "upstream-gone" };
+    if (status.behind === 0) return { root, outcome: "up-to-date", branch: status.branch };
+    if (status.ahead > 0) {
+      const unrelated = await git(root, ["merge-base", "HEAD", "@{upstream}"], 15_000).then(
+        () => false,
+        () => true,
+      );
+      return { root, outcome: "diverged", branch: status.branch, ahead: status.ahead, behind: status.behind, unrelated };
+    }
     const before = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
-    await gitPull(root);
+    await git(root, ["merge", "--ff-only", "@{upstream}"]);
     const after = (await git(root, ["rev-parse", "HEAD"], 15_000)).trim();
-    if (before === after) return { root, outcome: "up-to-date", branch: status.branch };
     const commits = Number((await git(root, ["rev-list", "--count", `${before}..${after}`], 15_000)).trim());
     return { root, outcome: "updated", branch: status.branch, commits };
   } catch (error) {
@@ -418,21 +434,42 @@ export async function createWorktree(root: string, branch: string): Promise<stri
 }
 
 /**
- * Un worktree rangé dans le dépôt y apparaît comme un dossier non suivi : il
- * compterait parmi les modifications, et chaque changement de branche proposerait
- * de le mettre de côté. Le dossier est exclu dans `.git/info/exclude`, propre à ce
- * clone, qui ne se commite pas et ne touche à aucun `.gitignore`.
+ * Ajoute des motifs à `.git/info/exclude`, propre à ce clone : il ne se commite
+ * pas et ne touche à aucun `.gitignore`. Un motif déjà présent n'est pas répété.
  */
-async function excludeWorktrees(root: string): Promise<void> {
+async function excludeLocally(root: string, patterns: readonly string[]): Promise<void> {
   const common = (await git(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"], 15_000)).trim();
   const file = join(common, "info", "exclude");
   const current = await readFile(file, "utf8").catch(() => "");
-  if (current.split(/\r?\n/).includes(WORKTREES_EXCLUDE)) return;
+  const lines = new Set(current.split(/\r?\n/));
+  const missing = patterns.filter((pattern) => !lines.has(pattern));
+  if (missing.length === 0) return;
   await mkdir(dirname(file), { recursive: true });
-  await appendFile(file, `${current && !current.endsWith("\n") ? "\n" : ""}${WORKTREES_EXCLUDE}\n`);
+  await appendFile(file, `${current && !current.endsWith("\n") ? "\n" : ""}${missing.join("\n")}\n`);
 }
 
-const WORKTREES_EXCLUDE = "/.claude/worktrees/";
+/**
+ * Un worktree rangé dans le dépôt y apparaît comme un dossier non suivi : il
+ * compterait parmi les modifications, et chaque changement de branche proposerait
+ * de le mettre de côté.
+ */
+async function excludeWorktrees(root: string): Promise<void> {
+  await excludeLocally(root, ["/.claude/worktrees/"]);
+}
+
+/**
+ * Les fichiers des dossiers liés portent des chemins absolus de cette machine :
+ * ils n'ont rien à faire dans le dépôt, et sans exclusion un projet où l'on vient
+ * de lier un dossier paraît modifié. Claude Code ignore `settings.local.json` de
+ * lui-même, mais seulement une fois qu'il l'a créé.
+ *
+ * Ne lève pas : hors d'un dépôt, il n'y a rien à exclure.
+ */
+export async function excludeClideFiles(root: string): Promise<void> {
+  await excludeLocally(root, CLIDE_FILES).catch(() => undefined);
+}
+
+const CLIDE_FILES = [LINKS_SETTINGS, LINKS_ROLES, LINKS_PROMPT].map((file) => `/${file.replace(/\\/g, "/")}`);
 
 /** Fichiers modifiés, ajoutés, supprimés, renommés, non suivis ou en conflit. */
 export async function gitChanges(root: string): Promise<Change[]> {
