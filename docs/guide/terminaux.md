@@ -2,13 +2,16 @@
 
 Chaque projet a ses onglets de terminal : des shells PowerShell, et des onglets Claude. Taper `claude` dans un shell en fait un onglet Claude le temps de la session.
 
-La barre d'onglets ne porte que deux menus. `+` ouvre un onglet — Claude, Claude
-avec un modèle choisi, un shell — ou lance la capture d'écran vers le prompt ;
-chaque entrée affiche son raccourci. `⋯` porte sur l'onglet actif : changer le
-modèle de la session Claude, ouvrir l'aperçu du serveur de développement, copier le
-dossier de l'onglet, fermer les autres. Sur un onglet Claude, `⋯` affiche le modèle
-en cours à sa place. Un clic droit sur un onglet le ferme, ferme les autres ou copie
-son dossier.
+La barre d'onglets porte le menu `+` : il ouvre un onglet — Claude, Claude avec un
+modèle choisi, un shell — ou lance la capture d'écran vers le prompt ; chaque entrée
+affiche son raccourci. Un clic droit sur un onglet le ferme, ferme les autres ou
+copie son dossier.
+
+Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
+terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la
+session, les prompts enregistrés, l'aperçu du serveur de développement. Elle reste
+discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
+fichier ouvert.
 
 ## Images vers le prompt
 
@@ -32,26 +35,31 @@ juste après la fermeture. Un outil qui reste en mémoire après coup n'est jama
 pour une annulation : pendant une capture, un bouton à côté de `+` l'annule dans
 tous les cas.
 
-## Changer de modèle
+## Changer de modèle et d'effort
 
-Sur un onglet Claude, `⋯` montre le modèle de la session et « Changer de modèle »
-en change : le choix est tapé dans la session sous la forme `/model <id>` ; Claude
-travaille-t-il, la commande part dans sa file et s'applique au tour suivant.
+Le premier bouton de la barre montre le modèle de la session et en change : le choix
+est tapé dans la session sous la forme `/model <id>` ; Claude travaille-t-il, la
+commande part dans sa file et s'applique au tour suivant. Le second fait de même pour
+l'effort, avec `/effort <niveau>` : il n'apparaît que si le modèle en a un réglable,
+et marque le niveau que Claude Code recommande. Claude Code garde ce niveau comme
+défaut des prochaines sessions du même modèle (`modelSettings` de son
+`settings.json`). Tous deux lisent la valeur en cours
+sur la dernière réponse : elle s'actualise donc à la réponse suivante.
 « Claude avec le modèle », dans `+`, ouvre un nouvel onglet avec
 `claude --model <id>`.
 
 Les modèles viennent du catalogue que Claude Code garde en cache pour le compte
 (`~/.claude/cache/model-catalog`) : les principaux d'abord, avec leur description,
-les versions précédentes dans un sous-menu. Ce cache n'est pas documenté : absent
+les versions précédentes dans un sous-menu ; les niveaux d'effort de chaque modèle
+aussi. Ce cache n'est pas documenté : absent
 ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 `haiku`, que Claude Code accepte toujours.
 
 C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
 Réglages › Claude Code.
 
-Le bouton `⋯` porte un point vert quand un serveur de développement tourne ; l'aperçu
-ouvert est coché dans son menu. Aucun bouton de la barre n'est coloré au repos, ce
-qui le ferait croire enfoncé.
+Le bouton d'aperçu porte un point vert quand un serveur de développement tourne ; il
+est surligné quand l'aperçu est ouvert.
 
 ## Ouvrir un fichier
 

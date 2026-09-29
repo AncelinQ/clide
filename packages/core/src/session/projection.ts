@@ -51,6 +51,8 @@ export interface TokenUsage extends TokenCounts {
   /** Taille du contexte envoyé à la dernière réponse : entrée et cache compris. */
   context: number;
   model?: string;
+  /** Niveau d'effort de la dernière réponse (`/effort`), quand le transcript le note. */
+  effort?: string;
   /** Les mêmes volumes, par modèle : une session en mêle souvent plusieurs. */
   byModel: Record<string, TokenCounts>;
   /**
@@ -127,7 +129,7 @@ export class SessionProjector {
    * les sommer compterait la même réponse deux ou trois fois.
    */
   readonly #usage = new Map<string, TokenCounts & { model: string }>();
-  #lastUsage: { context: number; model?: string } | undefined;
+  #lastUsage: { context: number; model?: string; effort?: string } | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
   #state: Omit<SessionProjection, "files" | "bashEdits" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
@@ -357,9 +359,11 @@ export class SessionProjector {
       model: model ?? "inconnu",
     };
     this.#usage.set(id, entry);
+    const effort = typeof event["effort"] === "string" && event["effort"] ? (event["effort"] as string) : undefined;
     this.#lastUsage = {
       context: entry.input + entry.cacheRead + entry.cacheCreation,
       ...(model ? { model } : {}),
+      ...(effort ? { effort } : {}),
     };
   }
 

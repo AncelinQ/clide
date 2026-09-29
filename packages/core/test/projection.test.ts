@@ -195,6 +195,16 @@ describe("SessionProjector", () => {
     });
   });
 
+  it("retient l'effort de la dernière réponse", () => {
+    const answer = (id: string, effort?: string) => ({
+      type: "assistant",
+      ...(effort ? { effort } : {}),
+      message: { id, model: "claude-opus-5-5", usage: { input_tokens: 1, output_tokens: 1 } },
+    });
+    expect(projectEvents(SID, [answer("m1", "high"), answer("m2", "xhigh")]).tokens?.effort).toBe("xhigh");
+    expect(projectEvents(SID, [answer("m1", "high"), answer("m2")]).tokens?.effort).toBeUndefined();
+  });
+
   it("sépare ce qui a été consommé après le dernier relevé de coût", () => {
     const answer = (id: string, output: number) => ({
       type: "assistant",

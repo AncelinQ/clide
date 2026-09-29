@@ -223,6 +223,7 @@ export interface TokenUsage {
   cacheCreation: number;
   context: number;
   model?: string;
+  effort?: string;
 }
 
 /** Session qui tourne dans un onglet Claude, suivie en direct par le serveur. */
