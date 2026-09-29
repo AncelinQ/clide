@@ -267,6 +267,9 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
   }, 30_000);
 
   it("exclut les fichiers que Clide écrit pour les dossiers liés, une seule fois", async () => {
+    await excludeClideFiles(mine);
+    expect(await readFile(join(mine, ".git", "info", "exclude"), "utf8")).not.toContain("clide");
+
     await new LinkStore().write(mine, [{ path: scratch, role: "voisin", readOnly: true }]);
     expect((await gitStatus(mine))?.untracked).toBeGreaterThan(0);
 
