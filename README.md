@@ -128,6 +128,15 @@ celle de `packages/desktop/package.json` quand elle est plus haute : on la monte
 pour une mineure ou une majeure (`packages/desktop/scripts/next-version.mjs`).
 Une pull request construit sans publier et garde l'installeur en artefact.
 
+**Mises à jour.** L'application installée cherche une nouvelle release au
+démarrage puis toutes les 6 h (`electron-updater`, qui lit `latest.yml`), la
+télécharge en arrière-plan et l'installe à sa fermeture ; une icône au-dessus
+des réglages permet de redémarrer tout de suite. Réglages › Général › Mises à
+jour montre la version installée, lance une recherche et coupe les vérifications
+automatiques. `pnpm package` produit un installeur local numéroté d'après
+`packages/desktop/package.json`, pas d'après les tags : il ne remplace pas une
+release.
+
 Le logo a pour source `assets/brand/logo.webp` (580 × 510). Ses déclinaisons en
 sont tirées, centrées sur un carré transparent sans être déformées :
 `assets/brand/logo.png` (512 px), l'icône multi-tailles

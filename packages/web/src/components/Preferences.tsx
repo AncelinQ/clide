@@ -1,4 +1,4 @@
-import { Blocks, Bot, Coins, Keyboard, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Blocks, Bot, Coins, Keyboard, Loader2, Palette, Settings2, SquareTerminal, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FolderInput } from "@/components/FolderInput";
@@ -24,6 +24,7 @@ import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type TabLayou
 import { applyTerminalFont } from "@/state/terminals";
 import { setImportedTheme } from "@/state/theme";
 import { setInterfaceFont } from "@/state/interface";
+import { useAppUpdate } from "@/state/update";
 import { UI_SCALES } from "@/lib/saved-state";
 import { fromVscodeTheme, parseJsonc } from "@/lib/vscode-theme";
 
@@ -110,6 +111,7 @@ function GeneralSection() {
   const projectsFolder = useStore((state) => state.projectsFolder);
   return (
     <div className="grid gap-6">
+      <UpdateGroup />
       <Group title={t("Langue de l'interface")}>
         <Select value={language} onValueChange={(value) => setState({ language: value as Language })}>
           <SelectTrigger className="w-64">
@@ -134,6 +136,65 @@ function GeneralSection() {
         />
       </Group>
     </div>
+  );
+}
+
+/** Ce que dit la ligne d'état de la mise à jour. */
+function updateMessage(update: UpdateState): string {
+  switch (update.status) {
+    case "unsupported":
+      return t("Version de développement : pas de mise à jour automatique.");
+    case "checking":
+      return t("Recherche d'une nouvelle version…");
+    case "none":
+      return t("À jour.");
+    case "downloading":
+      return t("Téléchargement de la version {version}… {progress} %", { version: update.version ?? "", progress: update.progress ?? 0 });
+    case "ready":
+      return t("La version {version} est prête ; elle sera aussi installée à la fermeture de Clide.", { version: update.version ?? "" });
+    case "error":
+      return t("Échec : {error}", { error: update.error ?? "" });
+    default:
+      return t("Depuis les versions publiées sur GitHub.");
+  }
+}
+
+/** Version installée et mise à jour, dans l'application de bureau seulement. */
+function UpdateGroup() {
+  const update = useAppUpdate();
+  const autoUpdate = useStore((state) => state.autoUpdate);
+  if (!update) return null;
+  const busy = update.status === "checking" || update.status === "downloading";
+  return (
+    <Group title={t("Mises à jour")}>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[13px]">{t("Version {version}", { version: update.current })}</p>
+          <p className={cn("text-[12px] text-muted-foreground", update.status === "error" && "text-destructive")}>{updateMessage(update)}</p>
+        </div>
+        {update.status === "ready" ? (
+          <Button size="sm" className="shrink-0" onClick={() => window.clide?.update.install()}>
+            {t("Redémarrer et installer")}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            disabled={busy || update.status === "unsupported"}
+            onClick={() => void window.clide?.update.check()}
+          >
+            {update.status === "checking" ? <Loader2 className="size-4 animate-spin" /> : t("Rechercher")}
+          </Button>
+        )}
+      </div>
+      <Toggle
+        label={t("Automatiques")}
+        hint={t("Au démarrage puis toutes les 6 h ; le téléchargement se fait en arrière-plan.")}
+        checked={autoUpdate}
+        onChange={(value) => setState({ autoUpdate: value })}
+      />
+    </Group>
   );
 }
 

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { startServer, type RunningServer } from "@clide/server";
 import { BrowserWindow, app, dialog, ipcMain, nativeImage, shell } from "electron";
 
+import { Updater } from "./updater";
+
 /**
  * Ce module est empaqueté en CommonJS par esbuild : `__dirname` existe, pas
  * `import.meta.url`. Les ressources sont donc résolues depuis le dossier du
@@ -14,6 +16,8 @@ const here = __dirname;
 
 let server: RunningServer | undefined;
 let window_: BrowserWindow | undefined;
+
+const updater = new Updater((state) => window_?.webContents.send("clide:update", state));
 
 /**
  * La fenêtre charge la même URL qu'un navigateur.
@@ -113,7 +117,13 @@ ipcMain.handle("clide:pick", async (_event, request: unknown) => {
   return result.canceled ? undefined : result.filePaths[0];
 });
 
+ipcMain.handle("clide:update:get", () => updater.get());
+ipcMain.handle("clide:update:check", () => updater.check());
+ipcMain.on("clide:update:install", () => updater.install());
+ipcMain.on("clide:update:auto", (_event, enabled: unknown) => updater.setAuto(enabled !== false));
+
 async function shutdown(): Promise<void> {
+  updater.stop();
   await server?.close();
   server = undefined;
 }
@@ -124,6 +134,7 @@ if (process.platform === "win32") app.setAppUserModelId("fr.clide.app");
 
 void app.whenReady().then(async () => {
   await createWindow();
+  updater.start();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
   });

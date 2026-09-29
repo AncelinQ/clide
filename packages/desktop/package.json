@@ -18,10 +18,11 @@
   "devDependencies": {
     "@clide/core": "workspace:*",
     "@clide/server": "workspace:*",
+    "@clide/web": "workspace:*",
     "electron": "^44.4.3",
     "electron-builder": "^26.15.3",
-    "esbuild": "^0.28.2",
-    "@clide/web": "workspace:*"
+    "electron-updater": "^6.8.9",
+    "esbuild": "^0.28.2"
   },
   "description": "Poste de travail Windows pour piloter Claude Code",
   "author": "Ancelin Quinton"

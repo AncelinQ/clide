@@ -50,4 +50,26 @@ contextBridge.exposeInMainWorld("clide", {
   focusWindow(): void {
     ipcRenderer.send("clide:focus");
   },
+
+  /**
+   * Mise à jour de l'application : son état, une vérification à la demande,
+   * l'installation de la version téléchargée (qui relance l'application), les
+   * vérifications automatiques et l'abonnement aux changements, dont la fonction
+   * rendue désabonne.
+   */
+  update: {
+    get: (): Promise<unknown> => ipcRenderer.invoke("clide:update:get"),
+    check: (): Promise<unknown> => ipcRenderer.invoke("clide:update:check"),
+    install(): void {
+      ipcRenderer.send("clide:update:install");
+    },
+    setAuto(enabled: boolean): void {
+      ipcRenderer.send("clide:update:auto", enabled);
+    },
+    onChange(listener: (state: unknown) => void): () => void {
+      const handler = (_event: Electron.IpcRendererEvent, state: unknown) => listener(state);
+      ipcRenderer.on("clide:update", handler);
+      return () => ipcRenderer.removeListener("clide:update", handler);
+    },
+  },
 });
