@@ -1,8 +1,9 @@
 import { join } from "node:path";
 
 import { startServer, type RunningServer } from "@clide/server";
-import { BrowserWindow, app, dialog, ipcMain, nativeImage, shell } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, nativeImage, powerMonitor, shell } from "electron";
 
+import { RetryBudget } from "./recovery";
 import { Updater } from "./updater";
 
 /**
@@ -61,6 +62,7 @@ async function createWindow(): Promise<void> {
   // navigateur, et de diagnostiquer un démarrage qui n'affiche rien.
   console.log(`Clide écoute sur ${server.url}`);
 
+  watchRenderer(window_);
   window_.on("focus", () => window_?.flashFrame(false));
   window_.on("closed", () => {
     window_ = undefined;
@@ -68,6 +70,59 @@ async function createWindow(): Promise<void> {
 
   await window_.loadURL(server.url);
 }
+
+/** Au plus trois rechargements automatiques par minute ; au-delà, l'utilisateur décide. */
+const reloads = new RetryBudget(3, 60_000);
+
+/**
+ * Recharge la page quand son processus meurt, sans quoi la fenêtre reste sur
+ * sa couleur de fond. Les terminaux vivent dans ce processus-ci : la page
+ * rechargée les retrouve.
+ */
+function watchRenderer(window: BrowserWindow): void {
+  window.webContents.on("render-process-gone", (_event, details) => {
+    console.warn(`page arrêtée : ${details.reason} (code ${details.exitCode})`);
+    if (details.reason === "clean-exit" || window.isDestroyed()) return;
+    if (reloads.take()) {
+      window.reload();
+      return;
+    }
+    void dialog
+      .showMessageBox(window, {
+        type: "error",
+        title: "Clide",
+        message: "La page de Clide s'arrête sans cesse.",
+        detail: `Dernière cause : ${details.reason} (code ${details.exitCode}). Les terminaux tournent toujours.`,
+        buttons: ["Recharger", "Quitter"],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (window.isDestroyed()) return;
+        if (response === 0) window.reload();
+        else app.quit();
+      });
+  });
+}
+
+/**
+ * Redessine la fenêtre après une perte du GPU ou une sortie de veille.
+ *
+ * Chromium relance lui-même son processus GPU, mais la fenêtre peut rester sur
+ * une image vide tant que rien ne la redessine. Un simple rafraîchissement, sans
+ * recharger : il ne coûte rien et ne peut pas boucler.
+ */
+function repaint(): void {
+  setTimeout(() => {
+    if (window_ && !window_.isDestroyed()) window_.webContents.invalidate();
+  }, 1000);
+}
+
+app.on("child-process-gone", (_event, details) => {
+  if (details.type !== "GPU") return;
+  console.warn(`processus GPU arrêté : ${details.reason} (code ${details.exitCode})`);
+  repaint();
+});
 
 /**
  * Signale au système les onglets qui attendent.
@@ -135,6 +190,7 @@ if (process.platform === "win32") app.setAppUserModelId("fr.clide.app");
 void app.whenReady().then(async () => {
   await createWindow();
   updater.start();
+  powerMonitor.on("resume", repaint);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
   });
