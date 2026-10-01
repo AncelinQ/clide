@@ -102,6 +102,7 @@ export function TitleBar() {
               variant="ghost"
               size="icon"
               className="size-7"
+              disabled={!activeRoot}
               onClick={() => setState({ showLeft: !showLeft })}
             >
               <PanelLeft />
