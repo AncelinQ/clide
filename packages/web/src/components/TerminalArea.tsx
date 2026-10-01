@@ -177,8 +177,10 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
   }, [active, info.id]);
 
   return (
+    // La marge est sur le cadre, pas sur l'hôte : xterm calcule ses lignes sur la
+    // hauteur de son parent, padding compris en `border-box`, et sa dernière ligne
+    // déborderait sous le bord.
     <div
-      ref={ref}
       className={cn("absolute inset-0 p-2", active ? "block" : "hidden")}
       data-unzoom
       onDragOver={(event) => {
@@ -207,7 +209,9 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         event.stopPropagation();
         void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
-    />
+    >
+      <div ref={ref} className="size-full" />
+    </div>
   );
 }
 

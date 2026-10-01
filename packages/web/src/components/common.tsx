@@ -88,13 +88,15 @@ function readFolded(): Set<string> {
  * Section repliable, dont l'état est retenu d'une ouverture à l'autre.
  *
  * `forceOpen` l'ouvre sans toucher à ce qui est retenu : pendant une recherche,
- * un résultat caché dans une section repliée passerait pour absent.
+ * un résultat caché dans une section repliée passerait pour absent. `nested` en
+ * fait une sous-section, à l'en-tête plus discret que la bande de sa section.
  */
 export function FoldSection({
   id,
   title,
   count,
   forceOpen,
+  nested = false,
   children,
 }: {
   /** Clé sous laquelle l'état replié est retenu. */
@@ -102,6 +104,7 @@ export function FoldSection({
   title: ReactNode;
   count?: number;
   forceOpen?: boolean;
+  nested?: boolean;
   children: ReactNode;
 }) {
   const [folded, setFolded] = useState(() => readFolded().has(id));
@@ -128,13 +131,17 @@ export function FoldSection({
         onClick={toggle}
         disabled={forceOpen}
         aria-expanded={open}
-        className="-mx-3 mt-3 flex w-[calc(100%+1.5rem)] items-center gap-1 border-y bg-accent/40 px-3 py-1 text-left text-[11px] font-semibold text-muted-foreground hover:bg-accent disabled:cursor-default disabled:hover:bg-accent/40"
+        className={
+          nested
+            ? "mt-2 flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-default"
+            : "-mx-3 mt-3 flex w-[calc(100%+1.5rem)] items-center gap-1 border-y bg-accent/40 px-3 py-1 text-left text-[11px] font-semibold text-muted-foreground hover:bg-accent disabled:cursor-default disabled:hover:bg-accent/40"
+        }
       >
         <Chevron className="size-3.5 shrink-0" />
         <span className="flex-1">{title}</span>
         {count !== undefined && <span className="font-normal">{count}</span>}
       </button>
-      {open && children}
+      {open && (nested ? <div className="pl-5">{children}</div> : children)}
     </div>
   );
 }
