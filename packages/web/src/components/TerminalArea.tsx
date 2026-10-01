@@ -20,7 +20,8 @@ import { ContextArea } from "@/components/Menu";
 import { EditorPane } from "@/components/EditorPane";
 import { moduleBottomViews } from "@/modules";
 import { FileIcon } from "@/components/FileIcon";
-import { ClaudeToolbar, NewTabMenu, tabItems } from "@/components/TerminalMenus";
+import { ScriptsList, ScriptsTab } from "@/components/ScriptsShelf";
+import { ClaudeToolbar, NewTabMenu, ScriptToolbar, tabItems } from "@/components/TerminalMenus";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
@@ -34,7 +35,21 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { DEFAULT_WIDTHS, activeProject, bottomModeOf, getState, openProject, selectedSessionOf, setBottomMode, setState, updateProject, useStore } from "@/state/store";
+import { splitTabs } from "@/lib/script-shelf";
+import {
+  DEFAULT_WIDTHS,
+  activeProject,
+  bottomModeOf,
+  getState,
+  openProject,
+  scriptsShown,
+  selectedSessionOf,
+  sessionTabOf,
+  setBottomMode,
+  setState,
+  updateProject,
+  useStore,
+} from "@/state/store";
 import { terminalTheme } from "@/state/theme";
 import {
   closeTerminal,
@@ -44,7 +59,7 @@ import {
   resize,
   resizeActive,
   sendToClaude,
-  typeInto,
+  typeAsUser,
 } from "@/state/terminals";
 import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
 import { recentProjects } from "@/lib/recents";
@@ -132,7 +147,7 @@ function imagesOf(files: Iterable<File>): File[] {
 async function typeImages(terminalId: string, images: File[]): Promise<void> {
   const paths: string[] = [];
   for (const image of images) paths.push(await saveImage(image));
-  if (paths.length > 0) typeInto(terminalId, `${paths.map(quotePath).join(" ")} `);
+  if (paths.length > 0) typeAsUser(terminalId, `${paths.map(quotePath).join(" ")} `);
 }
 
 /**
@@ -172,8 +187,11 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
     if (ref.current) mount(info, ref.current, terminalTheme());
   }, [info.id]);
 
+  // Un terminal qui devient visible prend le clavier, sauf à la liste de l'onglet
+  // Scripts : on la parcourt aux flèches en montrant chaque script.
   useEffect(() => {
-    if (active) requestAnimationFrame(() => resize(info.id));
+    if (!active) return;
+    requestAnimationFrame(() => resize(info.id, { focus: !document.activeElement?.closest("[data-scripts-list]") }));
   }, [active, info.id]);
 
   return (
@@ -192,7 +210,7 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         const paths = droppedPaths(event.dataTransfer, desktop);
         if (paths.length > 0) {
           event.preventDefault();
-          typeInto(info.id, `${paths.map(quotePath).join(" ")} `);
+          typeAsUser(info.id, `${paths.map(quotePath).join(" ")} `);
           return;
         }
         const images = imagesOf(event.dataTransfer.files);
@@ -382,8 +400,14 @@ export function TerminalArea() {
   const status = active && active.owner === activeRoot ? active.info : undefined;
   const openFiles = project?.openFiles ?? [];
   const activeFile = project?.activeFile ?? null;
+  // Les scripts vivent dans l'onglet Scripts ; la barre a le reste.
+  const { bar, shelf } = splitTabs(own.map((entry) => entry.info));
+  const barIds = bar.map((info) => info.id);
+  const showsScripts = useStore(scriptsShown);
+  const refusedInput = useStore((state) => state.refusedInput);
+  const sessionTab = useStore(sessionTabOf);
   // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés.
-  const tabIds = orderTabs(project?.tabOrder ?? [], [...own.map((entry) => entry.info.id), ...openFiles]);
+  const tabIds = orderTabs(project?.tabOrder ?? [], [...barIds, ...openFiles]);
   const byId = new Map(own.map((entry) => [entry.info.id, entry.info]));
   const dropOn = (moved: string, target: string, side: "before" | "after") => {
     if (project) updateProject(project.root, { tabOrder: dropTab(tabIds, moved, target, side) });
@@ -393,8 +417,12 @@ export function TerminalArea() {
   const requestClose = (path: string) => {
     if (!closeFile(path)) setClosing(path);
   };
+  // La session du terminal montré, pour son pied et sa barre flottante ; celle que
+  // suit le bloc du bas, qui reste sur l'onglet Claude quitté pour l'onglet Scripts.
   const current = status ? live[status.id] : undefined;
+  const followed = sessionTab ? live[sessionTab] : undefined;
   const servers = useDevServers(own.map((entry) => entry.info));
+  const listStart = useRef(0);
 
   // Le terminal perd ou regagne la place de l'îlot du bas : xterm doit se remesurer.
   useEffect(() => {
@@ -406,20 +434,20 @@ export function TerminalArea() {
 
   // Rattachée dès son démarrage par les hooks, une session n'a rien à montrer
   // avant son premier prompt : son transcript n'existe pas encore.
-  const starting = followLive && current !== undefined && current.lastActivityAt === undefined;
+  const starting = followLive && followed !== undefined && followed.lastActivityAt === undefined;
   // Une session de History est montrée alors que l'onglet actif en a une vivante.
-  const detached = !followLive && current !== undefined;
+  const detached = !followLive && followed !== undefined;
   // L'onglet actif l'emporte tant qu'on ne choisit pas une session dans History.
   const shown: (ShownSession & { title?: string }) | undefined = starting
     ? undefined
-    : followLive && current
+    : followLive && followed
       ? {
-          sessionId: current.sessionId,
-          ...(current.title ? { title: current.title } : {}),
-          ...(current.lastActivityAt ? { refresh: current.lastActivityAt } : {}),
-          ...(current.model ? { model: current.model } : {}),
-          ...(current.tokens ? { tokens: current.tokens } : {}),
-          ...(current.price ? { price: current.price } : {}),
+          sessionId: followed.sessionId,
+          ...(followed.title ? { title: followed.title } : {}),
+          ...(followed.lastActivityAt ? { refresh: followed.lastActivityAt } : {}),
+          ...(followed.model ? { model: followed.model } : {}),
+          ...(followed.tokens ? { tokens: followed.tokens } : {}),
+          ...(followed.price ? { price: followed.price } : {}),
         }
       : selectedSession
         ? {
@@ -512,6 +540,13 @@ export function TerminalArea() {
     <div ref={center} className="flex min-h-0 min-w-0 flex-1 flex-col">
     <Island className="min-h-0 flex-1">
       <div className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
+        {/* Épinglé hors du défilement des onglets : rien ne passe devant, il ne se range pas. */}
+        {project && (
+          <>
+            <ScriptsTab shelf={shelf} shown={showsScripts} />
+            <span className="h-4 w-px shrink-0 bg-border" />
+          </>
+        )}
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
           {tabIds.map((id) => {
             const info = byId.get(id);
@@ -520,7 +555,7 @@ export function TerminalArea() {
                 {!info ? (
                   <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
                 ) : (
-                  <ContextArea items={() => tabItems(info, own.map((entry) => entry.info.id))}>
+                  <ContextArea items={() => tabItems(info, barIds)}>
                     <div
                       onClick={() => {
                         focusTerminal(info.id);
@@ -578,13 +613,39 @@ export function TerminalArea() {
       <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
 
       <div className="mx-2 flex min-h-0 flex-1">
+        {/* La liste se glisse à gauche du cadre des terminaux, qui rétrécit : aucun hôte ne change de parent. */}
+        {showsScripts && (
+          <>
+            <ScriptsList shelf={shelf} shownId={status?.id ?? null} width={widths.scripts} />
+            <Splitter
+              onStart={() => (listStart.current = getState().widths.scripts)}
+              onDrag={(dx) => {
+                setState((state) => ({ widths: { ...state.widths, scripts: clamp(listStart.current + dx, 140, 640) } }));
+                requestAnimationFrame(resizeActive);
+              }}
+              onReset={() => {
+                setState((state) => ({ widths: { ...state.widths, scripts: DEFAULT_WIDTHS.scripts } }));
+                requestAnimationFrame(resizeActive);
+              }}
+            />
+          </>
+        )}
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
-          {own.length === 0 && !activeFile && <Welcome root={project?.root} />}
+          {!status && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
             <ClaudeToolbar currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
+          )}
+          {status?.kind === "shell" && status.script && !activeFile && <ScriptToolbar info={status} />}
+          {refusedInput === status?.id && !activeFile && (
+            <div
+              role="status"
+              className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-[12px] whitespace-nowrap shadow-sm"
+            >
+              {t("Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.")}
+            </div>
           )}
           {activeFile && (
             <div className="absolute inset-0 bg-background">

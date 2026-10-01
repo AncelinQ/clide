@@ -105,6 +105,7 @@ figure. Hors dépôt, elle passe les dépendances, les sorties de build et les c
 | Palette de commandes | `Ctrl+Maj+P` |
 | Nouveau shell · nouvel onglet Claude | `Ctrl+Maj+T` · `Ctrl+Maj+A` |
 | Fermer l'onglet | `Ctrl+Maj+W` |
+| Basculer sur les scripts | `Ctrl+Maj+X` |
 | Rechercher dans les fichiers | `Ctrl+Maj+F` |
 | Onglet suivant · précédent | `Ctrl+Maj+Page suiv.` · `Ctrl+Maj+Page préc.` |
 | Déplacer l'onglet à droite · à gauche | `Alt+Maj+Page suiv.` · `Alt+Maj+Page préc.` |
@@ -128,7 +129,8 @@ retirée à l'autre action, et le dialogue le dit.
 Clide seul. Un jeu ajoute ses touches à celles du tableau, sans en retirer : VS Code
 apporte `Ctrl+P`, `Ctrl+B` (colonne du projet), `Ctrl+J` (bloc session),
 `Ctrl+Page suiv./préc.`, `Ctrl+W`, `Ctrl+,` (préférences), ``Ctrl+` `` (revenir au
-terminal) ; JetBrains `Ctrl+Maj+N`, `Alt+1`, `Alt+←/→`, `Ctrl+F4`, `Alt+F12`. Celles
+terminal) ; JetBrains `Ctrl+Maj+N`, `Alt+1`, `Alt+4` (l'onglet Scripts, comme la
+fenêtre Run), `Alt+←/→`, `Ctrl+F4`, `Alt+F12`. Celles
 que le shell ou Claude Code utilisent aussi — `Ctrl+B`, `Ctrl+P`, `Ctrl+J`… — ne
 valent que hors du terminal et des champs de saisie, et l'éditeur de raccourcis les
 marque ◦ : dans un terminal, elles lui restent. Dans un navigateur, `Ctrl+W` ferme

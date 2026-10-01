@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import { buildTestCommand, testScriptName, type TestTarget } from "@/lib/test-commands";
 import type { TestResult, TestSuite } from "@/lib/types";
 import { getState, setState, subscribe } from "@/state/store";
-import { runScript, runningScriptTab, scriptKey } from "@/state/terminals";
+import { runScript, runningScriptTab, scriptKey, scriptTabOf } from "@/state/terminals";
 
 export type TestStatus = TestResult["status"] | "running" | "unknown";
 
@@ -61,6 +61,27 @@ interface Launch {
 }
 
 const launches = new Map<string, Launch>();
+/** Dernière cible lancée de chaque suite, par clé de script : ce que relancer reprend. */
+const lastTargets = new Map<string, TestTarget>();
+
+/** Nom de script qui désigne l'onglet d'une suite de tests. */
+export function isSuiteScript(name: string): boolean {
+  return name === testScriptName("vitest") || name === testScriptName("pytest");
+}
+
+/**
+ * Relance la suite dont `key` est la clé de script, sur sa dernière cible — toute
+ * la suite après un rechargement. Passer par `runTests` fait revenir les résultats
+ * dans la vue Tests et dans la marge, ce que retaper la commande ne ferait pas.
+ * Faux si aucune suite du projet ne porte cette clé.
+ */
+export async function rerunSuite(root: string, key: string): Promise<boolean> {
+  if (!getState().tests[root]) await loadTests(root).catch(() => undefined);
+  const suite = getState().tests[root]?.find((item) => suiteScript(item) === key);
+  if (!suite) return false;
+  runTests(root, suite, lastTargets.get(key) ?? {}, { focus: false });
+  return true;
+}
 const noticeListeners = new Set<(message: string | undefined) => void>();
 
 /** Un message sur le dernier lancement : rapport manquant, erreur du serveur. */
@@ -80,12 +101,14 @@ function notify(message: string | undefined): void {
  */
 export function runTests(root: string, suite: TestSuite, target: TestTarget = {}, options: { focus?: boolean } = {}): void {
   const name = testScriptName(suite.framework);
-  if (runningScriptTab(suite.directory, name)) return;
+  // Claude dans l'onglet de la suite : rien ne s'y lance, et rien n'est à suivre.
+  if (runningScriptTab(suite.directory, name) || scriptTabOf(suite.directory, name)?.kind === "claude") return;
   const key = suiteScript(suite);
+  lastTargets.set(key, target);
   launches.set(key, { root, suite, target, since: Date.now(), seenRunning: false });
   setState((current) => ({ testRuns: { ...current.testRuns, [key]: target } }));
   notify(undefined);
-  runScript(name, suite.directory, buildTestCommand(suite.framework, suite.reportPath, target), options);
+  runScript(name, suite.directory, buildTestCommand(suite.framework, suite.reportPath, target), { ...options, root });
 }
 
 function finish(key: string, launch: Launch): void {

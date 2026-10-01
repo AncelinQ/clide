@@ -350,6 +350,105 @@ lisait et que le port avait laissées de côté.
 
 ---
 
+## Piste 11 — Les scripts sous un seul onglet
+
+**Le besoin.** Chaque script lancé ouvre un shell dans la barre d'onglets, entre
+les onglets Claude, les shells et les fichiers : deux serveurs de développement et
+une suite de tests, et la barre compte trois onglets de plus que ceux où l'on
+travaille. Les ranger sous un onglet Scripts qui bascule l'affichage, comme les
+fenêtres Run et Services de WebStorm.
+
+**Ce qu'on a déjà.** Un onglet de script est un shell qui porte sa clé
+`dossier|nom` ; le serveur la garde avec l'onglet, qui survit donc à un
+rechargement. `runScript` le retrouve pour le ramener au premier plan ou y
+relancer le script, et tout passe par lui : la vue Scripts et ses groupes,
+`installer`, le ▷ de la marge, les suites de tests en arrière-plan. L'adresse d'un
+serveur de développement est relevée (`devUrl`), et une instance xterm change
+d'hôte sans perdre son tampon.
+
+**Ce qu'on attend, par palier**
+
+1. **L'onglet Scripts et ce qu'il montre.**
+   - Épinglé en tête de la barre : il ne se range pas au glisser et rien ne passe
+     devant lui. Toujours là, il reste grisé tant qu'aucun script n'a été lancé
+     dans le projet. Un script arrêté ou fini le garde actif tant que son shell
+     n'est pas fermé : un script ne disparaît jamais seul.
+   - Il porte le nombre de scripts en cours et leur état : rouge si l'un a
+     échoué, ambre si l'un tourne, gris sinon.
+   - Un clic montre ses scripts à la place du terminal, un second rend l'onglet ou
+     le fichier qu'on regardait ; une commande de la palette fait de même, avec
+     son raccourci.
+   - À gauche, une ligne par script du projet, dans l'ordre de lancement : son
+     état, `dossier › script`, l'adresse du serveur de développement, et ses
+     boutons — arrêter (Ctrl+C) et relancer, qui l'arrête puis le relance, tant
+     qu'il tourne ; lancer et fermer une fois fini. À droite, le terminal du
+     script choisi, où l'on tape comme aujourd'hui. La liste a une largeur
+     réglable, gardée comme celle des colonnes ; le projet retient le script
+     choisi.
+   - La liste range les scripts par nature, lue à leur nom : Serveurs, Tests,
+     Build, Vérifications, Installation, Autres. Chaque groupe a un en-tête qui
+     se replie, et qui garde replié l'état de ses scripts ; avec un seul groupe,
+     la liste reste plate.
+   - Sur le terminal d'un script, la barre flottante du coin haut droit — celle
+     du modèle et de l'effort sur un onglet Claude — porte arrêter et relancer :
+     un script arrêté se relance et s'arrête sans revenir à la liste.
+   - Tout onglet ouvert par `runScript` y va, tests et `installer` compris.
+     « Aller à l'onglet », dans la vue Scripts, ouvre l'onglet Scripts sur ce
+     script.
+   - Le bloc du bas garde la session du dernier onglet Claude regardé tant qu'on
+     est sur l'onglet Scripts.
+   - **Un script fini refuse la frappe.** Tant qu'il tourne, ce qu'on tape va au
+     programme — une question `(Y/n)`, les touches d'un serveur de
+     développement ; revenu au prompt, son terminal n'accepte plus rien, et un
+     rappel dit que ▷ le relance. On n'y tape donc ni `claude` ni une autre
+     commande : pour cela, on ouvre un shell.
+2. **Ranger et sortir à la main.** Un shell s'y range par son menu contextuel,
+   « Ranger dans Scripts » — un onglet Claude ne le propose pas ; tout script,
+   venu seul ou rangé à la main, en sort par « Sortir des scripts » et rejoint la
+   barre. Le rangement survit à un rechargement. Un script sorti reste le sien :
+   le relancer le retrouve là où il est, sans en ouvrir un second.
+   - Les shells rangés à la main forment le dernier groupe de la liste, Shells :
+     sans commande à relancer, on les voit à leur place. Ils restent
+     interactifs.
+   - **Rien ne change de place tout seul.** `claude` lancé dans un shell rangé à
+     la main y reste, sans fenêtre ni bouton : le ranger était un choix, « Sortir
+     des scripts » le défait. Une session Claude arrêtée, par Ctrl+C ou autrement,
+     laisse son shell où il est.
+3. **Le réglage de lancement**, « Au lancement d'un script » : basculer sur
+   l'onglet Scripts, sur ce script — le défaut, ce que fait le lancement
+   aujourd'hui —, ou rester où l'on est, le script lancé devenant celui que
+   l'onglet montrera. Un lancement en arrière-plan ne bascule jamais.
+
+**Tranché** : un onglet épinglé dans la barre plutôt qu'un mode du bloc du bas ;
+tests, `installer` et shells rangés à la main y vont ; le lancement bascule par
+défaut. Un seul terminal est montré à la fois, sans écran partagé : les scripts se
+suivent dans la liste, l'un au-dessus de l'autre — des sous-onglets côte à côte
+restent possibles si la conception les préfère. Un script fini est en lecture
+seule, plutôt qu'interactif ou fermé à toute frappe ; Claude dans un shell rangé à
+la main n'ouvre ni fenêtre ni bouton.
+
+**Par défaut, sauf avis contraire**
+
+- `Ctrl+Maj+PageDown` et `PageUp` passent sur l'onglet Scripts comme sur un seul
+  onglet ; dans la liste, `↑` `↓` changent de script.
+- Le clic droit sur l'onglet Scripts propose « Tout arrêter » et « Fermer les
+  scripts finis ».
+- La croix d'une ligne ferme le terminal du script, sans demander, comme celle
+  d'un onglet aujourd'hui.
+- Le pied de la zone — dossier, état, code de sortie — décrit le script choisi.
+- Basculer ne recrée aucun terminal : chacun garde son tampon et son défilement,
+  et se remesure à la largeur que la liste lui laisse.
+
+**Critère.** Deux serveurs et une suite de tests tournent : la barre n'a qu'un
+onglet de plus, Scripts, qui affiche 3 en ambre. Un clic les montre avec leurs
+adresses, un second ramène à l'onglet Claude, dont le bloc du bas n'a pas bougé.
+
+**État.** Conçue dans [`design-onglet-scripts.md`](design-onglet-scripts.md) et
+planifiée dans [`workflow-onglet-scripts.md`](workflow-onglet-scripts.md), en trois
+MR ; à implémenter : `/sc:implement`.
+
+---
+
 ## Constats en passant
 
 - **Le démarrage est déjà rapide** : interface prête en 180 ms, 430 ms avec le

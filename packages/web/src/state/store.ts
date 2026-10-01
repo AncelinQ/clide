@@ -7,7 +7,8 @@ import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKi
 import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
-import { tabToShow } from "@/lib/workspace";
+import { backTarget, placementOf, splitTabs, type ScriptsShelf } from "@/lib/script-shelf";
+import { ownActiveTab, tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
 export interface Project {
@@ -25,6 +26,8 @@ export interface Project {
   activeFile: string | null;
   /** Ordre des onglets du centre, terminaux et fichiers mêlés (`orderTabs`). */
   tabOrder: string[];
+  /** Ce que l'onglet Scripts retient pour le projet. */
+  scripts: ScriptsShelf;
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -115,6 +118,8 @@ export interface State {
   activityAgents: { sessionId: string; path: { agentId: string; label: string }[] } | null;
   /** Un prompt enregistré attend la valeur de `{saisie}` ; la fenêtre répond par `resolve`. */
   promptInput: { label: string; resolve: (value: string | undefined) => void } | null;
+  /** Terminal de script fini qui vient de refuser une frappe : le cadre le rappelle un instant. */
+  refusedInput: string | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -159,6 +164,8 @@ export interface Widths {
   right: number;
   /** Part de la hauteur du centre laissée à l'îlot du bas, entre 0 et 1. */
   bottom: number;
+  /** Largeur de la liste de l'onglet Scripts, en pixels. */
+  scripts: number;
 }
 
 export const DEFAULT_WIDTHS: Widths = DEFAULT_LAYOUT.widths;
@@ -215,6 +222,7 @@ let state: State = {
   paletteOpen: false,
   paletteQuery: ">",
   promptInput: null,
+  refusedInput: null,
   addingProject: false,
   preferencesOpen: false,
   settingsSection: "general",
@@ -341,10 +349,50 @@ export function activateProject(root: string): void {
     const remembered = current.projects.find((project) => project.root === root)?.activeTab ?? null;
     return {
       activeRoot: root,
-      activeTerminalId: tabToShow(current.terminals, remembered, root),
+      activeTerminalId: tabToShow(current.terminals, remembered, root, (id) => inBar(current, id)),
       followLive: true,
     };
   });
+}
+
+/** Vrai si le terminal `id` vit dans la barre d'onglets, pas dans l'onglet Scripts. */
+export function inBar(current: State, id: string): boolean {
+  const entry = current.terminals[id];
+  return entry !== undefined && placementOf(entry.info) === "bar";
+}
+
+/** Terminaux d'un projet, dans l'ordre d'ouverture, partagés entre la barre et l'onglet Scripts. */
+export function tabsOf(current: State, root: string | null): { bar: TerminalInfo[]; shelf: TerminalInfo[] } {
+  return splitTabs(
+    Object.values(current.terminals)
+      .filter((entry) => entry.owner === root)
+      .map((entry) => entry.info),
+  );
+}
+
+/**
+ * L'onglet Scripts est montré : le terminal actif du projet actif y est placé, et
+ * aucun fichier ne passe devant. C'est la seule définition ; aucun drapeau ne la
+ * double.
+ */
+export function scriptsShown(current: State = state): boolean {
+  const project = activeProject(current);
+  const id = ownActiveTab(current.terminals, current.activeTerminalId, current.activeRoot);
+  return project !== undefined && project.activeFile === null && id !== undefined && !inBar(current, id);
+}
+
+/**
+ * Terminal dont le bloc du bas suit la session : le terminal actif s'il est dans
+ * la barre ou s'il fait tourner Claude, sinon l'onglet de la barre qu'on a quitté
+ * pour l'onglet Scripts.
+ */
+export function sessionTabOf(current: State = state): string | null {
+  const id = ownActiveTab(current.terminals, current.activeTerminalId, current.activeRoot);
+  if (!id) return null;
+  if (inBar(current, id) || current.terminals[id]?.info.kind === "claude") return id;
+  const project = activeProject(current);
+  if (!project) return null;
+  return backTarget(project.scripts, tabsOf(current, project.root).bar.map((info) => info.id), project.openFiles).tab;
 }
 
 /** Projets où `owner` retient `tab` comme dernier onglet regardé. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { EMPTY_SHELF } from "../src/lib/script-shelf";
 import { DEFAULT_LAYOUT, DEFAULT_PREFS, SAVED_VERSION, migrate } from "../src/lib/saved-state";
 
 /** Forme réelle d'un état v1, chemins anonymisés. */
@@ -36,7 +37,7 @@ describe("migrate depuis la version 1", () => {
 
   it("donne aux modes et à la disposition, absents en v1, leur valeur par défaut", () => {
     expect(state.projects[0]).toMatchObject({ browsePath: "", leftMode: "explorer", bottomMode: "files" });
-    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, bottom: 0.38 } });
+    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, bottom: 0.38, scripts: 220 } });
   });
 
   it("reprend toutes les préférences", () => {
@@ -76,7 +77,7 @@ describe("migrate en version 2", () => {
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [] });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], scripts: EMPTY_SHELF });
     expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
@@ -95,6 +96,28 @@ describe("migrate en version 2", () => {
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
     expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
+  });
+
+  it("garde ce que retient l'onglet Scripts", () => {
+    const scripts = { selected: "t2", back: { tab: "t1", file: "C:/a/x.ts" }, commands: { t2: "pnpm run dev" }, folded: ["test"] };
+    const state = migrate({ version: 2, projects: [{ root: "C:\\a", scripts }], layout: { widths: { scripts: 300 } } });
+    expect(state.projects[0]?.scripts).toEqual(scripts);
+    expect(state.layout.widths.scripts).toBe(300);
+  });
+
+  it("donne à un onglet Scripts absent, illisible ou partiel ses valeurs par défaut", () => {
+    const state = migrate({
+      version: 2,
+      projects: [
+        { root: "C:\\a" },
+        { root: "C:\\b", scripts: "abîmé" },
+        { root: "C:\\c", scripts: { selected: 4, back: { tab: "t1" }, commands: { t1: "dev", t2: 3 }, folded: ["test", "inconnu", "test"] } },
+      ],
+    });
+    expect(state.projects[0]?.scripts).toEqual(EMPTY_SHELF);
+    expect(state.projects[1]?.scripts).toEqual(EMPTY_SHELF);
+    expect(state.projects[2]?.scripts).toEqual({ selected: null, back: { tab: "t1", file: null }, commands: { t1: "dev" }, folded: ["test"] });
+    expect(state.layout.widths.scripts).toBe(DEFAULT_LAYOUT.widths.scripts);
   });
 });
 
@@ -123,7 +146,7 @@ describe("migrate sur un état abîmé", () => {
     expect(state.prefs.theme).toBe("auto");
     expect(state.prefs.language).toBe("auto");
     expect(state.prefs.terminalFont).toEqual({ family: "Consolas", size: 13 });
-    expect(state.layout.widths).toEqual({ left: 290, right: 400, bottom: 0.38 });
+    expect(state.layout.widths).toEqual({ left: 290, right: 400, bottom: 0.38, scripts: 220 });
     expect(state.prefs.hiddenModes).toEqual({ session: ["plan"] });
     expect(state.prefs.shortcuts).toEqual({ a: "Ctrl+A" });
   });

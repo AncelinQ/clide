@@ -7,6 +7,8 @@
  * dans un état que rien ne sait afficher.
  */
 
+import { EMPTY_SHELF, NATURES, type Nature, type ScriptsShelf } from "@/lib/script-shelf";
+
 export const SAVED_VERSION = 2;
 
 /** Ce qu'un projet ouvert retient d'une session à l'autre. */
@@ -29,11 +31,13 @@ export interface SavedProject {
    * rangé. Vide, ou pour un onglet qui n'y figure pas : l'ordre d'ouverture.
    */
   tabOrder: string[];
+  /** Ce que l'onglet Scripts retient : script choisi, retour vers la barre, commandes, groupes repliés. */
+  scripts: ScriptsShelf;
 }
 
 export interface SavedLayout {
-  /** Colonnes en pixels ; îlot du bas en part de la hauteur du centre. */
-  widths: { left: number; right: number; bottom: number };
+  /** Colonnes et liste de l'onglet Scripts en pixels ; îlot du bas en part de la hauteur du centre. */
+  widths: { left: number; right: number; bottom: number; scripts: number };
   /** Hauteur du bas de chaque pile de vues, en pixels, par identifiant de pile. */
   stacks: Record<string, number>;
   showLeft: boolean;
@@ -79,7 +83,7 @@ export interface SavedState {
 }
 
 export const DEFAULT_LAYOUT: SavedLayout = {
-  widths: { left: 290, right: 340, bottom: 0.38 },
+  widths: { left: 290, right: 340, bottom: 0.38, scripts: 220 },
   stacks: {},
   showLeft: true,
   showRight: true,
@@ -118,6 +122,7 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   openFiles: [],
   activeFile: null,
   tabOrder: [],
+  scripts: EMPTY_SHELF,
 };
 
 type Json = Record<string, unknown>;
@@ -158,6 +163,19 @@ function bottomActivity(value: unknown): string {
   return text(value, DEFAULT_PROJECT.bottomMode);
 }
 
+/** Ce que l'onglet Scripts d'un projet retient ; une partie illisible prend sa valeur par défaut. */
+function shelf(value: unknown): ScriptsShelf {
+  const source = isRecord(value) ? value : {};
+  const back = isRecord(source["back"]) ? source["back"] : {};
+  const id = (item: unknown): string | null => (typeof item === "string" ? item : null);
+  return {
+    selected: id(source["selected"]),
+    back: { tab: id(back["tab"]), file: id(back["file"]) },
+    commands: recordOf(source["commands"], (item): item is string => typeof item === "string"),
+    folded: [...new Set(strings(source["folded"]))].filter((item): item is Nature => (NATURES as readonly string[]).includes(item)),
+  };
+}
+
 function project(value: unknown, fallbackTab?: string): SavedProject | undefined {
   if (!isRecord(value) || typeof value["root"] !== "string" || !trimRoot(value["root"])) return undefined;
   const tab = value["activeTab"] ?? fallbackTab;
@@ -172,6 +190,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     openFiles,
     activeFile,
     tabOrder: [...new Set(strings(value["tabOrder"]))],
+    scripts: shelf(value["scripts"]),
   };
 }
 
@@ -193,6 +212,7 @@ function layout(value: unknown): SavedLayout {
       left: number(widths["left"], DEFAULT_LAYOUT.widths.left),
       right: number(widths["right"], DEFAULT_LAYOUT.widths.right),
       bottom: number(widths["bottom"], DEFAULT_LAYOUT.widths.bottom),
+      scripts: number(widths["scripts"], DEFAULT_LAYOUT.widths.scripts),
     },
     stacks: recordOf(source["stacks"], (item): item is number => typeof item === "number" && Number.isFinite(item)),
     showLeft: flag(source["showLeft"], DEFAULT_LAYOUT.showLeft),
