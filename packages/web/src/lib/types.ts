@@ -222,8 +222,6 @@ export interface TokenUsage {
   cacheRead: number;
   cacheCreation: number;
   context: number;
-  model?: string;
-  effort?: string;
 }
 
 /** Session qui tourne dans un onglet Claude, suivie en direct par le serveur. */
@@ -232,6 +230,9 @@ export interface LiveSession {
   title?: string;
   permissionMode?: string;
   planMode?: boolean;
+  /** Modèle et effort en cours : ceux du transcript, sinon ceux du lancement. */
+  model?: string;
+  effort?: string;
   tokens?: TokenUsage;
   cost?: { totalCostUSD?: number };
   price?: SessionCost;

@@ -417,6 +417,7 @@ export function TerminalArea() {
           sessionId: current.sessionId,
           ...(current.title ? { title: current.title } : {}),
           ...(current.lastActivityAt ? { refresh: current.lastActivityAt } : {}),
+          ...(current.model ? { model: current.model } : {}),
           ...(current.tokens ? { tokens: current.tokens } : {}),
           ...(current.price ? { price: current.price } : {}),
         }
@@ -583,7 +584,7 @@ export function TerminalArea() {
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
-            <ClaudeToolbar currentModel={current?.tokens?.model} currentEffort={current?.tokens?.effort} servers={servers} />
+            <ClaudeToolbar currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
           )}
           {activeFile && (
             <div className="absolute inset-0 bg-background">

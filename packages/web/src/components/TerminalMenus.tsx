@@ -7,9 +7,10 @@ import { usePrompts } from "@/components/PromptsPanel";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { post } from "@/lib/api";
+import { effortsFor, findModel, type ModelChoice } from "@/lib/models";
 import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
-import { effortsFor, sameModel, useModels, type ModelChoice } from "@/state/models";
+import { useModels } from "@/state/models";
 import { getState } from "@/state/store";
 import { runPrompt } from "@/state/prompts";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
@@ -20,13 +21,16 @@ function shortcutLabel(id: string): string | undefined {
   return command ? effectiveShortcut(command, getState().shortcuts) : undefined;
 }
 
-/** Les modèles principaux, puis les versions précédentes dans un sous-menu. */
-function modelItems(models: ModelChoice[], pick: (model: ModelChoice) => void, current?: string): MenuItem[] {
+/**
+ * Les modèles principaux, puis les versions précédentes dans un sous-menu.
+ * `current` coche le modèle en cours ; `null` quand il n'est pas connu.
+ */
+function modelItems(models: ModelChoice[], pick: (model: ModelChoice) => void, current?: ModelChoice | null): MenuItem[] {
   const entry = (model: ModelChoice): MenuItem => ({
     kind: "item",
     label: model.name,
     ...(model.description ? { hint: model.description } : {}),
-    ...(current !== undefined ? { checked: sameModel(model, current) } : {}),
+    ...(current !== undefined ? { checked: model === current } : {}),
     run: () => pick(model),
   });
   const others = models.filter((model) => !model.main);
@@ -150,14 +154,14 @@ export function ClaudeToolbar({
   const models = useModels();
   const prompts = usePrompts();
   const serving = servers.length > 0;
-  const model = models.find((choice) => sameModel(choice, currentModel));
+  const model = findModel(models, currentModel);
   const modelLabel = model?.name ?? currentModel?.replace(/^claude-/, "") ?? t("Modèle");
   const efforts = effortsFor(model);
   const effort = efforts.find((choice) => choice.id === currentEffort);
 
   const modelMenu = (): MenuItem[] => [
     { kind: "label", label: t("Pour la session en cours (/model)") },
-    ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), currentModel ?? ""),
+    ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), model ?? null),
   ];
   const effortMenu = (): MenuItem[] => [
     { kind: "label", label: t("Pour la session et les suivantes du modèle (/effort)") },

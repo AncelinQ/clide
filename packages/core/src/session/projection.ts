@@ -50,9 +50,6 @@ export interface TokenCounts {
 export interface TokenUsage extends TokenCounts {
   /** Taille du contexte envoyé à la dernière réponse : entrée et cache compris. */
   context: number;
-  model?: string;
-  /** Niveau d'effort de la dernière réponse (`/effort`), quand le transcript le note. */
-  effort?: string;
   /** Les mêmes volumes, par modèle : une session en mêle souvent plusieurs. */
   byModel: Record<string, TokenCounts>;
   /**
@@ -85,6 +82,13 @@ export interface SessionProjection {
   planMode?: boolean;
   /** Fichier où Claude Code écrit le plan en cours, annoncé en mode plan. */
   planFilePath?: string;
+  /** Modèle en cours : celui de la dernière réponse, ou du `/model` qui l'a suivie. */
+  model?: string;
+  /**
+   * Effort en cours : celui de la dernière réponse, ou du `/effort` qui l'a suivie.
+   * Absent quand la dernière réponse n'en note pas.
+   */
+  effort?: string;
   /**
    * Prompts en attente, dans l'ordre où Claude les prendra.
    *
@@ -129,7 +133,8 @@ export class SessionProjector {
    * les sommer compterait la même réponse deux ou trois fois.
    */
   readonly #usage = new Map<string, TokenCounts & { model: string }>();
-  #lastUsage: { context: number; model?: string; effort?: string } | undefined;
+  /** Contexte envoyé à la dernière réponse ; absent tant qu'aucune n'a de consommation. */
+  #context: number | undefined;
   /** Argument du dernier `/model`, en attente de la sortie qui dit s'il a pris. */
   #modelArgs: string | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
@@ -362,18 +367,18 @@ export class SessionProjector {
       model: model ?? "inconnu",
     };
     this.#usage.set(id, entry);
-    const effort = typeof event["effort"] === "string" && event["effort"] ? (event["effort"] as string) : undefined;
-    this.#lastUsage = {
-      context: entry.input + entry.cacheRead + entry.cacheCreation,
-      ...(model ? { model } : {}),
-      ...(effort ? { effort } : {}),
-    };
+    this.#context = entry.input + entry.cacheRead + entry.cacheCreation;
+    if (model) this.#state.model = model;
+    const effort = readString(event, "effort");
+    if (effort) this.#state.effort = effort;
+    else delete this.#state.effort;
   }
 
   /**
    * `/effort` et `/model` changent l'effort et le modèle sans réponse de Claude :
    * le transcript n'en garde que la commande puis sa sortie, et les réponses ne
-   * suivent qu'au tour suivant. Seule une sortie qui confirme le changement compte.
+   * suivent qu'au tour suivant — ou jamais, dans une session qui n'a pas encore
+   * de prompt. Seule une sortie qui confirme le changement compte.
    * Le modèle est pris dans l'argument de la commande, un identifiant que le
    * catalogue reconnaît ; choisi dans le sélecteur, sans argument, il n'est connu
    * que par le nom que la sortie affiche.
@@ -388,16 +393,14 @@ export class SessionProjector {
     }
     const args = this.#modelArgs;
     this.#modelArgs = undefined;
-    if (!this.#lastUsage) return;
     const effort = /<local-command-stdout>Set effort level to (\w+)/.exec(content)?.[1];
-    if (effort) this.#lastUsage = { ...this.#lastUsage, effort };
+    if (effort) this.#state.effort = effort;
     const shown = /<local-command-stdout>Set model to `([^`]+)`/.exec(content)?.[1];
-    const model = args || shown;
-    if (shown && model) this.#lastUsage = { ...this.#lastUsage, model };
+    if (shown) this.#state.model = args || shown;
   }
 
   #tokens(): TokenUsage | undefined {
-    if (!this.#lastUsage) return undefined;
+    if (this.#context === undefined) return undefined;
     const total = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
     const byModel: Record<string, TokenCounts> = {};
     const afterCost: Record<string, TokenCounts> = {};
@@ -418,7 +421,7 @@ export class SessionProjector {
     }
     return {
       ...total,
-      ...this.#lastUsage,
+      context: this.#context,
       byModel,
       ...(Object.keys(afterCost).length > 0 ? { afterCost } : {}),
     };
@@ -472,7 +475,7 @@ export class SessionProjector {
   snapshot(): SessionProjection {
     return {
       ...this.#state,
-      ...(this.#lastUsage ? { tokens: this.#tokens() } : {}),
+      ...(this.#context !== undefined ? { tokens: this.#tokens() } : {}),
       prLinks: [...this.#prLinks],
       queue: [...this.#queue],
       tickets: this.#tickets.snapshot(),
