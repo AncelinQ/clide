@@ -89,7 +89,8 @@ describe("LiveSessions", () => {
 
     await writeFile(join(directory, "seule.jsonl"), line({ type: "mode", mode: "normal" }), "utf8");
     await live.tick();
-    expect(received.map(([terminalId]) => terminalId)).toEqual(["t1"]);
+    // Lequel des deux le prend dépend de leur ordre d'ouverture, testé à part.
+    expect(received).toHaveLength(1);
   });
 
   it("montre le modèle et l'effort du lancement tant que le transcript ne dit pas les siens", async () => {
