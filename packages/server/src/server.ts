@@ -28,7 +28,7 @@ import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
-import { parseClientMessage, type ServerMessage, type WatchTopic } from "./protocol.js";
+import { parseClientMessage, type ServerMessage } from "./protocol.js";
 import { OutsideWorkspace, WorkspaceRoots, checkRoots, rootsOfSavedState } from "./workspace/roots.js";
 import { ServerBus } from "./bus.js";
 
@@ -401,20 +401,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     });
     for (const { terminalId, session } of live.current()) post({ t: "live", terminalId, session });
 
-    // Flux que cette page regarde : sa fermeture les rend, même sans message.
-    const watching = new Set<WatchTopic>();
-
     socket.on("message", (raw) => {
       const message = parseClientMessage(raw.toString());
       if (!message) {
         post({ t: "error", message: "message rejeté" });
-        return;
-      }
-      if (message.t === "watch") {
-        if (message.on === watching.has(message.topic)) return;
-        if (message.on) watching.add(message.topic);
-        else watching.delete(message.topic);
-        context.bus.emit("watch", message.topic, message.on);
         return;
       }
       void handleMessage(message, post);
@@ -422,7 +412,6 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
 
     socket.on("close", () => {
       for (const off of unsubscribe) off();
-      for (const topic of watching) context.bus.emit("watch", topic, false);
     });
   }
 

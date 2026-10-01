@@ -3,9 +3,8 @@ import { useSyncExternalStore } from "react";
 import { syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
 import { restoreImportedTheme, type ImportedTheme } from "@/lib/vscode-theme";
-import type { BrowserState, ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
+import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
 import type { TestTarget } from "@/lib/test-commands";
-import { followPreview, previewOf } from "@/lib/project-preview";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { tabToShow } from "@/lib/workspace";
@@ -26,9 +25,6 @@ export interface Project {
   activeFile: string | null;
   /** Ordre des onglets du centre, terminaux et fichiers mêlés (`orderTabs`). */
   tabOrder: string[];
-  /** Aperçu du projet : `previewOpen` et `previewSource` de l'état en sont la copie pour le projet actif. */
-  previewOpen: boolean;
-  previewSource: "servers" | "browser";
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -88,10 +84,6 @@ export interface State {
   files: Record<string, OpenFile>;
   /** Dernier rapport d'erreurs et de TODO de chaque projet, poussé par le serveur. */
   diagnostics: Record<string, DiagnosticsReport>;
-  /** Navigateur de Claude, tel que le serveur l'annonce ; inconnu avant la première réponse. */
-  browser?: BrowserState;
-  /** Ce que montre l'aperçu : un serveur de développement, ou le navigateur de Claude. */
-  previewSource: "servers" | "browser";
   /** Suites de tests de chaque projet, avec leurs derniers résultats. */
   tests: Record<string, TestSuite[]>;
   /** Lancements de tests en cours, par clé de script (`dossier|nom`) : ce qui tourne. */
@@ -117,8 +109,6 @@ export interface State {
   showRight: boolean;
   /** Bloc session replié sous le terminal. */
   sessionCollapsed: boolean;
-  /** Aperçu du serveur de développement ouvert à côté du terminal. */
-  previewOpen: boolean;
   /** Entrée d'activité à montrer, ouverte depuis la recherche. */
   activityFocus: { sessionId: string; index: number; agentId?: string } | null;
   /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
@@ -167,8 +157,6 @@ export interface State {
 export interface Widths {
   left: number;
   right: number;
-  /** Part de la zone du terminal laissée à l'aperçu, entre 0 et 1. */
-  preview: number;
   /** Part de la hauteur du centre laissée à l'îlot du bas, entre 0 et 1. */
   bottom: number;
 }
@@ -180,7 +168,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "previewOpen" | "previewSource" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
+  | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
   | "autoUpdate"
 > {
   let raw: unknown;
@@ -194,7 +182,6 @@ function restored(): Pick<
     projects: saved.projects.map((project) => ({ ...project, name: nameOf(project.root) })),
     activeRoot: saved.active,
     ...saved.layout,
-    ...previewOf(saved.projects.find((project) => project.root === saved.active)),
     ...saved.prefs,
     look: restoreLook(saved.prefs.look),
     vscodeTheme: restoreImportedTheme(saved.prefs.vscodeTheme),
@@ -248,8 +235,6 @@ function persist(): void {
       showLeft: state.showLeft,
       showRight: state.showRight,
       sessionCollapsed: state.sessionCollapsed,
-      previewOpen: state.previewOpen,
-      previewSource: state.previewSource,
       globalTab: state.globalTab,
     },
     prefs: {
@@ -291,7 +276,6 @@ export function setState(patch: Partial<State> | ((current: State) => Partial<St
   const next = typeof patch === "function" ? patch(state) : patch;
   const previous = state;
   state = { ...state, ...next };
-  state = { ...state, ...followPreview(previous, state, Object.keys(next)) };
   const before = previous.projects;
   if (state.projects !== before) announceProjects();
   persist();

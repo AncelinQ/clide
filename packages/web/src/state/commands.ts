@@ -8,7 +8,7 @@ import { orderTabs, shiftTab } from "@/lib/tab-order";
 import { cycleTheme } from "@/state/theme";
 import { closeFile, saveFile, selectedText } from "@/state/editor";
 import { focusFileSearch } from "@/components/panels/file-search";
-import { showClaudeBrowser } from "@/components/BrowserPreview";
+import { openLatestDevServer } from "@/components/DevServers";
 import { cachedPrompts, runPrompt } from "@/state/prompts";
 import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
 
@@ -103,7 +103,6 @@ export function commands(): Command[] {
     { id: "palette.files", group: t("Application"), label: t("Aller à un fichier du projet"), run: () => openPalette("") },
     { id: "palette.sessions", group: t("Application"), label: t("Aller à une session"), run: () => openPalette("@") },
     { id: "palette.search", group: t("Application"), label: t("Chercher dans les sessions"), run: () => openPalette("#") },
-    { id: "preview.browser", group: t("Application"), label: t("Voir le navigateur de Claude"), run: () => showClaudeBrowser() },
     {
       id: "search.files",
       group: t("Application"),
@@ -248,11 +247,11 @@ export function commands(): Command[] {
       run: () => openDoc(),
     },
     {
-      id: "view.preview",
-      group: t("Affichage"),
-      label: t("Aperçu du serveur de développement"),
+      id: "devserver.open",
+      group: t("Application"),
+      label: t("Ouvrir le serveur de développement dans le navigateur"),
       shortcut: "Ctrl+Shift+U",
-      run: () => setState((current) => ({ previewOpen: !current.previewOpen })),
+      run: openLatestDevServer,
     },
     // Chaque prompt enregistré est une commande : la palette le trouve, un raccourci peut le lancer.
     ...cachedPrompts().map((prompt) => ({

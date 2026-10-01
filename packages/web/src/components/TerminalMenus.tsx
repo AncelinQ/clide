@@ -1,6 +1,7 @@
 import { BrainCircuit, Camera, Copy, Gauge, MessageSquareText, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
 import { useState } from "react";
 
+import { devServerItems, type DevServer } from "@/components/DevServers";
 import { MenuButton, type MenuItem } from "@/components/Menu";
 import { usePrompts } from "@/components/PromptsPanel";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,9 @@ import { post } from "@/lib/api";
 import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { effortsFor, sameModel, useModels, type ModelChoice } from "@/state/models";
-import { getState, setState, useStore } from "@/state/store";
+import { getState } from "@/state/store";
 import { runPrompt } from "@/state/prompts";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
-import { cn } from "cn";
 
 /** Raccourci effectif d'une commande, surcharges de l'utilisateur comprises. */
 function shortcutLabel(id: string): string | undefined {
@@ -141,15 +141,15 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
 export function ClaudeToolbar({
   currentModel,
   currentEffort,
-  serving,
+  servers,
 }: {
   currentModel: string | undefined;
   currentEffort: string | undefined;
-  serving: boolean;
+  servers: DevServer[];
 }) {
   const models = useModels();
   const prompts = usePrompts();
-  const previewOpen = useStore((state) => state.previewOpen);
+  const serving = servers.length > 0;
   const model = models.find((choice) => sameModel(choice, currentModel));
   const modelLabel = model?.name ?? currentModel?.replace(/^claude-/, "") ?? t("Modèle");
   const efforts = effortsFor(model);
@@ -213,17 +213,22 @@ export function ClaudeToolbar({
           }
         />
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("relative size-6 [&_svg]:size-3.5", previewOpen && "bg-accent text-primary")}
-        title={`${t("Aperçu du serveur de développement")} — ${serving ? t("un serveur tourne") : t("aucun serveur de développement ne tourne")}`}
-        onClick={() => setState({ previewOpen: !previewOpen })}
-      >
-        <MonitorPlay />
-        {/* Un serveur tourne : un point, pas une couleur, qui se confondrait avec l'aperçu ouvert. */}
-        {serving && <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-emerald-500" />}
-      </Button>
+      <MenuButton
+        hover
+        items={() => devServerItems(servers)}
+        className="min-w-64"
+        trigger={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative size-6 [&_svg]:size-3.5"
+            title={`${t("Serveurs de développement")} — ${serving ? t("un serveur tourne") : t("aucun serveur de développement ne tourne")}`}
+          >
+            <MonitorPlay />
+            {serving && <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-emerald-500" />}
+          </Button>
+        }
+      />
     </div>
   );
 }

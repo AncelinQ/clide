@@ -5,7 +5,6 @@ import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
-import { pushBrowserFrame } from "@/state/browser";
 import { nativeZoom, onZoomChange } from "@/state/interface";
 import { applyMarkers } from "@/state/editor";
 import { dismissSystem, notifySystem } from "@/state/notify";
@@ -173,12 +172,6 @@ function onMessage(message: ServerMessage): void {
     case "diagnostics":
       setState((current) => ({ diagnostics: { ...current.diagnostics, [message.report.root]: message.report } }));
       applyMarkers(message.report);
-      break;
-    case "browser":
-      setState({ browser: message.state });
-      break;
-    case "browser.frame":
-      pushBrowserFrame(message.frame);
       break;
   }
 }

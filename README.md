@@ -86,7 +86,7 @@ pnpm docs:build     # site statique, que l'application sert
 - [Présentation et lancement](docs/guide/index.md)
 - [Terminaux](docs/guide/terminaux.md)
 - [La session](docs/guide/session.md) — plan, activité, fichiers, captures, schéma, rédaction
-- [Aperçu du serveur de développement](docs/guide/apercu.md)
+- [Serveurs de développement](docs/guide/serveurs-dev.md)
 - [Git et worktrees](docs/guide/git.md)
 - [La colonne du projet](docs/guide/projet.md) — liens, scripts, skills, MCP
 - [Le panneau global](docs/guide/panneau-global.md) — History, recherche, chantiers, coûts
