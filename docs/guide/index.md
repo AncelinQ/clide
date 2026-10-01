@@ -79,7 +79,9 @@ chemin d'un dossier. Choisir un dossier l'ouvre aussitôt. La fenêtre propose a
 les dossiers **récents** : ceux où des sessions Claude ont tourné, du plus récent
 au plus ancien, avec leur nombre de sessions, hors des projets déjà ouverts et des
 dossiers temporaires. Sans aucun projet ouvert, l'écran d'accueil du centre les
-liste aussi, avec le jour de leur dernière session : un clic rouvre le projet.
+liste aussi, avec le jour de leur dernière session : un clic rouvre le projet. La
+colonne du projet ne s'affiche pas tant qu'il n'y en a aucun : elle n'aurait rien à
+montrer, et l'accueil propose déjà d'en ouvrir un.
 
 Les pastilles de projet et les onglets du centre — terminaux et fichiers mêlés —
 se rangent au glisser-déposer : un trait montre la place d'arrivée, Échap annule.

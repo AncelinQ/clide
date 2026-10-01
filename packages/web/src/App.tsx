@@ -27,6 +27,9 @@ const CHROME = 110;
 export function App() {
   const { showLeft, showRight, attention, widths, tabLayout, globalTab, disabledModules } = useStore((state) => state);
   const project = useStore(activeProject);
+  // Sans projet, la colonne du projet n'a rien à montrer : l'accueil du centre
+  // propose déjà d'en ouvrir un.
+  const leftShown = showLeft && project !== undefined;
   // Changer de langue redessine tout ce qui affiche du texte.
   const language = useLanguage();
 
@@ -63,9 +66,10 @@ export function App() {
   useEffect(() => {
     // Une fenêtre qui rétrécit prend sur les colonnes latérales, pas sur le terminal.
     const onResize = () => {
-      const { widths: current, showLeft: left, showRight: right } = getState();
+      const state = getState();
+      const { widths: current, showRight: right } = state;
       const spare = window.innerWidth - CHROME - MIDDLE_MIN;
-      const shownLeft = left ? current.left : 0;
+      const shownLeft = state.showLeft && activeProject(state) ? current.left : 0;
       const shownRight = right ? current.right : 0;
       if (shownLeft + shownRight > spare) {
         const scale = Math.max(spare, 0) / (shownLeft + shownRight);
@@ -85,7 +89,7 @@ export function App() {
 
   useEffect(() => {
     requestAnimationFrame(resizeActive);
-  }, [showLeft, showRight, widths.left, widths.right]);
+  }, [leftShown, showRight, widths.left, widths.right]);
 
   // Largeur au début du geste : le déplacement s'y ajoute, sans dériver.
   const start = useRef(0);
@@ -112,7 +116,7 @@ export function App() {
               onToggle={(open) => setState({ showLeft: open })}
             />
           )}
-          {showLeft && (
+          {leftShown && (
             <>
               <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ width: widths.left }}>
                 <ProjectColumn />
@@ -144,7 +148,7 @@ export function App() {
                   setState((current) => ({
                     widths: {
                       ...current.widths,
-                      right: clamp(start.current - dx, 260, room(showLeft ? current.widths.left : 0)),
+                      right: clamp(start.current - dx, 260, room(leftShown ? current.widths.left : 0)),
                     },
                   }))
                 }

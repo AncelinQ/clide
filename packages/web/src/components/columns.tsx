@@ -1,4 +1,4 @@
-import { FolderGit2, FolderOpen, FolderTree, History, Info, Plug, RefreshCw, Search, Sparkles } from "lucide-react";
+import { FolderGit2, FolderTree, History, Info, Plug, RefreshCw, Search, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { FileTree } from "@/components/FileTree";
@@ -190,18 +190,8 @@ export function ProjectColumn() {
   const disabledModules = useStore((state) => state.disabledModules);
   const [filter, setFilter] = useState("");
 
-  if (!project) {
-    return (
-      <Island>
-        <div className="flex flex-col items-start gap-3 p-4">
-          <p className="text-muted-foreground">{t("Aucun projet ouvert.")}</p>
-          <Button variant="outline" size="sm" onClick={() => setState({ addingProject: true })}>
-            <FolderOpen /> {t("Ouvrir un projet")}
-          </Button>
-        </div>
-      </Island>
-    );
-  }
+  // L'application ne la montre qu'avec un projet ouvert.
+  if (!project) return null;
 
   const activities = projectActivities(disabledModules);
   const activity = activities.find((entry) => entry.id === project.leftMode) ?? (activities[0] as (typeof activities)[number]);
