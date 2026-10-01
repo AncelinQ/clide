@@ -21,8 +21,9 @@ export function formatUsd(usd: number): string {
 }
 
 /**
- * Coût d'une session, avec ce qu'il vaut : exact, estimé (≈), plancher (≥), ou
- * inconnu. Un montant estimé ne se présente jamais comme un relevé.
+ * Coût d'une session, avec ce qu'il vaut : exact, estimé (≈) ou plancher (≥).
+ * Un montant estimé ne se présente jamais comme un relevé ; un coût inconnu ne
+ * s'affiche pas.
  */
 export function formatSessionCost(price: SessionCost | undefined): string | undefined {
   if (!price) return undefined;
@@ -34,7 +35,7 @@ export function formatSessionCost(price: SessionCost | undefined): string | unde
     case "atLeast":
       return `≥ ${formatUsd(price.usd)}`;
     case "unknown":
-      return price.unpriced.length ? t("coût inconnu") : undefined;
+      return undefined;
   }
 }
 
