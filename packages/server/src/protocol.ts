@@ -1,7 +1,5 @@
 import type { DiagnosticsReport } from "@clide/core";
 
-import type { BrowserFrame, BrowserState } from "./browser/session.js";
-
 import type { ClaudeNotification } from "./notifications/watcher.js";
 import type { LiveSession } from "./sessions/live.js";
 import type { TerminalInfo, TerminalKind } from "./pty/manager.js";
@@ -23,12 +21,7 @@ export type ClientMessage =
     }
   | { t: "input"; id: string; data: string }
   | { t: "resize"; id: string; cols: number; rows: number }
-  | { t: "close"; id: string }
-  /** La page commence ou cesse de regarder un flux (l'image du navigateur de Claude). */
-  | { t: "watch"; topic: WatchTopic; on: boolean };
-
-/** Flux qu'une page peut regarder : le serveur ne les produit que regardés. */
-export type WatchTopic = "browser";
+  | { t: "close"; id: string };
 
 /** Messages du serveur vers le client. */
 export type ServerMessage =
@@ -43,11 +36,7 @@ export type ServerMessage =
   | { t: "live"; terminalId: string; session: LiveSession }
   | { t: "error"; message: string }
   /** Erreurs et TODO d'un projet, à chaque vérification terminée. */
-  | { t: "diagnostics"; report: DiagnosticsReport }
-  /** État du navigateur de Claude : lancé ou non, ses pages, celle montrée. */
-  | { t: "browser"; state: BrowserState }
-  /** Une image de la page montrée, tant qu'une page la regarde. */
-  | { t: "browser.frame"; frame: BrowserFrame };
+  | { t: "diagnostics"; report: DiagnosticsReport };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -112,8 +101,6 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
       const id = str("id");
       return id ? { t: "close", id } : undefined;
     }
-    case "watch":
-      return value["topic"] === "browser" && typeof value["on"] === "boolean" ? { t: "watch", topic: "browser", on: value["on"] } : undefined;
     default:
       return undefined;
   }

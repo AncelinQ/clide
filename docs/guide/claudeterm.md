@@ -54,13 +54,13 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 - Alertes : état des hooks, script à mettre à jour, anciennes installations.
 - Disposition des onglets en ligne ou en colonne, choix des onglets affichés.
 
-## Terminaux et aperçu
+## Terminaux et serveurs
 
 - Les **terminaux survivent au rechargement** de la page, avec leur sortie.
 - **Modèle de la session** changé par un sélecteur ; taille du contexte dans la
   barre d'état.
-- **Aperçu du serveur de développement** : adresse détectée dans la sortie,
-  serveurs lancés par Claude repérés par leur port, cadre avec rechargement.
+- **Serveurs de développement** : adresse détectée dans la sortie, serveurs
+  lancés par Claude repérés par leur port, ouverts dans le navigateur d'un clic.
 
 ## Application
 

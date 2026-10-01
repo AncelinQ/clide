@@ -29,22 +29,16 @@ export interface SavedProject {
    * rangé. Vide, ou pour un onglet qui n'y figure pas : l'ordre d'ouverture.
    */
   tabOrder: string[];
-  /** Aperçu ouvert à côté du terminal du projet, et ce qu'il montre. */
-  previewOpen: boolean;
-  previewSource: "servers" | "browser";
 }
 
 export interface SavedLayout {
-  /** Colonnes en pixels ; aperçu et îlot du bas en part de la zone qu'ils partagent. */
-  widths: { left: number; right: number; preview: number; bottom: number };
+  /** Colonnes en pixels ; îlot du bas en part de la hauteur du centre. */
+  widths: { left: number; right: number; bottom: number };
   /** Hauteur du bas de chaque pile de vues, en pixels, par identifiant de pile. */
   stacks: Record<string, number>;
   showLeft: boolean;
   showRight: boolean;
   sessionCollapsed: boolean;
-  previewOpen: boolean;
-  /** Ce que montre l'aperçu : les serveurs de développement, ou le navigateur de Claude. */
-  previewSource: "servers" | "browser";
   globalTab: string;
 }
 
@@ -85,13 +79,11 @@ export interface SavedState {
 }
 
 export const DEFAULT_LAYOUT: SavedLayout = {
-  widths: { left: 290, right: 340, preview: 0.5, bottom: 0.38 },
+  widths: { left: 290, right: 340, bottom: 0.38 },
   stacks: {},
   showLeft: true,
   showRight: true,
   sessionCollapsed: false,
-  previewOpen: false,
-  previewSource: "servers",
   globalTab: "history",
 };
 
@@ -126,8 +118,6 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   openFiles: [],
   activeFile: null,
   tabOrder: [],
-  previewOpen: false,
-  previewSource: "servers",
 };
 
 type Json = Record<string, unknown>;
@@ -182,8 +172,6 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     openFiles,
     activeFile,
     tabOrder: [...new Set(strings(value["tabOrder"]))],
-    previewOpen: flag(value["previewOpen"], DEFAULT_PROJECT.previewOpen),
-    previewSource: value["previewSource"] === "browser" ? "browser" : "servers",
   };
 }
 
@@ -204,15 +192,12 @@ function layout(value: unknown): SavedLayout {
     widths: {
       left: number(widths["left"], DEFAULT_LAYOUT.widths.left),
       right: number(widths["right"], DEFAULT_LAYOUT.widths.right),
-      preview: number(widths["preview"], DEFAULT_LAYOUT.widths.preview),
       bottom: number(widths["bottom"], DEFAULT_LAYOUT.widths.bottom),
     },
     stacks: recordOf(source["stacks"], (item): item is number => typeof item === "number" && Number.isFinite(item)),
     showLeft: flag(source["showLeft"], DEFAULT_LAYOUT.showLeft),
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),
-    previewOpen: flag(source["previewOpen"], DEFAULT_LAYOUT.previewOpen),
-    previewSource: source["previewSource"] === "browser" ? "browser" : "servers",
     globalTab: globalTabId(text(source["globalTab"], DEFAULT_LAYOUT.globalTab)),
   };
 }

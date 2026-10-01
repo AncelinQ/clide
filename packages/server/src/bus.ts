@@ -1,4 +1,4 @@
-import type { ServerMessage, WatchTopic } from "./protocol.js";
+import type { ServerMessage } from "./protocol.js";
 
 /** Ce qui se passe dans le serveur et que des modules veulent savoir. */
 export interface BusEvents {
@@ -8,8 +8,6 @@ export interface BusEvents {
   files: (paths: readonly string[]) => void;
   /** Un message à envoyer à toutes les pages connectées. */
   broadcast: (message: ServerMessage) => void;
-  /** Une page commence ou cesse de regarder un flux ; une page fermée cesse de tout regarder. */
-  watch: (topic: WatchTopic, on: boolean) => void;
 }
 
 type Listener = (...args: unknown[]) => void;

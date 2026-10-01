@@ -33,7 +33,7 @@ export default defineConfig({
       {
         text: "Travailler",
         items: [
-          { text: "Aperçu du serveur de développement", link: "/apercu" },
+          { text: "Serveurs de développement", link: "/serveurs-dev" },
           { text: "Git et worktrees", link: "/git" },
           { text: "La colonne du projet", link: "/projet" },
           { text: "Le panneau global", link: "/panneau-global" },

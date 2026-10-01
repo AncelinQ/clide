@@ -9,7 +9,7 @@ copie son dossier.
 
 Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la
-session, les prompts enregistrés, l'aperçu du serveur de développement. Elle reste
+session, les prompts enregistrés, les serveurs de développement. Elle reste
 discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
 fichier ouvert.
 
@@ -58,8 +58,8 @@ ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
 Réglages › Claude Code.
 
-Le bouton d'aperçu porte un point vert quand un serveur de développement tourne ; il
-est surligné quand l'aperçu est ouvert.
+Le bouton des serveurs porte un point vert quand un serveur de développement tourne ;
+son menu les ouvre dans le navigateur.
 
 ## Ouvrir un fichier
 
@@ -160,8 +160,7 @@ celles d'un fichier de test sont relues à l'enregistrement.
 ## Largeur des colonnes
 
 Les poignées entre les colonnes se tirent à la souris, et un double-clic rend la
-largeur par défaut (290 px pour le projet, 340 pour le panneau global). La
-poignée entre le terminal et l'aperçu règle la part de l'aperçu. Les largeurs
-sont gardées d'une ouverture à l'autre ; le terminal garde toujours 420 px entre
-les colonnes, et 240 à côté de l'aperçu, et une fenêtre qui rétrécit prend sur
-les colonnes latérales plutôt que sur lui.
+largeur par défaut (290 px pour le projet, 340 pour le panneau global). Les
+largeurs sont gardées d'une ouverture à l'autre ; le terminal garde toujours
+420 px entre les colonnes, et une fenêtre qui rétrécit prend sur les colonnes
+latérales plutôt que sur lui.

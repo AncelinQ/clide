@@ -36,7 +36,7 @@ describe("migrate depuis la version 1", () => {
 
   it("donne aux modes et à la disposition, absents en v1, leur valeur par défaut", () => {
     expect(state.projects[0]).toMatchObject({ browsePath: "", leftMode: "explorer", bottomMode: "files" });
-    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, preview: 0.5, bottom: 0.38 } });
+    expect(state.layout).toEqual({ ...DEFAULT_LAYOUT, widths: { left: 333, right: 374, bottom: 0.38 } });
   });
 
   it("reprend toutes les préférences", () => {
@@ -76,8 +76,8 @@ describe("migrate en version 2", () => {
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], previewOpen: false, previewSource: "servers" });
-    expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [] });
+    expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
 
@@ -90,11 +90,6 @@ describe("migrate en version 2", () => {
     expect(migrate({ version: 2, prefs: { uiFont: { family: "Inter", scale: 125 } } }).prefs.uiFont).toEqual({ family: "Inter", scale: 125 });
     expect(migrate({ version: 2, prefs: { uiFont: { scale: 333 } } }).prefs.uiFont).toEqual({ family: "", scale: 100 });
     expect(migrate({ version: 2 }).prefs.uiFont).toEqual({ family: "", scale: 100 });
-  });
-
-  it("garde la source de l'aperçu, les serveurs par défaut", () => {
-    expect(migrate({ version: 2, layout: { previewSource: "browser" } }).layout.previewSource).toBe("browser");
-    expect(migrate({ version: 2, layout: { previewSource: "écran" } }).layout.previewSource).toBe("servers");
   });
 
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
@@ -128,7 +123,7 @@ describe("migrate sur un état abîmé", () => {
     expect(state.prefs.theme).toBe("auto");
     expect(state.prefs.language).toBe("auto");
     expect(state.prefs.terminalFont).toEqual({ family: "Consolas", size: 13 });
-    expect(state.layout.widths).toEqual({ left: 290, right: 400, preview: 0.5, bottom: 0.38 });
+    expect(state.layout.widths).toEqual({ left: 290, right: 400, bottom: 0.38 });
     expect(state.prefs.hiddenModes).toEqual({ session: ["plan"] });
     expect(state.prefs.shortcuts).toEqual({ a: "Ctrl+A" });
   });

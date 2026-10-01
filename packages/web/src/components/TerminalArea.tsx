@@ -13,7 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { Island } from "@/components/columns";
-import { DevPreview, useDevServers } from "@/components/DevPreview";
+import { useDevServers } from "@/components/DevServers";
 import { Splitter, clamp } from "@/components/Splitter";
 import { ModeBlock, type Mode } from "@/components/ModeBlock";
 import { ContextArea } from "@/components/Menu";
@@ -25,7 +25,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
-import { BrowserPreview } from "@/components/BrowserPreview";
 import { closeFile, isDiff, isTranscript, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -52,8 +51,6 @@ import { recentProjects } from "@/lib/recents";
 import { useAsync } from "@/components/common";
 import type { SessionSummary, TerminalInfo } from "@/lib/types";
 
-/** Largeur que l'aperçu laisse toujours au terminal, en pixels. */
-const TERMINAL_MIN = 240;
 /** Hauteur que le terminal garde quand on agrandit l'îlot du bas. */
 const TERMINAL_MIN_HEIGHT = 160;
 
@@ -369,7 +366,6 @@ export function TerminalArea() {
     live,
     followLive,
     sessionCollapsed,
-    previewOpen,
     widths,
   } = useStore((state) => state);
   const project = useStore(activeProject);
@@ -377,7 +373,6 @@ export function TerminalArea() {
   const sessionMode = useStore(bottomModeOf);
   const disabledModules = useStore((state) => state.disabledModules);
   const showCosts = useStore((state) => state.showCosts);
-  const previewSource = useStore((state) => state.previewSource);
   const own = Object.values(terminals).filter((entry) => entry.owner === activeRoot);
   const active = activeTerminalId ? terminals[activeTerminalId] : undefined;
   const status = active && active.owner === activeRoot ? active.info : undefined;
@@ -395,18 +390,15 @@ export function TerminalArea() {
     if (!closeFile(path)) setClosing(path);
   };
   const current = status ? live[status.id] : undefined;
-  const servers = useDevServers(own.map((entry) => entry.info), previewOpen);
-  const serving = servers.length > 0;
+  const servers = useDevServers(own.map((entry) => entry.info));
 
-  // Le terminal perd ou regagne la place de l'aperçu : xterm doit se remesurer.
+  // Le terminal perd ou regagne la place de l'îlot du bas : xterm doit se remesurer.
   useEffect(() => {
     requestAnimationFrame(resizeActive);
-  }, [previewOpen, widths.preview, widths.bottom, sessionCollapsed]);
+  }, [widths.bottom, sessionCollapsed]);
 
-  const zone = useRef<HTMLDivElement>(null);
   const center = useRef<HTMLDivElement>(null);
   const bottomStart = useRef(0);
-  const previewStart = useRef(0);
 
   // Rattachée dès son démarrage par les hooks, une session n'a rien à montrer
   // avant son premier prompt : son transcript n'existe pas encore.
@@ -580,14 +572,14 @@ export function TerminalArea() {
 
       <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
 
-      <div ref={zone} className="mx-2 flex min-h-0 flex-1">
+      <div className="mx-2 flex min-h-0 flex-1">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
           {own.length === 0 && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
-            <ClaudeToolbar currentModel={current?.tokens?.model} currentEffort={current?.tokens?.effort} serving={serving} />
+            <ClaudeToolbar currentModel={current?.tokens?.model} currentEffort={current?.tokens?.effort} servers={servers} />
           )}
           {activeFile && (
             <div className="absolute inset-0 bg-background">
@@ -595,27 +587,6 @@ export function TerminalArea() {
             </div>
           )}
         </div>
-        {previewOpen && project && (
-          <>
-            <Splitter
-              onStart={() => (previewStart.current = getState().widths.preview)}
-              onDrag={(dx) => {
-                const width = zone.current?.clientWidth ?? 1;
-                // Le terminal garde de quoi lire une ligne ; l'aperçu, de quoi montrer une page.
-                const max = 1 - TERMINAL_MIN / width;
-                setState((current) => ({
-                  widths: { ...current.widths, preview: clamp(previewStart.current - dx / width, 0.2, max) },
-                }));
-              }}
-              onReset={() =>
-                setState((current) => ({ widths: { ...current.widths, preview: DEFAULT_WIDTHS.preview } }))
-              }
-            />
-            <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ width: `${widths.preview * 100}%`, maxWidth: `calc(100% - ${TERMINAL_MIN}px)` }}>
-              {previewSource === "browser" ? <BrowserPreview /> : <DevPreview servers={servers} />}
-            </div>
-          </>
-        )}
       </div>
 
       <footer className="shrink-0 overflow-x-auto px-3 py-1.5 text-[11px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]">

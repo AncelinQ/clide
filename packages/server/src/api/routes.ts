@@ -62,7 +62,7 @@ import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capt
 import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
-import { probeFrame } from "../platform/frame-probe.js";
+import { servesHtml } from "../platform/html-probe.js";
 import { recentSubjects } from "../platform/git.js";
 import {
   DirtyTreeError,
@@ -620,9 +620,6 @@ export const routes: Record<string, Handler> = {
   /** Ce qu'un push enverrait — commits, branche distante, amont à créer —, sans rien envoyer. */
   "/api/git/push-plan": async (params) => pushPlan(requireParam(params, "root")),
 
-  /** Le serveur de développement répond-il, et accepte-t-il l'aperçu en cadre ? */
-  "/api/preview/probe": async (params) => probeFrame(requireParam(params, "url")),
-
   /**
    * Pages servies par les descendants des onglets donnés, qu'ils aient été lancés
    * à la main ou par Claude en arrière-plan : leur sortie ne passe pas toujours par
@@ -638,8 +635,8 @@ export const routes: Record<string, Handler> = {
     if (pids.size === 0) return { servers: [] };
     const [sockets, list] = await Promise.all([listListening(), processes.list()]);
     const found = discoverServers(sockets, list, pids);
-    const probed = await Promise.all(found.map(async (server) => ({ server, probe: await probeFrame(server.url) })));
-    return { servers: probed.filter(({ probe }) => probe.html).map(({ server }) => server) };
+    const html = await Promise.all(found.map((server) => servesHtml(server.url)));
+    return { servers: found.filter((_server, index) => html[index]) };
   },
 
   /** Message de commit ou description de MR déjà rédigé ; `null` tant qu'on ne l'a pas demandé. */
