@@ -452,7 +452,7 @@ export function GitChip({ root }: { root: string }) {
               pendingSummary(status),
             ].join("\n")}
             className={cn(
-              "flex min-w-0 max-w-72 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] hover:bg-accent",
+              "flex min-w-28 max-w-72 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] hover:bg-accent",
               message?.error && "border-destructive/60",
             )}
           >
