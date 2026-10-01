@@ -130,6 +130,8 @@ export class SessionProjector {
    */
   readonly #usage = new Map<string, TokenCounts & { model: string }>();
   #lastUsage: { context: number; model?: string; effort?: string } | undefined;
+  /** Argument du dernier `/model`, en attente de la sortie qui dit s'il a pris. */
+  #modelArgs: string | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
   #state: Omit<SessionProjection, "files" | "bashEdits" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
@@ -171,6 +173,7 @@ export class SessionProjector {
           s.planMode = mode === "plan";
         }
         this.#applyBashEdits(event);
+        this.#applyLocalCommand(event);
         break;
       }
 
@@ -365,6 +368,32 @@ export class SessionProjector {
       ...(model ? { model } : {}),
       ...(effort ? { effort } : {}),
     };
+  }
+
+  /**
+   * `/effort` et `/model` changent l'effort et le modèle sans réponse de Claude :
+   * le transcript n'en garde que la commande puis sa sortie, et les réponses ne
+   * suivent qu'au tour suivant. Seule une sortie qui confirme le changement compte.
+   * Le modèle est pris dans l'argument de la commande, un identifiant que le
+   * catalogue reconnaît ; choisi dans le sélecteur, sans argument, il n'est connu
+   * que par le nom que la sortie affiche.
+   */
+  #applyLocalCommand(event: TranscriptEvent): void {
+    const message = event["message"];
+    const content = typeof message === "object" && message !== null ? (message as Record<string, unknown>)["content"] : undefined;
+    if (typeof content !== "string") return;
+    if (content.includes("<command-name>/model</command-name>")) {
+      this.#modelArgs = /<command-args>([^<]*)<\/command-args>/.exec(content)?.[1]?.trim() ?? "";
+      return;
+    }
+    const args = this.#modelArgs;
+    this.#modelArgs = undefined;
+    if (!this.#lastUsage) return;
+    const effort = /<local-command-stdout>Set effort level to (\w+)/.exec(content)?.[1];
+    if (effort) this.#lastUsage = { ...this.#lastUsage, effort };
+    const shown = /<local-command-stdout>Set model to `([^`]+)`/.exec(content)?.[1];
+    const model = args || shown;
+    if (shown && model) this.#lastUsage = { ...this.#lastUsage, model };
   }
 
   #tokens(): TokenUsage | undefined {
