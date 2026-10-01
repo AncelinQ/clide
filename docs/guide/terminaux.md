@@ -11,7 +11,49 @@ Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la
 session, les prompts enregistrés, les serveurs de développement. Elle reste
 discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
-fichier ouvert.
+fichier ouvert. Sur un script, elle porte ■ pour l'arrêter et ▷ ou ↻ pour le
+relancer.
+
+## L'onglet Scripts
+
+Les scripts n'ouvrent pas d'onglet dans la barre : ils se rangent sous l'onglet
+**Scripts**, épinglé en tête, comme les fenêtres Run et Services de WebStorm. Y vont
+les scripts lancés depuis la vue Scripts, ses groupes et `installer`, le ▷ de la
+marge, et les suites de la vue Tests. Les onglets Claude, les shells et les
+fichiers restent dans la barre.
+
+- **L'onglet épinglé** ne se range pas au glisser. Grisé tant qu'aucun script n'a
+  été lancé dans le projet, il affiche ensuite le nombre de scripts en cours ; son
+  icône passe à l'ambre quand l'un tourne, au rouge quand l'un a échoué. Un clic
+  montre les scripts à la place du terminal, un second rend l'onglet ou le fichier
+  qu'on regardait ; `Ctrl+Maj+X` fait de même. Son clic droit propose « Tout
+  arrêter » et « Fermer les scripts finis ».
+- **La liste**, à gauche du terminal, groupe les scripts par nature, lue à leur
+  nom : Serveurs (`dev`, `start`, `serve`, `preview`, `storybook`…), Tests, Build,
+  Vérifications (`lint`, `typecheck`, `format`…), Installation, Autres. Un nom
+  composé prend la première nature reconnue dans cet ordre-là : Tests, Build,
+  Vérifications, Installation, Serveurs — `build-storybook` est un build,
+  `test:watch` un test. Avec un seul groupe, la liste est plate ; sinon chaque
+  en-tête se replie, et garde replié la couleur de ses scripts : un serveur qui
+  échoue se voit sans déplier. Sa largeur se tire à la souris, et un double-clic
+  la rend.
+- **Une ligne** montre l'état du script, son nom et l'adresse qu'annonce un
+  serveur de développement. En cours, ■ l'arrête (Ctrl+C) et ↻ l'arrête puis le
+  relance ; fini, ▷ le relance et × ferme son terminal. Relancer retape la
+  commande du dernier lancement, jamais la dernière ligne tapée dans le shell ;
+  une suite de tests repart sur sa dernière cible, et ses résultats reviennent
+  dans la vue Tests. Au clavier, `↑` `↓` passent d'une ligne à l'autre en montrant
+  chaque script, `←` `→` replient et déplient, Entrée donne la main au terminal.
+- **Un script fini refuse la frappe.** Tant qu'il tourne, ce qu'on tape va au
+  programme : une question `(Y/n)`, les touches d'un serveur de développement.
+  Revenu au prompt, son terminal n'est pas un shell où travailler : rien n'y
+  passe, et un rappel dit que ▷ le relance. Pour taper une commande, on ouvre un
+  shell.
+
+Fermer le script montré montre son voisin ; fermer le dernier ramène dans la barre.
+Pendant qu'on regarde les scripts, le bloc du bas garde la session de l'onglet
+Claude qu'on a quitté, et le pied de la zone décrit le script montré. Le projet
+retient le script choisi et les groupes repliés d'une ouverture à l'autre.
 
 ## Images vers le prompt
 
@@ -151,10 +193,10 @@ Une ligne qui se lance porte un bouton ▷ dans la marge, à gauche des numéros
 - dans un fichier de test, chaque test, coloré par son dernier résultat : vert,
   rouge, ● tant qu'il tourne.
 
-Le bouton passe par l'onglet du script, comme la vue Scripts : ■ l'arrête (Ctrl+C)
-tant qu'il tourne, et il apparaît dans « En cours ». Un script montre son onglet ;
-un test tourne dans l'onglet de sa suite, en arrière-plan, et son résultat revient
-dans la marge et dans la vue Tests. Les lignes d'un Markdown suivent la frappe ;
+Le bouton passe par le terminal du script, comme la vue Scripts : ■ l'arrête
+(Ctrl+C) tant qu'il tourne, et il apparaît dans « En cours ». Un script se montre
+dans l'onglet Scripts ; un test tourne dans le terminal de sa suite, en
+arrière-plan, et son résultat revient dans la marge et dans la vue Tests. Les lignes d'un Markdown suivent la frappe ;
 celles d'un fichier de test sont relues à l'enregistrement.
 
 ## Largeur des colonnes

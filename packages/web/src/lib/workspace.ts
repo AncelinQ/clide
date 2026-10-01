@@ -39,17 +39,21 @@ export function ownerOf(path: string, roots: readonly string[]): string | undefi
 /**
  * Onglet à montrer en entrant dans un projet : celui qu'on y regardait s'il est
  * encore ouvert, sinon le plus récent, sinon aucun — l'écran d'accueil.
+ *
+ * `fallback` restreint le plus récent à certains onglets : un script ouvert en
+ * dernier ne doit pas faire entrer dans l'onglet Scripts sans qu'on l'ait choisi.
  */
 export function tabToShow(
   terminals: Record<string, { owner: string }>,
   remembered: string | null | undefined,
   root: string,
+  fallback: (id: string) => boolean = () => true,
 ): string | null {
   const own = Object.entries(terminals)
     .filter(([, entry]) => entry.owner === root)
     .map(([id]) => id);
   if (remembered && own.includes(remembered)) return remembered;
-  return own.at(-1) ?? null;
+  return own.filter(fallback).at(-1) ?? null;
 }
 
 /** L'onglet actif, seulement s'il appartient au projet actif. */

@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { devServerItems, type DevServer } from "@/components/DevServers";
 import { MenuButton, type MenuItem } from "@/components/Menu";
+import { ScriptButtons } from "@/components/ScriptsShelf";
 import { usePrompts } from "@/components/PromptsPanel";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -237,16 +238,31 @@ export function ClaudeToolbar({
   );
 }
 
-/** Menu contextuel d'un onglet de la barre. */
-export function tabItems(info: TerminalInfo, ownTabs: string[]): MenuItem[] {
+/**
+ * Barre flottante d'un script, à la place de celle de Claude : l'arrêter et le
+ * relancer sans revenir à la liste de l'onglet Scripts.
+ */
+export function ScriptToolbar({ info }: { info: TerminalInfo }) {
+  return (
+    <div
+      className="absolute top-2 right-4 z-10 flex gap-0.5 rounded-md border bg-card p-0.5 opacity-70 shadow-sm transition-opacity empty:hidden hover:opacity-100 focus-within:opacity-100"
+      data-script-toolbar
+    >
+      <ScriptButtons info={info} />
+    </div>
+  );
+}
+
+/** Menu contextuel d'un onglet de la barre ; « les autres » sont ceux de la barre, `barTabs`. */
+export function tabItems(info: TerminalInfo, barTabs: string[]): MenuItem[] {
   return [
     { kind: "item", label: t("Fermer"), icon: X, run: () => closeTerminal(info.id) },
     {
       kind: "item",
       label: t("Fermer les autres onglets"),
-      disabled: ownTabs.length < 2,
+      disabled: barTabs.length < 2,
       run: () => {
-        for (const id of ownTabs) if (id !== info.id) closeTerminal(id);
+        for (const id of barTabs) if (id !== info.id) closeTerminal(id);
       },
     },
     { kind: "separator" },

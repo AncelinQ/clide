@@ -51,6 +51,13 @@ describe("tabToShow", () => {
     expect(tabToShow(terminals, "b1", "A")).toBe("a2");
     expect(tabToShow(terminals, undefined, "C")).toBeNull();
   });
+
+  it("rend l'onglet retenu même hors du repli, mais ne retombe que sur lui", () => {
+    const inBar = (id: string) => id !== "a2";
+    expect(tabToShow(terminals, "a2", "A", inBar)).toBe("a2");
+    expect(tabToShow(terminals, null, "A", inBar)).toBe("a1");
+    expect(tabToShow(terminals, null, "A", () => false)).toBeNull();
+  });
 });
 
 describe("ownActiveTab", () => {

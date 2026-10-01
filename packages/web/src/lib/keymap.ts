@@ -42,6 +42,7 @@ export const PRESETS: Record<Exclude<Keymap, "clide">, Record<string, Binding[]>
     "tab.next": [{ key: "Alt+ArrowRight", outside: true }],
     "tab.previous": [{ key: "Alt+ArrowLeft", outside: true }],
     "tab.close": [{ key: "Ctrl+F4", outside: true }],
+    "tab.scripts": [{ key: "Alt+4", outside: true }],
     "terminal.focus": [{ key: "Alt+F12" }],
   },
 };

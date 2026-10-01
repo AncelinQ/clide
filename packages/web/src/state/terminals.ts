@@ -3,6 +3,8 @@ import { Terminal } from "@xterm/xterm";
 
 import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
+import { afterClose, backTarget, lookAt, natureOf, placementOf, shelfOrder, type ScriptsShelf } from "@/lib/script-shelf";
+import { isTerminalReply } from "@/lib/terminal-input";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { nativeZoom, onZoomChange } from "@/state/interface";
@@ -12,9 +14,15 @@ import {
   activateProject,
   forgetTab,
   getState,
+  inBar,
   openProject,
   rememberTab,
+  scriptsShown,
+  sessionTabOf,
   setState,
+  tabsOf,
+  type Project,
+  type State,
   type TerminalFont,
 } from "@/state/store";
 
@@ -42,6 +50,8 @@ let socket: WebSocket | undefined;
 let pendingOwner: string | null = null;
 /** Scripts ouverts en arrière-plan : leur nouvel onglet ne passe pas devant ce qu'on regarde. */
 const backgroundScripts = new Set<string>();
+/** Commande d'un script dont l'onglet s'ouvre, par clé : elle est retenue à l'arrivée de son identifiant. */
+const pendingCommands = new Map<string, string>();
 
 export function connect(): void {
   socket = new WebSocket(socketUrl("/pty"));
@@ -86,21 +96,35 @@ function onMessage(message: ServerMessage): void {
       if (!owner) return;
       const id = message.terminal.id;
       const script = message.terminal.script;
+      const command = script ? pendingCommands.get(script) : undefined;
+      if (script) pendingCommands.delete(script);
+      const remember = (projects: Project[]) =>
+        command === undefined ? projects : withShelf(projects, owner, (shelf) => ({ ...shelf, commands: { ...shelf.commands, [id]: command } }));
       if (script && backgroundScripts.delete(script)) {
-        setState((current) => ({ terminals: { ...current.terminals, [id]: { info: message.terminal, owner } } }));
+        setState((current) => ({
+          terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
+          // Lancé sans qu'on le regarde, il est celui que l'onglet Scripts montrera,
+          // sauf si l'onglet est déjà sous les yeux : on n'y change pas de script.
+          projects: remember(
+            owner === current.activeRoot && scriptsShown(current)
+              ? current.projects
+              : withShelf(current.projects, owner, (shelf) => ({ ...shelf, selected: id })),
+          ),
+        }));
         break;
       }
-      setState((current) => ({
-        terminals: { ...current.terminals, [id]: { info: message.terminal, owner } },
-        // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
-        projects: rememberTab(current.projects, owner, id).map((project) =>
-          project.root === owner && owner === current.activeRoot && project.activeFile ? { ...project, activeFile: null } : project,
-        ),
-        // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
-        // reprend une session choisie dans History — sauf si l'on a changé de
-        // projet entre la demande et la réponse : il attend qu'on y revienne.
-        ...(owner === current.activeRoot ? { activeTerminalId: id, followLive: true } : {}),
-      }));
+      setState((current) => {
+        const next = { ...current, terminals: { ...current.terminals, [id]: { info: message.terminal, owner } } };
+        return {
+          terminals: next.terminals,
+          // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
+          projects: remember(owner === current.activeRoot ? lookedAt(next, owner, id) : rememberTab(current.projects, owner, id)),
+          // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
+          // reprend une session choisie dans History — sauf si l'on a changé de
+          // projet entre la demande et la réponse : il attend qu'on y revienne.
+          ...(owner === current.activeRoot ? { activeTerminalId: id, followLive: true } : {}),
+        };
+      });
       break;
     }
     case "data": {
@@ -155,7 +179,7 @@ function onMessage(message: ServerMessage): void {
         const entering =
           message.session.planMode === true &&
           previous?.planMode !== true &&
-          message.terminalId === current.activeTerminalId &&
+          message.terminalId === sessionTabOf(current) &&
           current.followLive;
         const owner = current.terminals[message.terminalId]?.owner;
         return {
@@ -208,27 +232,70 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
     const backlog = backlogs[info.id];
     if (backlog) pending.set(info.id, backlog);
   }
+  const kept = { ...current, terminals: next };
   setState({
     terminals: next,
+    // Les commandes retenues des terminaux que le serveur n'a plus ne serviront plus.
+    projects: current.projects.map((project) => pruneShelf(project, next)),
     activeTerminalId:
       ownActiveTab(next, current.activeTerminalId, current.activeRoot) ??
       (current.activeRoot
-        ? tabToShow(next, current.projects.find((project) => project.root === current.activeRoot)?.activeTab, current.activeRoot)
+        ? tabToShow(
+            next,
+            current.projects.find((project) => project.root === current.activeRoot)?.activeTab,
+            current.activeRoot,
+            (id) => inBar(kept, id),
+          )
         : null),
+  });
+}
+
+/** Le projet `root` avec un onglet Scripts transformé par `change`. */
+function withShelf(projects: Project[], root: string, change: (shelf: ScriptsShelf) => ScriptsShelf): Project[] {
+  return projects.map((project) => (project.root === root ? { ...project, scripts: change(project.scripts) } : project));
+}
+
+/** Le projet sans les commandes retenues de terminaux qui n'existent plus. */
+function pruneShelf(project: Project, terminals: State["terminals"]): Project {
+  const ids = Object.keys(project.scripts.commands);
+  if (ids.every((id) => terminals[id])) return project;
+  const commands = Object.fromEntries(Object.entries(project.scripts.commands).filter(([id]) => terminals[id]));
+  return { ...project, scripts: { ...project.scripts, commands } };
+}
+
+/**
+ * Projets une fois `id` regardé dans `owner` : il devient son dernier onglet et
+ * passe devant un fichier ouvert ; l'onglet Scripts retient ce qu'on quitte en y
+ * entrant, et le script qu'on y regarde.
+ */
+function lookedAt(current: State, owner: string, id: string): Project[] {
+  const target = current.terminals[id]?.info;
+  return current.projects.map((project) => {
+    if (project.root !== owner) return project;
+    const fromTab = owner === current.activeRoot ? current.activeTerminalId : project.activeTab;
+    const from = fromTab ? current.terminals[fromTab]?.info : undefined;
+    const scripts = target
+      ? lookAt(
+          project.scripts,
+          { tab: from ? from.id : null, placement: from ? placementOf(from) : null, file: project.activeFile },
+          { id, placement: placementOf(target), nature: natureOf(target) },
+        )
+      : project.scripts;
+    return { ...project, activeTab: id, activeFile: null, scripts };
   });
 }
 
 export function openTerminal(
   kind: TerminalKind,
-  options: { command?: string; cwd?: string; label?: string; script?: string } = {},
+  options: { command?: string; cwd?: string; label?: string; script?: string; owner?: string } = {},
 ): void {
-  const { activeRoot } = getState();
-  if (!activeRoot) return;
-  pendingOwner = activeRoot;
+  const owner = options.owner ?? getState().activeRoot;
+  if (!owner) return;
+  pendingOwner = owner;
   send({
     t: "open",
-    owner: activeRoot,
-    projectRoot: options.cwd ?? activeRoot,
+    owner,
+    projectRoot: options.cwd ?? owner,
     kind,
     cols: 100,
     rows: 30,
@@ -264,11 +331,15 @@ export function scriptKey(directory: string, name: string): string {
   return `${directory}|${name}`;
 }
 
-/** Onglet d'un script dans le projet actif, fini ou en cours, s'il en a un. */
-function scriptTab(key: string): TerminalInfo | undefined {
-  const { terminals, activeRoot } = getState();
-  return Object.values(terminals).find((entry) => entry.owner === activeRoot && entry.info.script === key && !entry.info.exited)
-    ?.info;
+/** Onglet d'un script dans un projet, fini ou en cours, s'il en a un vivant. */
+function scriptTab(key: string, root: string | null): TerminalInfo | undefined {
+  const { terminals } = getState();
+  return Object.values(terminals).find((entry) => entry.owner === root && entry.info.script === key && !entry.info.exited)?.info;
+}
+
+/** Onglet vivant d'un script dans le projet actif, quoi qu'il fasse : Claude peut y tourner. */
+export function scriptTabOf(directory: string, name: string): TerminalInfo | undefined {
+  return scriptTab(scriptKey(directory, name), getState().activeRoot);
 }
 
 /**
@@ -280,38 +351,56 @@ function scriptTab(key: string): TerminalInfo | undefined {
  * dans le dossier de son projet ou de son dossier lié.
  *
  * La relance commence par Échap, qui vide la ligne en cours sous PSReadLine, pour
- * ne pas coller la commande derrière ce qui y traînait.
+ * ne pas coller la commande derrière ce qui y traînait. Rien n'est tapé dans un
+ * onglet où Claude tourne : Échap l'interromprait, et la commande deviendrait un
+ * prompt. L'onglet est seulement montré.
+ *
+ * Chaque lancement retient sa commande dans l'onglet Scripts : c'est elle que
+ * relancer retape, et non la dernière ligne tapée dans le shell.
  */
-export function runScript(name: string, directory: string, command: string, options: { focus?: boolean } = {}): void {
-  const { activeRoot } = getState();
-  if (!activeRoot) return;
+export function runScript(
+  name: string,
+  directory: string,
+  command: string,
+  options: { focus?: boolean; root?: string } = {},
+): void {
+  const root = options.root ?? getState().activeRoot;
+  if (!root) return;
   const key = scriptKey(directory, name);
-  const tab = scriptTab(key);
-  if (tab && tab.state === "running") {
-    if (options.focus !== false) focusTerminal(tab.id);
+  const tab = scriptTab(key, root);
+  const focus = options.focus !== false;
+  if (tab && (tab.kind === "claude" || tab.state === "running")) {
+    if (focus) focusTerminal(tab.id);
     return;
   }
   if (tab) {
+    setState((current) => ({
+      projects: withShelf(current.projects, root, (shelf) => ({ ...shelf, commands: { ...shelf.commands, [tab.id]: command } })),
+    }));
     const move = samePath(tab.cwd, directory) ? "" : `Set-Location -LiteralPath '${directory.replace(/'/g, "''")}'; `;
     typeInto(tab.id, `\u001b${move}${command}\r`);
-    if (options.focus !== false) focusTerminal(tab.id);
+    if (focus) focusTerminal(tab.id);
     return;
   }
   const folder = directory.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? directory;
-  if (options.focus === false) backgroundScripts.add(key);
-  openTerminal("shell", { cwd: directory, command, label: `${folder} › ${name}`, script: key });
+  pendingCommands.set(key, command);
+  if (!focus) backgroundScripts.add(key);
+  openTerminal("shell", { cwd: directory, command, label: `${folder} › ${name}`, script: key, owner: root });
 }
 
-/** Onglet où un script tourne encore, s'il y en a un. */
+/**
+ * Onglet où un script tourne encore, s'il y en a un. Un onglet où Claude tourne
+ * n'en est pas un : l'arrêter par Ctrl+C viserait la session.
+ */
 export function runningScriptTab(directory: string, name: string): string | undefined {
-  const tab = scriptTab(scriptKey(directory, name));
-  return tab?.state === "running" ? tab.id : undefined;
+  const tab = scriptTabOf(directory, name);
+  return tab?.state === "running" && tab.kind !== "claude" ? tab.id : undefined;
 }
 
-/** Interrompt ce qui tourne dans un onglet, par Ctrl+C, et le montre. */
-export function interruptTerminal(id: string): void {
+/** Interrompt ce qui tourne dans un onglet, par Ctrl+C, et le montre sauf `show: false`. */
+export function interruptTerminal(id: string, options: { show?: boolean } = {}): void {
   typeInto(id, "\u0003");
-  focusTerminal(id);
+  if (options.show !== false) focusTerminal(id);
 }
 
 export function closeTerminal(id: string): void {
@@ -320,21 +409,39 @@ export function closeTerminal(id: string): void {
   attached.get(id)?.term.dispose();
   attached.delete(id);
   setState((current) => {
+    const closed = current.terminals[id];
     const terminals = { ...current.terminals };
     delete terminals[id];
     const attention = { ...current.attention };
     delete attention[id];
     const live = { ...current.live };
     delete live[id];
-    const remaining = Object.values(terminals).filter((entry) => entry.owner === current.activeRoot);
-    return {
-      terminals,
-      attention,
-      live,
-      projects: forgetTab(current.projects, id),
-      activeTerminalId:
-        current.activeTerminalId === id ? (remaining[0]?.info.id ?? null) : current.activeTerminalId,
-    };
+    let projects = forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project));
+    let activeTerminalId = current.activeTerminalId;
+    const project = projects.find((item) => item.root === current.activeRoot);
+    if (closed && project && current.activeTerminalId === id) {
+      // Le voisin dans l'onglet Scripts, sinon le retour vers la barre : fermer
+      // un onglet de la barre ne fait jamais entrer dans l'onglet Scripts.
+      const { bar, shelf } = tabsOf(current, project.root);
+      const barIds = bar.map((info) => info.id);
+      const next = afterClose(
+        { id, placement: placementOf(closed.info) },
+        { bar: barIds, shelf: shelfOrder(shelf).map((info) => info.id) },
+        backTarget(project.scripts, barIds.filter((item) => item !== id), project.openFiles),
+      );
+      activeTerminalId = next.tab;
+      if (next.file && !project.activeFile) {
+        projects = projects.map((item) => (item.root === project.root ? { ...item, activeFile: next.file } : item));
+      }
+      // Le voisin montré dans l'onglet Scripts devient le script retenu, et son groupe se déplie.
+      const shown = next.tab ? terminals[next.tab]?.info : undefined;
+      if (shown && placementOf(shown) === "scripts") {
+        projects = withShelf(projects, project.root, (shelf) =>
+          lookAt(shelf, { tab: id, placement: "scripts", file: null }, { id: shown.id, placement: "scripts", nature: natureOf(shown) }),
+        );
+      }
+    }
+    return { terminals, attention, live, projects, activeTerminalId };
   });
 }
 
@@ -388,7 +495,12 @@ export function revealInTerminal(id: string, needles: string[], fromEnd = 0): Re
   return "missing";
 }
 
-export function focusTerminal(id: string): void {
+/**
+ * Montre un terminal, dans la barre ou dans l'onglet Scripts selon où il vit.
+ * `focus: false` le montre sans lui donner le clavier : la liste de l'onglet
+ * Scripts garde ainsi le sien quand on la parcourt aux flèches.
+ */
+export function focusTerminal(id: string, options: { focus?: boolean } = {}): void {
   const entry = getState().terminals[id];
   if (!entry) return;
   dismissSystem(id);
@@ -397,19 +509,16 @@ export function focusTerminal(id: string): void {
     delete attention[id];
     // Regarder un terminal d'un autre projet suit ce projet : la colonne de
     // gauche doit décrire ce qu'on regarde. Le projet retient l'onglet, pour
-    // le rendre quand on y revient.
+    // le rendre quand on y revient, et le remet devant un fichier ouvert.
     return {
       activeTerminalId: id,
       attention,
       activeRoot: entry.owner,
       followLive: true,
-      // Regarder un terminal le remet au premier plan, devant un fichier ouvert.
-      projects: rememberTab(current.projects, entry.owner, id).map((project) =>
-        project.root === entry.owner && project.activeFile ? { ...project, activeFile: null } : project,
-      ),
+      projects: lookedAt(current, entry.owner, id),
     };
   });
-  requestAnimationFrame(() => resize(id));
+  requestAnimationFrame(() => resize(id, { focus: options.focus !== false }));
 }
 
 /**
@@ -417,11 +526,14 @@ export function focusTerminal(id: string): void {
  * un, sinon le premier ouvert. Aucun s'il n'y a pas d'onglet Claude vivant.
  */
 export function claudeTabFor(root: string | null): string | undefined {
-  const { terminals, activeTerminalId } = getState();
+  const { terminals, activeTerminalId, projects } = getState();
   const tabs = Object.values(terminals).filter(
     (entry) => entry.owner === root && entry.info.kind === "claude" && !entry.info.exited,
   );
-  return (tabs.find((entry) => entry.info.id === activeTerminalId) ?? tabs[0])?.info.id;
+  // Depuis l'onglet Scripts, la session qu'on suit est celle de l'onglet qu'on a quitté.
+  const back = projects.find((project) => project.root === root)?.scripts.back.tab;
+  return (tabs.find((entry) => entry.info.id === activeTerminalId) ?? tabs.find((entry) => entry.info.id === back) ?? tabs[0])
+    ?.info.id;
 }
 
 /**
@@ -451,13 +563,42 @@ export function sendToClaude(command: string): boolean {
 export function typeIntoActive(data: string): string | undefined {
   const { terminals, activeTerminalId, activeRoot } = getState();
   const id = ownActiveTab(terminals, activeTerminalId, activeRoot);
-  if (id) typeInto(id, data);
-  return id;
+  return id && typeAsUser(id, data) ? id : undefined;
 }
 
-/** Écrit dans un terminal désigné. */
+/** Écrit dans un terminal désigné, sans condition : c'est Clide qui y tape. */
 export function typeInto(id: string, data: string): void {
   send({ t: "input", id, data });
+}
+
+/**
+ * Un terminal de script n'accepte la frappe que pendant que son script tourne :
+ * elle va alors au programme — une question Y/n, les touches d'un serveur de
+ * développement, Ctrl+C. Revenu au prompt, il la refuse : sa ligne de commande
+ * n'est pas un shell où travailler, et ce qu'on y lancerait, `claude` le premier,
+ * n'aurait plus rien du script. Relancer passe par ▷.
+ */
+export function acceptsInput(id: string): boolean {
+  const info = getState().terminals[id]?.info;
+  return !info || !info.script || info.kind !== "shell" || info.state === "running";
+}
+
+let refusedTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Écrit dans un terminal ce que l'utilisateur y tape, colle ou dépose. Faux, et
+ * le cadre le rappelle un instant, quand un script fini le refuse ; les réponses
+ * de xterm au programme passent toujours.
+ */
+export function typeAsUser(id: string, data: string): boolean {
+  if (!acceptsInput(id) && !isTerminalReply(data)) {
+    setState({ refusedInput: id });
+    clearTimeout(refusedTimer);
+    refusedTimer = setTimeout(() => setState({ refusedInput: null }), 3000);
+    return false;
+  }
+  typeInto(id, data);
+  return true;
 }
 
 export function resize(id: string, options: { focus?: boolean } = {}): void {
@@ -508,7 +649,7 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   const fit = new FitAddon();
   term.loadAddon(fit);
   term.open(host);
-  term.onData((data) => send({ t: "input", id: info.id, data }));
+  term.onData((data) => typeAsUser(info.id, data));
   attached.set(info.id, { term, fit, host });
   const backlog = pending.get(info.id);
   if (backlog) {

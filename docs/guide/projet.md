@@ -44,12 +44,13 @@ Trois choses méritent d'être dites :
 
 ## Lancer un script
 
-Chaque script a **son onglet**, nommé `dossier › script` (`front › dev`,
-`api › dev`) : on en fait tourner plusieurs côte à côte, chacun dans le dossier de
-son projet ou de son dossier lié. Relancer un script reprend son onglet — encore en
-cours, il revient au premier plan sans être relancé ; fini, il y repart, précédé
-d'Échap qui vide la ligne en cours sous PSReadLine. Le serveur garde le script de
-chaque onglet : un rechargement de la page les retrouve.
+Chaque script a **son terminal**, nommé `dossier › script` (`front › dev`,
+`api › dev`), rangé sous l'onglet [Scripts](terminaux#l-onglet-scripts) plutôt
+que dans la barre : on en fait tourner plusieurs côte à côte, chacun dans le
+dossier de son projet ou de son dossier lié. Relancer un script reprend son
+terminal — encore en cours, il revient au premier plan sans être relancé ; fini, il
+y repart, précédé d'Échap qui vide la ligne en cours sous PSReadLine. Le serveur
+garde le script de chaque terminal : un rechargement de la page les retrouve.
 
 On coche des scripts, puis **Lancer (N)** les démarre ensemble ; **Enregistrer
 comme groupe** les garde sous un nom (« Tout démarrer »), dans

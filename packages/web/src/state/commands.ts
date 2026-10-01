@@ -3,14 +3,27 @@ import { t } from "@/i18n";
 import { commandFor, focusOf } from "@/lib/keymap";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
-import { activateProject, activeProject, closeProject, getState, openSettings, setBottomMode, setState, updateProject } from "@/state/store";
+import {
+  activateProject,
+  activeProject,
+  closeProject,
+  getState,
+  openSettings,
+  scriptsShown,
+  setBottomMode,
+  setState,
+  tabsOf,
+  updateProject,
+} from "@/state/store";
+import { tabStops } from "@/lib/script-shelf";
 import { orderTabs, shiftTab } from "@/lib/tab-order";
+import { toggleScripts } from "@/state/shelf";
 import { cycleTheme } from "@/state/theme";
 import { closeFile, saveFile, selectedText } from "@/state/editor";
 import { focusFileSearch } from "@/components/panels/file-search";
 import { openLatestDevServer } from "@/components/DevServers";
 import { cachedPrompts, runPrompt } from "@/state/prompts";
-import { closeTerminal, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
+import { closeTerminal, focusTerminal, openTerminal, typeAsUser } from "@/state/terminals";
 
 export interface Command {
   id: string;
@@ -31,16 +44,27 @@ function ownTabs(): string[] {
   return orderTabs(activeProject()?.tabOrder ?? [], own);
 }
 
-/** Décale d'un cran l'onglet montré au centre, terminal ou fichier. */
+/** Terminaux de la barre du projet actif, dans l'ordre où leurs onglets sont rangés. */
+function barTabs(): string[] {
+  const current = getState();
+  return orderTabs(
+    activeProject()?.tabOrder ?? [],
+    tabsOf(current, current.activeRoot).bar.map((info) => info.id),
+  );
+}
+
+/**
+ * Décale d'un cran l'onglet montré au centre, terminal ou fichier. L'onglet
+ * Scripts est épinglé : il ne bouge pas, et ses scripts n'ont pas de place dans
+ * la barre.
+ */
 function shiftActiveTab(step: -1 | 1): void {
   const project = activeProject();
-  if (!project) return;
-  const { terminals, activeTerminalId } = getState();
-  const own = Object.values(terminals)
-    .filter((entry) => entry.owner === project.root)
-    .map((entry) => entry.info.id);
-  const order = orderTabs(project.tabOrder, [...own, ...project.openFiles]);
-  const shown = project.activeFile ?? (activeTerminalId && own.includes(activeTerminalId) ? activeTerminalId : undefined);
+  if (!project || scriptsShown()) return;
+  const { activeTerminalId } = getState();
+  const bar = barTabs();
+  const order = orderTabs(project.tabOrder, [...bar, ...project.openFiles]);
+  const shown = project.activeFile ?? (activeTerminalId && bar.includes(activeTerminalId) ? activeTerminalId : undefined);
   if (shown) updateProject(project.root, { tabOrder: shiftTab(order, shown, step) });
 }
 
@@ -69,7 +93,7 @@ export async function captureInto(terminalId: string): Promise<void> {
   const { path } = await post<{ path?: string; cancelled?: boolean }>("/api/capture", {});
   // Annulée dans l'outil ou depuis l'application : rien à insérer.
   if (!path) return;
-  typeInto(terminalId, `${quotePath(path)} `);
+  typeAsUser(terminalId, `${quotePath(path)} `);
   focusTerminal(terminalId);
 }
 
@@ -93,8 +117,14 @@ export function commands(): Command[] {
     );
     if (root) activateProject(root);
   };
+  // L'onglet Scripts est un arrêt du parcours, montré sur son script retenu.
   const nextTab = (step: number) => {
-    const id = cycle(ownTabs(), activeTab(), step);
+    const project = activeProject();
+    if (!project) return;
+    const opened = tabsOf(getState(), project.root).shelf.map((info) => info.id);
+    const stops = tabStops(barTabs(), opened, project.scripts);
+    const current = activeTab();
+    const id = cycle(stops, current && opened.includes(current) ? stops[0] : current, step);
     if (id) focusTerminal(id);
   };
 
@@ -184,6 +214,7 @@ export function commands(): Command[] {
         if (file) void saveFile(file);
       },
     },
+    { id: "tab.scripts", group: t("Onglets"), label: t("Basculer sur les scripts"), shortcut: "Ctrl+Shift+X", run: toggleScripts },
     { id: "tab.next", group: t("Onglets"), label: t("Onglet suivant"), shortcut: "Ctrl+Shift+PageDown", run: () => nextTab(1) },
     { id: "tab.previous", group: t("Onglets"), label: t("Onglet précédent"), shortcut: "Ctrl+Shift+PageUp", run: () => nextTab(-1) },
     { id: "tab.moveLeft", group: t("Onglets"), label: t("Déplacer l'onglet à gauche"), shortcut: "Alt+Shift+PageUp", run: () => shiftActiveTab(-1) },

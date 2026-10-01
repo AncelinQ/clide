@@ -162,7 +162,11 @@ export function ScriptsPanel({ root }: { root: string }) {
   }, [loadGroups]);
 
   const running = useMemo(
-    () => Object.values(terminals).filter((entry) => entry.owner === root && entry.info.script && entry.info.state === "running" && !entry.info.exited),
+    // Un onglet de script où Claude tourne n'a pas de script en cours : Ctrl+C viserait la session.
+    () =>
+      Object.values(terminals).filter(
+        (entry) => entry.owner === root && entry.info.script && entry.info.kind === "shell" && entry.info.state === "running" && !entry.info.exited,
+      ),
     [terminals, root],
   );
 

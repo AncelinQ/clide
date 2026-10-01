@@ -45,6 +45,13 @@ describe("commandFor", () => {
     expect(commandFor("Ctrl+Shift+B", "terminal", COMMANDS, "vscode", {})).toBe("view.left");
   });
 
+  it("bascule sur les scripts par Alt+4 avec JetBrains, hors du terminal seulement", () => {
+    const scripts: Bindable[] = [{ id: "tab.scripts", shortcut: "Ctrl+Shift+X" }];
+    expect(commandFor("Alt+4", "other", scripts, "jetbrains", {})).toBe("tab.scripts");
+    expect(commandFor("Alt+4", "terminal", scripts, "jetbrains", {})).toBeUndefined();
+    expect(commandFor("Ctrl+Shift+X", "terminal", scripts, "jetbrains", {})).toBe("tab.scripts");
+  });
+
   it("ignore une touche que le jeu choisi ne porte pas", () => {
     expect(commandFor("Ctrl+B", "other", COMMANDS, "clide", {})).toBeUndefined();
     expect(commandFor("Alt+1", "other", COMMANDS, "jetbrains", {})).toBe("view.left");
@@ -69,7 +76,7 @@ describe("conflicts", () => {
     const defaults = new Set([
       "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
       "Ctrl+Shift+O", "Ctrl+Shift+P", "Ctrl+Shift+PageDown", "Ctrl+Shift+PageUp", "Ctrl+Shift+S", "Ctrl+Shift+T",
-      "Ctrl+Shift+U", "Ctrl+Shift+W",
+      "Ctrl+Shift+U", "Ctrl+Shift+W", "Ctrl+Shift+X",
     ]);
     for (const preset of Object.values(PRESETS)) {
       for (const bindings of Object.values(preset)) {
