@@ -205,6 +205,38 @@ describe("SessionProjector", () => {
     expect(projectEvents(SID, [answer("m1", "high"), answer("m2")]).tokens?.effort).toBeUndefined();
   });
 
+  it("suit un /effort avant la réponse suivante", () => {
+    const answer = (id: string, effort: string) => ({
+      type: "assistant",
+      effort,
+      message: { id, model: "claude-opus-5-5", usage: { input_tokens: 1, output_tokens: 1 } },
+    });
+    const stdout = {
+      type: "user",
+      message: {
+        role: "user",
+        content: "<local-command-stdout>Set effort level to xhigh (saved as your default for new sessions): Deeper reasoning</local-command-stdout>",
+      },
+    };
+    expect(projectEvents(SID, [answer("m1", "medium"), stdout]).tokens?.effort).toBe("xhigh");
+    expect(projectEvents(SID, [answer("m1", "medium"), stdout, answer("m2", "low")]).tokens?.effort).toBe("low");
+  });
+
+  it("suit un /model avant la réponse suivante", () => {
+    const answer = { type: "assistant", message: { id: "m1", model: "claude-opus-5-5", usage: { input_tokens: 1, output_tokens: 1 } } };
+    const say = (content: string) => ({ type: "user", message: { role: "user", content } });
+    const command = (args: string) => say(`<command-name>/model</command-name>
+<command-message>model</command-message>
+<command-args>${args}</command-args>`);
+    const done = say("<local-command-stdout>Set model to `Fable 5.1` and saved as your default for new sessions</local-command-stdout>");
+    const model = (...events: TranscriptEvent[]) => projectEvents(SID, [answer, ...events]).tokens?.model;
+    expect(model(command("claude-fable-5-1"), done)).toBe("claude-fable-5-1");
+    // Choisi dans le sélecteur : seul le nom affiché est connu.
+    expect(model(command(""), done)).toBe("Fable 5.1");
+    // Une commande refusée ne change rien.
+    expect(model(command("inconnu"), say("<local-command-stdout>Model 'inconnu' not found</local-command-stdout>"))).toBe("claude-opus-5-5");
+  });
+
   it("sépare ce qui a été consommé après le dernier relevé de coût", () => {
     const answer = (id: string, output: number) => ({
       type: "assistant",
