@@ -89,7 +89,29 @@ describe("LiveSessions", () => {
 
     await writeFile(join(directory, "seule.jsonl"), line({ type: "mode", mode: "normal" }), "utf8");
     await live.tick();
-    expect(received.map(([terminalId]) => terminalId)).toEqual(["t1"]);
+    // Lequel des deux le prend dépend de leur ordre d'ouverture, testé à part.
+    expect(received).toHaveLength(1);
+  });
+
+  it("montre le modèle et l'effort du lancement tant que le transcript ne dit pas les siens", async () => {
+    await writeFile(join(home, "settings.json"), JSON.stringify({ model: "claude-opus-5-5", effortLevel: "xhigh" }), "utf8");
+    const live = new LiveSessions(home);
+    const received: LiveSession[] = [];
+    live.on((_terminalId, session) => received.push(session));
+    live.track("t1", CWD, "claude --model claude-fable-5-1");
+
+    const path = join(directory, "abc.jsonl");
+    await writeFile(path, line({ type: "permission-mode", permissionMode: "default" }), "utf8");
+    await live.tick();
+    expect(received.at(-1)).toMatchObject({ model: "claude-fable-5-1", effort: "xhigh" });
+
+    await appendFile(
+      path,
+      line({ type: "assistant", effort: "low", message: { id: "m1", model: "claude-sonnet-5-5", usage: { input_tokens: 1, output_tokens: 1 } } }),
+      "utf8",
+    );
+    await live.tick();
+    expect(received.at(-1)).toMatchObject({ model: "claude-sonnet-5-5", effort: "low" });
   });
 
   it("ne montre pas le mode d'une séance précédente tant que la reprise n'a rien écrit", async () => {

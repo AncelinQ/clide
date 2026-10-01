@@ -11,12 +11,17 @@ import {
   type TokenUsage,
 } from "@clide/core";
 
+import { claudeLaunch, type ClaudeLaunch } from "./launch.js";
+
 /** Ce que le client montre de la session qui tourne dans un onglet. */
 export interface LiveSession {
   sessionId: string;
   title?: string;
   permissionMode?: string;
   planMode?: boolean;
+  /** Modèle et effort en cours : ceux du transcript, sinon ceux du lancement. */
+  model?: string;
+  effort?: string;
   tokens?: TokenUsage;
   cost?: CostState;
   /** Coût de la session : exact, estimé à partir des tarifs déduits, ou inconnu. */
@@ -31,6 +36,8 @@ interface Tracked {
   since: number;
   /** Session nommée par `claude --resume`, quand l'onglet en reprend une. */
   resumed?: string;
+  /** Lu au démarrage de `claude` : les réglages changés ensuite ne valent que pour les sessions suivantes. */
+  launch: Promise<ClaudeLaunch>;
   reader?: TranscriptReader;
   path?: string;
   /** Dernier état envoyé, pour ne prévenir qu'en cas de changement. */
@@ -83,7 +90,12 @@ export class LiveSessions {
   track(terminalId: string, cwd: string, command?: string, since: number = Date.now()): void {
     if (this.#tracked.has(terminalId)) return;
     const resumed = resumedSessionId(command);
-    this.#tracked.set(terminalId, { cwd, since, ...(resumed ? { resumed } : {}) });
+    this.#tracked.set(terminalId, {
+      cwd,
+      since,
+      ...(resumed ? { resumed } : {}),
+      launch: claudeLaunch(command, cwd, this.home),
+    });
   }
 
   forget(terminalId: string): void {
@@ -150,17 +162,23 @@ export class LiveSessions {
       let session: LiveSession;
       try {
         const { projection } = await tracked.reader.poll();
-        // Une session reprise porte le mode de sa séance précédente : Claude
-        // Code redémarre dans le sien, et le transcript ne le dira qu'au premier
-        // tour. D'ici là, le mode n'est pas montré plutôt que montré faux.
+        const launch = await tracked.launch;
+        // Une session reprise porte le mode, le modèle et l'effort de sa séance
+        // précédente : Claude Code redémarre avec les siens, et le transcript ne
+        // le dira qu'au premier tour. D'ici là, le mode n'est pas montré plutôt
+        // que montré faux, et le modèle et l'effort sont ceux du lancement.
         const fresh =
           !tracked.resumed ||
           (projection.lastActivityAt !== undefined && Date.parse(projection.lastActivityAt) >= tracked.since);
+        const model = (fresh ? projection.model : undefined) ?? launch.model;
+        const effort = (fresh ? projection.effort : undefined) ?? launch.effort;
         session = {
           sessionId: projection.id,
           ...(projection.title ? { title: projection.title } : {}),
           ...(fresh && projection.permissionMode ? { permissionMode: projection.permissionMode } : {}),
           ...(fresh && projection.planMode !== undefined ? { planMode: projection.planMode } : {}),
+          ...(model ? { model } : {}),
+          ...(effort ? { effort } : {}),
           ...(projection.tokens ? { tokens: projection.tokens } : {}),
           ...(projection.cost ? { cost: projection.cost } : {}),
           ...(projection.tokens || projection.cost

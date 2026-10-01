@@ -190,9 +190,9 @@ describe("SessionProjector", () => {
       cacheRead: 2000,
       cacheCreation: 20,
       context: 1013,
-      model: "claude-opus-5-5",
       byModel: { "claude-opus-5-5": { input: 8, output: 100, cacheRead: 2000, cacheCreation: 20 } },
     });
+    expect(projection.model).toBe("claude-opus-5-5");
   });
 
   it("retient l'effort de la dernière réponse", () => {
@@ -201,8 +201,8 @@ describe("SessionProjector", () => {
       ...(effort ? { effort } : {}),
       message: { id, model: "claude-opus-5-5", usage: { input_tokens: 1, output_tokens: 1 } },
     });
-    expect(projectEvents(SID, [answer("m1", "high"), answer("m2", "xhigh")]).tokens?.effort).toBe("xhigh");
-    expect(projectEvents(SID, [answer("m1", "high"), answer("m2")]).tokens?.effort).toBeUndefined();
+    expect(projectEvents(SID, [answer("m1", "high"), answer("m2", "xhigh")]).effort).toBe("xhigh");
+    expect(projectEvents(SID, [answer("m1", "high"), answer("m2")]).effort).toBeUndefined();
   });
 
   it("suit un /effort avant la réponse suivante", () => {
@@ -218,8 +218,8 @@ describe("SessionProjector", () => {
         content: "<local-command-stdout>Set effort level to xhigh (saved as your default for new sessions): Deeper reasoning</local-command-stdout>",
       },
     };
-    expect(projectEvents(SID, [answer("m1", "medium"), stdout]).tokens?.effort).toBe("xhigh");
-    expect(projectEvents(SID, [answer("m1", "medium"), stdout, answer("m2", "low")]).tokens?.effort).toBe("low");
+    expect(projectEvents(SID, [answer("m1", "medium"), stdout]).effort).toBe("xhigh");
+    expect(projectEvents(SID, [answer("m1", "medium"), stdout, answer("m2", "low")]).effort).toBe("low");
   });
 
   it("suit un /model avant la réponse suivante", () => {
@@ -229,12 +229,23 @@ describe("SessionProjector", () => {
 <command-message>model</command-message>
 <command-args>${args}</command-args>`);
     const done = say("<local-command-stdout>Set model to `Fable 5.1` and saved as your default for new sessions</local-command-stdout>");
-    const model = (...events: TranscriptEvent[]) => projectEvents(SID, [answer, ...events]).tokens?.model;
+    const model = (...events: TranscriptEvent[]) => projectEvents(SID, [answer, ...events]).model;
     expect(model(command("claude-fable-5-1"), done)).toBe("claude-fable-5-1");
     // Choisi dans le sélecteur : seul le nom affiché est connu.
     expect(model(command(""), done)).toBe("Fable 5.1");
     // Une commande refusée ne change rien.
     expect(model(command("inconnu"), say("<local-command-stdout>Model 'inconnu' not found</local-command-stdout>"))).toBe("claude-opus-5-5");
+  });
+
+  it("suit /model et /effort dans une session qui n'a pas encore de réponse", () => {
+    const say = (content: string) => ({ type: "user", message: { role: "user", content } });
+    const projection = projectEvents(SID, [
+      say("<command-name>/model</command-name>\n<command-args>claude-opus-5-5</command-args>"),
+      say("<local-command-stdout>Set model to `Opus 5.5` and saved as your default for new sessions</local-command-stdout>"),
+      say("<local-command-stdout>Set effort level to xhigh (saved as your default for new sessions): Deeper reasoning</local-command-stdout>"),
+    ]);
+    expect(projection).toMatchObject({ model: "claude-opus-5-5", effort: "xhigh" });
+    expect(projection.tokens).toBeUndefined();
   });
 
   it("sépare ce qui a été consommé après le dernier relevé de coût", () => {

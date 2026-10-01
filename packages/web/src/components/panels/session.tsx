@@ -35,6 +35,7 @@ import { setState, useStore } from "@/state/store";
 export interface ShownSession {
   sessionId: string;
   refresh?: string;
+  model?: string;
   tokens?: TokenUsage;
   price?: SessionCost;
 }
@@ -232,7 +233,7 @@ const ACTIVITY_LABEL: Record<string, string> = {
 
 /** Volume et coût de la session, en tête de son activité. */
 function Consumption({ session }: { session: ShownSession }) {
-  const { tokens, price } = session;
+  const { model, tokens, price } = session;
   const showCosts = useStore((state) => state.showCosts);
   const cost = showCosts ? formatSessionCost(price) : undefined;
   if (!tokens && !cost) return null;
@@ -244,7 +245,7 @@ function Consumption({ session }: { session: ShownSession }) {
     cost,
   ].filter(Boolean);
   return (
-    <p className="py-1 text-[11px] text-muted-foreground" title={[tokens?.model, showCosts && describeSessionCost(price)].filter(Boolean).join(" · ")}>
+    <p className="py-1 text-[11px] text-muted-foreground" title={[model, showCosts && describeSessionCost(price)].filter(Boolean).join(" · ")}>
       {parts.join("  ·  ")}
     </p>
   );
