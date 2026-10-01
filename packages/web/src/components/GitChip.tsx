@@ -158,21 +158,34 @@ export function pendingSummary(status: GitStatus): string {
   return parts.length > 0 ? parts.join(" · ") : t("à jour");
 }
 
+type StatusWithStashes = GitStatus & { stashes: number };
+
+/**
+ * Dernier état connu de chaque dossier. Revenir sur un projet le montre aussitôt,
+ * en attendant le relevé : sans lui, la puce de la barre de titre manque le temps
+ * de `git status`, et tout ce que la barre centre glisse puis revient.
+ */
+const knownStatus = new Map<string, StatusWithStashes | null>();
+
 /**
  * État git d'un dossier, relevé toutes les dix secondes et au retour sur la
  * fenêtre : un commit fait par Claude dans un terminal doit se voir sans rien
  * cliquer.
  */
 export function useGitStatus(root: string | undefined) {
-  const [status, setStatus] = useState<(GitStatus & { stashes: number }) | null>(null);
+  const [status, setStatus] = useState<StatusWithStashes | null>(() => (root ? (knownStatus.get(root) ?? null) : null));
   const refresh = useCallback(() => {
     if (!root) return Promise.resolve();
+    const keep = (next: StatusWithStashes | null) => {
+      knownStatus.set(root, next);
+      setStatus(next);
+    };
     return api<{ status: GitStatus | null; stashes: number }>("/api/git/status", { root })
-      .then((result) => setStatus(result.status ? { ...result.status, stashes: result.stashes } : null))
-      .catch(() => setStatus(null));
+      .then((result) => keep(result.status ? { ...result.status, stashes: result.stashes } : null))
+      .catch(() => keep(null));
   }, [root]);
   useEffect(() => {
-    setStatus(null);
+    setStatus(root ? (knownStatus.get(root) ?? null) : null);
     void refresh();
     const timer = setInterval(refresh, 10_000);
     window.addEventListener("focus", refresh);
@@ -199,25 +212,36 @@ interface Review {
  * MR ou PR de la branche, relevée à la minute : le serveur la tient d'une CLI qui
  * interroge la forge, et garde sa réponse le même temps.
  */
+type ReviewState = { review: Review | null; error?: string };
+
+/** Dernière MR connue de chaque branche, par `dossier|branche` : la puce ne s'élargit pas après coup. */
+const knownReview = new Map<string, ReviewState>();
+
 function useReview(root: string, branch: string | undefined) {
-  const [state, setState] = useState<{ review: Review | null; error?: string }>({ review: null });
+  const key = `${root}|${branch ?? ""}`;
+  const [state, setState] = useState<ReviewState>(() => knownReview.get(key) ?? { review: null });
   useEffect(() => {
     if (!branch) {
       setState({ review: null });
       return;
     }
+    setState(knownReview.get(key) ?? { review: null });
     let alive = true;
+    const keep = (next: ReviewState) => {
+      knownReview.set(key, next);
+      if (alive) setState(next);
+    };
     const poll = () =>
-      api<{ review: Review | null; error?: string }>("/api/git/review", { root })
-        .then((result) => alive && setState(result))
-        .catch(() => alive && setState({ review: null }));
+      api<ReviewState>("/api/git/review", { root })
+        .then(keep)
+        .catch(() => keep({ review: null }));
     void poll();
     const timer = setInterval(poll, 60_000);
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, [root, branch]);
+  }, [root, branch, key]);
   return state;
 }
 
