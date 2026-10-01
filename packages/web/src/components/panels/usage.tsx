@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { decimal, t } from "@/i18n";
 import { api, formatDate, post, shortName } from "@/lib/api";
 import type { UsageLimit, UsageReading, UsageReport } from "@/lib/types";
+import { useStore } from "@/state/store";
 import { cn } from "cn";
 
 /** Nom d'une limite, tel que `/usage` l'écrit. */
@@ -117,6 +118,7 @@ function latest(report: UsageReport): { reading: UsageReading; source: "live" | 
  */
 export function UsagePanel() {
   const state = useAsync(() => api<UsageReport>("/api/usage"), []);
+  const showCosts = useStore((store) => store.showCosts);
 
   return (
     <Async state={state}>
@@ -124,48 +126,50 @@ export function UsagePanel() {
         const current = latest(report);
         return (
           <div className="flex flex-col gap-1 pb-3">
-            <div className="flex items-center gap-2 pt-2">
-              <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
-                {current
-                  ? t(current.source === "live" ? "Relevé par la ligne de statut, {ago}" : "Relevé par l'API, {ago}", {
-                      ago: agoLabel(current.reading.at),
-                    })
-                  : t("Aucun relevé pour l'instant.")}
-                {report.api?.subscription && (
-                  <>
-                    {" · "}
-                    {t("abonnement {plan}", { plan: report.api.subscription })}
-                  </>
-                )}
-              </span>
-              <ActionButton
-                onAction={async () => {
-                  await post("/api/usage/refresh", {});
-                  state.reload();
-                }}
-              >
-                <RefreshCw className="size-3" /> {t("Actualiser")}
-              </ActionButton>
-            </div>
+            <FoldSection nested id="usage.limits" title={t("Limites de l'abonnement")}>
+              <div className="flex items-center gap-2 pt-2">
+                <span className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+                  {current
+                    ? t(current.source === "live" ? "Relevé par la ligne de statut, {ago}" : "Relevé par l'API, {ago}", {
+                        ago: agoLabel(current.reading.at),
+                      })
+                    : t("Aucun relevé pour l'instant.")}
+                  {report.api?.subscription && (
+                    <>
+                      {" · "}
+                      {t("abonnement {plan}", { plan: report.api.subscription })}
+                    </>
+                  )}
+                </span>
+                <ActionButton
+                  onAction={async () => {
+                    await post("/api/usage/refresh", {});
+                    state.reload();
+                  }}
+                >
+                  <RefreshCw className="size-3" /> {t("Actualiser")}
+                </ActionButton>
+              </div>
 
-            {current ? (
-              <ul className="m-0 list-none p-0">
-                {current.reading.limits.map((limit) => (
-                  <LimitRow key={`${limit.kind}|${limit.model ?? ""}`} limit={limit} />
-                ))}
-              </ul>
-            ) : (
-              <Empty icon={Gauge}>
-                {t("« Actualiser » interroge l'API ; la ligne de statut relève l'usage pendant les sessions.")}
-              </Empty>
-            )}
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {t(
-                "« Actualiser » passe par l'API interne de Claude Code, celle de /usage : non documentée, elle peut changer ou limiter les appels.",
+              {current ? (
+                <ul className="m-0 list-none p-0">
+                  {current.reading.limits.map((limit) => (
+                    <LimitRow key={`${limit.kind}|${limit.model ?? ""}`} limit={limit} />
+                  ))}
+                </ul>
+              ) : (
+                <Empty icon={Gauge}>
+                  {t("« Actualiser » interroge l'API ; la ligne de statut relève l'usage pendant les sessions.")}
+                </Empty>
               )}
-            </p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {t(
+                  "« Actualiser » passe par l'API interne de Claude Code, celle de /usage : non documentée, elle peut changer ou limiter les appels.",
+                )}
+              </p>
+            </FoldSection>
 
-            <FoldSection id="usage.statusline" title={t("Ligne de statut")}>
+            <FoldSection nested id="usage.statusline" title={t("Ligne de statut")}>
               <div className="flex flex-col gap-2 py-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={report.statusline.installed ? "default" : "outline"}>
@@ -201,7 +205,7 @@ export function UsagePanel() {
             </FoldSection>
 
             {report.sessions.length > 0 && (
-              <FoldSection id="usage.sessions" title={t("Sessions récentes")} count={report.sessions.length}>
+              <FoldSection nested id="usage.sessions" title={t("Sessions récentes")} count={report.sessions.length}>
                 <Rows>
                   {report.sessions.map((session) => (
                     <Row
@@ -210,7 +214,7 @@ export function UsagePanel() {
                       badges={session.model && <Badge variant="secondary">{session.model}</Badge>}
                       sub={[
                         agoLabel(session.at),
-                        session.costUsd !== undefined ? formatUsd(session.costUsd) : "",
+                        showCosts && session.costUsd !== undefined ? formatUsd(session.costUsd) : "",
                         session.linesAdded !== undefined || session.linesRemoved !== undefined
                           ? `+${session.linesAdded ?? 0} −${session.linesRemoved ?? 0}`
                           : "",

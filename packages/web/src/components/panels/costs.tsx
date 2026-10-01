@@ -105,27 +105,29 @@ export function CostsPanel() {
         const estimatedShare = total > 0 ? (report.total.estimated + report.total.atLeast) / total : 0;
         return (
           <div className="flex flex-col gap-1 pb-3">
-            <div className="grid grid-cols-2 gap-2 py-2">
-              <Tile label={t("Total")} value={formatUsd(total)} />
-              <Tile
-                label={t("dont estimé")}
-                value={`${Math.round(estimatedShare * 100)} %`}
-                hint={t("Part chiffrée à partir des tarifs déduits, pas relevée par Claude Code.")}
-              />
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              {t("{exact} sessions relevées, {estimated} estimées, {unknown} sans tarif.", {
-                exact: report.sessions.exact,
-                estimated: report.sessions.estimated + report.sessions.atLeast,
-                unknown: report.sessions.unknown,
-              })}
-            </p>
+            <FoldSection nested id="costs.total" title={t("Total")}>
+              <div className="grid grid-cols-2 gap-2 py-2">
+                <Tile label={t("Total")} value={formatUsd(total)} />
+                <Tile
+                  label={t("dont estimé")}
+                  value={`${Math.round(estimatedShare * 100)} %`}
+                  hint={t("Part chiffrée à partir des tarifs déduits, pas relevée par Claude Code.")}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {t("{exact} sessions relevées, {estimated} estimées, {unknown} sans tarif.", {
+                  exact: report.sessions.exact,
+                  estimated: report.sessions.estimated + report.sessions.atLeast,
+                  unknown: report.sessions.unknown,
+                })}
+              </p>
+            </FoldSection>
 
-            <FoldSection id="costs.days" title={t("Par jour")}>
+            <FoldSection nested id="costs.days" title={t("Par jour")}>
               <Bars rows={report.byDay.slice(-21).map((row) => ({ label: row.day.slice(5).replace("-", "/"), usd: row.usd, title: row.day }))} />
             </FoldSection>
 
-            <FoldSection id="costs.projects" title={t("Par projet")}>
+            <FoldSection nested id="costs.projects" title={t("Par projet")}>
               <Bars
                 rows={report.byProject.slice(0, 12).map((row) => ({
                   label: shortName(row.project),
@@ -135,11 +137,11 @@ export function CostsPanel() {
               />
             </FoldSection>
 
-            <FoldSection id="costs.models" title={t("Par modèle")}>
+            <FoldSection nested id="costs.models" title={t("Par modèle")}>
               <Bars rows={report.byModel.map((row) => ({ label: row.model.replace(/^claude-/, ""), usd: row.usd, title: row.model }))} />
             </FoldSection>
 
-            <FoldSection id="costs.prices" title={t("Tarifs")}>
+            <FoldSection nested id="costs.prices" title={t("Tarifs")}>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
                 {t(
                   "Déduits des coûts que Claude Code a lui-même relevés, jamais écrits en dur. Un modèle n'en reçoit que si ses relevés concordent à 2 % près, sur au moins trois sessions.",

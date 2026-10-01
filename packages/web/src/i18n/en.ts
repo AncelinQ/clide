@@ -441,6 +441,8 @@ export const EN: Record<string, string> = {
   "« Actualiser » interroge l'API ; la ligne de statut relève l'usage pendant les sessions.": "“Refresh” asks the API; the status line reads usage during sessions.",
   "« Actualiser » passe par l'API interne de Claude Code, celle de /usage : non documentée, elle peut changer ou limiter les appels.": "“Refresh” goes through Claude Code's internal API, the one behind /usage: undocumented, it may change or rate-limit calls.",
   "Ligne de statut": "Status line",
+  Usage: "Usage",
+  "Limites de l'abonnement": "Subscription limits",
   "installée": "installed",
   "absente": "not installed",
   "Installer la ligne de statut": "Install the status line",
