@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { tidy, type MenuItem } from "@/lib/menu";
+import { useStore } from "@/state/store";
 
 export type { MenuItem };
 
@@ -125,14 +126,15 @@ const HOVER_CLOSE_MS = 250;
 /**
  * Menu déroulant sous un déclencheur (un bouton, en général). `hover` l'ouvre au
  * survol et le ferme quand le pointeur quitte le bouton, le menu et ses
- * sous-menus ; le clic l'ouvre et le ferme toujours.
+ * sous-menus, sauf si l'utilisateur a choisi l'ouverture au clic dans les
+ * Réglages ; le clic l'ouvre et le ferme toujours.
  */
 export function MenuButton({
   trigger,
   items,
   align = "end",
   className = "min-w-56",
-  hover = false,
+  hover: hoverable = false,
 }: {
   trigger: ReactNode;
   items: MenuItem[] | (() => MenuItem[]);
@@ -140,6 +142,7 @@ export function MenuButton({
   className?: string;
   hover?: boolean;
 }) {
+  const hover = useStore((state) => hoverable && state.menuOpening === "hover");
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);

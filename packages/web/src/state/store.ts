@@ -58,6 +58,9 @@ export type TabLayout = "row" | "column";
 /** Ce que fait un lancement de script au premier plan : montrer le script, ou rester où l'on est. */
 export type ScriptLaunch = "show" | "stay";
 
+/** Comment s'ouvrent les menus du « + » des onglets et de la barre de Claude : au survol, ou au clic seulement. */
+export type MenuOpening = "hover" | "click";
+
 /** Langue de l'interface ; `auto` suit celle du système. */
 export type Language = "auto" | "fr" | "en";
 
@@ -152,6 +155,8 @@ export interface State {
   autoUpdate: boolean;
   /** Au lancement d'un script : le montrer dans l'onglet Scripts, ou rester sur ce qu'on regarde. */
   scriptLaunch: ScriptLaunch;
+  /** Les menus du « + » des onglets et de la barre de Claude s'ouvrent au survol, ou au clic seulement. */
+  menuOpening: MenuOpening;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -187,7 +192,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate" | "scriptLaunch"
+  | "autoUpdate" | "scriptLaunch" | "menuOpening"
 > {
   let raw: unknown;
   try {
@@ -277,6 +282,7 @@ function persist(): void {
       projectsFolder: state.projectsFolder,
       autoUpdate: state.autoUpdate,
       scriptLaunch: state.scriptLaunch,
+      menuOpening: state.menuOpening,
     },
   };
   const text = JSON.stringify(saved);

@@ -906,4 +906,9 @@ export const EN: Record<string, string> = {
   "Rester où l'on est": "Stay where I am",
   "Sortir des scripts": "Move out of Scripts",
   "Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.": "Script finished: ▷ runs it again. To type a command, open a shell.",
+  "Ouverture des menus": "Opening menus",
+  "Le « + » des onglets, et la barre de Claude : modèle, effort, prompts, serveurs de développement. Le clic les ouvre dans tous les cas.":
+    "The tabs’ “+”, and Claude’s toolbar: model, effort, prompts, dev servers. A click opens them either way.",
+  "Au survol": "On hover",
+  "Au clic": "On click",
 };
