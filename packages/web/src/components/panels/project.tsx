@@ -1,10 +1,11 @@
-import { CloudDownload, GitBranch, Link2, MoreHorizontal, Plug, Sparkles } from "lucide-react";
+import { CloudDownload, GitBranch, Link2, MoreHorizontal, Pencil, Plug, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
+import { ActionButton, Async, DangerButton, Empty, FoldSection, NameInput, Row, Rows, Section, useAsync } from "@/components/common";
 import { BranchDialog } from "@/components/BranchDialog";
 import { FolderInput } from "@/components/FolderInput";
 import { GitMarks, useGitStatus } from "@/components/GitChip";
+import { keepFieldFocus } from "@/components/Menu";
 import { pullRepositories, usePullRunning } from "@/components/GitSync";
 import { McpHealth, useMcpStatus } from "@/components/panels/mcp";
 import { McpEditor, McpLibrary, serverTarget } from "@/components/panels/mcp-editor";
@@ -32,26 +33,48 @@ import { openTerminal } from "@/state/terminals";
 
 /**
  * Un dossier lié, avec sa branche : c'est ce qu'on vérifie avant de lancer Claude
- * sur plusieurs dépôts, et ce qu'on change le plus souvent.
+ * sur plusieurs dépôts, et ce qu'on change le plus souvent. Son rôle se renomme
+ * en place, d'un double-clic ou par son menu.
  */
 function LinkRow({
   link,
   onToggleReadOnly,
+  onRename,
   onUnlink,
 }: {
   link: ProjectLink;
   onToggleReadOnly: () => Promise<void>;
+  onRename: (role: string) => Promise<void>;
   onUnlink: () => Promise<void>;
 }) {
   const [status, refresh] = useGitStatus(link.path);
   const [branching, setBranching] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const pulling = usePullRunning();
 
   return (
     <>
       <Row
         title={link.path}
-        sub={link.role}
+        sub={
+          renaming ? (
+            <NameInput
+              whole
+              initial={link.role ?? ""}
+              onSubmit={(value) => {
+                setRenaming(false);
+                if (value.trim() !== (link.role ?? "")) void onRename(value.trim());
+              }}
+              onCancel={() => setRenaming(false)}
+            />
+          ) : (
+            link.role && (
+              <span className="cursor-text" title={t("Double-clic pour renommer")} onDoubleClick={() => setRenaming(true)}>
+                {link.role}
+              </span>
+            )
+          )
+        }
         badges={
           <>
             {status && (
@@ -66,30 +89,35 @@ function LinkRow({
         }
         actions={
           <>
-            {status && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-6" title={t("Actions git")}>
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
-                    disabled={pulling}
-                    onSelect={() =>
-                      void pullRepositories([link.path], {
-                        label: t("Mettre à jour {name}", { name: shortName(link.path) }),
-                      }).then(refresh)
-                    }
-                  >
-                    <CloudDownload /> {t("Mettre à jour (git pull)")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setBranching(true)}>
-                    <GitBranch /> {t("Changer de branche…")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-6" title={t("Actions")}>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56" onCloseAutoFocus={keepFieldFocus}>
+                <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                  <Pencil /> {link.role ? t("Renommer le rôle") : t("Donner un rôle")}
+                </DropdownMenuItem>
+                {status && (
+                  <>
+                    <DropdownMenuItem
+                      disabled={pulling}
+                      onSelect={() =>
+                        void pullRepositories([link.path], {
+                          label: t("Mettre à jour {name}", { name: shortName(link.path) }),
+                        }).then(refresh)
+                      }
+                    >
+                      <CloudDownload /> {t("Mettre à jour (git pull)")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setBranching(true)}>
+                      <GitBranch /> {t("Changer de branche…")}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ActionButton onAction={onToggleReadOnly}>
               {link.readOnly ? t("rendre modifiable") : t("lecture seule")}
             </ActionButton>
@@ -136,6 +164,9 @@ export function LinksPanel({ root }: { root: string }) {
                   link={link}
                   onToggleReadOnly={() =>
                     save(links.map((l) => (l.path === link.path ? { ...l, readOnly: !l.readOnly } : l)))
+                  }
+                  onRename={(role) =>
+                    save(links.map((l) => (l.path === link.path ? { path: l.path, readOnly: l.readOnly, ...(role ? { role } : {}) } : l)))
                   }
                   onUnlink={() => save(links.filter((l) => l.path !== link.path))}
                 />

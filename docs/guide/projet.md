@@ -10,7 +10,10 @@ servent. Le chemin se tape, se colle, ou se choisit par « Parcourir… » dans 
 fenêtre de sélection de Windows ; le rôle se prend parmi des pastilles — ceux déjà
 donnés aux autres liens, puis api, front, design system… Chaque dossier lié montre sa branche et ce qui y
 attend un commit ou un push ; son menu « ⋯ » le met à jour ou change sa branche
-(voir [Git](./git)). Trois fichiers y suffisent, tous écrits dans le projet :
+(voir [Git](./git)). Le rôle se renomme par ce même menu, ou d'un double-clic
+dessus : Entrée le garde, Échap annule, un nom vide retire le rôle. Une session
+Claude déjà ouverte garde l'ancien : le rôle est passé à Claude au lancement.
+Trois fichiers y suffisent, tous écrits dans le projet :
 
 | Fichier | Rôle |
 |---|---|
