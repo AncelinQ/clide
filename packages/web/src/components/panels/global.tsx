@@ -35,15 +35,16 @@ import { agoLabel } from "@/components/panels/usage";
 // ─── History ────────────────────────────────────────────────────────────────
 
 /**
- * Sessions de Claude Code. À droite, tous les projets ou celui-ci, au choix ;
- * dans la colonne du projet, `fixedScope` les borne au projet, sans choix.
+ * Sessions de Claude Code. À droite, celles du projet ouvert, ou de tous les
+ * projets au choix ; sans projet ouvert, toutes. Dans la colonne du projet,
+ * `fixedScope` les borne au projet, sans choix.
  */
 export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScope?: "project" }) {
   const state = useAsync(() => api<{ sessions: SessionSummary[] }>("/api/sessions"), []);
-  const [chosenScope, setScope] = useState("all");
-  const scope = fixedScope ?? chosenScope;
+  const [chosenScope, setScope] = useState("project");
   const [removing, setRemoving] = useState<string>();
   const activeRoot = useStore((store) => store.activeRoot);
+  const scope = fixedScope ?? (activeRoot ? chosenScope : "all");
   const selectedSession = useStore(selectedSessionOf);
   const showCosts = useStore((store) => store.showCosts);
   // Le transcript s'ouvre dans le projet ouvert qui contient la session, sinon dans le projet actif.
@@ -78,7 +79,9 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("Tous les projets")}</SelectItem>
-                  <SelectItem value="project">{t("Ce projet")}</SelectItem>
+                  <SelectItem value="project" disabled={!activeRoot}>
+                    {t("Ce projet")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             )}
