@@ -14,6 +14,13 @@ discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
 fichier ouvert. Sur un script, elle porte ■ pour l'arrêter et ▷ ou ↻ pour le
 relancer.
 
+Dans un onglet Claude, **Ctrl+V** colle le presse-papiers : du texte se colle tel
+quel, une image devient un chemin (voir plus bas). **Ctrl+C** copie la sélection du
+terminal s'il y en a une, et interrompt Claude sinon. En rendu fullscreen, Claude
+Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
+Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
+raccourcis de PowerShell, qui collent et annulent de la même façon.
+
 ## L'onglet Scripts
 
 Les scripts n'ouvrent pas d'onglet dans la barre : ils se rangent sous l'onglet
