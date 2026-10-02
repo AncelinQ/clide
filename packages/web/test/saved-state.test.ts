@@ -59,6 +59,7 @@ describe("migrate depuis la version 1", () => {
       disabledModules: [],
       projectsFolder: "",
       autoUpdate: true,
+      scriptLaunch: "show",
     });
   });
 });
@@ -96,6 +97,12 @@ describe("migrate en version 2", () => {
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
     expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
+  });
+
+  it("garde le réglage de lancement des scripts, et montre le script pour une valeur inconnue", () => {
+    expect(migrate({ version: 2, prefs: { scriptLaunch: "stay" } }).prefs.scriptLaunch).toBe("stay");
+    expect(migrate({ version: 2, prefs: { scriptLaunch: "ailleurs" } }).prefs.scriptLaunch).toBe("show");
+    expect(migrate({ version: 2 }).prefs.scriptLaunch).toBe("show");
   });
 
   it("garde ce que retient l'onglet Scripts", () => {

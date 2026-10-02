@@ -53,6 +53,9 @@ export interface OpenFile {
 /** Disposition des onglets du panneau global : une ligne en haut, ou une colonne à droite. */
 export type TabLayout = "row" | "column";
 
+/** Ce que fait un lancement de script au premier plan : montrer le script, ou rester où l'on est. */
+export type ScriptLaunch = "show" | "stay";
+
 /** Langue de l'interface ; `auto` suit celle du système. */
 export type Language = "auto" | "fr" | "en";
 
@@ -141,6 +144,8 @@ export interface State {
   projectsFolder: string;
   /** L'application de bureau cherche seule ses nouvelles versions. */
   autoUpdate: boolean;
+  /** Au lancement d'un script : le montrer dans l'onglet Scripts, ou rester sur ce qu'on regarde. */
+  scriptLaunch: ScriptLaunch;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -176,7 +181,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate"
+  | "autoUpdate" | "scriptLaunch"
 > {
   let raw: unknown;
   try {
@@ -263,6 +268,7 @@ function persist(): void {
       disabledModules: state.disabledModules,
       projectsFolder: state.projectsFolder,
       autoUpdate: state.autoUpdate,
+      scriptLaunch: state.scriptLaunch,
     },
   };
   const text = JSON.stringify(saved);

@@ -72,6 +72,8 @@ export interface SavedPrefs {
   projectsFolder: string;
   /** L'application de bureau cherche seule ses nouvelles versions. */
   autoUpdate: boolean;
+  /** Au lancement d'un script : le montrer dans l'onglet Scripts, ou rester sur ce qu'on regarde. */
+  scriptLaunch: "show" | "stay";
 }
 
 export interface SavedState {
@@ -109,6 +111,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   disabledModules: [],
   projectsFolder: "",
   autoUpdate: true,
+  scriptLaunch: "show",
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -255,6 +258,7 @@ function prefs(value: unknown): SavedPrefs {
     disabledModules: strings(source["disabledModules"]),
     projectsFolder: text(source["projectsFolder"], DEFAULT_PREFS.projectsFolder),
     autoUpdate: flag(source["autoUpdate"], DEFAULT_PREFS.autoUpdate),
+    scriptLaunch: oneOf(source["scriptLaunch"], ["show", "stay"], DEFAULT_PREFS.scriptLaunch),
   };
 }
 

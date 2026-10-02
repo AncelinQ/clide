@@ -891,6 +891,11 @@ export const EN: Record<string, string> = {
   "Relancer (arrête puis relance)": "Restart (stop, then run again)",
   "Basculer sur les scripts": "Toggle scripts",
   "Ranger dans Scripts": "Move to Scripts",
+  "Au lancement d'un script": "When a script starts",
+  "Depuis la vue Scripts, ses groupes ou la marge de l'éditeur. Un lancement en arrière-plan ne bascule jamais ; « Aller à l'onglet » montre toujours.":
+    "From the Scripts view, its groups or the editor gutter. A background run never switches; “Go to tab” always shows it.",
+  "Montrer le script": "Show the script",
+  "Rester où l'on est": "Stay where I am",
   "Sortir des scripts": "Move out of Scripts",
   "Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.": "Script finished: ▷ runs it again. To type a command, open a shell.",
 };

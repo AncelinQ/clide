@@ -20,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { t } from "@/i18n";
 import { cn } from "cn";
-import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type TabLayout, type TerminalFont } from "@/state/store";
+import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type ScriptLaunch, type TabLayout, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
 import { setImportedTheme } from "@/state/theme";
 import { setInterfaceFont } from "@/state/interface";
@@ -339,47 +339,71 @@ function TerminalSection({ open }: { open: boolean }) {
   useEffect(() => setSize(String(font.size)), [font.size]);
 
   return (
-    <Group title={t("Police du terminal")} hint={t("Le terminal seulement : l'interface a sa propre police, dans Apparence.")}>
-      <Select value={font.family || DEFAULT} onValueChange={(value) => update({ ...font, family: value === DEFAULT ? "" : value })}>
+    <div className="grid gap-6">
+      <Group title={t("Police du terminal")} hint={t("Le terminal seulement : l'interface a sa propre police, dans Apparence.")}>
+        <Select value={font.family || DEFAULT} onValueChange={(value) => update({ ...font, family: value === DEFAULT ? "" : value })}>
+          <SelectTrigger className="w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={DEFAULT}>{t("Par défaut (Consolas)")}</SelectItem>
+            {available.map((family) => (
+              <SelectItem key={family} value={family}>
+                <span style={{ fontFamily: `"${family}"` }}>{family}</span>
+              </SelectItem>
+            ))}
+            {font.family && !available.includes(font.family) && (
+              <SelectItem value={font.family}>{t("{family} (introuvable)", { family: font.family })}</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        <div className="grid gap-1.5">
+          <Label htmlFor="terminal-font-size">{t("Taille (pt)")}</Label>
+          <Input
+            id="terminal-font-size"
+            type="number"
+            min={MIN_SIZE}
+            max={MAX_SIZE}
+            value={size}
+            onChange={(event) => {
+              setSize(event.target.value);
+              const next = Number(event.target.value);
+              if (Number.isInteger(next) && next >= MIN_SIZE && next <= MAX_SIZE) update({ ...font, size: next });
+            }}
+            onBlur={() => setSize(String(font.size))}
+            className="w-24"
+          />
+        </div>
+        <button
+          type="button"
+          className="justify-self-start text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => update(DEFAULT_TERMINAL_FONT)}
+        >
+          {t("Revenir aux valeurs par défaut")}
+        </button>
+      </Group>
+      <ScriptLaunchGroup />
+    </div>
+  );
+}
+
+/** Ce que fait un script lancé au premier plan : se montrer dans l'onglet Scripts, ou laisser où l'on est. */
+function ScriptLaunchGroup() {
+  const scriptLaunch = useStore((state) => state.scriptLaunch);
+  return (
+    <Group
+      title={t("Au lancement d'un script")}
+      hint={t("Depuis la vue Scripts, ses groupes ou la marge de l'éditeur. Un lancement en arrière-plan ne bascule jamais ; « Aller à l'onglet » montre toujours.")}
+    >
+      <Select value={scriptLaunch} onValueChange={(value) => setState({ scriptLaunch: value as ScriptLaunch })}>
         <SelectTrigger className="w-64">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={DEFAULT}>{t("Par défaut (Consolas)")}</SelectItem>
-          {available.map((family) => (
-            <SelectItem key={family} value={family}>
-              <span style={{ fontFamily: `"${family}"` }}>{family}</span>
-            </SelectItem>
-          ))}
-          {font.family && !available.includes(font.family) && (
-            <SelectItem value={font.family}>{t("{family} (introuvable)", { family: font.family })}</SelectItem>
-          )}
+          <SelectItem value="show">{t("Montrer le script")}</SelectItem>
+          <SelectItem value="stay">{t("Rester où l'on est")}</SelectItem>
         </SelectContent>
       </Select>
-      <div className="grid gap-1.5">
-        <Label htmlFor="terminal-font-size">{t("Taille (pt)")}</Label>
-        <Input
-          id="terminal-font-size"
-          type="number"
-          min={MIN_SIZE}
-          max={MAX_SIZE}
-          value={size}
-          onChange={(event) => {
-            setSize(event.target.value);
-            const next = Number(event.target.value);
-            if (Number.isInteger(next) && next >= MIN_SIZE && next <= MAX_SIZE) update({ ...font, size: next });
-          }}
-          onBlur={() => setSize(String(font.size))}
-          className="w-24"
-        />
-      </div>
-      <button
-        type="button"
-        className="justify-self-start text-[11px] text-muted-foreground underline-offset-2 hover:underline"
-        onClick={() => update(DEFAULT_TERMINAL_FONT)}
-      >
-        {t("Revenir aux valeurs par défaut")}
-      </button>
     </Group>
   );
 }

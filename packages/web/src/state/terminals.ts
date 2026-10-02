@@ -359,6 +359,10 @@ export function scriptTabOf(directory: string, name: string): TerminalInfo | und
  *
  * Chaque lancement retient sa commande dans l'onglet Scripts : c'est elle que
  * relancer retape, et non la dernière ligne tapée dans le shell.
+ *
+ * `focus: true` montre le script, `false` jamais ; sans l'option, le réglage
+ * « Au lancement d'un script » décide. Un script lancé sans être montré devient
+ * celui que l'onglet Scripts montrera, sauf s'il est déjà sous les yeux.
  */
 export function runScript(
   name: string,
@@ -370,14 +374,21 @@ export function runScript(
   if (!root) return;
   const key = scriptKey(directory, name);
   const tab = scriptTab(key, root);
-  const focus = options.focus !== false;
+  const focus = options.focus ?? getState().scriptLaunch === "show";
+  // Lancé sans être montré, il est celui que l'onglet Scripts montrera.
+  const select = (shelf: ScriptsShelf, id: string, current: State): ScriptsShelf =>
+    focus || (root === current.activeRoot && scriptsShown(current)) ? shelf : { ...shelf, selected: id };
   if (tab && (tab.kind === "claude" || tab.state === "running")) {
     if (focus) focusTerminal(tab.id);
+    else if (tab.kind !== "claude") setState((current) => ({ projects: withShelf(current.projects, root, (shelf) => select(shelf, tab.id, current)) }));
     return;
   }
   if (tab) {
     setState((current) => ({
-      projects: withShelf(current.projects, root, (shelf) => ({ ...shelf, commands: { ...shelf.commands, [tab.id]: command } })),
+      projects: withShelf(current.projects, root, (shelf) => ({
+        ...select(shelf, tab.id, current),
+        commands: { ...shelf.commands, [tab.id]: command },
+      })),
     }));
     const move = samePath(tab.cwd, directory) ? "" : `Set-Location -LiteralPath '${directory.replace(/'/g, "''")}'; `;
     typeInto(tab.id, `\u001b${move}${command}\r`);

@@ -51,6 +51,8 @@ dossier de son projet ou de son dossier lié. Relancer un script reprend son
 terminal — encore en cours, il revient au premier plan sans être relancé ; fini, il
 y repart, précédé d'Échap qui vide la ligne en cours sous PSReadLine. Le serveur
 garde le script de chaque terminal : un rechargement de la page les retrouve.
+Lancer un script le montre ; pour rester sur ce qu'on regarde, Réglages ›
+Terminal propose « Rester où l'on est ».
 
 On coche des scripts, puis **Lancer (N)** les démarre ensemble ; **Enregistrer
 comme groupe** les garde sous un nom (« Tout démarrer »), dans
