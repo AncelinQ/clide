@@ -10,7 +10,6 @@ import {
   PanelRight,
   Plus,
   Sparkles,
-  SquareDashed,
   Sun,
   X,
 } from "lucide-react";
@@ -139,7 +138,6 @@ export function TitleBar() {
                           : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
                       )}
                     >
-                      <SquareDashed className="size-3.5 shrink-0" />
                       <span className="truncate">{project.name}</span>
                       <RepoMarks root={project.root} />
                       {busy > 0 && (
