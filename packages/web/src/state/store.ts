@@ -7,7 +7,7 @@ import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKi
 import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
-import { backTarget, placementOf, splitTabs, type ScriptsShelf } from "@/lib/script-shelf";
+import { backTarget, placementOf, splitTabs, type Placement, type ScriptsShelf } from "@/lib/script-shelf";
 import { ownActiveTab, tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -355,10 +355,15 @@ export function activateProject(root: string): void {
   });
 }
 
+/** Rangements faits à la main dans le projet `root`. */
+export function placedIn(current: State, root: string | null): Record<string, Placement> {
+  return current.projects.find((project) => project.root === root)?.scripts.placed ?? {};
+}
+
 /** Vrai si le terminal `id` vit dans la barre d'onglets, pas dans l'onglet Scripts. */
 export function inBar(current: State, id: string): boolean {
   const entry = current.terminals[id];
-  return entry !== undefined && placementOf(entry.info) === "bar";
+  return entry !== undefined && placementOf(entry.info, placedIn(current, entry.owner)) === "bar";
 }
 
 /** Terminaux d'un projet, dans l'ordre d'ouverture, partagés entre la barre et l'onglet Scripts. */
@@ -367,6 +372,7 @@ export function tabsOf(current: State, root: string | null): { bar: TerminalInfo
     Object.values(current.terminals)
       .filter((entry) => entry.owner === root)
       .map((entry) => entry.info),
+    placedIn(current, root),
   );
 }
 

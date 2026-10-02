@@ -7,7 +7,7 @@
  * dans un état que rien ne sait afficher.
  */
 
-import { EMPTY_SHELF, NATURES, type Nature, type ScriptsShelf } from "@/lib/script-shelf";
+import { EMPTY_SHELF, NATURES, type Nature, type Placement, type ScriptsShelf } from "@/lib/script-shelf";
 
 export const SAVED_VERSION = 2;
 
@@ -31,7 +31,7 @@ export interface SavedProject {
    * rangé. Vide, ou pour un onglet qui n'y figure pas : l'ordre d'ouverture.
    */
   tabOrder: string[];
-  /** Ce que l'onglet Scripts retient : script choisi, retour vers la barre, commandes, groupes repliés. */
+  /** Ce que l'onglet Scripts retient : script choisi, retour vers la barre, commandes, groupes repliés, rangements. */
   scripts: ScriptsShelf;
 }
 
@@ -173,6 +173,7 @@ function shelf(value: unknown): ScriptsShelf {
     back: { tab: id(back["tab"]), file: id(back["file"]) },
     commands: recordOf(source["commands"], (item): item is string => typeof item === "string"),
     folded: [...new Set(strings(source["folded"]))].filter((item): item is Nature => (NATURES as readonly string[]).includes(item)),
+    placed: recordOf(source["placed"], (item): item is Placement => item === "bar" || item === "scripts"),
   };
 }
 

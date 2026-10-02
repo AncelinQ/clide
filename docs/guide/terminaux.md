@@ -49,11 +49,21 @@ fichiers restent dans la barre.
   Revenu au prompt, son terminal n'est pas un shell où travailler : rien n'y
   passe, et un rappel dit que ▷ le relance. Pour taper une commande, on ouvre un
   shell.
+- **Ranger et sortir à la main.** Le clic droit sur un shell de la barre propose
+  « Ranger dans Scripts » ; un onglet Claude, jamais. Un shell rangé paraît dans
+  le dernier groupe de la liste, Shells, et reste interactif : il n'a pas de
+  commande à relancer, mais ■ l'arrête. « Sortir des scripts », dans le menu
+  d'une ligne ou par ⤒ dans la barre flottante, renvoie n'importe quel terminal
+  de l'onglet Scripts dans la barre, où il reprend sa place ; un script sorti
+  reste le sien, et le relancer depuis la vue Scripts le reprend là. Rien ne
+  change de place tout seul : `claude` lancé dans un shell rangé y reste, et une
+  session arrêtée laisse son shell où il est.
 
 Fermer le script montré montre son voisin ; fermer le dernier ramène dans la barre.
 Pendant qu'on regarde les scripts, le bloc du bas garde la session de l'onglet
 Claude qu'on a quitté, et le pied de la zone décrit le script montré. Le projet
-retient le script choisi et les groupes repliés d'une ouverture à l'autre.
+retient le script choisi, les groupes repliés et les rangements d'une ouverture à
+l'autre.
 
 ## Images vers le prompt
 

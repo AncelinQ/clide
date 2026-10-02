@@ -49,6 +49,16 @@ describe("placementOf et splitTabs", () => {
     expect(bar.map((item) => item.id)).toEqual(["s1", "s2"]);
     expect(scripts.map((item) => item.id)).toEqual(["d", "b"]);
   });
+
+  it("laisse un rangement fait à la main l'emporter sur la règle, Claude compris", () => {
+    const placed = { s1: "scripts", d: "bar", c: "scripts" } as const;
+    expect(placementOf(tab("s1"), placed)).toBe("scripts");
+    expect(placementOf(tab("d", "dev"), placed)).toBe("bar");
+    expect(placementOf(tab("c", undefined, { kind: "claude" }), placed)).toBe("scripts");
+    const { bar, shelf: scripts } = splitTabs([tab("s1"), tab("d", "dev"), tab("s2"), tab("b", "build")], placed);
+    expect(bar.map((item) => item.id)).toEqual(["d", "s2"]);
+    expect(scripts.map((item) => item.id)).toEqual(["s1", "b"]);
+  });
 });
 
 describe("natureOf", () => {
@@ -114,6 +124,14 @@ describe("shelfGroups et shelfOrder", () => {
 
   it("met les shells sans clé en dernier, même ouverts avant", () => {
     expect(shelfOrder([tab("sh"), tab("d", "dev")]).map((item) => item.id)).toEqual(["d", "sh"]);
+  });
+
+  it("rend à un script sorti puis rangé de nouveau son groupe, et aux shells rangés le leur", () => {
+    const groups = shelfGroups([tab("sh1"), tab("b", "build"), tab("sh2", undefined, { kind: "claude" })]);
+    expect(groups.map((group) => [group.nature, group.tabs.map((item) => item.id)])).toEqual([
+      ["build", ["b"]],
+      ["shell", ["sh1", "sh2"]],
+    ]);
   });
 });
 

@@ -1,12 +1,13 @@
 /**
- * Gestes de l'onglet Scripts : y entrer et en sortir, relancer un script,
- * arrêter ou fermer en nombre, replier un groupe.
+ * Gestes de l'onglet Scripts : y entrer et en sortir, y ranger un shell ou en
+ * sortir un terminal, relancer un script, arrêter ou fermer en nombre, replier
+ * un groupe.
  *
  * Vit à part de `terminals.ts` parce que relancer une suite de tests passe par
  * `tests.ts`, qui dépend lui-même de `terminals.ts`.
  */
 
-import { backTarget, selectedScript, splitScriptKey, type Nature } from "@/lib/script-shelf";
+import { backTarget, natureOf, selectedScript, splitScriptKey, type Nature, type Placement } from "@/lib/script-shelf";
 import type { TerminalInfo } from "@/lib/types";
 import { activeProject, getState, scriptsShown, setState, subscribe, tabsOf, type State } from "@/state/store";
 import { isSuiteScript, rerunSuite } from "@/state/tests";
@@ -132,10 +133,16 @@ export function stopAllScripts(): void {
   for (const info of runningScripts(current, current.activeRoot)) interruptTerminal(info.id, { show: false });
 }
 
-/** Scripts finis du projet actif : arrêtés, échoués ou dont le shell s'est terminé. */
+/**
+ * Scripts finis du projet actif : arrêtés, échoués ou dont le shell s'est
+ * terminé. Un shell rangé à la main, revenu à son prompt, n'en est pas un : il
+ * attend qu'on y tape.
+ */
 export function finishedScripts(current: State = getState()): TerminalInfo[] {
   if (!current.activeRoot) return [];
-  return tabsOf(current, current.activeRoot).shelf.filter((info) => info.kind === "shell" && (info.exited || info.state !== "running"));
+  return tabsOf(current, current.activeRoot).shelf.filter(
+    (info) => info.kind === "shell" && (info.exited || (info.script !== undefined && info.state !== "running")),
+  );
 }
 
 export function closeFinishedScripts(): void {
@@ -144,6 +151,30 @@ export function closeFinishedScripts(): void {
 
 export function hasRunningScripts(current: State = getState()): boolean {
   return current.activeRoot !== null && runningScripts(current, current.activeRoot).length > 0;
+}
+
+/**
+ * Range un terminal dans l'onglet Scripts, ou l'en sort vers la barre. Le
+ * terminal montré reste montré, à sa nouvelle place ; rangé, il devient le
+ * script que l'onglet Scripts retient, et son groupe se déplie.
+ */
+export function place(id: string, placement: Placement): void {
+  setState((current) => {
+    const entry = current.terminals[id];
+    if (!entry) return {};
+    return {
+      projects: current.projects.map((project) => {
+        if (project.root !== entry.owner) return project;
+        const scripts = { ...project.scripts, placed: { ...project.scripts.placed, [id]: placement } };
+        if (placement === "scripts") {
+          scripts.selected = id;
+          scripts.folded = scripts.folded.filter((nature) => nature !== natureOf(entry.info));
+        }
+        return { ...project, scripts };
+      }),
+    };
+  });
+  requestAnimationFrame(() => resize(id, { focus: false }));
 }
 
 /** Replie ou déplie un groupe de la liste, pour le projet actif. */

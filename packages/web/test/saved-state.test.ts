@@ -99,7 +99,13 @@ describe("migrate en version 2", () => {
   });
 
   it("garde ce que retient l'onglet Scripts", () => {
-    const scripts = { selected: "t2", back: { tab: "t1", file: "C:/a/x.ts" }, commands: { t2: "pnpm run dev" }, folded: ["test"] };
+    const scripts = {
+      selected: "t2",
+      back: { tab: "t1", file: "C:/a/x.ts" },
+      commands: { t2: "pnpm run dev" },
+      folded: ["test"],
+      placed: { t2: "bar", t3: "scripts" },
+    };
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", scripts }], layout: { widths: { scripts: 300 } } });
     expect(state.projects[0]?.scripts).toEqual(scripts);
     expect(state.layout.widths.scripts).toBe(300);
@@ -111,12 +117,21 @@ describe("migrate en version 2", () => {
       projects: [
         { root: "C:\\a" },
         { root: "C:\\b", scripts: "abîmé" },
-        { root: "C:\\c", scripts: { selected: 4, back: { tab: "t1" }, commands: { t1: "dev", t2: 3 }, folded: ["test", "inconnu", "test"] } },
+        {
+          root: "C:\\c",
+          scripts: { selected: 4, back: { tab: "t1" }, commands: { t1: "dev", t2: 3 }, folded: ["test", "inconnu", "test"], placed: { t1: "scripts", t2: "ailleurs" } },
+        },
       ],
     });
     expect(state.projects[0]?.scripts).toEqual(EMPTY_SHELF);
     expect(state.projects[1]?.scripts).toEqual(EMPTY_SHELF);
-    expect(state.projects[2]?.scripts).toEqual({ selected: null, back: { tab: "t1", file: null }, commands: { t1: "dev" }, folded: ["test"] });
+    expect(state.projects[2]?.scripts).toEqual({
+      selected: null,
+      back: { tab: "t1", file: null },
+      commands: { t1: "dev" },
+      folded: ["test"],
+      placed: { t1: "scripts" },
+    });
     expect(state.layout.widths.scripts).toBe(DEFAULT_LAYOUT.widths.scripts);
   });
 });

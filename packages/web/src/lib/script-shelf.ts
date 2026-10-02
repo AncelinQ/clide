@@ -28,9 +28,17 @@ export interface ScriptsShelf {
   commands: Record<string, string>;
   /** Groupes repliés de la liste. */
   folded: Nature[];
+  /** Rangements faits à la main, par terminal : ils l'emportent sur la règle. */
+  placed: Record<string, Placement>;
 }
 
-export const EMPTY_SHELF: ScriptsShelf = { selected: null, back: { tab: null, file: null }, commands: {}, folded: [] };
+export const EMPTY_SHELF: ScriptsShelf = {
+  selected: null,
+  back: { tab: null, file: null },
+  commands: {},
+  folded: [],
+  placed: {},
+};
 
 type Tab = Pick<TerminalInfo, "id" | "kind" | "script" | "state" | "exited">;
 
@@ -40,16 +48,25 @@ export function splitScriptKey(key: string): { directory: string; name: string }
   return at === -1 ? { directory: "", name: key } : { directory: key.slice(0, at), name: key.slice(at + 1) };
 }
 
-/** Un terminal qui porte une clé de script va dans l'onglet Scripts, les autres dans la barre. */
-export function placementOf(tab: Pick<Tab, "script">): Placement {
-  return tab.script ? "scripts" : "bar";
+/**
+ * Où vit un terminal : là où on l'a rangé à la main, sinon dans l'onglet Scripts
+ * s'il porte une clé de script, sinon dans la barre.
+ *
+ * La règle ne regarde pas `kind` : un terminal ne change jamais de place sans un
+ * geste, ni quand Claude y démarre, ni quand il s'arrête.
+ */
+export function placementOf(tab: Pick<Tab, "id" | "script">, placed: Readonly<Record<string, Placement>> = {}): Placement {
+  return placed[tab.id] ?? (tab.script ? "scripts" : "bar");
 }
 
 /** Terminaux d'un projet partagés entre la barre et l'onglet Scripts, dans l'ordre d'ouverture. */
-export function splitTabs<T extends Tab>(own: readonly T[]): { bar: T[]; shelf: T[] } {
+export function splitTabs<T extends Tab>(
+  own: readonly T[],
+  placed: Readonly<Record<string, Placement>> = {},
+): { bar: T[]; shelf: T[] } {
   const bar: T[] = [];
   const shelf: T[] = [];
-  for (const tab of own) (placementOf(tab) === "scripts" ? shelf : bar).push(tab);
+  for (const tab of own) (placementOf(tab, placed) === "scripts" ? shelf : bar).push(tab);
   return { bar, shelf };
 }
 
