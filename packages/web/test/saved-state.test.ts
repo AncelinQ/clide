@@ -60,6 +60,7 @@ describe("migrate depuis la version 1", () => {
       projectsFolder: "",
       autoUpdate: true,
       scriptLaunch: "show",
+      menuOpening: "hover",
     });
   });
 });
@@ -108,6 +109,12 @@ describe("migrate en version 2", () => {
     expect(migrate({ version: 2, prefs: { scriptLaunch: "stay" } }).prefs.scriptLaunch).toBe("stay");
     expect(migrate({ version: 2, prefs: { scriptLaunch: "ailleurs" } }).prefs.scriptLaunch).toBe("show");
     expect(migrate({ version: 2 }).prefs.scriptLaunch).toBe("show");
+  });
+
+  it("garde l'ouverture des menus, et les ouvre au survol pour une valeur inconnue", () => {
+    expect(migrate({ version: 2, prefs: { menuOpening: "click" } }).prefs.menuOpening).toBe("click");
+    expect(migrate({ version: 2, prefs: { menuOpening: "double-clic" } }).prefs.menuOpening).toBe("hover");
+    expect(migrate({ version: 2 }).prefs.menuOpening).toBe("hover");
   });
 
   it("garde ce que retient l'onglet Scripts", () => {

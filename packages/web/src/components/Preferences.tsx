@@ -20,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { t } from "@/i18n";
 import { cn } from "cn";
-import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type ScriptLaunch, type TabLayout, type TerminalFont } from "@/state/store";
+import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type MenuOpening, type ScriptLaunch, type TabLayout, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
 import { setImportedTheme } from "@/state/theme";
 import { setInterfaceFont } from "@/state/interface";
@@ -383,7 +383,29 @@ function TerminalSection({ open }: { open: boolean }) {
         </button>
       </Group>
       <ScriptLaunchGroup />
+      <MenuOpeningGroup />
     </div>
+  );
+}
+
+/** Ouverture des menus de la barre d'onglets et de la barre de Claude : au survol, ou au clic seulement. */
+function MenuOpeningGroup() {
+  const menuOpening = useStore((state) => state.menuOpening);
+  return (
+    <Group
+      title={t("Ouverture des menus")}
+      hint={t("Le « + » des onglets, et la barre de Claude : modèle, effort, prompts, serveurs de développement. Le clic les ouvre dans tous les cas.")}
+    >
+      <Select value={menuOpening} onValueChange={(value) => setState({ menuOpening: value as MenuOpening })}>
+        <SelectTrigger className="w-64" data-menu-opening>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="hover">{t("Au survol")}</SelectItem>
+          <SelectItem value="click">{t("Au clic")}</SelectItem>
+        </SelectContent>
+      </Select>
+    </Group>
   );
 }
 

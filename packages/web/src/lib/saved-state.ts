@@ -76,6 +76,8 @@ export interface SavedPrefs {
   autoUpdate: boolean;
   /** Au lancement d'un script : le montrer dans l'onglet Scripts, ou rester sur ce qu'on regarde. */
   scriptLaunch: "show" | "stay";
+  /** Les menus du « + » des onglets et de la barre de Claude s'ouvrent au survol, ou au clic seulement. */
+  menuOpening: "hover" | "click";
 }
 
 export interface SavedState {
@@ -114,6 +116,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   projectsFolder: "",
   autoUpdate: true,
   scriptLaunch: "show",
+  menuOpening: "hover",
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -263,6 +266,7 @@ function prefs(value: unknown): SavedPrefs {
     projectsFolder: text(source["projectsFolder"], DEFAULT_PREFS.projectsFolder),
     autoUpdate: flag(source["autoUpdate"], DEFAULT_PREFS.autoUpdate),
     scriptLaunch: oneOf(source["scriptLaunch"], ["show", "stay"], DEFAULT_PREFS.scriptLaunch),
+    menuOpening: oneOf(source["menuOpening"], ["hover", "click"], DEFAULT_PREFS.menuOpening),
   };
 }
 
