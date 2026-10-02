@@ -265,3 +265,56 @@ export function ActionButton({
     </Button>
   );
 }
+
+/**
+ * Champ de nom en place : Entrée valide, Échap annule, la perte du focus valide.
+ * Le nom arrive sélectionné ; sans `whole`, comme l'Explorateur, sans son extension.
+ * `data-takes-focus` le signale au menu contextuel qui l'ouvre : il lui laisse le focus.
+ */
+export function NameInput({
+  initial,
+  onSubmit,
+  onCancel,
+  whole = false,
+  className,
+}: {
+  initial: string;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+  whole?: boolean;
+  className?: string;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  // Entrée valide, puis le champ disparaît et perd le focus : sans ce drapeau, la
+  // perte du focus validerait une seconde fois, et créerait deux fois.
+  const settled = useRef(false);
+  const finish = (value: string | undefined) => {
+    if (settled.current) return;
+    settled.current = true;
+    if (value === undefined) onCancel();
+    else onSubmit(value);
+  };
+  useEffect(() => {
+    const element = input.current;
+    if (!element) return;
+    element.focus();
+    const dot = whole ? -1 : initial.lastIndexOf(".");
+    element.setSelectionRange(0, dot > 0 ? dot : initial.length);
+  }, [initial, whole]);
+  return (
+    <input
+      ref={input}
+      data-takes-focus
+      defaultValue={initial}
+      spellCheck={false}
+      className={cn("min-w-0 flex-1 rounded border border-primary bg-background px-1 text-[12px] outline-none", className)}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === "Enter") finish(event.currentTarget.value);
+        else if (event.key === "Escape") finish(undefined);
+      }}
+      onBlur={(event) => finish(event.currentTarget.value)}
+    />
+  );
+}
