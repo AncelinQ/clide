@@ -4,7 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import { afterClose, backTarget, lookAt, natureOf, placementOf, shelfOrder, type ScriptsShelf } from "@/lib/script-shelf";
-import { isTerminalReply } from "@/lib/terminal-input";
+import { clipboardKey, isTerminalReply } from "@/lib/terminal-input";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { nativeZoom, onZoomChange } from "@/state/interface";
@@ -698,6 +698,16 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   term.loadAddon(fit);
   term.open(host);
   term.onData((data) => typeAsUser(info.id, data));
+  // Rendue à false, la frappe échappe à xterm et le navigateur fait son copier ou
+  // son coller : xterm copie sa sélection, colle le texte (en bracketed paste), et
+  // l'hôte passe une image collée à Claude Code. Un shell garde ^V et ^C, que
+  // PSReadLine traite lui-même.
+  term.attachCustomKeyEventHandler((event) => {
+    if (getState().terminals[info.id]?.info.kind !== "claude") return true;
+    const action = clipboardKey(event, term.hasSelection());
+    if (action === "copy") setTimeout(() => term.clearSelection());
+    return action === undefined;
+  });
   attached.set(info.id, { term, fit, host });
   // Monté caché, il ne peut pas s'ajuster : il prend la taille du terminal qu'on
   // voit, celle où le serveur l'a ouvert, plutôt que les 80x24 de xterm.

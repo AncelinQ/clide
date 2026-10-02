@@ -12,3 +12,27 @@ const REPLY = /^\u001b(?:\[\d+;\d+R|\[[?>][\d;]*c|\[[IO]|\][^\u0007\u001b]*(?:\u
 export function isTerminalReply(data: string): boolean {
   return REPLY.test(data);
 }
+
+/**
+ * Alt+V tel que xterm l'envoie : le collage d'image de Claude Code sous Windows,
+ * qui lit l'image dans le presse-papiers et la joint au message.
+ */
+export const IMAGE_PASTE = "\u001bv";
+
+type Keystroke = Pick<KeyboardEvent, "type" | "key" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey">;
+
+/**
+ * Copier-coller d'un onglet Claude, comme dans un éditeur : Ctrl+V colle le
+ * presse-papiers, Ctrl+C copie la sélection du terminal s'il y en a une.
+ *
+ * Sans sélection, Ctrl+C reste l'interruption de Claude Code ; en rendu
+ * fullscreen, Claude Code tient sa propre sélection et la copie lui-même. La
+ * lettre est celle que la touche tape : V sous AZERTY comme sous QWERTY.
+ */
+export function clipboardKey(event: Keystroke, hasSelection: boolean): "copy" | "paste" | undefined {
+  if (event.type !== "keydown" || !event.ctrlKey || event.shiftKey || event.altKey || event.metaKey) return undefined;
+  const key = event.key.toLowerCase();
+  if (key === "v") return "paste";
+  if (key === "c" && hasSelection) return "copy";
+  return undefined;
+}
