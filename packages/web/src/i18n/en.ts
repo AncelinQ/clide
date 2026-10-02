@@ -606,6 +606,11 @@ export const EN: Record<string, string> = {
   "Écrit par une commande : Claude Code en a relevé le diff, il n'y a pas de sauvegarde à restaurer.":
     "Written by a command: Claude Code recorded its diff, there is no backup to restore.",
   "{count} Claude en cours": "{count} Claude running",
+  "Claude travaille": "Claude is working",
+  "Claude a fini": "Claude is done",
+  "Claude attend ta réponse": "Claude is waiting for you",
+  "En attente de ta réponse : {count}": "Waiting for you: {count}",
+  "Fini, à regarder : {count}": "Done, not seen yet: {count}",
   "lancé {ago}": "started {ago}",
   "installer": "install",
   "aller à l'onglet": "go to the tab",

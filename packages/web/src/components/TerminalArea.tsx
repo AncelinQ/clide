@@ -1,5 +1,6 @@
 import {
   Activity,
+  CircleAlert,
   ClipboardList,
   FileDiff,
   FolderOpen,
@@ -66,7 +67,7 @@ import {
 import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
 import { recentProjects } from "@/lib/recents";
 import { NameInput, useAsync } from "@/components/common";
-import type { SessionSummary, TerminalInfo } from "@/lib/types";
+import type { NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 
 /** Hauteur que le terminal garde quand on agrandit l'îlot du bas. */
 const TERMINAL_MIN_HEIGHT = 160;
@@ -134,6 +135,17 @@ function Welcome({ root }: { root?: string }) {
 }
 
 /** Images d'un collage ou d'un dépôt qui n'ont pas de chemin sur le disque. */
+/**
+ * Où en est Claude dans un onglet : il attend une réponse, il travaille, ou il a
+ * fini sans qu'on l'ait regardé. Au repos et déjà vu, l'onglet n'a rien à dire.
+ */
+function claudeStatus(busy: boolean, attention: NotificationKind | undefined): string | undefined {
+  if (attention === "permission") return t("Claude attend ta réponse");
+  if (busy) return t("Claude travaille");
+  if (attention) return t("Claude a fini");
+  return undefined;
+}
+
 function imagesOf(files: Iterable<File>): File[] {
   return [...files].filter((file) => file.type.startsWith("image/"));
 }
@@ -422,6 +434,7 @@ export function TerminalArea() {
     if (project) updateProject(project.root, { tabOrder: dropTab(tabIds, moved, target, side) });
   };
   const renamingTab = useStore((state) => state.renamingTab);
+  const claudeBusy = useStore((state) => state.claudeBusy);
   const endRename = (id: string) => {
     setState({ renamingTab: null });
     // Validé au clavier, le champ disparaît sans rendre le focus : le terminal montré le reprend.
@@ -584,6 +597,7 @@ export function TerminalArea() {
                         // Le premier clic donne le focus au terminal à la frame suivante : le champ s'ouvre après.
                         if (!info.exited) requestAnimationFrame(() => setState({ renamingTab: info.id }));
                       }}
+                      title={info.kind === "claude" ? claudeStatus(Boolean(claudeBusy[info.id]), attention[info.id]) : undefined}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
                         info.id === activeTerminalId && !activeFile
@@ -592,16 +606,9 @@ export function TerminalArea() {
                       )}
                     >
                       {info.kind === "claude" ? (
-                        <Sparkles
-                          className={cn(
-                            "size-3",
-                            info.state === "running"
-                              ? "text-amber-500"
-                              : info.state === "failed"
-                                ? "text-destructive"
-                                : "text-primary",
-                          )}
-                        />
+                        // Le processus `claude` tourne tant que la session est ouverte : c'est le
+                        // titre de son terminal qui dit s'il travaille.
+                        <Sparkles className={cn("size-3", claudeBusy[info.id] ? "animate-pulse text-amber-500" : "text-primary")} />
                       ) : (
                         <span
                           className={cn(
@@ -628,7 +635,11 @@ export function TerminalArea() {
                       ) : (
                         <span>{info.title}</span>
                       )}
-                      {attention[info.id] && <span className="size-1.5 rounded-full bg-primary" />}
+                      {attention[info.id] === "permission" ? (
+                        <CircleAlert className="size-3 text-amber-500" />
+                      ) : (
+                        attention[info.id] && <span className="size-2 rounded-full bg-emerald-500" />
+                      )}
                       <X
                         className="size-3 opacity-50 hover:opacity-100"
                         onClick={(event) => {

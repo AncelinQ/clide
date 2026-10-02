@@ -83,6 +83,8 @@ export interface State {
   activeTerminalId: string | null;
   /** Onglets qui réclament un regard, et à quel titre. */
   attention: Record<string, NotificationKind>;
+  /** Onglets Claude au travail, d'après le titre que Claude Code donne au terminal. */
+  claudeBusy: Record<string, true>;
   /**
    * Session choisie dans History, par projet : un projet où l'on n'a rien choisi
    * ne montre pas celle d'un autre.
@@ -217,6 +219,7 @@ let state: State = {
   terminals: {},
   activeTerminalId: null,
   attention: {},
+  claudeBusy: {},
   selectedSessions: {},
   files: {},
   diagnostics: {},
@@ -357,11 +360,18 @@ export function openProject(root: string, activate = true): void {
  */
 export function activateProject(root: string): void {
   setState((current) => {
-    const remembered = current.projects.find((project) => project.root === root)?.activeTab ?? null;
+    const project = current.projects.find((item) => item.root === root);
+    const shown = tabToShow(current.terminals, project?.activeTab ?? null, root, (id) => inBar(current, id));
+    // L'onglet qu'on retrouve au premier plan est vu : ce qu'il signalait est lu.
+    // Un fichier montré à sa place le laisse signaler.
+    const seen = shown !== null && !project?.activeFile && current.attention[shown] !== undefined;
+    const attention = { ...current.attention };
+    if (seen) delete attention[shown];
     return {
       activeRoot: root,
-      activeTerminalId: tabToShow(current.terminals, remembered, root, (id) => inBar(current, id)),
+      activeTerminalId: shown,
       followLive: true,
+      ...(seen ? { attention } : {}),
     };
   });
 }

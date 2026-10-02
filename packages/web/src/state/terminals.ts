@@ -4,6 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import { afterClose, backTarget, lookAt, natureOf, placementOf, shelfOrder, type ScriptsShelf } from "@/lib/script-shelf";
+import { claudeActivity } from "@/lib/claude-title";
 import { clipboardKey, isTerminalReply } from "@/lib/terminal-input";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
@@ -46,6 +47,11 @@ const attached = new Map<string, Attached>();
  * rechargement, la fin de sa sortie arrive avant que React n'ait monté son hôte.
  */
 const pending = new Map<string, string>();
+/**
+ * Terminaux qui rejouent la fin de leur sortie : les titres qui y passent disent
+ * l'état où on les retrouve, pas un tour qui vient de finir.
+ */
+const replaying = new Set<string>();
 let socket: WebSocket | undefined;
 /** Projet auquel rattacher le prochain terminal ouvert. */
 let pendingOwner: string | null = null;
@@ -138,12 +144,17 @@ function onMessage(message: ServerMessage): void {
       setState((current) => {
         const existing = current.terminals[message.terminal.id];
         if (!existing) return {};
-        // Revenu au shell, l'onglet n'a plus de session à montrer.
+        // Revenu au shell, l'onglet n'a plus de session à montrer, ni de Claude au travail.
         const live = { ...current.live };
-        if (message.terminal.kind === "shell") delete live[message.terminal.id];
+        const claudeBusy = { ...current.claudeBusy };
+        if (message.terminal.kind === "shell") {
+          delete live[message.terminal.id];
+          delete claudeBusy[message.terminal.id];
+        }
         return {
           terminals: { ...current.terminals, [message.terminal.id]: { ...existing, info: message.terminal } },
           live,
+          claudeBusy,
         };
       });
       break;
@@ -435,6 +446,8 @@ export function closeTerminal(id: string): void {
     delete terminals[id];
     const attention = { ...current.attention };
     delete attention[id];
+    const claudeBusy = { ...current.claudeBusy };
+    delete claudeBusy[id];
     const live = { ...current.live };
     delete live[id];
     let projects = forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project));
@@ -464,7 +477,7 @@ export function closeTerminal(id: string): void {
         );
       }
     }
-    return { terminals, attention, live, projects, activeTerminalId };
+    return { terminals, attention, claudeBusy, live, projects, activeTerminalId };
   });
 }
 
@@ -713,12 +726,35 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   // voit, celle où le serveur l'a ouvert, plutôt que les 80x24 de xterm.
   const size = host.clientWidth > 0 ? undefined : visibleSize();
   if (size) term.resize(size.cols, size.rows);
+  term.onTitleChange((title) => followTitle(info.id, title));
   const backlog = pending.get(info.id);
   if (backlog) {
-    term.write(backlog);
+    replaying.add(info.id);
+    term.write(backlog, () => replaying.delete(info.id));
     pending.delete(info.id);
   }
   requestAnimationFrame(() => resize(info.id));
+}
+
+/**
+ * Suit le travail de Claude dans un onglet par le titre de son terminal. Un tour
+ * qui finit hors de vue marque l'onglet jusqu'à ce qu'on le regarde, sans
+ * écraser ce qu'une notification y a déjà mis : une permission demandée passe
+ * aussi le titre au repos.
+ */
+function followTitle(id: string, title: string): void {
+  const activity = claudeActivity(title);
+  const current = getState();
+  if (!activity || current.terminals[id]?.info.kind !== "claude") return;
+  const working = activity === "working";
+  if (working === Boolean(current.claudeBusy[id])) return;
+  setState((state) => {
+    const claudeBusy = { ...state.claudeBusy };
+    if (working) claudeBusy[id] = true;
+    else delete claudeBusy[id];
+    const unseen = !working && !replaying.has(id) && id !== state.activeTerminalId && !state.attention[id];
+    return { claudeBusy, ...(unseen ? { attention: { ...state.attention, [id]: "stop" as const } } : {}) };
+  });
 }
 
 const DEFAULT_STACK = 'Consolas, "Cascadia Mono", monospace';
