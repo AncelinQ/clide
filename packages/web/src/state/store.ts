@@ -28,6 +28,8 @@ export interface Project {
   tabOrder: string[];
   /** Ce que l'onglet Scripts retient pour le projet. */
   scripts: ScriptsShelf;
+  /** En-têtes repliés du panneau Scripts (`SavedProject.scriptsFolded`). */
+  scriptsFolded: string[];
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -453,6 +455,22 @@ export function updateProject(root: string, patch: Partial<Project>): void {
   setState((current) => ({
     projects: current.projects.map((project) =>
       project.root === root ? { ...project, ...patch } : project,
+    ),
+  }));
+}
+
+/** Replie ou déplie un en-tête du panneau Scripts d'un projet. */
+export function toggleScriptsFold(root: string, key: string): void {
+  setState((current) => ({
+    projects: current.projects.map((project) =>
+      project.root === root
+        ? {
+            ...project,
+            scriptsFolded: project.scriptsFolded.includes(key)
+              ? project.scriptsFolded.filter((item) => item !== key)
+              : [...project.scriptsFolded, key],
+          }
+        : project,
     ),
   }));
 }

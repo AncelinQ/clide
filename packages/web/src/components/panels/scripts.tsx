@@ -1,5 +1,5 @@
-import { Layers, Package, Play, Save, Square, SquareArrowOutUpRight, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Layers, Package, Play, Save, Square, SquareArrowOutUpRight, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Async, Empty, useAsync } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { t } from "@/i18n";
 import { api, post, shortName } from "@/lib/api";
 import type { ProjectScripts } from "@/lib/types";
 import { cn } from "cn";
-import { useStore } from "@/state/store";
+import { toggleScriptsFold, useStore } from "@/state/store";
 import { focusTerminal, interruptTerminal, runScript, runningScriptTab, scriptKey } from "@/state/terminals";
 
 /** Scripts qu'on lance sans cesse : ils viennent en tête, dans cet ordre. */
@@ -92,6 +92,55 @@ function absoluteFrom(root: string, directory: string): string {
   return parts.join("\\");
 }
 
+const NO_FOLDS: readonly string[] = [];
+
+/**
+ * En-tête qui replie ce qu'il coiffe. Replié, un point vert dit qu'un script y
+ * tourne encore : le cacher ne doit pas le faire oublier.
+ */
+function FoldHeader({
+  open,
+  onToggle,
+  count,
+  running = false,
+  caps = false,
+  title,
+  actions,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  count: number;
+  running?: boolean;
+  /** En capitales, comme les intitulés de catégorie ; sinon en casse normale, comme un dossier. */
+  caps?: boolean;
+  title?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  const Chevron = open ? ChevronDown : ChevronRight;
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        title={title}
+        onClick={onToggle}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground",
+          caps && "font-medium tracking-wide uppercase",
+        )}
+      >
+        <Chevron className="size-3 shrink-0" />
+        <span className="min-w-0 truncate">{children}</span>
+        {!open && running && <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />}
+        <span className="ml-auto pl-1 font-normal tabular-nums">{count}</span>
+      </button>
+      {actions}
+    </div>
+  );
+}
+
 function ScriptLine({
   item,
   checked,
@@ -149,6 +198,9 @@ export function ScriptsPanel({ root }: { root: string }) {
   const [naming, setNaming] = useState<string>();
   const [error, setError] = useState<string>();
   const terminals = useStore((store) => store.terminals);
+  const folded = useStore((store) => store.projects.find((project) => project.root === root)?.scriptsFolded ?? NO_FOLDS);
+  const isOpen = (key: string) => !folded.includes(key);
+  const fold = (key: string) => () => toggleScriptsFold(root, key);
 
   const loadGroups = useCallback(() => {
     api<{ groups: ScriptGroup[] }>("/api/scripts/groups", { root })
@@ -213,63 +265,71 @@ export function ScriptsPanel({ root }: { root: string }) {
           <div className="grid grid-cols-1 gap-3">
             {running.length > 0 && (
               <div>
-                <p className="py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("En cours")}</p>
-                <ul className="m-0 grid list-none gap-0.5 p-0">
-                  {running.map(({ info }) => (
-                    <li key={info.id} className="flex items-center gap-2 px-1 text-[12px]">
-                      <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
-                      <span className="min-w-0 flex-1 truncate">{info.title}</span>
-                      {info.devUrl && (
-                        <a href={info.devUrl} target="_blank" rel="noreferrer" title={info.devUrl} className="max-w-[45%] min-w-0 truncate font-mono text-[11px] text-muted-foreground hover:text-foreground hover:underline">
-                          {info.devUrl.replace(/^https?:\/\//, "")}
-                        </a>
-                      )}
-                      <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Arrêter (Ctrl+C)")} onClick={() => interruptTerminal(info.id)}>
-                        <Square className="size-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Aller à l'onglet")} onClick={() => focusTerminal(info.id)}>
-                        <SquareArrowOutUpRight className="size-3.5" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <FoldHeader caps open={isOpen("running")} onToggle={fold("running")} count={running.length}>
+                  {t("En cours")}
+                </FoldHeader>
+                {isOpen("running") && (
+                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                    {running.map(({ info }) => (
+                      <li key={info.id} className="flex items-center gap-2 px-1 text-[12px]">
+                        <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                        <span className="min-w-0 flex-1 truncate">{info.title}</span>
+                        {info.devUrl && (
+                          <a href={info.devUrl} target="_blank" rel="noreferrer" title={info.devUrl} className="max-w-[45%] min-w-0 truncate font-mono text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                            {info.devUrl.replace(/^https?:\/\//, "")}
+                          </a>
+                        )}
+                        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Arrêter (Ctrl+C)")} onClick={() => interruptTerminal(info.id)}>
+                          <Square className="size-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Aller à l'onglet")} onClick={() => focusTerminal(info.id)}>
+                          <SquareArrowOutUpRight className="size-3.5" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
             {groups.length > 0 && (
               <div>
-                <p className="py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("Groupes")}</p>
-                <ul className="m-0 grid list-none gap-0.5 p-0">
-                  {groups.map((group) => (
-                    <li key={group.id} className="group flex items-center gap-2 px-1 text-[12px]" title={group.scripts.map((script) => script.name).join(", ")}>
-                      <Layers className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {group.label} <span className="text-[11px] text-muted-foreground">({group.scripts.length})</span>
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 shrink-0"
-                        title={t("tout lancer")}
-                        onClick={() => launch(group.scripts.map((script) => ({ ...script, directory: absoluteFrom(root, script.directory) })))}
-                      >
-                        <Play className="size-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("tout arrêter")} onClick={() => stopGroup(group)}>
-                        <Square className="size-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
-                        title={t("Supprimer le groupe")}
-                        onClick={() => void saveGroups(groups.filter((item) => item.id !== group.id))}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <FoldHeader caps open={isOpen("groups")} onToggle={fold("groups")} count={groups.length}>
+                  {t("Groupes")}
+                </FoldHeader>
+                {isOpen("groups") && (
+                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                    {groups.map((group) => (
+                      <li key={group.id} className="group flex items-center gap-2 px-1 text-[12px]" title={group.scripts.map((script) => script.name).join(", ")}>
+                        <Layers className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {group.label} <span className="text-[11px] text-muted-foreground">({group.scripts.length})</span>
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 shrink-0"
+                          title={t("tout lancer")}
+                          onClick={() => launch(group.scripts.map((script) => ({ ...script, directory: absoluteFrom(root, script.directory) })))}
+                        >
+                          <Play className="size-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("tout arrêter")} onClick={() => stopGroup(group)}>
+                          <Square className="size-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                          title={t("Supprimer le groupe")}
+                          onClick={() => void saveGroups(groups.filter((item) => item.id !== group.id))}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
@@ -278,38 +338,58 @@ export function ScriptsPanel({ root }: { root: string }) {
             {folders.map(({ title, project: folder }) => {
               const sections = sectionsOf(folder);
               if (sections.length === 0) return null;
+              const items = sections.flatMap((section) => section.items);
+              const busy = (list: readonly Runnable[]) => list.some((item) => runningScriptTab(item.directory, item.name) !== undefined);
               return (
-                <div key={folder.root} className="grid grid-cols-1 gap-2">
-                  <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="min-w-0 flex-1 truncate">
-                      {title ?? (folder.managerDetected ? folder.manager : t("{manager} (défaut, aucun lockfile)", { manager: folder.manager }))}
-                    </span>
-                    {folder.sources.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 shrink-0 px-1.5 text-[11px]"
-                        onClick={() => runScript("install", folder.root, `${folder.manager} install`)}
-                      >
-                        {t("installer")}
-                      </Button>
-                    )}
-                  </div>
-                  {sections.map((section) => (
-                    <div key={`${folder.root}|${section.title}`}>
-                      <p className="truncate py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase" title={section.title}>{section.title}</p>
-                      <ul className="m-0 list-none p-0">
-                        {section.items.map((item) => (
-                          <ScriptLine
-                            key={scriptKey(item.directory, item.name)}
-                            item={item}
-                            checked={checked.has(scriptKey(item.directory, item.name))}
-                            onCheck={(value) => toggle(item, value)}
-                          />
-                        ))}
-                      </ul>
+                <div key={folder.root} className="grid grid-cols-1 gap-1">
+                  <FoldHeader
+                    open={isOpen(folder.root)}
+                    onToggle={fold(folder.root)}
+                    count={items.length}
+                    running={busy(items)}
+                    title={folder.root}
+                    actions={
+                      folder.sources.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 shrink-0 px-1.5 text-[11px] text-muted-foreground"
+                          onClick={() => runScript("install", folder.root, `${folder.manager} install`)}
+                        >
+                          {t("installer")}
+                        </Button>
+                      )
+                    }
+                  >
+                    {title ?? (folder.managerDetected ? folder.manager : t("{manager} (défaut, aucun lockfile)", { manager: folder.manager }))}
+                  </FoldHeader>
+                  {/* Décalées sous leur dossier : on voit ce que replier le dossier cache. */}
+                  {isOpen(folder.root) && (
+                    <div className="grid grid-cols-1 gap-1 pl-2">
+                      {sections.map((section) => {
+                        const key = `${folder.root}|${section.title}`;
+                        return (
+                          <div key={key}>
+                            <FoldHeader caps open={isOpen(key)} onToggle={fold(key)} count={section.items.length} running={busy(section.items)} title={section.title}>
+                              {section.title}
+                            </FoldHeader>
+                            {isOpen(key) && (
+                              <ul className="m-0 list-none p-0">
+                                {section.items.map((item) => (
+                                  <ScriptLine
+                                    key={scriptKey(item.directory, item.name)}
+                                    item={item}
+                                    checked={checked.has(scriptKey(item.directory, item.name))}
+                                    onCheck={(value) => toggle(item, value)}
+                                  />
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
               );
             })}
