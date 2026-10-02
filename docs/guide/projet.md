@@ -72,6 +72,11 @@ Les scripts qu'on lance sans cesse — dev, start, build, test, lint, preview,
 typecheck — viennent en tête, en gras. « installer » lance `<gestionnaire>
 install` à la racine du dossier, dans son onglet comme un script.
 
+Chaque en-tête se replie d'un clic : En cours, Groupes, un dossier entier (le
+projet ou un dossier lié), ou une catégorie (un `package.json`, make, cargo…).
+Replié, il garde son nombre de scripts, et un point vert si l'un d'eux tourne. Le
+projet retient ce qu'on a replié d'une session à l'autre.
+
 ## Lancer les tests
 
 La vue **Tests** liste les suites Vitest, Jest et pytest du projet et de ses

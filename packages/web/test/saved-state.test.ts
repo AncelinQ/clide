@@ -78,7 +78,7 @@ describe("migrate en version 2", () => {
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], scripts: EMPTY_SHELF });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], scripts: EMPTY_SHELF, scriptsFolded: [] });
     expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
@@ -97,6 +97,11 @@ describe("migrate en version 2", () => {
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
     expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
+  });
+
+  it("garde les en-têtes repliés du panneau Scripts, sans doublon ni valeur étrangère", () => {
+    const state = migrate({ version: 2, projects: [{ root: "C:\\a", scriptsFolded: ["groups", "C:\\b|make", "groups", 4] }, { root: "C:\\c" }] });
+    expect(state.projects.map((project) => project.scriptsFolded)).toEqual([["groups", "C:\\b|make"], []]);
   });
 
   it("garde le réglage de lancement des scripts, et montre le script pour une valeur inconnue", () => {

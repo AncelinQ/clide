@@ -33,6 +33,8 @@ export interface SavedProject {
   tabOrder: string[];
   /** Ce que l'onglet Scripts retient : script choisi, retour vers la barre, commandes, groupes repliés, rangements. */
   scripts: ScriptsShelf;
+  /** En-têtes repliés du panneau Scripts : `running`, `groups`, un dossier par son chemin, une catégorie par `chemin|titre`. */
+  scriptsFolded: string[];
 }
 
 export interface SavedLayout {
@@ -126,6 +128,7 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   activeFile: null,
   tabOrder: [],
   scripts: EMPTY_SHELF,
+  scriptsFolded: [],
 };
 
 type Json = Record<string, unknown>;
@@ -195,6 +198,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     activeFile,
     tabOrder: [...new Set(strings(value["tabOrder"]))],
     scripts: shelf(value["scripts"]),
+    scriptsFolded: [...new Set(strings(value["scriptsFolded"]))],
   };
 }
 
