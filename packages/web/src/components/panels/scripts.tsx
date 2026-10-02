@@ -179,8 +179,8 @@ export function ScriptsPanel({ root }: { root: string }) {
     });
 
   const launch = (items: { directory: string; name: string; run: string }[]) => {
-    // Le dernier lancé prend le premier plan ; les autres démarrent dans leur onglet.
-    items.forEach((item, index) => runScript(item.name, item.directory, item.run, { focus: index === items.length - 1 }));
+    // Seul le dernier lancé peut prendre le premier plan, si le réglage le veut ; les autres démarrent dans leur onglet.
+    items.forEach((item, index) => runScript(item.name, item.directory, item.run, index === items.length - 1 ? {} : { focus: false }));
   };
 
   const saveGroups = async (next: ScriptGroup[]) => {
