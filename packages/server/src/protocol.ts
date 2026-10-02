@@ -21,6 +21,8 @@ export type ClientMessage =
     }
   | { t: "input"; id: string; data: string }
   | { t: "resize"; id: string; cols: number; rows: number }
+  /** Nom donné à l'onglet ; vide, il reprend son nom par défaut. */
+  | { t: "rename"; id: string; name: string }
   | { t: "close"; id: string };
 
 /** Messages du serveur vers le client. */
@@ -96,6 +98,11 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
       const cols = num("cols");
       const rows = num("rows");
       return id && cols !== undefined && rows !== undefined ? { t: "resize", id, cols, rows } : undefined;
+    }
+    case "rename": {
+      const id = str("id");
+      const name = str("name");
+      return id && name !== undefined ? { t: "rename", id, name: name.slice(0, 80) } : undefined;
     }
     case "close": {
       const id = str("id");

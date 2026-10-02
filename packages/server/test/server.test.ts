@@ -62,6 +62,14 @@ describe("parseClientMessage", () => {
     expect(message?.t === "open" && message.label?.length).toBe(80);
   });
 
+  it("accepte un nom d'onglet, vide compris, borné en longueur", () => {
+    expect(parseClientMessage('{"t":"rename","id":"t1","name":"front"}')).toEqual({ t: "rename", id: "t1", name: "front" });
+    expect(parseClientMessage('{"t":"rename","id":"t1","name":""}')).toEqual({ t: "rename", id: "t1", name: "" });
+    const long = parseClientMessage(JSON.stringify({ t: "rename", id: "t1", name: "n".repeat(200) }));
+    expect(long?.t === "rename" && long.name.length).toBe(80);
+    expect(parseClientMessage('{"t":"rename","id":"t1"}')).toBeUndefined();
+  });
+
   it("rejette une ouverture sans dossier", () => {
     expect(parseClientMessage('{"t":"open"}')).toBeUndefined();
   });

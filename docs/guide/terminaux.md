@@ -4,8 +4,13 @@ Chaque projet a ses onglets de terminal : des shells PowerShell, et des onglets 
 
 La barre d'onglets porte le menu `+` : il ouvre un onglet — Claude, Claude avec un
 modèle choisi, un shell — ou lance la capture d'écran vers le prompt ; chaque entrée
-affiche son raccourci. Un clic droit sur un onglet le ferme, ferme les autres ou
-copie son dossier.
+affiche son raccourci. Un clic droit sur un onglet le renomme, le ferme, ferme les
+autres ou copie son dossier.
+
+Pour distinguer deux onglets Claude, on les nomme : double-clic sur l'onglet, ou
+clic droit › Renommer, puis Entrée (Échap annule). Le nom tient tant que l'onglet
+vit, au fil des sessions `claude` qu'il accueille et des rechargements de la page ;
+un nom vide lui rend le sien, `claude` ou `shell`.
 
 Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la

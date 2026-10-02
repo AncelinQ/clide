@@ -419,6 +419,11 @@ export function interruptTerminal(id: string, options: { show?: boolean } = {}):
   if (options.show !== false) focusTerminal(id);
 }
 
+/** Nomme un onglet ; le serveur le garde, et un nom vide lui rend le sien. */
+export function renameTerminal(id: string, name: string): void {
+  send({ t: "rename", id, name });
+}
+
 export function closeTerminal(id: string): void {
   pending.delete(id);
   send({ t: "close", id });

@@ -7,6 +7,7 @@ import {
   MessageSquareText,
   MonitorPlay,
   Package,
+  Pencil,
   Plus,
   Sparkles,
   SquareTerminal,
@@ -25,7 +26,7 @@ import { effortsFor, findModel, type ModelChoice } from "@/lib/models";
 import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { useModels } from "@/state/models";
-import { getState } from "@/state/store";
+import { getState, setState } from "@/state/store";
 import { runPrompt } from "@/state/prompts";
 import { place } from "@/state/shelf";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
@@ -291,6 +292,8 @@ export function tabItems(info: TerminalInfo, barTabs: string[]): MenuItem[] {
           { kind: "separator" },
         ] as MenuItem[])
       : []),
+    { kind: "item", label: t("Renommer"), icon: Pencil, disabled: info.exited, run: () => setState({ renamingTab: info.id }) },
+    { kind: "separator" },
     { kind: "item", label: t("Fermer"), icon: X, run: () => closeTerminal(info.id) },
     {
       kind: "item",

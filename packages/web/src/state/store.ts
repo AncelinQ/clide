@@ -123,6 +123,8 @@ export interface State {
   promptInput: { label: string; resolve: (value: string | undefined) => void } | null;
   /** Terminal de script fini qui vient de refuser une frappe : le cadre le rappelle un instant. */
   refusedInput: string | null;
+  /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
+  renamingTab: string | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -228,6 +230,7 @@ let state: State = {
   paletteQuery: ">",
   promptInput: null,
   refusedInput: null,
+  renamingTab: null,
   addingProject: false,
   preferencesOpen: false,
   settingsSection: "general",
