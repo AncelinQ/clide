@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { placementOf, splitTabs } from "@/lib/script-shelf";
+import { IMAGE_PASTE } from "@/lib/terminal-input";
 import {
   DEFAULT_WIDTHS,
   activeProject,
@@ -219,13 +220,16 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
         void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
       // En phase de capture, avant que xterm ne colle : une image seule dans le
-      // presse-papiers n'a pas de texte à coller, elle devient un chemin.
+      // presse-papiers n'a pas de texte à coller. Claude Code la lit lui-même sur
+      // son raccourci de collage d'image et la joint au message ; un shell en
+      // reçoit le chemin.
       onPasteCapture={(event) => {
         const images = imagesOf(event.clipboardData.files);
         if (images.length === 0 || event.clipboardData.getData("text/plain")) return;
         event.preventDefault();
         event.stopPropagation();
-        void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
+        if (info.kind === "claude") typeAsUser(info.id, IMAGE_PASTE);
+        else void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
       }}
     >
       <div ref={ref} className="size-full" />

@@ -13,6 +13,12 @@ export function isTerminalReply(data: string): boolean {
   return REPLY.test(data);
 }
 
+/**
+ * Alt+V tel que xterm l'envoie : le collage d'image de Claude Code sous Windows,
+ * qui lit l'image dans le presse-papiers et la joint au message.
+ */
+export const IMAGE_PASTE = "\u001bv";
+
 type Keystroke = Pick<KeyboardEvent, "type" | "key" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey">;
 
 /**

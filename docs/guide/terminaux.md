@@ -15,7 +15,8 @@ fichier ouvert. Sur un script, elle porte ■ pour l'arrêter et ▷ ou ↻ pour
 relancer.
 
 Dans un onglet Claude, **Ctrl+V** colle le presse-papiers : du texte se colle tel
-quel, une image devient un chemin (voir plus bas). **Ctrl+C** copie la sélection du
+quel, une image fait comme Alt+V, le collage d'image de Claude Code, qui la joint
+au message en `[Image #1]`. **Ctrl+C** copie la sélection du
 terminal s'il y en a une, et interrompt Claude sinon. En rendu fullscreen, Claude
 Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
 Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
@@ -74,11 +75,12 @@ l'autre.
 
 ## Images vers le prompt
 
-Claude Code lit une image désignée par son chemin, pas un contenu collé. Une image
-collée dans un terminal, ou déposée sans fichier derrière elle — tirée d'une page
-web, ou n'importe quel fichier dans un navigateur, qui n'en livre jamais le chemin —
-est donc d'abord enregistrée dans le dossier `drops` de l'application, et c'est son
-chemin qui est tapé. Elle part brute, hors du corps JSON des autres routes, dont la
+Dans un onglet Claude, une image collée passe à Claude Code, qui la lit lui-même
+dans le presse-papiers. Ailleurs, et pour une image déposée, Claude Code la lit par
+son chemin. Une image collée dans un shell, ou déposée sans fichier derrière elle —
+tirée d'une page web, ou n'importe quel fichier dans un navigateur, qui n'en livre
+jamais le chemin — est donc d'abord enregistrée dans le dossier `drops` de
+l'application, et c'est son chemin qui est tapé. Elle part brute, hors du corps JSON des autres routes, dont la
 limite est pensée pour des réglages ; seules les images passent, jusqu'à 20 Mo.
 
 « Capture d'écran vers le prompt », dans le menu `+`, ouvre l'outil Capture d'écran de Windows

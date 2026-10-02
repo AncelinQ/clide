@@ -695,7 +695,7 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   term.onData((data) => typeAsUser(info.id, data));
   // Rendue à false, la frappe échappe à xterm et le navigateur fait son copier ou
   // son coller : xterm copie sa sélection, colle le texte (en bracketed paste), et
-  // l'hôte fait d'une image collée un chemin. Un shell garde ^V et ^C, que
+  // l'hôte passe une image collée à Claude Code. Un shell garde ^V et ^C, que
   // PSReadLine traite lui-même.
   term.attachCustomKeyEventHandler((event) => {
     if (getState().terminals[info.id]?.info.kind !== "claude") return true;
