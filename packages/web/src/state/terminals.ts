@@ -294,13 +294,16 @@ export function openTerminal(
   const owner = options.owner ?? getState().activeRoot;
   if (!owner) return;
   pendingOwner = owner;
+  // Ouvert caché, en arrière-plan ou derrière l'onglet Scripts, il écrit déjà à
+  // la taille du terminal qu'on voit.
+  const size = visibleSize() ?? { cols: 100, rows: 30 };
   send({
     t: "open",
     owner,
     projectRoot: options.cwd ?? owner,
     kind,
-    cols: 100,
-    rows: 30,
+    cols: size.cols,
+    rows: size.rows,
     ...(options.command ? { initialCommand: options.command } : {}),
     ...(options.label ? { label: options.label } : {}),
     ...(options.script ? { script: options.script } : {}),
@@ -616,9 +619,34 @@ export function typeAsUser(id: string, data: string): boolean {
   return true;
 }
 
+/** L'hôte a une taille : masqué (`display: none`), il mesure zéro. */
+function measurable(entry: Attached): boolean {
+  return entry.host.clientWidth > 0 && entry.host.clientHeight > 0;
+}
+
+/**
+ * Taille du terminal qu'on voit, celle que prend un terminal qui s'ouvre ou se
+ * monte caché : sa sortie s'écrit à la largeur où on la lira. Aucune si aucun
+ * terminal n'est visible.
+ */
+function visibleSize(): { cols: number; rows: number } | undefined {
+  const { activeTerminalId } = getState();
+  const active = activeTerminalId ? attached.get(activeTerminalId) : undefined;
+  const entry = active && measurable(active) ? active : [...attached.values()].find(measurable);
+  return entry ? { cols: entry.term.cols, rows: entry.term.rows } : undefined;
+}
+
+/**
+ * Ajuste un terminal à son hôte et en prévient le serveur.
+ *
+ * Rien pour un terminal masqué : ajusté à un hôte qui mesure zéro, il prendrait
+ * une taille minuscule, et ConPTY, redimensionné à elle, ne garderait que ce
+ * qui tient dans cet écran — la sortie serait perdue au premier affichage. Il
+ * s'ajuste quand on le montre.
+ */
 export function resize(id: string, options: { focus?: boolean } = {}): void {
   const entry = attached.get(id);
-  if (!entry) return;
+  if (!entry || !measurable(entry)) return;
   try {
     entry.fit.fit();
   } catch {
@@ -666,6 +694,10 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
   term.open(host);
   term.onData((data) => typeAsUser(info.id, data));
   attached.set(info.id, { term, fit, host });
+  // Monté caché, il ne peut pas s'ajuster : il prend la taille du terminal qu'on
+  // voit, celle où le serveur l'a ouvert, plutôt que les 80x24 de xterm.
+  const size = host.clientWidth > 0 ? undefined : visibleSize();
+  if (size) term.resize(size.cols, size.rows);
   const backlog = pending.get(info.id);
   if (backlog) {
     term.write(backlog);
