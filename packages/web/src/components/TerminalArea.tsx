@@ -56,6 +56,7 @@ import {
   focusTerminal,
   mount,
   openTerminal,
+  renameTerminal,
   resize,
   resizeActive,
   sendToClaude,
@@ -63,7 +64,7 @@ import {
 } from "@/state/terminals";
 import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
 import { recentProjects } from "@/lib/recents";
-import { useAsync } from "@/components/common";
+import { NameInput, useAsync } from "@/components/common";
 import type { SessionSummary, TerminalInfo } from "@/lib/types";
 
 /** Hauteur que le terminal garde quand on agrandit l'îlot du bas. */
@@ -416,6 +417,14 @@ export function TerminalArea() {
   const dropOn = (moved: string, target: string, side: "before" | "after") => {
     if (project) updateProject(project.root, { tabOrder: dropTab(tabIds, moved, target, side) });
   };
+  const renamingTab = useStore((state) => state.renamingTab);
+  const endRename = (id: string) => {
+    setState({ renamingTab: null });
+    // Validé au clavier, le champ disparaît sans rendre le focus : le terminal montré le reprend.
+    requestAnimationFrame(() => {
+      if (document.activeElement === document.body && id === getState().activeTerminalId) resize(id, { focus: true });
+    });
+  };
   const [closing, setClosing] = useState<string>();
   // Un fichier modifié ne se ferme pas sans qu'on ait choisi quoi faire de ses changements.
   const requestClose = (path: string) => {
@@ -555,15 +564,21 @@ export function TerminalArea() {
           {tabIds.map((id) => {
             const info = byId.get(id);
             return (
-              <Reorderable key={id} group="center" id={id} onDrop={dropOn}>
+              <Reorderable key={id} group="center" id={id} onDrop={dropOn} fixed={renamingTab === id}>
                 {!info ? (
                   <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
                 ) : (
                   <ContextArea items={() => tabItems(info, barIds)}>
                     <div
-                      onClick={() => {
+                      onClick={(event) => {
+                        // Le second clic d'un double-clic laisserait le terminal prendre le focus au champ du nom.
+                        if (event.detail > 1) return;
                         focusTerminal(info.id);
                         showTerminals();
+                      }}
+                      onDoubleClick={() => {
+                        // Le premier clic donne le focus au terminal à la frame suivante : le champ s'ouvre après.
+                        if (!info.exited) requestAnimationFrame(() => setState({ renamingTab: info.id }));
                       }}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
@@ -595,7 +610,20 @@ export function TerminalArea() {
                           )}
                         />
                       )}
-                      <span>{info.title}</span>
+                      {renamingTab === info.id ? (
+                        <NameInput
+                          whole
+                          initial={info.title}
+                          className="w-40 flex-none"
+                          onSubmit={(value) => {
+                            if (value.trim() !== info.title) renameTerminal(info.id, value);
+                            endRename(info.id);
+                          }}
+                          onCancel={() => endRename(info.id)}
+                        />
+                      ) : (
+                        <span>{info.title}</span>
+                      )}
                       {attention[info.id] && <span className="size-1.5 rounded-full bg-primary" />}
                       <X
                         className="size-3 opacity-50 hover:opacity-100"

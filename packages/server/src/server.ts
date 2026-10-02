@@ -451,6 +451,9 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         case "resize":
           manager.resize(message.id, message.cols, message.rows);
           break;
+        case "rename":
+          manager.rename(message.id, message.name);
+          break;
         case "close":
           manager.close(message.id);
           break;

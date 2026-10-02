@@ -66,6 +66,8 @@ export interface TerminalEvents {
 interface Terminal {
   /** Nom donné à l'ouverture, que l'onglet reprend quand `claude` en sort. */
   label?: string;
+  /** Nom donné à la main : il l'emporte sur `claude` comme sur le nom d'ouverture. */
+  name?: string;
   info: TerminalInfo;
   pty: IPty;
   scanner: OscScanner;
@@ -224,14 +226,13 @@ export class PtyManager {
         // activité, fichiers — le temps de la session, puis il redevient un shell.
         case "claude-start":
           terminal.info.kind = "claude";
-          terminal.info.title = "claude";
+          terminal.info.title = titleOf(terminal);
           changed = true;
           claude.push(event.command);
           break;
         case "claude-end":
           terminal.info.kind = "shell";
-          // Un onglet de script garde son nom : c'est par lui qu'on le retrouve.
-          terminal.info.title = terminal.label ?? "shell";
+          terminal.info.title = titleOf(terminal);
           changed = true;
           claude.push(undefined);
           break;
@@ -239,6 +240,18 @@ export class PtyManager {
     }
     if (changed) this.#emit("state", { ...terminal.info });
     for (const command of claude) this.#emit("claude", terminal.info.id, command);
+  }
+
+  /** Nomme un onglet ; un nom vide lui rend celui qu'il aurait sans. */
+  rename(id: string, name: string): boolean {
+    const terminal = this.#terminals.get(id);
+    if (!terminal) return false;
+    const trimmed = name.trim();
+    if (trimmed) terminal.name = trimmed;
+    else delete terminal.name;
+    terminal.info.title = titleOf(terminal);
+    this.#emit("state", { ...terminal.info });
+    return true;
   }
 
   write(id: string, data: string): boolean {
@@ -317,6 +330,17 @@ export class PtyManager {
   closeAll(): void {
     for (const id of [...this.#terminals.keys()]) this.close(id);
   }
+}
+
+/**
+ * Nom d'un onglet : celui qu'on lui a donné, sinon `claude` le temps d'une
+ * session, sinon son nom d'ouverture. Un onglet de script le retrouve en sortant
+ * de `claude` : c'est par lui qu'on le reconnaît.
+ */
+function titleOf(terminal: Terminal): string {
+  if (terminal.name) return terminal.name;
+  if (terminal.info.kind === "claude") return "claude";
+  return terminal.label ?? "shell";
 }
 
 

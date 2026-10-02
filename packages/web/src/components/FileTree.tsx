@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 
+import { NameInput } from "@/components/common";
 import { FileIcon } from "@/components/FileIcon";
 import { FilePreviewDialog } from "@/components/FilePreview";
 import { ContextArea, type MenuItem } from "@/components/Menu";
@@ -588,43 +589,6 @@ export function FileTree({ project }: { project: Project }) {
         }}
       />
     </div>
-  );
-}
-
-/** Champ de nom en place : Entrée valide, Échap ou la perte du focus annulent ou valident. */
-function NameInput({ initial, onSubmit, onCancel }: { initial: string; onSubmit: (value: string) => void; onCancel: () => void }) {
-  const input = useRef<HTMLInputElement>(null);
-  // Entrée valide, puis le champ disparaît et perd le focus : sans ce drapeau, la
-  // perte du focus validerait une seconde fois, et créerait deux fois.
-  const settled = useRef(false);
-  const finish = (value: string | undefined) => {
-    if (settled.current) return;
-    settled.current = true;
-    if (value === undefined) onCancel();
-    else onSubmit(value);
-  };
-  useEffect(() => {
-    const element = input.current;
-    if (!element) return;
-    element.focus();
-    // Comme l'Explorateur : le nom est sélectionné sans son extension.
-    const dot = initial.lastIndexOf(".");
-    element.setSelectionRange(0, dot > 0 ? dot : initial.length);
-  }, [initial]);
-  return (
-    <input
-      ref={input}
-      defaultValue={initial}
-      spellCheck={false}
-      className="min-w-0 flex-1 rounded border border-primary bg-background px-1 text-[12px] outline-none"
-      onClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => {
-        event.stopPropagation();
-        if (event.key === "Enter") finish(event.currentTarget.value);
-        else if (event.key === "Escape") finish(undefined);
-      }}
-      onBlur={(event) => finish(event.currentTarget.value)}
-    />
   );
 }
 

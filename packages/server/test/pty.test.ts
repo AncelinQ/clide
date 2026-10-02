@@ -141,6 +141,25 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
 
+  it("garde le nom donné à un onglet à travers un claude, et rend le sien à un nom vide", async () => {
+    const terminal = await manager.open({ projectRoot: scratch });
+    const titles: string[] = [];
+    manager.on("state", (info) => info.id === terminal.id && titles.push(info.title));
+    expect(manager.rename(terminal.id, "  revue  ")).toBe(true);
+    expect(manager.get(terminal.id)?.title).toBe("revue");
+    manager.write(terminal.id, "__clideEmit 'CLAUDE_START;claude'\r");
+    await waitFor(() => manager.get(terminal.id)?.kind === "claude", 15000);
+    expect(manager.get(terminal.id)?.title).toBe("revue");
+    manager.rename(terminal.id, "");
+    expect(manager.get(terminal.id)?.title).toBe("claude");
+    manager.write(terminal.id, "__clideEmit 'CLAUDE_END'\r");
+    await waitFor(() => manager.get(terminal.id)?.kind === "shell", 15000);
+    expect(titles.at(-1)).toBe("shell");
+    expect(manager.rename("inconnu", "x")).toBe(false);
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
+
   it("fait d'un shell un onglet Claude le temps d'un claude, puis le rend", async () => {
     const terminal = await manager.open({ projectRoot: scratch });
     const kinds: string[] = [];

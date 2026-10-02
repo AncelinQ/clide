@@ -176,7 +176,17 @@ export function ContextArea({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className={className}>
+      <ContextMenuContent
+        className={className}
+        onCloseAutoFocus={(event) => {
+          // Une entrée qui ouvre un champ en place (Renommer) le veut sous le
+          // clavier : le menu, en se fermant, rendrait le focus ailleurs.
+          const field = document.querySelector<HTMLElement>("[data-takes-focus]");
+          if (!field) return;
+          event.preventDefault();
+          field.focus();
+        }}
+      >
         <Items items={typeof items === "function" ? items() : items} parts={CONTEXT} />
       </ContextMenuContent>
     </ContextMenu>

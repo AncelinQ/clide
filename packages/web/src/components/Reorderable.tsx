@@ -8,23 +8,27 @@ const mime = (group: string) => `application/x-clide-${group.toLowerCase()}`;
 /**
  * Enveloppe un onglet qu'on range au glisser-déposer. Un trait vertical montre
  * la place d'arrivée ; Échap annule, comme tout glisser du navigateur.
+ * `fixed` le retient en place, le temps qu'on sélectionne du texte dans un champ
+ * qu'il porte.
  */
 export function Reorderable({
   group,
   id,
   onDrop,
+  fixed = false,
   children,
 }: {
   group: string;
   id: string;
   onDrop: (moved: string, target: string, side: "before" | "after") => void;
+  fixed?: boolean;
   children: ReactNode;
 }) {
   const [side, setSide] = useState<"before" | "after">();
   const accepts = (types: readonly string[]) => types.includes(mime(group));
   return (
     <div
-      draggable
+      draggable={!fixed}
       data-tab-id={id}
       className="relative shrink-0"
       onDragStart={(event) => {
