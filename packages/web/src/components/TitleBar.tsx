@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  CircleAlert,
   CloudDownload,
   Contrast,
   GitBranch,
@@ -8,7 +9,7 @@ import {
   PanelLeft,
   PanelRight,
   Plus,
-  SquareDashed,
+  Sparkles,
   Sun,
   X,
 } from "lucide-react";
@@ -53,7 +54,7 @@ const THEME_ICON = { auto: Contrast, light: Sun, dark: Moon };
 const THEME_LABEL = { auto: "Thème : système", light: "Thème : clair", dark: "Thème : sombre" };
 
 export function TitleBar() {
-  const { projects, activeRoot, connected, theme, showLeft, showRight, terminals, attention } = useStore(
+  const { projects, activeRoot, connected, theme, showLeft, showRight, terminals, attention, claudeBusy } = useStore(
     (state) => state,
   );
   const adding = useStore((state) => state.addingProject);
@@ -115,16 +116,13 @@ export function TitleBar() {
       <div className="flex min-w-0 items-center gap-1.5">
         <nav className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
           {projects.map((project) => {
-            const waiting = Object.entries(terminals).filter(
-              ([id, entry]) => entry.owner === project.root && attention[id],
-            ).length;
-            const busy = Object.values(terminals).filter(
-              (entry) =>
-                entry.owner === project.root &&
-                entry.info.kind === "claude" &&
-                entry.info.state === "running" &&
-                !entry.info.exited,
-            ).length;
+            // Les signes de ses onglets Claude, comptés : au travail (pas seulement
+            // ouverts, le titre de leur terminal le dit), en attente d'une réponse,
+            // ou finis sans qu'on les ait regardés.
+            const own = Object.keys(terminals).filter((id) => terminals[id]?.owner === project.root);
+            const busy = own.filter((id) => claudeBusy[id]).length;
+            const asking = own.filter((id) => attention[id] === "permission").length;
+            const done = own.filter((id) => attention[id] && attention[id] !== "permission").length;
             const active = project.root === activeRoot;
             return (
               <Reorderable key={project.root} group="projects" id={project.root} onDrop={dropProject}>
@@ -140,21 +138,32 @@ export function TitleBar() {
                           : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
                       )}
                     >
-                      <SquareDashed className="size-3.5 shrink-0" />
                       <span className="truncate">{project.name}</span>
                       <RepoMarks root={project.root} />
-                      {waiting > 0 && (
-                        <Badge className="h-4 min-w-4 justify-center rounded-full px-1 text-[10px] tabular-nums">
-                          {waiting}
-                        </Badge>
-                      )}
                       {busy > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="h-4 min-w-4 justify-center rounded-full border-emerald-500/60 px-1 text-[10px] text-emerald-600 tabular-nums dark:text-emerald-400"
+                        <span
+                          className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
                           title={t("{count} Claude en cours", { count: busy })}
                         >
+                          <Sparkles className="size-3 animate-pulse" />
                           {busy}
+                        </span>
+                      )}
+                      {asking > 0 && (
+                        <span
+                          className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
+                          title={t("En attente de ta réponse : {count}", { count: asking })}
+                        >
+                          <CircleAlert className="size-3" />
+                          {asking}
+                        </span>
+                      )}
+                      {done > 0 && (
+                        <Badge
+                          className="h-4 min-w-4 justify-center rounded-full bg-emerald-500 px-1 text-[10px] text-white tabular-nums"
+                          title={t("Fini, à regarder : {count}", { count: done })}
+                        >
+                          {done}
                         </Badge>
                       )}
                       <X

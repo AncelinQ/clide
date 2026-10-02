@@ -19,6 +19,14 @@ discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
 fichier ouvert. Sur un script, elle porte ■ pour l'arrêter et ▷ ou ↻ pour le
 relancer.
 
+Chaque onglet Claude dit où en est sa session : ✦ pulse en orange tant que Claude
+travaille, ⚠ orange signale qu'il attend une réponse (une permission à donner), et
+un point vert qu'il a fini sans qu'on ait regardé l'onglet. La pastille de chaque
+projet, dans la barre de titre, compte les mêmes signes pour tous ses onglets :
+avec plusieurs projets ouverts, on voit lequel réclame un regard. Regarder l'onglet
+efface sa marque. Le travail se lit dans le titre que Claude Code donne à son
+terminal, l'attente d'une réponse dans la notification de ses hooks.
+
 Dans un onglet Claude, **Ctrl+V** colle le presse-papiers : du texte se colle tel
 quel, une image fait comme Alt+V, le collage d'image de Claude Code, qui la joint
 au message en `[Image #1]`. **Ctrl+C** copie la sélection du
