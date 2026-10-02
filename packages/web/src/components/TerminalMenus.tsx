@@ -1,4 +1,17 @@
-import { BrainCircuit, Camera, Copy, Gauge, MessageSquareText, MonitorPlay, Plus, Sparkles, SquareTerminal, X } from "lucide-react";
+import {
+  ArrowUpToLine,
+  BrainCircuit,
+  Camera,
+  Copy,
+  Gauge,
+  MessageSquareText,
+  MonitorPlay,
+  Package,
+  Plus,
+  Sparkles,
+  SquareTerminal,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 import { devServerItems, type DevServer } from "@/components/DevServers";
@@ -14,6 +27,7 @@ import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { useModels } from "@/state/models";
 import { getState } from "@/state/store";
 import { runPrompt } from "@/state/prompts";
+import { place } from "@/state/shelf";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
 
 /** Raccourci effectif d'une commande, surcharges de l'utilisateur comprises. */
@@ -239,23 +253,44 @@ export function ClaudeToolbar({
 }
 
 /**
- * Barre flottante d'un script, à la place de celle de Claude : l'arrêter et le
- * relancer sans revenir à la liste de l'onglet Scripts.
+ * Barre flottante d'un script, ou d'un shell rangé dans l'onglet Scripts, à la
+ * place de celle de Claude : l'arrêter et le relancer sans revenir à la liste,
+ * et l'en sortir vers la barre.
  */
-export function ScriptToolbar({ info }: { info: TerminalInfo }) {
+export function ScriptToolbar({ info, inScripts }: { info: TerminalInfo; inScripts: boolean }) {
   return (
     <div
       className="absolute top-2 right-4 z-10 flex gap-0.5 rounded-md border bg-card p-0.5 opacity-70 shadow-sm transition-opacity empty:hidden hover:opacity-100 focus-within:opacity-100"
       data-script-toolbar
     >
       <ScriptButtons info={info} />
+      {inScripts && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6 shrink-0"
+          title={t("Sortir des scripts")}
+          onClick={() => place(info.id, "bar")}
+        >
+          <ArrowUpToLine className="size-3.5" />
+        </Button>
+      )}
     </div>
   );
 }
 
-/** Menu contextuel d'un onglet de la barre ; « les autres » sont ceux de la barre, `barTabs`. */
+/**
+ * Menu contextuel d'un onglet de la barre ; « les autres » sont ceux de la barre,
+ * `barTabs`. Un shell s'y range dans l'onglet Scripts ; un onglet Claude, jamais.
+ */
 export function tabItems(info: TerminalInfo, barTabs: string[]): MenuItem[] {
   return [
+    ...(info.kind === "shell" && !info.exited
+      ? ([
+          { kind: "item", label: t("Ranger dans Scripts"), icon: Package, run: () => place(info.id, "scripts") },
+          { kind: "separator" },
+        ] as MenuItem[])
+      : []),
     { kind: "item", label: t("Fermer"), icon: X, run: () => closeTerminal(info.id) },
     {
       kind: "item",

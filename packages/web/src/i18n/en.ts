@@ -890,5 +890,7 @@ export const EN: Record<string, string> = {
   Relancer: "Run again",
   "Relancer (arrête puis relance)": "Restart (stop, then run again)",
   "Basculer sur les scripts": "Toggle scripts",
+  "Ranger dans Scripts": "Move to Scripts",
+  "Sortir des scripts": "Move out of Scripts",
   "Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.": "Script finished: ▷ runs it again. To type a command, open a shell.",
 };

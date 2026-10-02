@@ -35,7 +35,7 @@ import { ActivityPanel, FilesPanel, PlanPanel, formatTokens, type ShownSession }
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
-import { splitTabs } from "@/lib/script-shelf";
+import { placementOf, splitTabs } from "@/lib/script-shelf";
 import {
   DEFAULT_WIDTHS,
   activeProject,
@@ -401,7 +401,11 @@ export function TerminalArea() {
   const openFiles = project?.openFiles ?? [];
   const activeFile = project?.activeFile ?? null;
   // Les scripts vivent dans l'onglet Scripts ; la barre a le reste.
-  const { bar, shelf } = splitTabs(own.map((entry) => entry.info));
+  const placed = project?.scripts.placed ?? {};
+  const { bar, shelf } = splitTabs(
+    own.map((entry) => entry.info),
+    placed,
+  );
   const barIds = bar.map((info) => info.id);
   const showsScripts = useStore(scriptsShown);
   const refusedInput = useStore((state) => state.refusedInput);
@@ -638,7 +642,9 @@ export function TerminalArea() {
           {status?.kind === "claude" && !status.exited && !activeFile && (
             <ClaudeToolbar currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
           )}
-          {status?.kind === "shell" && status.script && !activeFile && <ScriptToolbar info={status} />}
+          {status?.kind === "shell" && (status.script || placementOf(status, placed) === "scripts") && !activeFile && (
+            <ScriptToolbar info={status} inScripts={placementOf(status, placed) === "scripts"} />
+          )}
           {refusedInput === status?.id && !activeFile && (
             <div
               role="status"

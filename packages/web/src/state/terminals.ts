@@ -16,6 +16,7 @@ import {
   getState,
   inBar,
   openProject,
+  placedIn,
   rememberTab,
   scriptsShown,
   sessionTabOf,
@@ -255,12 +256,13 @@ function withShelf(projects: Project[], root: string, change: (shelf: ScriptsShe
   return projects.map((project) => (project.root === root ? { ...project, scripts: change(project.scripts) } : project));
 }
 
-/** Le projet sans les commandes retenues de terminaux qui n'existent plus. */
+/** Le projet sans les commandes ni les rangements retenus de terminaux qui n'existent plus. */
 function pruneShelf(project: Project, terminals: State["terminals"]): Project {
-  const ids = Object.keys(project.scripts.commands);
+  const { commands, placed } = project.scripts;
+  const ids = [...Object.keys(commands), ...Object.keys(placed)];
   if (ids.every((id) => terminals[id])) return project;
-  const commands = Object.fromEntries(Object.entries(project.scripts.commands).filter(([id]) => terminals[id]));
-  return { ...project, scripts: { ...project.scripts, commands } };
+  const alive = <T>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([id]) => terminals[id]));
+  return { ...project, scripts: { ...project.scripts, commands: alive(commands), placed: alive(placed) } };
 }
 
 /**
@@ -277,8 +279,8 @@ function lookedAt(current: State, owner: string, id: string): Project[] {
     const scripts = target
       ? lookAt(
           project.scripts,
-          { tab: from ? from.id : null, placement: from ? placementOf(from) : null, file: project.activeFile },
-          { id, placement: placementOf(target), nature: natureOf(target) },
+          { tab: from ? from.id : null, placement: from ? placementOf(from, project.scripts.placed) : null, file: project.activeFile },
+          { id, placement: placementOf(target, project.scripts.placed), nature: natureOf(target) },
         )
       : project.scripts;
     return { ...project, activeTab: id, activeFile: null, scripts };
@@ -419,13 +421,15 @@ export function closeTerminal(id: string): void {
     let projects = forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project));
     let activeTerminalId = current.activeTerminalId;
     const project = projects.find((item) => item.root === current.activeRoot);
+    // Les rangements d'avant la fermeture : celui du terminal fermé vient d'être élagué.
+    const placed = placedIn(current, current.activeRoot);
     if (closed && project && current.activeTerminalId === id) {
       // Le voisin dans l'onglet Scripts, sinon le retour vers la barre : fermer
       // un onglet de la barre ne fait jamais entrer dans l'onglet Scripts.
       const { bar, shelf } = tabsOf(current, project.root);
       const barIds = bar.map((info) => info.id);
       const next = afterClose(
-        { id, placement: placementOf(closed.info) },
+        { id, placement: placementOf(closed.info, placed) },
         { bar: barIds, shelf: shelfOrder(shelf).map((info) => info.id) },
         backTarget(project.scripts, barIds.filter((item) => item !== id), project.openFiles),
       );
@@ -435,7 +439,7 @@ export function closeTerminal(id: string): void {
       }
       // Le voisin montré dans l'onglet Scripts devient le script retenu, et son groupe se déplie.
       const shown = next.tab ? terminals[next.tab]?.info : undefined;
-      if (shown && placementOf(shown) === "scripts") {
+      if (shown && placementOf(shown, placed) === "scripts") {
         projects = withShelf(projects, project.root, (shelf) =>
           lookAt(shelf, { tab: id, placement: "scripts", file: null }, { id: shown.id, placement: "scripts", nature: natureOf(shown) }),
         );

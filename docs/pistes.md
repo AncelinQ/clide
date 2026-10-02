@@ -445,7 +445,9 @@ adresses, un second ramène à l'onglet Claude, dont le bloc du bas n'a pas boug
 
 **État.** Conçue dans [`design-onglet-scripts.md`](design-onglet-scripts.md) et
 planifiée dans [`workflow-onglet-scripts.md`](workflow-onglet-scripts.md), en trois
-MR ; à implémenter : `/sc:implement`.
+MR. Paliers 1 et 2 faits : l'onglet Scripts et sa liste, la lecture seule au
+prompt, ranger et sortir à la main. Le palier 3, le réglage de lancement, reste à
+faire.
 
 ---
 

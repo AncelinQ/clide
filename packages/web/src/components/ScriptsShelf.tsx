@@ -1,4 +1,5 @@
 import {
+  ArrowUpToLine,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -31,6 +32,7 @@ import {
   closeFinishedScripts,
   finishedScripts,
   hasRunningScripts,
+  place,
   relaunch,
   stopAllScripts,
   toggleFolded,
@@ -321,6 +323,8 @@ export function ScriptsList({ shelf, shownId, width }: { shelf: TerminalInfo[]; 
           <ContextArea
             key={row.key}
             items={(): MenuItem[] => [
+              { kind: "item", label: t("Sortir des scripts"), icon: ArrowUpToLine, run: () => place(info.id, "bar") },
+              { kind: "separator" },
               { kind: "item", label: t("Fermer"), icon: X, run: () => closeTerminal(info.id) },
               { kind: "separator" },
               {
