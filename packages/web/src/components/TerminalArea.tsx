@@ -67,6 +67,7 @@ import {
 import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
 import { recentProjects } from "@/lib/recents";
 import { NameInput, useAsync } from "@/components/common";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { NotificationKind, SessionSummary, TerminalInfo } from "@/lib/types";
 
 /** Hauteur que le terminal garde quand on agrandit l'îlot du bas. */
@@ -82,31 +83,42 @@ function RecentProjects() {
   const recents = recentProjects(known.data?.sessions ?? [], []);
   if (recents.length === 0) return null;
   return (
-    <div className="mt-3 grid w-full max-w-xl gap-0.5 text-left" data-recent-projects>
-      <span className="px-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("Récents")}</span>
-      {recents.map(({ root, sessions, lastActivityAt }) => (
-        <button
-          key={root}
-          type="button"
-          className="flex items-baseline gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-accent"
-          title={root}
-          onClick={() => openProject(root)}
-        >
-          <span className="shrink-0 font-medium">{root.split(/[\\/]/).pop()}</span>
-          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{root}</span>
-          <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
-            {t(sessions === 1 ? "{count} session" : "{count} sessions", { count: sessions })}
-            {lastActivityAt ? ` · ${new Date(lastActivityAt).toLocaleDateString()}` : ""}
-          </span>
-        </button>
-      ))}
+    <div className="mt-3 flex min-h-0 w-full max-w-xl flex-1 flex-col text-left" data-recent-projects>
+      <span className="shrink-0 px-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("Récents")}</span>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="grid gap-0.5">
+          {recents.map(({ root, sessions, lastActivityAt }) => (
+            <button
+              key={root}
+              type="button"
+              className="flex items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-accent"
+              title={root}
+              onClick={() => openProject(root)}
+            >
+              <span className="shrink-0 font-medium">{root.split(/[\\/]/).pop()}</span>
+              <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{root}</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                {t(sessions === 1 ? "{count} session" : "{count} sessions", { count: sessions })}
+                {lastActivityAt ? ` · ${new Date(lastActivityAt).toLocaleDateString()}` : ""}
+              </span>
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
 
 function Welcome({ root }: { root?: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-auto p-6 text-center">
+    <div
+      className={cn(
+        "absolute inset-0 flex flex-col items-center gap-3 p-6 text-center",
+        // Sans projet, l'icône et le bouton gardent leur place en haut, quelle que
+        // soit la longueur de la liste des récents : elle seule défile.
+        root ? "justify-center overflow-auto" : "pt-[10vh]",
+      )}
+    >
       <div className="grid size-16 place-items-center rounded-full bg-accent text-primary">
         <Sparkles className="size-7" />
       </div>
