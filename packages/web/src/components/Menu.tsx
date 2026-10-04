@@ -157,7 +157,13 @@ export function MenuButton({
       <DropdownMenuTrigger asChild onPointerEnter={handlers?.enter} onPointerLeave={handlers?.leave}>
         {trigger}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className={className} onPointerEnter={handlers?.enter} onPointerLeave={handlers?.leave}>
+      <DropdownMenuContent
+        align={align}
+        className={className}
+        onPointerEnter={handlers?.enter}
+        onPointerLeave={handlers?.leave}
+        onCloseAutoFocus={keepFieldFocus}
+      >
         <HoverContext.Provider value={handlers}>
           <Items items={typeof items === "function" ? items() : items} parts={DROPDOWN} />
         </HoverContext.Provider>
@@ -167,8 +173,9 @@ export function MenuButton({
 }
 
 /**
- * À la fermeture d'un menu : une entrée qui ouvre un champ en place (Renommer)
- * le veut sous le clavier, et le menu rendrait le focus ailleurs.
+ * À la fermeture d'un menu : une entrée qui ouvre un champ en place (Renommer),
+ * ou une fenêtre qui en demande un (la saisie d'un prompt), le veut sous le
+ * clavier, et le menu rendrait le focus à son déclencheur.
  */
 export function keepFieldFocus(event: Event): void {
   const field = document.querySelector<HTMLElement>("[data-takes-focus]");

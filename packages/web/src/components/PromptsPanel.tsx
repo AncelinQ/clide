@@ -208,7 +208,11 @@ function rememberAnswer(label: string, text: string): void {
   }
 }
 
-/** Demande la valeur de `{saisie}` quand un prompt enregistré en porte une. */
+/**
+ * Demande la valeur de `{saisie}` quand un prompt enregistré en porte une.
+ * `data-takes-focus` garde le focus au champ quand le menu qui a lancé le prompt
+ * se referme.
+ */
 export function PromptInputDialog() {
   const request = useStore((state) => state.promptInput);
   const [value, setValue] = useState("");
@@ -228,6 +232,7 @@ export function PromptInputDialog() {
         </DialogHeader>
         <Textarea
           autoFocus
+          data-takes-focus
           value={value}
           onChange={(event) => setValue(event.target.value)}
           className="min-h-20 text-[12.5px]"
