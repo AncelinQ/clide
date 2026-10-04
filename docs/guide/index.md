@@ -69,8 +69,9 @@ reviennent au lancement suivant. Le menu `⋯` du panneau global peut remettre s
 onglets en ligne, au-dessus du panneau.
 
 Chaque projet ouvert a son onglet, ses terminaux et son navigateur de fichiers.
-Sa pastille porte deux comptes : les onglets qui attendent une réponse, et, en
-vert, les Claude en cours.
+Sa pastille compte les signes de ses onglets Claude : ✦ au travail, ⚠ en attente
+d'une réponse, et, en vert, finis sans qu'on les ait regardés (voir
+[Terminaux](terminaux.md)).
 Un projet s'ouvre par le `+` de la barre de titre, ou par le bouton « Ouvrir un
 projet » des îlots vides ; son dossier se tape, ou se choisit par « Parcourir… »
 dans la fenêtre de sélection de Windows — ouverte par Electron dans l'application

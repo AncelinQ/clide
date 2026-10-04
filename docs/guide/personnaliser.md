@@ -148,7 +148,9 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
   ce que fait un script lancé au premier plan, « Montrer le script » dans l'onglet
   Scripts (par défaut) ou « Rester où l'on est », le script lancé devenant celui
-  que l'onglet montrera ;
+  que l'onglet montrera ; l'ouverture des menus du `+` des onglets et de la barre
+  de Claude — modèle, effort, prompts, serveurs —, au survol (par défaut) ou au
+  clic seulement ;
 - **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
 - **Historique et coûts** : afficher ou non ce que coûtent les sessions ;
 - **Modules** : couper une fonction qu'on n'utilise pas — Scripts (colonne du

@@ -49,10 +49,12 @@ qu'un résultat caché ne passe pas pour absent. La recherche porte sur le nom, 
 
 ## Usage de l'abonnement
 
-L'onglet Consommation montre d'abord les limites de l'abonnement comme `/usage` les montre —
-session de 5 heures, semaine tous modèles, semaine d'un modèle, crédit
-supplémentaire —, avec le temps qui reste avant chaque réinitialisation, puis ce
-que chaque session récente a consommé : contexte, coût, durée, lignes modifiées.
+L'onglet Consommation a deux sections, **Usage** puis **Coûts**, repliables comme
+leurs sous-sections. L'usage montre d'abord les limites de l'abonnement comme
+`/usage` les montre — session de 5 heures, semaine tous modèles, semaine d'un
+modèle, crédit supplémentaire —, avec le temps qui reste avant chaque
+réinitialisation, puis la ligne de statut, et ce que chaque session récente a
+consommé : contexte, coût, durée, lignes modifiées.
 Une jauge passe à l'ambre puis au rouge en approchant de la limite, avec « élevé »
 ou « presque atteinte » écrit à côté : la couleur n'est jamais seule.
 
@@ -119,8 +121,9 @@ liste montre d'abord ceux qui ont une branche ou une MR.
 ## Ce que coûtent les sessions
 
 Réglages › Historique et coûts › « Afficher les coûts » les masque dans
-l'historique, l'activité de la session et l'en-tête du terminal ; l'onglet Consommation
-reste pour qui le cherche.
+l'historique, l'activité de la session, l'en-tête du terminal et les sessions
+récentes de l'usage ; la section Coûts de l'onglet Consommation reste pour qui la
+cherche.
 
 Claude Code écrit le coût d'une session dans un event `cost-state`, cumulé et
 détaillé par modèle — mais pas toujours : sur le corpus de référence, 31 sessions sur
@@ -130,7 +133,8 @@ détaillé par modèle — mais pas toujours : sur le corpus de référence, 31 
 - **exact** : le relevé, rien ne l'ayant suivi ;
 - **estimé** (≈) : un tarif a chiffré la session, ou ce qui a suivi son relevé ;
 - **plancher** (≥) : une partie relève d'un modèle sans tarif fiable ;
-- **inconnu** : rien de chiffrable.
+- **inconnu** : rien de chiffrable ; aucun coût ne s'affiche, et le total compte
+  la session parmi celles « sans tarif ».
 
 Les tarifs ne sont écrits nulle part : ils sont **déduits des relevés** de
 l'utilisateur, à chaque lecture de l'index. Un ajustement à un seul tarif de base,
@@ -139,15 +143,15 @@ est tenté d'abord ; un ajustement libre, tarif par nature de token, ensuite. Un
 modèle n'en reçoit que si chaque relevé est redonné à 2 % près, sur au moins trois
 sessions. Sur le corpus, Opus 5 retrouve 5 $ par million en entrée et Haiku 1 $, à
 0,01 % près ; Opus 5.5, avec deux relevés qui ne suivent pas ces proportions, n'en
-reçoit pas, et ses sessions restent « coût inconnu » plutôt que chiffrées faux. Le
+reçoit pas, et ses sessions restent sans coût plutôt que chiffrées faux. Le
 nom d'un modèle est lu sans ses crochets : `cost-state` écrit `claude-opus-5[1m]` là
 où les réponses écrivent `claude-opus-5`, au même tarif.
 
 Le relevé d'une session couvre ses sous-agents ; sans relevé, leurs tokens
 s'ajoutent aux siens. Une réponse s'écrit en plusieurs events au même `message.id` :
-elle n'est comptée qu'une fois. Le panneau Coûts range chaque session au jour de sa
-dernière activité — ses réponses ne sont pas datées une à une dans l'index. Ses
-sections — par jour, par projet, par modèle, tarifs — se replient.
+elle n'est comptée qu'une fois. La section Coûts range chaque session au jour de
+sa dernière activité — ses réponses ne sont pas datées une à une dans l'index. Ses
+sous-sections — total, par jour, par projet, par modèle, tarifs — se replient.
 
 ## Retirer une session
 
