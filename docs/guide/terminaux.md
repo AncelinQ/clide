@@ -17,7 +17,8 @@ terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de 
 session, les prompts enregistrés, les serveurs de développement. Elle reste
 discrète tant que la souris ne la survole pas, et disparaît sur un shell ou un
 fichier ouvert. Sur un script, elle porte ■ pour l'arrêter et ▷ ou ↻ pour le
-relancer.
+relancer. Ses menus, comme le `+`, s'ouvrent au survol ; Réglages › Terminal ›
+« Ouverture des menus » les réserve au clic.
 
 Chaque onglet Claude dit où en est sa session : ✦ pulse en orange tant que Claude
 travaille, ⚠ orange signale qu'il attend une réponse (une permission à donner), et
@@ -117,8 +118,10 @@ commande part dans sa file et s'applique au tour suivant. Le second fait de mêm
 l'effort, avec `/effort <niveau>` : il n'apparaît que si le modèle en a un réglable,
 et marque le niveau que Claude Code recommande. Claude Code garde ce niveau comme
 défaut des prochaines sessions du même modèle (`modelSettings` de son
-`settings.json`). Tous deux lisent la valeur en cours
-sur la dernière réponse : elle s'actualise donc à la réponse suivante.
+`settings.json`). Tous deux montrent la valeur en cours dès l'ouverture de
+l'onglet : avant la première réponse, celle du lancement — `--model` et `--effort`
+de la commande, sinon les réglages local, projet puis utilisateur —, puis chaque
+`/model` ou `/effort` passé dans la session, sans attendre de réponse.
 « Claude avec le modèle », dans `+`, ouvre un nouvel onglet avec
 `claude --model <id>`.
 
