@@ -146,6 +146,8 @@ l'ouvre dans l'éditeur de Clide (voir plus bas) ; « Ouvrir avec l'application 
 défaut » reste dans le menu contextuel. Les icônes sont celles de Catppuccin pour VS
 Code, dans la palette Latte en clair et Mocha en sombre. Le menu contextuel insère
 le chemin dans le prompt, montre le fichier dans l'Explorateur ou copie son chemin.
+Les dossiers dépliés le restent quand on passe à un autre projet et qu'on revient,
+le temps de la page.
 
 On y manipule les fichiers comme dans l'Explorateur de Windows, l'arbre ayant le
 focus :

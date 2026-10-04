@@ -53,7 +53,10 @@ type Undoable =
 /** Presse-papiers de l'explorateur, propre à Clide : copier ou couper, puis coller ailleurs. */
 let clipboard: { mode: "copy" | "cut"; paths: string[] } | undefined;
 
-/** Dossiers dépliés et pile d'annulation de chaque projet, le temps de la page. */
+/**
+ * Dossiers dépliés et pile d'annulation de chaque projet, le temps de la page.
+ * L'arbre est monté une fois par projet (`key`) : il reprend les siens en montant.
+ */
 const expandedByRoot = new Map<string, Set<string>>();
 const undoByRoot = new Map<string, Undoable[]>();
 
@@ -96,12 +99,6 @@ export function FileTree({ project }: { project: Project }) {
   useEffect(() => {
     expandedByRoot.set(root, expanded);
   }, [root, expanded]);
-
-  useEffect(() => {
-    setExpanded(expandedByRoot.get(root) ?? new Set());
-    setListings({});
-    setSelection([]);
-  }, [root]);
 
   /** Relit un dossier, par son chemin relatif à la racine (`""` pour elle). */
   const load = useCallback(
