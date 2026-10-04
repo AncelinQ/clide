@@ -727,7 +727,8 @@ export function TerminalArea() {
       {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
     </Island>
 
-    {!sessionCollapsed && (
+    {/* Sans projet ouvert, le bloc du bas s'efface comme la colonne du projet : l'accueil a tout le centre. */}
+    {project && !sessionCollapsed && (
       <Splitter
         orientation="horizontal"
         className="on-canvas"
@@ -748,6 +749,7 @@ export function TerminalArea() {
       />
     )}
 
+    {project && (
     <div
       className={cn("flex min-h-0 shrink-0 [&>*]:flex-1", sessionCollapsed && "mt-1")}
       style={sessionCollapsed ? undefined : { height: `${widths.bottom * 100}%` }}
@@ -784,6 +786,7 @@ export function TerminalArea() {
       />
     </Island>
     </div>
+    )}
     </div>
   );
 }
