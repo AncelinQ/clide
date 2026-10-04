@@ -228,6 +228,11 @@ export const EN: Record<string, string> = {
   "Aperçu (Espace)": "Preview (Space)",
   "Ouvrir": "Open",
   "Afficher dans l'Explorateur": "Show in Explorer",
+  "Montrer dans l'arborescence": "Reveal in file tree",
+  "Montrer le fichier ouvert": "Reveal the open file",
+  "Montrer le fichier dans l'arborescence": "Reveal the file in the tree",
+  "Le fichier n'a pas de ligne dans l'arbre : caché, ignoré par git, ou supprimé.":
+    "The file has no row in the tree: hidden, ignored by git, or deleted.",
   "Copier le chemin": "Copy path",
   "Claude ici": "Claude here",
   "Shell ici": "Shell here",

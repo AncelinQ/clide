@@ -19,7 +19,7 @@ import { tabStops } from "@/lib/script-shelf";
 import { orderTabs, shiftTab } from "@/lib/tab-order";
 import { toggleScripts } from "@/state/shelf";
 import { cycleTheme } from "@/state/theme";
-import { closeFile, saveFile, selectedText } from "@/state/editor";
+import { closeFile, revealInTree, saveFile, selectedText } from "@/state/editor";
 import { focusFileSearch } from "@/components/panels/file-search";
 import { openLatestDevServer } from "@/components/DevServers";
 import { cachedPrompts, runPrompt } from "@/state/prompts";
@@ -212,6 +212,15 @@ export function commands(): Command[] {
       run: () => {
         const file = activeProjectFile();
         if (file) void saveFile(file);
+      },
+    },
+    {
+      id: "file.reveal",
+      group: t("Fichiers"),
+      label: t("Montrer le fichier dans l'arborescence"),
+      run: () => {
+        const file = activeProjectFile();
+        if (file) revealInTree(file);
       },
     },
     { id: "tab.scripts", group: t("Onglets"), label: t("Basculer sur les scripts"), shortcut: "Ctrl+Shift+X", run: toggleScripts },

@@ -5,7 +5,7 @@
  */
 
 /** Segments d'un chemin Windows ou POSIX, sans casse ni séparateur final. */
-function segments(path: string): string[] {
+export function segments(path: string): string[] {
   return path
     .replace(/[\\/]+$/, "")
     .split(/[\\/]+/)

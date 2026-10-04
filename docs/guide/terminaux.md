@@ -147,7 +147,11 @@ défaut » reste dans le menu contextuel. Les icônes sont celles de Catppuccin 
 Code, dans la palette Latte en clair et Mocha en sombre. Le menu contextuel insère
 le chemin dans le prompt, montre le fichier dans l'Explorateur ou copie son chemin.
 Les dossiers dépliés le restent quand on passe à un autre projet et qu'on revient,
-le temps de la page.
+le temps de la page. Le fichier ouvert au centre se retrouve dans l'arbre par le
+bouton ⌖ de l'en-tête de l'explorateur, par « Montrer dans l'arborescence » dans le
+menu de son onglet, ou par la palette : l'arbre se déplie jusqu'à lui, le
+sélectionne et le fait défiler en vue. Un fichier caché ou ignoré par git n'y a de
+ligne qu'avec les fichiers cachés affichés.
 
 On y manipule les fichiers comme dans l'Explorateur de Windows, l'arbre ayant le
 focus :
