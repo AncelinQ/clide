@@ -162,7 +162,8 @@ function ExplorerStack({ project }: { project: Project }) {
     // Deux îlots, comme le terminal et le bloc du bas : l'explorateur, puis les dossiers liés.
     <div ref={box} className="flex min-h-0 min-w-0 flex-1 flex-col">
       <Island className="min-h-0 flex-1">
-        <FileTree project={project} />
+        {/* Une instance par projet : chacune garde ses dossiers dépliés sans les prêter au suivant. */}
+        <FileTree key={project.root} project={project} />
       </Island>
       <Splitter
         orientation="horizontal"

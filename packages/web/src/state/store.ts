@@ -132,6 +132,8 @@ export interface State {
   refusedInput: string | null;
   /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
   renamingTab: string | null;
+  /** Fichier que l'explorateur doit déplier et sélectionner dès qu'il est monté ; il l'efface une fois fait. */
+  revealFile: string | null;
   /** Dialogues que les commandes ouvrent, hors des composants qui les portent. */
   paletteOpen: boolean;
   addingProject: boolean;
@@ -241,6 +243,7 @@ let state: State = {
   promptInput: null,
   refusedInput: null,
   renamingTab: null,
+  revealFile: null,
   addingProject: false,
   preferencesOpen: false,
   settingsSection: "general",

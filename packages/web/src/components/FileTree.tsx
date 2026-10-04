@@ -3,6 +3,7 @@ import {
   ChevronRight,
   ClipboardPaste,
   Copy,
+  Crosshair,
   Eye,
   EyeOff,
   FilePlus,
@@ -32,6 +33,7 @@ import { t } from "@/i18n";
 import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
 import { baseName, fs, parentPath, type OnConflict, type Outcome } from "@/lib/fs";
 import type { DirectoryEntry, DirectoryListing } from "@/lib/types";
+import { isInside, segments } from "@/lib/workspace";
 import { openProject, setState, useStore, type Project } from "@/state/store";
 import { followRename, openFile as openInEditor } from "@/state/editor";
 import { openTerminal, typeIntoActive } from "@/state/terminals";
@@ -53,7 +55,10 @@ type Undoable =
 /** Presse-papiers de l'explorateur, propre à Clide : copier ou couper, puis coller ailleurs. */
 let clipboard: { mode: "copy" | "cut"; paths: string[] } | undefined;
 
-/** Dossiers dépliés et pile d'annulation de chaque projet, le temps de la page. */
+/**
+ * Dossiers dépliés et pile d'annulation de chaque projet, le temps de la page.
+ * L'arbre est monté une fois par projet (`key`) : il reprend les siens en montant.
+ */
 const expandedByRoot = new Map<string, Set<string>>();
 const undoByRoot = new Map<string, Undoable[]>();
 
@@ -86,6 +91,8 @@ export function FileTree({ project }: { project: Project }) {
   const [dropTarget, setDropTarget] = useState<string>();
   const [failure, setFailure] = useState<string>();
   const list = useRef<HTMLUListElement>(null);
+  /** Ligne à faire défiler en vue dès qu'elle existe, après un dépliage. */
+  const scrollTo = useRef<string | undefined>(undefined);
 
   /** Une opération refusée (nom pris, hors des projets) le dit au-dessus de l'arbre ; rien n'est perdu. */
   const report = (error: unknown) => {
@@ -97,15 +104,9 @@ export function FileTree({ project }: { project: Project }) {
     expandedByRoot.set(root, expanded);
   }, [root, expanded]);
 
-  useEffect(() => {
-    setExpanded(expandedByRoot.get(root) ?? new Set());
-    setListings({});
-    setSelection([]);
-  }, [root]);
-
-  /** Relit un dossier, par son chemin relatif à la racine (`""` pour elle). */
+  /** Relit un dossier, par son chemin relatif à la racine (`""` pour elle), et rend ce qu'il contient. */
   const load = useCallback(
-    async (relativePath: string) => {
+    async (relativePath: string): Promise<DirectoryEntry[] | undefined> => {
       try {
         const listing = await api<DirectoryListing>("/api/files", {
           root,
@@ -113,6 +114,7 @@ export function FileTree({ project }: { project: Project }) {
           ...(showHidden ? { hidden: 1 } : {}),
         });
         setListings((current) => ({ ...current, [relativePath]: listing.entries }));
+        return listing.entries;
       } catch {
         // Dossier disparu entre-temps : on le replie.
         setExpanded((current) => {
@@ -120,6 +122,7 @@ export function FileTree({ project }: { project: Project }) {
           next.delete(relativePath);
           return next;
         });
+        return undefined;
       }
     },
     [root, showHidden],
@@ -157,6 +160,56 @@ export function FileTree({ project }: { project: Project }) {
     walk("", 0);
     return out;
   }, [listings, expanded]);
+
+  // La ligne demandée n'existe qu'une fois ses dossiers dépliés et rendus : on y défile alors.
+  useEffect(() => {
+    const path = scrollTo.current;
+    if (!path || !rows.some((row) => row.entry.path === path)) return;
+    scrollTo.current = undefined;
+    list.current?.querySelector(`[data-path="${CSS.escape(path)}"]`)?.scrollIntoView({ block: "center" });
+    list.current?.focus();
+  }, [rows]);
+
+  /**
+   * Déplie l'arbre jusqu'à `path`, le sélectionne et le fait défiler en vue. On
+   * descend par les noms, sans casse : le chemin peut venir d'un transcript ou
+   * d'une recherche, écrit autrement que le serveur n'écrit ceux de l'arbre.
+   */
+  const reveal = async (path: string) => {
+    const names = segments(path).slice(segments(root).length);
+    const leaf = names.pop();
+    let entries = await load("");
+    for (const name of names) {
+      const dir = entries?.find((entry) => entry.directory && entry.name.toLowerCase() === name);
+      if (!dir) {
+        entries = undefined;
+        break;
+      }
+      setExpanded((current) => new Set(current).add(dir.relativePath));
+      entries = await load(dir.relativePath);
+    }
+    const target = entries?.find((entry) => entry.name.toLowerCase() === leaf);
+    if (!target) {
+      setFailure(t("Le fichier n'a pas de ligne dans l'arbre : caché, ignoré par git, ou supprimé."));
+      return;
+    }
+    setSelection([target.path]);
+    setCursor(target.path);
+    scrollTo.current = target.path;
+  };
+
+  // Demandé depuis un onglet ou la palette : la demande attend dans le store que
+  // l'arbre du projet soit monté, la vue venant parfois d'être ouverte pour elle.
+  const revealFile = useStore((state) => state.revealFile);
+  useEffect(() => {
+    if (!revealFile || !isInside(root, revealFile)) return;
+    setState({ revealFile: null });
+    void reveal(revealFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealFile]);
+
+  /** Le fichier montré au centre, s'il a une place dans cet arbre : un diff ou un transcript n'en a pas. */
+  const shownFile = project.activeFile && isInside(root, project.activeFile) ? project.activeFile : undefined;
 
   const toggle = (entry: DirectoryEntry, open?: boolean) => {
     const opening = open ?? !expanded.has(entry.relativePath);
@@ -465,6 +518,16 @@ export function FileTree({ project }: { project: Project }) {
         >
           <RefreshCw className="size-3.5" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          title={t("Montrer le fichier ouvert")}
+          disabled={!shownFile}
+          onClick={() => shownFile && void reveal(shownFile)}
+        >
+          <Crosshair className="size-3.5" />
+        </Button>
         <Button variant="ghost" size="icon" className="size-6" title={t("Tout replier")} onClick={() => setExpanded(new Set())}>
           <ListCollapse className="size-3.5" />
         </Button>
@@ -515,6 +578,7 @@ export function FileTree({ project }: { project: Project }) {
                 <ContextArea items={() => itemsFor(entry)}>
                   <div
                     title={entry.path}
+                    data-path={entry.path}
                     draggable={!renaming}
                     onDragStart={(event) => {
                       const paths = selected ? selection : [entry.path];

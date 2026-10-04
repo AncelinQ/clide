@@ -408,6 +408,15 @@ export function showFile(path: string): void {
   if (owner) updateOwner(owner, () => ({ activeFile: path }));
 }
 
+/** Montre un fichier dans l'explorateur de son projet : la vue s'ouvre, l'arbre se déplie jusqu'à lui. */
+export function revealInTree(path: string): void {
+  if (isDiff(path) || isTranscript(path)) return;
+  const owner = ownerOf(path, getState().projects.map((project) => project.root));
+  if (!owner) return;
+  updateOwner(owner, () => ({ leftMode: "explorer" }));
+  setState({ showLeft: true, revealFile: path });
+}
+
 /** Rend la place aux terminaux du projet actif. */
 export function showTerminals(): void {
   const { activeRoot } = getState();

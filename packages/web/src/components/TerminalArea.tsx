@@ -2,6 +2,7 @@ import {
   Activity,
   CircleAlert,
   ClipboardList,
+  Crosshair,
   FileDiff,
   FolderOpen,
   Images,
@@ -27,7 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { baseName } from "@/lib/fs";
 import { dropTab, orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
-import { closeFile, isDiff, isTranscript, saveFile, showFile, showTerminals } from "@/state/editor";
+import { closeFile, isDiff, isTranscript, revealInTree, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
 import { DiagramPanel } from "@/components/panels/diagram";
@@ -341,6 +342,7 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
           : [
               { kind: "separator" as const },
               { kind: "item" as const, label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(path) },
+              { kind: "item" as const, label: t("Montrer dans l'arborescence"), icon: Crosshair, run: () => revealInTree(path) },
             ]),
       ]}
     >
