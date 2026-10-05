@@ -13,9 +13,10 @@ vit, au fil des sessions `claude` qu'il accueille et des rechargements de la pag
 un nom vide lui rend le sien, `claude` ou `shell`.
 
 Chaque session retient le nom de l'onglet où elle a tourné, même après la fermeture
-de Clide : reprise depuis History, elle rouvre son onglet sous ce nom. Un onglet sans
-nom qui la reprend par `/resume` le prend aussi ; un onglet déjà nommé garde le sien,
-que la session retient désormais. Retirer le nom d'un onglet le retire à sa session.
+de Clide : History le montre devant son titre, son filtre le trouve, et reprise de
+là, elle rouvre son onglet sous ce nom. Un onglet sans nom qui la reprend par
+`/resume` le prend aussi ; un onglet déjà nommé garde le sien, que la session
+retient désormais. Retirer le nom d'un onglet le retire à sa session.
 
 Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la

@@ -238,6 +238,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const manager = new PtyManager();
   const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());
   const live = new LiveSessions();
+  const names = new SessionNames(join(options.dataDir ?? appDataDir(), "session-names.json"));
   const context: ApiContext = {
     index: new SessionIndex(),
     search: new SearchIndex(),
@@ -245,6 +246,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     terminals: manager,
     notifications,
     live,
+    names,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
     workspace: new WorkspaceRoots(undefined, [join(claudeHome(), "skills"), join(claudeHome(), "commands")]),
@@ -253,7 +255,6 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   for (const module of SERVER_MODULES) module.start?.(context);
   // Les projets de la dernière session, en attendant que le client redise les siens.
   void context.workspace.update(await savedRoots(context.dataDir));
-  const names = new SessionNames(join(context.dataDir, "session-names.json"));
   await names.load();
   await context.index.load();
   await notifications.start();

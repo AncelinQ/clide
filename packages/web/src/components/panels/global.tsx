@@ -1,4 +1,4 @@
-import { Cpu, History } from "lucide-react";
+import { Cpu, History, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { ActionButton, Async, DangerButton, Empty, FoldSection, Row, Rows, Section, useAsync } from "@/components/common";
@@ -64,7 +64,7 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
           )
           .filter((session) =>
             needle
-              ? `${session.title ?? ""} ${session.effectiveCwd ?? ""} ${session.gitBranch ?? ""}`
+              ? `${session.tabName ?? ""} ${session.title ?? ""} ${session.effectiveCwd ?? ""} ${session.gitBranch ?? ""}`
                   .toLowerCase()
                   .includes(needle)
               : true,
@@ -107,6 +107,12 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
                     title={session.title ?? session.lastPrompt ?? session.sessionId.slice(0, 8)}
                     badges={
                       <>
+                        {session.tabName && (
+                          <Badge variant="outline" className="max-w-full" title={t("nom de son onglet")}>
+                            <Sparkles className="text-primary" />
+                            <span className="truncate">{session.tabName}</span>
+                          </Badge>
+                        )}
                         {session.ticket && (
                           <Badge variant="secondary" className="font-mono">
                             {session.ticket}
