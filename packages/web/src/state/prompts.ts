@@ -1,6 +1,6 @@
 import { t } from "@/i18n";
 import { api } from "@/lib/api";
-import { expand, variablesOf, type PromptVariable } from "@/lib/prompt-vars";
+import { departure, expand, variablesOf, type PromptVariable } from "@/lib/prompt-vars";
 import { selectedText } from "@/state/editor";
 import { getState, setState } from "@/state/store";
 import { claudeTabFor, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
@@ -37,7 +37,7 @@ export async function loadPrompts(root = getState().activeRoot): Promise<SavedPr
 }
 
 /** Valeur d'une variable, ou rien si elle n'en a pas là où l'on est. */
-async function valueOf(variable: PromptVariable, label: string): Promise<string | undefined> {
+async function valueOf(variable: PromptVariable, prompt: SavedPrompt): Promise<string | undefined> {
   const { projects, activeRoot } = getState();
   const project = projects.find((item) => item.root === activeRoot);
   switch (variable) {
@@ -51,13 +51,13 @@ async function valueOf(variable: PromptVariable, label: string): Promise<string 
       return status?.branch;
     }
     case "saisie":
-      return askInput(label);
+      return askInput(prompt);
   }
 }
 
 /** Demande la valeur de `{saisie}` : la fenêtre montée par l'application répond. */
-function askInput(label: string): Promise<string | undefined> {
-  return new Promise((resolve) => setState({ promptInput: { label, resolve } }));
+function askInput({ label, mode }: SavedPrompt): Promise<string | undefined> {
+  return new Promise((resolve) => setState({ promptInput: { label, mode, resolve } }));
 }
 
 const VARIABLE_LABEL: Record<PromptVariable, string> = {
@@ -69,23 +69,25 @@ const VARIABLE_LABEL: Record<PromptVariable, string> = {
 
 /**
  * Envoie un prompt enregistré à l'onglet Claude du projet : tapé tel quel en
- * mode `insert`, pour le compléter, validé en mode `send`. Sans onglet Claude,
- * un onglet s'ouvre avec le prompt en argument de `claude`, qui l'envoie.
- * Rend un message quand quelque chose manque.
+ * mode `insert`, pour le compléter, validé en mode `send` (voir `departure`).
+ * Sans onglet Claude, un onglet s'ouvre avec le prompt en argument de `claude`,
+ * qui l'envoie. Rend un message quand quelque chose manque.
  */
 export async function runPrompt(prompt: SavedPrompt): Promise<string | undefined> {
   const values: Partial<Record<PromptVariable, string>> = {};
   for (const variable of variablesOf(prompt.text)) {
-    const value = await valueOf(variable, prompt.label);
+    const value = await valueOf(variable, prompt);
     if (value === undefined) return t("« {label} » attend une valeur : {reason}.", { label: prompt.label, reason: t(VARIABLE_LABEL[variable]) });
     values[variable] = value;
   }
   const result = expand(prompt.text, values);
   if ("missing" in result) return t("« {label} » attend une valeur.", { label: prompt.label });
 
+  // Lu après la saisie : l'interrupteur de sa fenêtre vient peut-être de changer.
+  const mode = departure(prompt, getState().sendAfterInput);
   const id = claudeTabFor(getState().activeRoot);
   // Insérer, c'est taper sans valider : sans onglet Claude, il n'y a rien où taper.
-  if (!id && prompt.mode === "insert") return t("Ouvre un onglet Claude dans ce projet pour y insérer « {text} ».", { text: result.text.trim() });
+  if (!id && mode === "insert") return t("Ouvre un onglet Claude dans ce projet pour y insérer « {text} ».", { text: result.text.trim() });
   if (!id) {
     // Tapé dans PowerShell : une ligne, entre apostrophes doublées.
     const argument = result.text.replace(/\s*\n\s*/g, " ").replace(/'/g, "''");
@@ -94,7 +96,7 @@ export async function runPrompt(prompt: SavedPrompt): Promise<string | undefined
   }
   typeInto(id, result.text);
   // Entrée part à part : reçue avec le texte, Claude Code la lirait comme un saut de ligne collé.
-  if (prompt.mode === "send") setTimeout(() => typeInto(id, "\r"), 150);
+  if (mode === "send") setTimeout(() => typeInto(id, "\r"), 150);
   focusTerminal(id);
   return undefined;
 }

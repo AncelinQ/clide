@@ -78,6 +78,8 @@ export interface SavedPrefs {
   scriptLaunch: "show" | "stay";
   /** Les menus du « + » des onglets et de la barre de Claude s'ouvrent au survol, ou au clic seulement. */
   menuOpening: "hover" | "click";
+  /** Un prompt « insérer » dont la `{saisie}` vient d'être donnée part aussitôt, au lieu d'attendre Entrée dans le terminal. */
+  sendAfterInput: boolean;
 }
 
 export interface SavedState {
@@ -117,6 +119,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   autoUpdate: true,
   scriptLaunch: "show",
   menuOpening: "hover",
+  sendAfterInput: false,
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -267,6 +270,7 @@ function prefs(value: unknown): SavedPrefs {
     autoUpdate: flag(source["autoUpdate"], DEFAULT_PREFS.autoUpdate),
     scriptLaunch: oneOf(source["scriptLaunch"], ["show", "stay"], DEFAULT_PREFS.scriptLaunch),
     menuOpening: oneOf(source["menuOpening"], ["hover", "click"], DEFAULT_PREFS.menuOpening),
+    sendAfterInput: flag(source["sendAfterInput"], DEFAULT_PREFS.sendAfterInput),
   };
 }
 

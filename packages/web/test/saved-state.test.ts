@@ -61,6 +61,7 @@ describe("migrate depuis la version 1", () => {
       autoUpdate: true,
       scriptLaunch: "show",
       menuOpening: "hover",
+      sendAfterInput: false,
     });
   });
 });
@@ -115,6 +116,12 @@ describe("migrate en version 2", () => {
     expect(migrate({ version: 2, prefs: { menuOpening: "click" } }).prefs.menuOpening).toBe("click");
     expect(migrate({ version: 2, prefs: { menuOpening: "double-clic" } }).prefs.menuOpening).toBe("hover");
     expect(migrate({ version: 2 }).prefs.menuOpening).toBe("hover");
+  });
+
+  it("retient l'envoi direct après la saisie, faux par défaut", () => {
+    expect(migrate({ version: 2, prefs: { sendAfterInput: true } }).prefs.sendAfterInput).toBe(true);
+    expect(migrate({ version: 2, prefs: { sendAfterInput: "oui" } }).prefs.sendAfterInput).toBe(false);
+    expect(migrate({ version: 2 }).prefs.sendAfterInput).toBe(false);
   });
 
   it("garde ce que retient l'onglet Scripts", () => {
