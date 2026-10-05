@@ -924,6 +924,6 @@ export const EN: Record<string, string> = {
   "Cliquer pour changer de touche": "Click to change the key",
   "Donner une touche à ce prompt": "Give this prompt a key",
   touche: "key",
-  "Un prompt reçoit Ctrl+Maj+1 à 9 à sa création ; Ctrl+Maj+0 ouvre la liste. Un clic sur la touche d'un prompt la change.":
-    "A prompt gets Ctrl+Shift+1 to 9 when created; Ctrl+Shift+0 opens the list. Click a prompt's key to change it.",
+  "Un prompt reçoit Ctrl+Maj+2 à 9 à sa création ; Ctrl+Maj+1 ouvre la liste. Un clic sur la touche d'un prompt la change.":
+    "A prompt gets Ctrl+Shift+2 to 9 when created; Ctrl+Shift+1 opens the list. Click a prompt's key to change it.",
 };

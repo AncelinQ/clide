@@ -205,7 +205,7 @@ export function PromptsPanel({ root }: { root: string }) {
       )}
       {prompts.length > 0 && (
         <p className="text-[11px] text-muted-foreground">
-          {t("Un prompt reçoit Ctrl+Maj+1 à 9 à sa création ; Ctrl+Maj+0 ouvre la liste. Un clic sur la touche d'un prompt la change.")}
+          {t("Un prompt reçoit Ctrl+Maj+2 à 9 à sa création ; Ctrl+Maj+1 ouvre la liste. Un clic sur la touche d'un prompt la change.")}
         </p>
       )}
       {section(t("Ce projet"), prompts.filter((prompt) => prompt.scope === "project"))}

@@ -14,11 +14,15 @@ export interface KeyedPrompt {
   scope: "user" | "project";
 }
 
-/** Les touches données d'office, de la rangée des chiffres. */
-export const PROMPT_KEYS: readonly string[] = Array.from({ length: 9 }, (_, index) => `Ctrl+Shift+${index + 1}`);
+/**
+ * La touche qui ouvre la liste des prompts, en tête de la rangée des chiffres. Pas
+ * `Ctrl+Maj+0` : Windows le prend pour basculer de méthode de saisie dès que
+ * plusieurs langues sont installées, et l'application ne le reçoit jamais.
+ */
+export const LIST_KEY = "Ctrl+Shift+1";
 
-/** La touche qui ouvre la liste des prompts, voisine des numéros. */
-export const LIST_KEY = "Ctrl+Shift+0";
+/** Les touches données d'office aux prompts : la suite de la rangée des chiffres. */
+export const PROMPT_KEYS: readonly string[] = Array.from({ length: 8 }, (_, index) => `Ctrl+Shift+${index + 2}`);
 
 const PREFIX = "prompt.run:";
 

@@ -112,7 +112,7 @@ describe("conflicts", () => {
   it("n'attribue jamais à un préréglage une touche par défaut de Clide", () => {
     // Les défauts de state/commands.ts.
     const defaults = new Set([
-      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+0", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
+      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+1", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
       "Ctrl+Shift+O", "Ctrl+Shift+P", "Ctrl+Shift+PageDown", "Ctrl+Shift+PageUp", "Ctrl+Shift+S", "Ctrl+Shift+T",
       "Ctrl+Shift+U", "Ctrl+Shift+W", "Ctrl+Shift+X",
     ]);

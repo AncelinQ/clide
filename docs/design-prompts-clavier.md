@@ -41,8 +41,8 @@ numéroté ».
 Fonctions pures, testées :
 
 ```ts
-export const PROMPT_KEYS: readonly string[]; // Ctrl+Shift+1 … Ctrl+Shift+9
-export const LIST_KEY = "Ctrl+Shift+0";
+export const LIST_KEY = "Ctrl+Shift+1";
+export const PROMPT_KEYS: readonly string[]; // Ctrl+Shift+2 … Ctrl+Shift+9
 export function promptCommand(id: string): string; // "prompt.run:<id>"
 
 /** Entrées à ajouter à `shortcuts` pour les prompts jamais numérotés, ou rien. */
@@ -81,8 +81,8 @@ Effet de bord voulu : le `Alt+1` et le `Alt+4` du jeu JetBrains marchent en AZER
 
 | Geste | Où |
 |---|---|
-| `Ctrl+Maj+0` ouvre la palette en mode `/` | commande `palette.prompts`, groupe Prompts, défaut `LIST_KEY` |
-| `Ctrl+Maj+1…9` lance un prompt | `listenShortcuts`, sans changement |
+| `Ctrl+Maj+1` ouvre la palette en mode `/` | commande `palette.prompts`, groupe Prompts, défaut `LIST_KEY` |
+| `Ctrl+Maj+2…9` lance un prompt | `listenShortcuts`, sans changement |
 | voir et changer la touche d'un prompt | vue Prompts : une puce à droite du nom ; un clic l'enregistre |
 | voir la touche | palette `/`, menu des prompts de la barre flottante |
 
@@ -97,9 +97,10 @@ parmi les conflits (`isShadowing`).
 ## 6. Ce qui n'est pas fait
 
 - Aucun numéro dans le fichier versionné du projet.
-- `Ctrl+Maj+0` peut être pris par Windows quand plusieurs langues de saisie sont
-  installées et qu'une touche d'accès leur est donnée ; le raccourci se change
-  dans les Réglages.
+- `Ctrl+Maj+0` n'est pas utilisé : Windows le déclare comme bascule directe vers
+  une méthode de saisie (`HKCU\Control Panel\Input Method\Hot Keys\00000104`) et
+  l'avale dès que plusieurs langues sont installées. La liste prend donc
+  `Ctrl+Maj+1`, et les prompts les huit touches suivantes.
 
 ## Plan
 

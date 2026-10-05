@@ -91,7 +91,7 @@ La palette se lit à son premier caractère, comme celle de VS Code :
 | `>` | une action de l'application, par mots, avec son raccourci ; les dernières lancées en tête | `Ctrl+Maj+P`, `F1` |
 | `@` | une session, par titre, premier prompt, dossier ou branche ; Entrée la montre dans le bloc session | |
 | `#` | un passage dans le texte des sessions ; Entrée l'ouvre dans Activité | |
-| `/` | un prompt enregistré ou un skill, envoyé à l'onglet Claude du projet | `Ctrl+Maj+0` |
+| `/` | un prompt enregistré ou un skill, envoyé à l'onglet Claude du projet | `Ctrl+Maj+1` |
 
 Chercher un texte dans les fichiers du projet, c'est la vue Recherche de la colonne
 du projet, par `Ctrl+Maj+F` ou « Rechercher dans les fichiers » dans la palette.
@@ -115,7 +115,7 @@ figure. Hors dépôt, elle passe les dépendances, les sorties de build et les c
 | Replier le bloc session | `Ctrl+Maj+J` |
 | Colonne du projet · panneau global | `Ctrl+Maj+B` · `Ctrl+Maj+E` |
 | Capture d'écran vers le prompt | `Ctrl+Maj+S` |
-| Lancer un prompt enregistré · le prompt n° 1 à 9 | `Ctrl+Maj+0` · `Ctrl+Maj+1` à `9` |
+| Lancer un prompt enregistré · un prompt par son numéro | `Ctrl+Maj+1` · `Ctrl+Maj+2` à `9` |
 
 Un terminal capte le clavier, et ces touches sont choisies pour ne rien lui voler :
 `Ctrl+Maj` sur des lettres que ni PowerShell ni Claude Code n'utilisent ainsi —

@@ -563,11 +563,11 @@ sont des `Ctrl+Maj` que ni PowerShell ni Claude Code n'utilisent.
 
 1. **Une touche pour la liste** : une commande ouvre la liste des prompts, filtrée
    à la frappe ; Entrée lance celui qu'on a choisi, comme un clic.
-2. **Des numéros sans rien configurer** : `Ctrl+Maj+1` à `9` lancent chacun un
+2. **Des numéros sans rien configurer** : `Ctrl+Maj+2` à `9` lancent chacun un
    prompt.
    - Un prompt reçoit son numéro à sa création — le premier libre — et le garde :
      en supprimer un autre ne décale rien, et un numéro libéré attend le prochain
-     prompt. Au-delà de neuf, un prompt n'en a pas.
+     prompt. Au-delà de huit, un prompt n'en a pas.
    - Prompts perso et prompts du projet en reçoivent. Dans un projet, si l'un de
      ses prompts porte le même numéro qu'un prompt perso, il le prend — comme dans
      la liste, où il passe d'abord ; le prompt perso garde son numéro partout
@@ -580,16 +580,17 @@ sont des `Ctrl+Maj` que ni PowerShell ni Claude Code n'utilisent.
    flottante et la palette la montrent aussi.
 
 **Tranché** : les trois — une touche pour la liste, des numéros automatiques, la
-touche réglée depuis la vue ; `Ctrl+Maj+1…9` plutôt que `Alt`, que le jeu
+touche réglée depuis la vue ; la rangée `Ctrl+Maj+1…9` plutôt que `Alt`, que le jeu
 JetBrains utilise, ou `Ctrl`, que la version navigateur ne reçoit pas — `Ctrl+Alt`
 est AltGr sous Windows ; un numéro donné à la création puis fixe, plutôt qu'un
 rang dans la liste ; prompts perso et du projet numérotés, celui du projet prime
-chez lui.
+chez lui ; la liste sur `Ctrl+Maj+1` et les prompts sur `2` à `9`, `Ctrl+Maj+0`
+étant pris par Windows pour changer de méthode de saisie dès que plusieurs langues
+sont installées.
 
 **Par défaut, sauf avis contraire**
 
-- La liste s'ouvre sur `Ctrl+Maj+0`, dans la famille des numéros ; c'est le mode
-  `/` de la palette.
+- La liste est le mode `/` de la palette.
 - Les touches sont à soi : gardées dans la configuration de l'application avec
   les autres raccourcis, jamais dans le fichier versionné du projet. Un collègue
   qui reçoit les prompts du projet ne reçoit pas mes touches.
@@ -607,8 +608,8 @@ chez lui.
   fenêtre, une variable sans valeur le dit, et sans onglet Claude un prompt `send`
   en ouvre un.
 
-**Critère.** Dans un onglet Claude, `Ctrl+Maj+1` envoie mon premier prompt sans
-que je touche la souris ; `Ctrl+Maj+0` ouvre la liste, trois lettres et Entrée en
+**Critère.** Dans un onglet Claude, `Ctrl+Maj+2` envoie mon premier prompt sans
+que je touche la souris ; `Ctrl+Maj+1` ouvre la liste, trois lettres et Entrée en
 lancent un autre. Dans la vue Prompts, je lis la touche de chaque prompt et j'en
 change une sans ouvrir les Réglages.
 

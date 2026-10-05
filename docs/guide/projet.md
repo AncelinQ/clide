@@ -242,13 +242,15 @@ de la barre flottante d'un onglet Claude, ou par sa touche.
 
 ### Au clavier
 
-`Ctrl+Maj+0` ouvre la palette sur les prompts : quelques lettres, Entrée, et le
+`Ctrl+Maj+1` ouvre la palette sur les prompts : quelques lettres, Entrée, et le
 prompt part. Chaque prompt reçoit aussi, à sa création, le premier numéro libre de
-`Ctrl+Maj+1` à `Ctrl+Maj+9`, et le garde : en supprimer un ne décale pas les
-autres, le numéro libéré attend le prochain prompt. Au-delà de neuf, un prompt n'en
+`Ctrl+Maj+2` à `Ctrl+Maj+9`, et le garde : en supprimer un ne décale pas les
+autres, le numéro libéré attend le prochain prompt. Au-delà de huit, un prompt n'en
 a pas d'office. Un prompt du projet arrivé par git est numéroté à sa première
 lecture, comme s'il venait d'être créé. Les numéros visent la rangée des chiffres,
-quel que soit le clavier : en AZERTY, la touche marquée `1 &`.
+quel que soit le clavier : en AZERTY, `Ctrl+Maj+2` est la touche marquée `2 é`.
+`Ctrl+Maj+0` n'est pas pris : Windows le garde pour changer de méthode de saisie
+dès que plusieurs langues sont installées.
 
 La touche d'un prompt se voit à côté de son nom, dans la vue, la palette et le menu
 de la barre flottante. Un clic dessus, dans la vue, écoute la combinaison suivante :
