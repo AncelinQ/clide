@@ -19,6 +19,12 @@ export type TerminalState = "idle" | "running" | "failed";
 export interface TerminalInfo {
   id: string;
   kind: TerminalKind;
+  /**
+   * Ce qu'on a ouvert : un shell, ou un onglet Claude. `kind` suit la session
+   * `claude` qui y tourne et change avec elle ; ceci ne change jamais, et range
+   * l'onglet quand on groupe les onglets par type.
+   */
+  openedAs: TerminalKind;
   projectRoot: string;
   /** Dossier courant du shell, tenu à jour par OSC 7. */
   cwd: string;
@@ -141,6 +147,7 @@ export class PtyManager {
       info: {
         id,
         kind,
+        openedAs: kind,
         projectRoot: options.projectRoot,
         cwd: options.projectRoot,
         state: "idle",

@@ -60,8 +60,12 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 ## Terminaux et serveurs
 
 - Les **terminaux survivent au rechargement** de la page, avec leur sortie.
-- **Modèle de la session** changé par un sélecteur ; taille du contexte dans la
-  barre d'état.
+- **Groupes d'onglets** repliables, comme ceux de Chrome : faits à la main,
+  fichiers compris, ou par type d'un geste ; repliés, ils montrent les signes de
+  leurs onglets Claude.
+- **Modèle et effort de la session** changés pour elle seule, sans toucher au
+  défaut des suivantes ; un onglet ouvert sur le modèle et l'effort choisis ;
+  taille du contexte dans la barre d'état.
 - **Serveurs de développement** : adresse détectée dans la sortie, serveurs
   lancés par Claude repérés par leur port, ouverts dans le navigateur d'un clic.
 

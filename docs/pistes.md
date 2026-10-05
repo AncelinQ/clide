@@ -527,8 +527,8 @@ fichiers ; un shell devenu Claude ne change pas de groupe.
 - `Ctrl+Maj+PageDown` et `PageUp` sautent les onglets d'un groupe replié, comme
   Chrome ; la palette les atteint toujours.
 - « Fermer le groupe », au clic droit de l'étiquette, ferme tous ses onglets après
-  une confirmation qui dit ce qui y tourne ; un fichier modifié demande comme
-  aujourd'hui.
+  une confirmation qui dit ce qui y tourne ; un fichier modifié reste ouvert, sa
+  croix demandant comme aujourd'hui.
 - L'onglet Scripts n'entre dans aucun groupe. Un shell rangé dans Scripts quitte
   son groupe ; sorti des scripts, il le retrouve s'il existe encore.
 - Replier, déplier, grouper par type et dégrouper sont des commandes de la
@@ -541,7 +541,10 @@ la puce, hors du groupe ; avec le réglage sur « rejoindre », il entre dans le
 groupe, qui se déplie pour le montrer. Un groupe « Revue » fait à la main réunit un onglet Claude et deux fichiers ; replié,
 sa puce passe à ⚠ quand Claude y attend une permission.
 
-**État.** Spécifiée avec `/sc:brainstorm` le 2026-10-05 ; ni conçue ni planifiée.
+**État.** Faite, les deux paliers, selon
+[`design-groupes-onglets.md`](design-groupes-onglets.md) : `tabOrder` reste le seul
+ordre, chaque groupe y est rassemblé à la lecture ; le type d'un onglet est celui
+de son ouverture, que le serveur garde (`openedAs`).
 
 ---
 
@@ -617,6 +620,65 @@ change une sans ouvrir les Réglages.
 numéro est le raccourci de la commande du prompt, donné par `loadPrompts` à tout
 prompt qui n'en a jamais eu ; la rangée des chiffres se lit par son chiffre avec
 Ctrl ou Alt, ce qui rend aussi au jeu JetBrains ses `Alt+1` et `Alt+4` en AZERTY.
+
+---
+
+## Piste 14 — Modèle et effort, pour cette session
+
+**Le besoin.** Changer de modèle ou d'effort dans un onglet Claude ne doit toucher
+que lui. Aujourd'hui, la barre flottante tape `/model <id>` ou `/effort <niveau>`,
+et Claude Code tient ces deux formes pour un choix de défaut : il l'écrit dans
+`~/.claude/settings.json` (`model`, `modelSettings.<modèle>.effortLevel`), et
+toutes les sessions lancées ensuite partent avec. On croit régler un onglet, on
+règle tous les suivants.
+
+**Ce qu'on a vérifié.** La documentation de Claude Code (v2.1.289) et un essai dans
+une vraie session :
+
+- seule la touche `s` du sélecteur — `/model` ou `/effort` ouverts sans argument —
+  applique un choix à la session seule ; Claude Code répond alors
+  ``Set model to `Sonnet 5.5` for this session only`` ou
+  `Set effort level to high (this session only)`, et `settings.json` ne bouge pas
+  (même empreinte avant et après) ;
+- le sélecteur de modèle numérote ses lignes dans l'ordre du catalogue que Clide
+  lit déjà, sous les mêmes noms ; il s'ouvre sur le modèle en cours, `Début` mène à
+  la première ligne, les flèches bouclent ; le curseur d'effort s'ouvre sur le
+  niveau en cours et avance par `←` `→` ;
+- une session ouverte ne relit pas le défaut écrit par une autre : changer de
+  défaut ne touche que les sessions à venir ;
+- au lancement, `--model` et `--effort` ne valent que pour la session.
+
+**Ce qu'on attend**
+
+1. **La barre flottante règle la session.** Choisir un modèle ou un effort dans la
+   barre d'un onglet Claude ne change que cet onglet. Le défaut des nouvelles
+   sessions reste dans Réglages › Claude Code, et la barre le dit.
+2. **Ouvrir un onglet avec son modèle et son effort.** Le menu `+` propose, pour un
+   nouvel onglet Claude, un modèle et un effort, qui ne valent que pour lui.
+
+**Tranché** : la barre agit sur la session seule, plutôt que de proposer les deux
+portées ou de garder le défaut en le disant ; le menu `+` propose modèle et effort.
+
+**Par défaut, sauf avis contraire**
+
+- Clide pilote le sélecteur comme on le ferait : `/model`, la ligne du modèle
+  choisi, `s` ; `/effort`, le niveau choisi, `s`. Il lit l'écran à chaque pas et
+  s'arrête, sélecteur refermé, dès que ce qu'il voit n'est pas ce qu'il attend :
+  un choix ne part jamais sur la mauvaise ligne, ni comme défaut.
+- Rien ne part tant que Claude travaille : le choix attend la fin du tour, et la
+  barre le dit. Une ligne de saisie où l'on a commencé à écrire arrête aussi le
+  geste, plutôt que d'y mêler la commande.
+- Dans le menu `+`, chaque modèle propose ses niveaux d'effort, et un niveau seul,
+  sur le modèle par défaut, s'ouvre par « Claude avec l'effort ».
+
+**Critère.** Deux onglets Claude sur Opus 5.5. Dans le premier, la barre passe à
+Sonnet 5.5 en effort high : le second reste sur Opus 5.5, un troisième onglet
+ouvert ensuite aussi, et `settings.json` n'a pas changé.
+
+**État.** Faite, selon [`design-modele-effort-session.md`](design-modele-effort-session.md) :
+la barre pilote le sélecteur en lisant l'écran à chaque pas. L'essai a montré un cas
+de plus, une confirmation que Claude Code demande avant de changer le modèle d'une
+conversation entamée ; la barre laisse cette réponse à l'utilisateur.
 
 ---
 
