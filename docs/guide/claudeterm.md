@@ -14,6 +14,9 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 - **Fetch, pull en avance rapide, push confirmé** avec l'aperçu des commits ;
   push forcé protégé par `--force-with-lease`, à double confirmation, avec alerte
   sur `main`.
+- **Vue Commit** : les fichiers à cocher, rangés par dossier, dossiers et groupes
+  repliables d'un clic, gardés repliés avec le projet ; le message rédigé depuis la
+  session.
 - **Branches** : en changer, en créer, avec un stash proposé puis réapplicable.
 - **Worktrees** : ouvrir ou créer une branche dans un worktree avec Claude ;
   panneau des worktrees, leur état, les sessions rattachées, le retrait gardé.
