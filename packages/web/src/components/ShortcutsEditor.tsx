@@ -3,30 +3,31 @@ import { useEffect, useState } from "react";
 import { Keys } from "@/components/CommandPalette";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { KEYMAPS, bindingsOf, conflicts, type Keymap } from "@/lib/keymap";
-import { commands, effectiveShortcut, isUsableShortcut, shortcutOf } from "@/state/commands";
+import { KEYMAPS, bindingsOf, conflicts, isUsableShortcut, shortcutOf, type Keymap } from "@/lib/keymap";
+import { isShadowing } from "@/lib/prompt-keys";
+import { commands, effectiveShortcut } from "@/state/commands";
+import { cachedPrompts } from "@/state/prompts";
 import { setState, useStore } from "@/state/store";
 
-/**
- * Raccourcis modifiables, rangés dans la configuration de l'application — jamais
- * dans `settings.json`, qui appartient à Claude Code.
- *
- * Pendant l'enregistrement, l'écoute globale se tait : la combinaison tapée est
- * pour l'éditeur, pas pour l'action qu'elle déclenche d'ordinaire. Une
- * combinaison déjà prise est retirée de l'autre commande, et on le dit.
- */
 const KEYMAP_LABEL: Record<Keymap, string> = {
   clide: "Clide seul",
   vscode: "VS Code",
   jetbrains: "JetBrains",
 };
 
-export function ShortcutsEditor() {
+/**
+ * Enregistre la touche d'une commande : `record(id)` écoute la combinaison
+ * suivante. Échap annule, Retour arrière ou Suppr retirent la touche.
+ *
+ * Pendant l'enregistrement, l'écoute globale se tait : la combinaison tapée est
+ * pour l'éditeur, pas pour l'action qu'elle déclenche d'ordinaire. Une
+ * combinaison déjà prise est retirée de l'autre commande, et `notice` le dit.
+ */
+export function useShortcutRecording(): { recording: string | undefined; record: (id: string | undefined) => void; notice: string | undefined; setNotice: (notice: string | undefined) => void } {
   const overrides = useStore((state) => state.shortcuts);
   const keymap = useStore((state) => state.keymap);
   const [recording, setRecording] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const changed = (id: string) => id in overrides;
   const all = commands();
 
   useEffect(() => {
@@ -75,7 +76,22 @@ export function ShortcutsEditor() {
     };
   }, [recording, overrides, keymap, all]);
 
-  const clashes = conflicts(all, keymap, overrides);
+  return { recording, record: setRecording, notice, setNotice };
+}
+
+/**
+ * Raccourcis modifiables, rangés dans la configuration de l'application — jamais
+ * dans `settings.json`, qui appartient à Claude Code.
+ */
+export function ShortcutsEditor() {
+  const overrides = useStore((state) => state.shortcuts);
+  const keymap = useStore((state) => state.keymap);
+  const { recording, record: setRecording, notice, setNotice } = useShortcutRecording();
+  const changed = (id: string) => id in overrides;
+  const all = commands();
+
+  // Un prompt du projet devant un prompt perso sur une même touche est la règle, pas un conflit.
+  const clashes = conflicts(all, keymap, overrides).filter((clash) => !isShadowing(clash.ids, cachedPrompts()));
 
   return (
     <div className="grid gap-1.5">

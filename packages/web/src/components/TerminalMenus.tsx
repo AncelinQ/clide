@@ -27,7 +27,8 @@ import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { useModels } from "@/state/models";
 import { getState, setState } from "@/state/store";
-import { runPrompt } from "@/state/prompts";
+import { promptKey, runPrompt } from "@/state/prompts";
+import { shadowedBy } from "@/lib/prompt-keys";
 import { place } from "@/state/shelf";
 import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
 
@@ -191,8 +192,13 @@ export function ClaudeToolbar({
       }),
     ),
   ];
-  const promptMenu = (): MenuItem[] =>
-    prompts.map((prompt) => ({ kind: "item", label: prompt.label, hint: prompt.text, run: () => void runPrompt(prompt) }));
+  const promptMenu = (): MenuItem[] => {
+    const shadowed = shadowedBy(prompts, getState().shortcuts);
+    return prompts.map((prompt) => {
+      const shortcut = shadowed[prompt.id] ? undefined : promptKey(prompt);
+      return { kind: "item", label: prompt.label, hint: prompt.text, ...(shortcut ? { shortcut } : {}), run: () => void runPrompt(prompt) };
+    });
+  };
 
   const button = "h-6 gap-1 px-1.5 text-[11px] [&_svg]:size-3.5";
   return (

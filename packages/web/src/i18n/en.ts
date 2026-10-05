@@ -919,4 +919,11 @@ export const EN: Record<string, string> = {
   "Envoyer directement": "Send right away",
   "Sinon, le prompt est inséré dans l'onglet Claude, à compléter avant Entrée.": "Otherwise the prompt is inserted in the Claude tab, to complete before Enter.",
   Insérer: "Insert",
+  "Lancer un prompt enregistré": "Run a saved prompt",
+  "Dans ce projet, cette touche lance « {label} ». Cliquer pour en changer.": "In this project, this key runs “{label}”. Click to change it.",
+  "Cliquer pour changer de touche": "Click to change the key",
+  "Donner une touche à ce prompt": "Give this prompt a key",
+  touche: "key",
+  "Un prompt reçoit Ctrl+Maj+1 à 9 à sa création ; Ctrl+Maj+0 ouvre la liste. Un clic sur la touche d'un prompt la change.":
+    "A prompt gets Ctrl+Shift+1 to 9 when created; Ctrl+Shift+0 opens the list. Click a prompt's key to change it.",
 };

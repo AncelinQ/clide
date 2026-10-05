@@ -1,6 +1,7 @@
 import { globalTabs } from "@/components/GlobalTabs";
 import { t } from "@/i18n";
-import { commandFor, focusOf } from "@/lib/keymap";
+import { commandFor, focusOf, isUsableShortcut, shortcutOf } from "@/lib/keymap";
+import { LIST_KEY } from "@/lib/prompt-keys";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
 import {
@@ -293,7 +294,9 @@ export function commands(): Command[] {
       shortcut: "Ctrl+Shift+U",
       run: openLatestDevServer,
     },
+    { id: "palette.prompts", group: t("Prompts"), label: t("Lancer un prompt enregistré"), shortcut: LIST_KEY, run: () => openPalette("/") },
     // Chaque prompt enregistré est une commande : la palette le trouve, un raccourci peut le lancer.
+    // Ceux du projet passent d'abord : sur une même touche, c'est le leur qui part.
     ...cachedPrompts().map((prompt) => ({
       id: `prompt.run:${prompt.id}`,
       group: t("Prompts"),
@@ -321,29 +324,6 @@ export function openPalette(prefix: string): void {
 export function effectiveShortcut(command: Command, overrides: Record<string, string | null>): string | undefined {
   if (command.id in overrides) return overrides[command.id] ?? undefined;
   return command.shortcut;
-}
-
-const MODIFIERS = new Set(["Control", "Shift", "Alt", "Meta", "AltGraph"]);
-
-/**
- * Nom d'une combinaison, ou rien pour une touche de modificateur seule.
- *
- * La lettre vient de `key`, pas de la position physique : sur un clavier AZERTY,
- * `Ctrl+Maj+A` est la touche marquée A. Une combinaison avec AltGr ne donne rien,
- * c'est un caractère à taper.
- */
-export function shortcutOf(event: KeyboardEvent): string | undefined {
-  if (MODIFIERS.has(event.key) || event.getModifierState?.("AltGraph")) return undefined;
-  const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  return [event.ctrlKey && "Ctrl", event.altKey && "Alt", event.shiftKey && "Shift", key].filter(Boolean).join("+");
-}
-
-/**
- * Une combinaison qui ne porte ni Ctrl ni Alt se tape : elle ne peut pas servir
- * de raccourci. Les touches de fonction font exception, elles n'écrivent rien.
- */
-export function isUsableShortcut(shortcut: string): boolean {
-  return /^(Ctrl|Alt)\+/.test(shortcut) || /^(Shift\+)?F([1-9]|1[0-2])$/.test(shortcut);
 }
 
 /**

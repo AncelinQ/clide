@@ -612,7 +612,10 @@ que je touche la souris ; `Ctrl+Maj+0` ouvre la liste, trois lettres et Entrée 
 lancent un autre. Dans la vue Prompts, je lis la touche de chaque prompt et j'en
 change une sans ouvrir les Réglages.
 
-**État.** Spécifiée avec `/sc:brainstorm` le 2026-10-05 ; ni conçue ni planifiée.
+**État.** Faite, selon [`design-prompts-clavier.md`](design-prompts-clavier.md) : un
+numéro est le raccourci de la commande du prompt, donné par `loadPrompts` à tout
+prompt qui n'en a jamais eu ; la rangée des chiffres se lit par son chiffre avec
+Ctrl ou Alt, ce qui rend aussi au jeu JetBrains ses `Alt+1` et `Alt+4` en AZERTY.
 
 ---
 

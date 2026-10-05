@@ -5,10 +5,11 @@ import { cn } from "cn";
 import { t } from "@/i18n";
 import { api, formatDate, shortName } from "@/lib/api";
 import { bindingsOf } from "@/lib/keymap";
+import { shadowedBy } from "@/lib/prompt-keys";
 import type { SessionSummary } from "@/lib/types";
 import { commands, type Command } from "@/state/commands";
 import { openFile } from "@/state/editor";
-import { cachedPrompts, runPrompt } from "@/state/prompts";
+import { cachedPrompts, promptKey, runPrompt } from "@/state/prompts";
 import { getState, selectSession, setBottomMode, setState, useStore } from "@/state/store";
 import { resizeActive } from "@/state/terminals";
 
@@ -196,15 +197,21 @@ function useEntries(open: boolean, mode: Mode, text: string): { entries: Entry[]
   }
 
   if (mode === "prompts") {
+    const shadowed = shadowedBy(cachedPrompts(), getState().shortcuts);
     const prompts = cachedPrompts()
       .filter((prompt) => hasWords(`${prompt.label} ${prompt.text}`, text))
-      .map((prompt) => ({
-        id: `prompt:${prompt.id}`,
-        aside: prompt.scope === "project" ? t("projet") : t("perso"),
-        label: prompt.label,
-        detail: prompt.text,
-        run: () => void runPrompt(prompt),
-      }));
+      .map((prompt) => {
+        // Une touche masquée par un prompt du projet ne lancerait pas celui-ci : on ne la montre pas.
+        const shortcut = shadowed[prompt.id] ? undefined : promptKey(prompt);
+        return {
+          id: `prompt:${prompt.id}`,
+          aside: prompt.scope === "project" ? t("projet") : t("perso"),
+          label: prompt.label,
+          detail: prompt.text,
+          ...(shortcut ? { shortcut } : {}),
+          run: () => void runPrompt(prompt),
+        };
+      });
     const skillEntries = (skills ?? [])
       .filter((skill) => hasWords(`${skill.name} ${skill.description ?? ""}`, text))
       .slice(0, 40)
