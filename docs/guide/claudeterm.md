@@ -68,6 +68,8 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 ## Application
 
 - **Palette de commandes** et **raccourcis modifiables** ; ClaudeTerm les fixait.
+- **Prompts enregistrés au clavier** : `Ctrl+Maj+1` pour leur liste,
+  `Ctrl+Maj+2` à `9` pour chacun, numérotés d'office et réglables depuis leur vue.
 - **Couleurs de l'interface** : presets, dégradés, une palette par mode.
 - Langue changée sans relancer.
 - Largeurs de colonnes réglables et mémorisées ; changer de projet ramène son
