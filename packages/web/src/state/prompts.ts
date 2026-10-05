@@ -1,5 +1,6 @@
 import { t } from "@/i18n";
-import { api } from "@/lib/api";
+import { api, post } from "@/lib/api";
+import { numberNew, promptCommand } from "@/lib/prompt-keys";
 import { departure, expand, variablesOf, type PromptVariable } from "@/lib/prompt-vars";
 import { selectedText } from "@/state/editor";
 import { getState, setState } from "@/state/store";
@@ -29,11 +30,34 @@ export function onPromptsChange(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Relit les prompts du projet et de l'utilisateur. Ceux qui n'ont jamais eu de
+ * numéro en reçoivent un : à leur création, ou à leur arrivée dans le fichier du
+ * projet.
+ */
 export async function loadPrompts(root = getState().activeRoot): Promise<SavedPrompt[]> {
   const { prompts } = await api<{ prompts: SavedPrompt[] }>("/api/prompts", root ? { root } : {});
   cached = { root, prompts };
+  const numbered = numberNew(prompts, getState().shortcuts);
+  if (numbered) setState((current) => ({ shortcuts: { ...current.shortcuts, ...numbered } }));
   for (const listener of listeners) listener();
   return prompts;
+}
+
+/** Touche d'un prompt, s'il en a une. */
+export function promptKey(prompt: SavedPrompt, overrides: Record<string, string | null> = getState().shortcuts): string | undefined {
+  return overrides[promptCommand(prompt.id)] ?? undefined;
+}
+
+/** Supprime un prompt ; sa touche redevient libre pour le prochain. */
+export async function removePrompt(prompt: SavedPrompt, root: string | undefined): Promise<void> {
+  await post("/api/prompts/remove", { id: prompt.id, scope: prompt.scope, root });
+  setState((current) => {
+    const shortcuts = { ...current.shortcuts };
+    delete shortcuts[promptCommand(prompt.id)];
+    return { shortcuts };
+  });
+  await loadPrompts(root ?? null);
 }
 
 /** Valeur d'une variable, ou rien si elle n'en a pas là où l'on est. */

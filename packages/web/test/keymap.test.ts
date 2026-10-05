@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { PRESETS, bindingsOf, commandFor, conflicts, type Bindable } from "../src/lib/keymap";
+import { PRESETS, bindingsOf, commandFor, conflicts, shortcutOf, type Bindable, type KeyPress } from "../src/lib/keymap";
+
+/** Une touche telle que le navigateur la décrit. */
+function press(key: string, code: string, modifiers: { ctrl?: boolean; alt?: boolean; shift?: boolean; altGraph?: boolean } = {}): KeyPress {
+  return {
+    key,
+    code,
+    ctrlKey: modifiers.ctrl ?? false,
+    altKey: modifiers.alt ?? false,
+    shiftKey: modifiers.shift ?? false,
+    getModifierState: (name) => name === "AltGraph" && (modifiers.altGraph ?? false),
+  };
+}
 
 const COMMANDS: Bindable[] = [
   { id: "palette", shortcut: "Ctrl+Shift+P" },
@@ -58,6 +70,32 @@ describe("commandFor", () => {
   });
 });
 
+describe("shortcutOf", () => {
+  it("nomme une lettre par son caractère, la touche marquée A en AZERTY", () => {
+    expect(shortcutOf(press("A", "KeyQ", { ctrl: true, shift: true }))).toBe("Ctrl+Shift+A");
+  });
+
+  it("nomme la rangée des chiffres par son chiffre, en AZERTY comme en QWERTY", () => {
+    // AZERTY : Maj donne le chiffre, sans Maj la touche du 1 tape « & ».
+    expect(shortcutOf(press("1", "Digit1", { ctrl: true, shift: true }))).toBe("Ctrl+Shift+1");
+    expect(shortcutOf(press("&", "Digit1", { alt: true }))).toBe("Alt+1");
+    expect(shortcutOf(press("à", "Digit0", { ctrl: true }))).toBe("Ctrl+0");
+    // QWERTY : Maj+1 tape « ! ».
+    expect(shortcutOf(press("!", "Digit1", { ctrl: true, shift: true }))).toBe("Ctrl+Shift+1");
+  });
+
+  it("laisse son caractère à un chiffre tapé sans Ctrl ni Alt, et au pavé numérique", () => {
+    expect(shortcutOf(press("&", "Digit1"))).toBe("&");
+    expect(shortcutOf(press("1", "Numpad1", { ctrl: true }))).toBe("Ctrl+1");
+    expect(shortcutOf(press("End", "Numpad1", { ctrl: true }))).toBe("Ctrl+End");
+  });
+
+  it("ne nomme ni un modificateur seul ni une combinaison AltGr", () => {
+    expect(shortcutOf(press("Shift", "ShiftLeft", { shift: true }))).toBeUndefined();
+    expect(shortcutOf(press("#", "Digit3", { ctrl: true, alt: true, altGraph: true }))).toBeUndefined();
+  });
+});
+
 describe("conflicts", () => {
   it("ne trouve rien dans les préréglages livrés, sur les défauts de Clide", () => {
     for (const keymap of ["clide", "vscode", "jetbrains"] as const) {
@@ -74,7 +112,7 @@ describe("conflicts", () => {
   it("n'attribue jamais à un préréglage une touche par défaut de Clide", () => {
     // Les défauts de state/commands.ts.
     const defaults = new Set([
-      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
+      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+1", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
       "Ctrl+Shift+O", "Ctrl+Shift+P", "Ctrl+Shift+PageDown", "Ctrl+Shift+PageUp", "Ctrl+Shift+S", "Ctrl+Shift+T",
       "Ctrl+Shift+U", "Ctrl+Shift+W", "Ctrl+Shift+X",
     ]);

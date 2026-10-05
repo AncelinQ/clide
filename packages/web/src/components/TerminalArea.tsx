@@ -26,8 +26,11 @@ import { ScriptsList, ScriptsTab } from "@/components/ScriptsShelf";
 import { ClaudeToolbar, NewTabMenu, ScriptToolbar, tabItems } from "@/components/TerminalMenus";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
-import { dropTab, orderTabs } from "@/lib/tab-order";
+import { barItems, gather, groupTabId } from "@/lib/tab-groups";
+import { orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
+import { CloseGroupDialog, GROUP_STYLE, GroupLabel, contentsOf, closeGroup, tabGroupItems } from "@/components/TabGroups";
+import { dropOnBar } from "@/state/groups";
 import { closeFile, isDiff, isTranscript, revealInTree, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
 import { CapturesPanel } from "@/components/panels/captures";
@@ -334,7 +337,7 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
   const iconName = title ? (title.split(" @ ")[0] ?? title) : name;
   return (
     <ContextArea
-      items={[
+      items={() => [
         { kind: "item", label: t("Fermer"), icon: X, run: onClose },
         // Un diff ou un transcript n'a pas de chemin de fichier à copier.
         ...(isDiff(path) || isTranscript(path)
@@ -344,6 +347,8 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
               { kind: "item" as const, label: t("Copier le chemin"), run: () => void navigator.clipboard.writeText(path) },
               { kind: "item" as const, label: t("Montrer dans l'arborescence"), icon: Crosshair, run: () => revealInTree(path) },
             ]),
+        { kind: "separator" },
+        ...tabGroupItems(getState().activeRoot, path),
       ]}
     >
       <div
@@ -440,12 +445,24 @@ export function TerminalArea() {
   const barIds = bar.map((info) => info.id);
   const showsScripts = useStore(scriptsShown);
   const refusedInput = useStore((state) => state.refusedInput);
+  const terminalNotice = useStore((state) => state.terminalNotice);
   const sessionTab = useStore(sessionTabOf);
-  // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés.
-  const tabIds = orderTabs(project?.tabOrder ?? [], [...barIds, ...openFiles]);
+  // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés, chaque groupe rassemblé.
+  const groups = project?.tabGroups;
+  const tabIds = gather(orderTabs(project?.tabOrder ?? [], [...barIds, ...openFiles]), groups?.members ?? {});
+  const items = groups ? barItems(tabIds, groups) : tabIds.map((id) => ({ kind: "tab" as const, id }));
+  const shownId = activeFile ?? activeTerminalId;
   const byId = new Map(own.map((entry) => [entry.info.id, entry.info]));
   const dropOn = (moved: string, target: string, side: "before" | "after") => {
-    if (project) updateProject(project.root, { tabOrder: dropTab(tabIds, moved, target, side) });
+    if (project) dropOnBar(project.root, moved, target, side);
+  };
+  const [closingGroup, setClosingGroup] = useState<string>();
+  // Un groupe où rien ne vit se ferme d'un coup ; sinon, on dit ce qu'il porte avant.
+  const requestCloseGroup = (group: string) => {
+    if (!project) return;
+    const contents = contentsOf(project.root, group);
+    if (contents.claude + contents.commands + contents.dirty === 0) closeGroup(project.root, group);
+    else setClosingGroup(group);
   };
   const renamingTab = useStore((state) => state.renamingTab);
   const claudeBusy = useStore((state) => state.claudeBusy);
@@ -580,6 +597,83 @@ export function TerminalArea() {
       : []),
   ];
 
+  /** Un onglet de la barre, terminal ou fichier. */
+  const renderTab = (id: string) => {
+    const info = byId.get(id);
+    return (
+      <Reorderable key={id} group="center" id={id} onDrop={dropOn} fixed={renamingTab === id}>
+        {!info ? (
+          <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
+        ) : (
+          <ContextArea items={() => [...tabItems(info, barIds), { kind: "separator" }, ...tabGroupItems(project?.root ?? null, info.id)]}>
+            <div
+              onClick={(event) => {
+                // Le second clic d'un double-clic laisserait le terminal prendre le focus au champ du nom.
+                if (event.detail > 1) return;
+                focusTerminal(info.id);
+                showTerminals();
+              }}
+              onDoubleClick={() => {
+                // Le premier clic donne le focus au terminal à la frame suivante : le champ s'ouvre après.
+                if (!info.exited) requestAnimationFrame(() => setState({ renamingTab: info.id }));
+              }}
+              title={info.kind === "claude" ? claudeStatus(Boolean(claudeBusy[info.id]), attention[info.id]) : undefined}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
+                info.id === activeTerminalId && !activeFile
+                  ? "border-border bg-muted text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              {info.kind === "claude" ? (
+                // Le processus `claude` tourne tant que la session est ouverte : c'est le
+                // titre de son terminal qui dit s'il travaille.
+                <Sparkles className={cn("size-3", claudeBusy[info.id] ? "animate-pulse text-amber-500" : "text-primary")} />
+              ) : (
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    info.state === "running"
+                      ? "bg-amber-500"
+                      : info.state === "failed"
+                        ? "bg-destructive"
+                        : "bg-muted-foreground",
+                  )}
+                />
+              )}
+              {renamingTab === info.id ? (
+                <NameInput
+                  whole
+                  initial={info.title}
+                  className="w-40 flex-none"
+                  onSubmit={(value) => {
+                    if (value.trim() !== info.title) renameTerminal(info.id, value);
+                    endRename(info.id);
+                  }}
+                  onCancel={() => endRename(info.id)}
+                />
+              ) : (
+                <span>{info.title}</span>
+              )}
+              {attention[info.id] === "permission" ? (
+                <CircleAlert className="size-3 text-amber-500" />
+              ) : (
+                attention[info.id] && <span className="size-2 rounded-full bg-emerald-500" />
+              )}
+              <X
+                className="size-3 opacity-50 hover:opacity-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  closeTerminal(info.id);
+                }}
+              />
+            </div>
+          </ContextArea>
+        )}
+      </Reorderable>
+    );
+  };
+
   return (
     <div ref={center} className="flex min-h-0 min-w-0 flex-1 flex-col">
     <Island className="min-h-0 flex-1">
@@ -592,79 +686,24 @@ export function TerminalArea() {
           </>
         )}
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
-          {tabIds.map((id) => {
-            const info = byId.get(id);
+          {items.map((item) => {
+            if (item.kind === "tab") return renderTab(item.id);
+            const { group, ids } = item;
+            const label = groupTabId(group.id);
             return (
-              <Reorderable key={id} group="center" id={id} onDrop={dropOn} fixed={renamingTab === id}>
-                {!info ? (
-                  <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
-                ) : (
-                  <ContextArea items={() => tabItems(info, barIds)}>
-                    <div
-                      onClick={(event) => {
-                        // Le second clic d'un double-clic laisserait le terminal prendre le focus au champ du nom.
-                        if (event.detail > 1) return;
-                        focusTerminal(info.id);
-                        showTerminals();
-                      }}
-                      onDoubleClick={() => {
-                        // Le premier clic donne le focus au terminal à la frame suivante : le champ s'ouvre après.
-                        if (!info.exited) requestAnimationFrame(() => setState({ renamingTab: info.id }));
-                      }}
-                      title={info.kind === "claude" ? claudeStatus(Boolean(claudeBusy[info.id]), attention[info.id]) : undefined}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
-                        info.id === activeTerminalId && !activeFile
-                          ? "border-border bg-muted text-foreground"
-                          : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-                      )}
-                    >
-                      {info.kind === "claude" ? (
-                        // Le processus `claude` tourne tant que la session est ouverte : c'est le
-                        // titre de son terminal qui dit s'il travaille.
-                        <Sparkles className={cn("size-3", claudeBusy[info.id] ? "animate-pulse text-amber-500" : "text-primary")} />
-                      ) : (
-                        <span
-                          className={cn(
-                            "size-1.5 shrink-0 rounded-full",
-                            info.state === "running"
-                              ? "bg-amber-500"
-                              : info.state === "failed"
-                                ? "bg-destructive"
-                                : "bg-muted-foreground",
-                          )}
-                        />
-                      )}
-                      {renamingTab === info.id ? (
-                        <NameInput
-                          whole
-                          initial={info.title}
-                          className="w-40 flex-none"
-                          onSubmit={(value) => {
-                            if (value.trim() !== info.title) renameTerminal(info.id, value);
-                            endRename(info.id);
-                          }}
-                          onCancel={() => endRename(info.id)}
-                        />
-                      ) : (
-                        <span>{info.title}</span>
-                      )}
-                      {attention[info.id] === "permission" ? (
-                        <CircleAlert className="size-3 text-amber-500" />
-                      ) : (
-                        attention[info.id] && <span className="size-2 rounded-full bg-emerald-500" />
-                      )}
-                      <X
-                        className="size-3 opacity-50 hover:opacity-100"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          closeTerminal(info.id);
-                        }}
-                      />
-                    </div>
-                  </ContextArea>
-                )}
-              </Reorderable>
+              // Le cadre teinté dit quels onglets vont ensemble ; replié, il ne garde que l'étiquette.
+              <div key={label} className={cn("flex shrink-0 items-center gap-1 rounded-lg", GROUP_STYLE[group.color].tint)} data-group-block={group.id}>
+                <Reorderable group="center" id={label} onDrop={dropOn} fixed={renamingTab === label}>
+                  <GroupLabel
+                    root={project?.root ?? ""}
+                    group={group}
+                    ids={ids}
+                    active={group.folded && shownId !== null && ids.includes(shownId)}
+                    onClose={() => requestCloseGroup(group.id)}
+                  />
+                </Reorderable>
+                {!group.folded && ids.map(renderTab)}
+              </div>
             );
           })}
         </nav>
@@ -672,6 +711,11 @@ export function TerminalArea() {
       </div>
 
       <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
+      <CloseGroupDialog
+        root={project?.root ?? null}
+        group={groups?.groups.find((group) => group.id === closingGroup)}
+        onDone={() => setClosingGroup(undefined)}
+      />
 
       <div className="mx-2 flex min-h-0 flex-1">
         {/* La liste se glisse à gauche du cadre des terminaux, qui rétrécit : aucun hôte ne change de parent. */}
@@ -697,7 +741,7 @@ export function TerminalArea() {
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
-            <ClaudeToolbar currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
+            <ClaudeToolbar terminalId={status.id} currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
           )}
           {status?.kind === "shell" && (status.script || placementOf(status, placed) === "scripts") && !activeFile && (
             <ScriptToolbar info={status} inScripts={placementOf(status, placed) === "scripts"} />
@@ -708,6 +752,15 @@ export function TerminalArea() {
               className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-[12px] whitespace-nowrap shadow-sm"
             >
               {t("Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.")}
+            </div>
+          )}
+          {terminalNotice?.id === status?.id && !activeFile && (
+            <div
+              role="status"
+              className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[80%] -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-center text-[12px] shadow-sm"
+              data-terminal-notice
+            >
+              {terminalNotice?.text}
             </div>
           )}
           {activeFile && (

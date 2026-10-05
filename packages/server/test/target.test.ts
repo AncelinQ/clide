@@ -7,6 +7,7 @@ import type { ClaudeNotification } from "../src/notifications/watcher.js";
 const tab = (id: string, cwd: string): TerminalInfo => ({
   id,
   kind: "claude",
+  openedAs: "claude",
   projectRoot: cwd,
   cwd,
   title: id,

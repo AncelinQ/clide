@@ -20,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { t } from "@/i18n";
 import { cn } from "cn";
-import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type MenuOpening, type ScriptLaunch, type TabLayout, type TerminalFont } from "@/state/store";
+import { DEFAULT_TERMINAL_FONT, setState, useStore, type Language, type MenuOpening, type NewTabInGroup, type ScriptLaunch, type TabLayout, type TerminalFont } from "@/state/store";
 import { applyTerminalFont } from "@/state/terminals";
 import { setImportedTheme } from "@/state/theme";
 import { setInterfaceFont } from "@/state/interface";
@@ -383,8 +383,30 @@ function TerminalSection({ open }: { open: boolean }) {
         </button>
       </Group>
       <ScriptLaunchGroup />
+      <NewTabInGroupGroup />
       <MenuOpeningGroup />
     </div>
+  );
+}
+
+/** Où va un onglet Claude ou un shell qu'on ouvre quand un groupe de son type existe. */
+function NewTabInGroupGroup() {
+  const newTabInGroup = useStore((state) => state.newTabInGroup);
+  return (
+    <Group
+      title={t("Nouvel onglet d'un type groupé")}
+      hint={t("Quand « Grouper les onglets Claude » ou « Grouper les shells » a fait un groupe, l'onglet de ce type qu'on ouvre ensuite se pose juste après lui, ou y entre.")}
+    >
+      <Select value={newTabInGroup} onValueChange={(value) => setState({ newTabInGroup: value as NewTabInGroup })}>
+        <SelectTrigger className="w-64" data-new-tab-in-group>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="beside">{t("S'ouvre à côté du groupe")}</SelectItem>
+          <SelectItem value="join">{t("Rejoint le groupe")}</SelectItem>
+        </SelectContent>
+      </Select>
+    </Group>
   );
 }
 

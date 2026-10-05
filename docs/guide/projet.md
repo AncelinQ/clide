@@ -228,7 +228,10 @@ choisi dans l'éditeur), `{fichier}` (le fichier ouvert au centre), `{branche}`,
 `{saisie}` (demandée dans une petite fenêtre, qui propose en pastilles les cinq
 dernières réponses données à ce prompt dans ce navigateur). Une variable sans
 valeur arrête l'envoi et le dit : « explique {sélection} » ne part pas sans
-sélection.
+sélection. La saisie fait exception, puisqu'on la donne soi-même : laissée vide, elle
+ne bloque rien, le prompt part sans elle — `/sc:brainstorm {saisie}` envoie
+`/sc:brainstorm` —, et le bouton de la fenêtre le dit, « Envoyer sans saisie ».
+Seul Annuler, ou Échap, arrête l'envoi.
 
 Pour un prompt **insérer** qui porte `{saisie}`, la fenêtre propose un interrupteur
 **Envoyer directement** : la saisie faite, le prompt part validé au lieu d'attendre
@@ -238,8 +241,32 @@ la fenêtre dit ce qu'il fera : Envoyer, ou Insérer.
 Un prompt part dans l'onglet Claude du projet ; sans onglet Claude, un onglet
 s'ouvre avec le prompt en argument de `claude`. On le lance d'un clic dans la vue,
 par la palette (`/` puis son nom — les skills y sont aussi), par le bouton des prompts
-de la barre flottante d'un onglet Claude, ou par un raccourci : chaque prompt est une commande, à qui
-Réglages › Raccourcis donne une touche.
+de la barre flottante d'un onglet Claude, ou par sa touche.
+
+### Au clavier
+
+`Ctrl+Maj+1` ouvre la palette sur les prompts : quelques lettres, Entrée, et le
+prompt part. Chaque prompt reçoit aussi, à sa création, le premier numéro libre de
+`Ctrl+Maj+2` à `Ctrl+Maj+9`, et le garde : en supprimer un ne décale pas les
+autres, le numéro libéré attend le prochain prompt. Au-delà de huit, un prompt n'en
+a pas d'office. Un prompt du projet arrivé par git est numéroté à sa première
+lecture, comme s'il venait d'être créé. Les numéros visent la rangée des chiffres,
+quel que soit le clavier : en AZERTY, `Ctrl+Maj+2` est la touche marquée `2 é`.
+`Ctrl+Maj+0` n'est pas pris : Windows le garde pour changer de méthode de saisie
+dès que plusieurs langues sont installées.
+
+La touche d'un prompt se voit à côté de son nom, dans la vue, la palette et le menu
+de la barre flottante. Un clic dessus, dans la vue, écoute la combinaison suivante :
+Échap annule, Suppr retire la touche, et une combinaison déjà prise est retirée à
+l'autre action, ce que la vue dit. Réglages › Raccourcis, où chaque prompt est une
+action, fait de même.
+
+Les touches sont à soi : gardées avec les autres raccourcis de Clide, jamais dans
+`.claude/clide-prompts.json` ; un collègue qui reçoit les prompts du projet ne
+reçoit pas les miennes. Mes prompts perso me suivent partout avec leur numéro, et un
+prompt du projet peut en porter un qu'un des miens a ailleurs : dans ce projet,
+c'est le sien qui part, comme dans la liste où il passe d'abord. Le mien montre
+alors sa touche estompée, avec le nom de celui qui la prend.
 
 Sous la liste, **Souvent tapées** relève les commandes `/…` tapées au moins trois
 fois ces trente derniers jours, hors de celles de Claude Code lui-même et de celles

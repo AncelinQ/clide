@@ -60,14 +60,20 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 ## Terminaux et serveurs
 
 - Les **terminaux survivent au rechargement** de la page, avec leur sortie.
-- **Modèle de la session** changé par un sélecteur ; taille du contexte dans la
-  barre d'état.
+- **Groupes d'onglets** repliables, comme ceux de Chrome : faits à la main,
+  fichiers compris, ou par type d'un geste ; repliés, ils montrent les signes de
+  leurs onglets Claude.
+- **Modèle et effort de la session** changés pour elle seule, sans toucher au
+  défaut des suivantes ; un onglet ouvert sur le modèle et l'effort choisis ;
+  taille du contexte dans la barre d'état.
 - **Serveurs de développement** : adresse détectée dans la sortie, serveurs
   lancés par Claude repérés par leur port, ouverts dans le navigateur d'un clic.
 
 ## Application
 
 - **Palette de commandes** et **raccourcis modifiables** ; ClaudeTerm les fixait.
+- **Prompts enregistrés au clavier** : `Ctrl+Maj+1` pour leur liste,
+  `Ctrl+Maj+2` à `9` pour chacun, numérotés d'office et réglables depuis leur vue.
 - **Couleurs de l'interface** : presets, dégradés, une palette par mode.
 - Langue changée sans relancer.
 - Largeurs de colonnes réglables et mémorisées ; changer de projet ramène son

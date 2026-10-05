@@ -8,6 +8,7 @@ import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { backTarget, placementOf, splitTabs, type Placement, type ScriptsShelf } from "@/lib/script-shelf";
+import type { TabGroups } from "@/lib/tab-groups";
 import { ownActiveTab, tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -32,6 +33,8 @@ export interface Project {
   scriptsFolded: string[];
   /** Groupes et dossiers repliés de la vue Commit (`SavedProject.commitFolded`). */
   commitFolded: string[];
+  /** Groupes de la barre d'onglets (`lib/tab-groups.ts`). */
+  tabGroups: TabGroups;
 }
 
 export type Theme = "auto" | "light" | "dark";
@@ -62,6 +65,9 @@ export type ScriptLaunch = "show" | "stay";
 
 /** Comment s'ouvrent les menus du « + » des onglets et de la barre de Claude : au survol, ou au clic seulement. */
 export type MenuOpening = "hover" | "click";
+
+/** Où va un onglet ouvert quand un groupe de son type existe. */
+export type NewTabInGroup = "beside" | "join";
 
 /** Langue de l'interface ; `auto` suit celle du système. */
 export type Language = "auto" | "fr" | "en";
@@ -132,6 +138,8 @@ export interface State {
   promptInput: { label: string; mode: "insert" | "send"; resolve: (value: string | undefined) => void } | null;
   /** Terminal de script fini qui vient de refuser une frappe : le cadre le rappelle un instant. */
   refusedInput: string | null;
+  /** Avis montré un instant en bas d'un terminal : un changement de modèle qui attend, ou qui n'a pas pu se faire. */
+  terminalNotice: { id: string; text: string } | null;
   /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
   renamingTab: string | null;
   /** Fichier que l'explorateur doit déplier et sélectionner dès qu'il est monté ; il l'efface une fois fait. */
@@ -163,6 +171,8 @@ export interface State {
   menuOpening: MenuOpening;
   /** Un prompt « insérer » dont la `{saisie}` vient d'être donnée part aussitôt, au lieu d'attendre Entrée dans le terminal. */
   sendAfterInput: boolean;
+  /** Un onglet ouvert quand un groupe de son type existe : à côté du groupe, ou dedans. */
+  newTabInGroup: NewTabInGroup;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -198,7 +208,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput"
+  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput" | "newTabInGroup"
 > {
   let raw: unknown;
   try {
@@ -246,6 +256,7 @@ let state: State = {
   paletteQuery: ">",
   promptInput: null,
   refusedInput: null,
+  terminalNotice: null,
   renamingTab: null,
   revealFile: null,
   addingProject: false,
@@ -291,6 +302,7 @@ function persist(): void {
       scriptLaunch: state.scriptLaunch,
       menuOpening: state.menuOpening,
       sendAfterInput: state.sendAfterInput,
+      newTabInGroup: state.newTabInGroup,
     },
   };
   const text = JSON.stringify(saved);
