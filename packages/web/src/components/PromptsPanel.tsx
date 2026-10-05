@@ -260,7 +260,8 @@ function rememberAnswer(label: string, text: string): void {
 }
 
 /**
- * Demande la valeur de `{saisie}` quand un prompt enregistré en porte une. Pour
+ * Demande la valeur de `{saisie}` quand un prompt enregistré en porte une. Laissée
+ * vide, elle ne bloque rien : le prompt part sans elle. Pour
  * un prompt « insérer », un interrupteur à côté des boutons propose de l'envoyer
  * aussitôt plutôt que de le laisser à compléter dans le terminal ; son réglage
  * est retenu.
@@ -284,7 +285,7 @@ export function PromptInputDialog() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{request?.label}</DialogTitle>
-          <DialogDescription>{t("Ce que le prompt doit porter à la place de {saisie}.")}</DialogDescription>
+          <DialogDescription>{t("Ce que le prompt doit porter à la place de {saisie} ; vide, il part sans.")}</DialogDescription>
         </DialogHeader>
         <Textarea
           autoFocus
@@ -295,7 +296,7 @@ export function PromptInputDialog() {
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
-              if (value.trim()) answer(value.trim());
+              answer(value.trim());
             }
           }}
         />
@@ -312,8 +313,8 @@ export function PromptInputDialog() {
           <Button variant="ghost" onClick={() => answer(undefined)}>
             {t("Annuler")}
           </Button>
-          <Button disabled={!value.trim()} onClick={() => answer(value.trim())}>
-            {sends ? t("Envoyer") : t("Insérer")}
+          <Button onClick={() => answer(value.trim())}>
+            {value.trim() ? (sends ? t("Envoyer") : t("Insérer")) : sends ? t("Envoyer sans saisie") : t("Insérer sans saisie")}
           </Button>
         </DialogFooter>
       </DialogContent>

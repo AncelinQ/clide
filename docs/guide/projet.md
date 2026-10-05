@@ -228,7 +228,10 @@ choisi dans l'éditeur), `{fichier}` (le fichier ouvert au centre), `{branche}`,
 `{saisie}` (demandée dans une petite fenêtre, qui propose en pastilles les cinq
 dernières réponses données à ce prompt dans ce navigateur). Une variable sans
 valeur arrête l'envoi et le dit : « explique {sélection} » ne part pas sans
-sélection.
+sélection. La saisie fait exception, puisqu'on la donne soi-même : laissée vide, elle
+ne bloque rien, le prompt part sans elle — `/sc:brainstorm {saisie}` envoie
+`/sc:brainstorm` —, et le bouton de la fenêtre le dit, « Envoyer sans saisie ».
+Seul Annuler, ou Échap, arrête l'envoi.
 
 Pour un prompt **insérer** qui porte `{saisie}`, la fenêtre propose un interrupteur
 **Envoyer directement** : la saisie faite, le prompt part validé au lieu d'attendre

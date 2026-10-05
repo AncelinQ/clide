@@ -35,23 +35,33 @@ export function departure(prompt: { text: string; mode: "insert" | "send" }, sen
   return sendAfterInput && variablesOf(prompt.text).includes("saisie") ? "send" : "insert";
 }
 
+/** Une variable et les blancs qui la précèdent sur sa ligne : partie vide, elle les emporte. */
+const SPACED = /([ \t]*)\{([a-zé]+)\}/gi;
+
 /**
  * Remplace les variables par leurs valeurs. Une variable sans valeur arrête
  * l'envoi plutôt que de partir vide : « explique {sélection} » sans sélection
- * enverrait une demande sans objet. Une accolade qui n'est pas une variable
- * connue reste telle quelle.
+ * enverrait une demande sans objet. `{saisie}` fait exception : on la donne
+ * soi-même, et la laisser vide dit d'envoyer le prompt sans elle, qui perd alors
+ * le blanc qui la précédait. Une accolade qui n'est pas une variable connue reste
+ * telle quelle.
  */
 export function expand(
   text: string,
   values: Partial<Record<PromptVariable, string>>,
 ): { text: string } | { missing: PromptVariable } {
   for (const variable of variablesOf(text)) {
-    if (!values[variable]) return { missing: variable };
+    const value = values[variable];
+    if (value === undefined || (value === "" && variable !== "saisie")) return { missing: variable };
   }
   return {
-    text: text.replace(PATTERN, (whole, name: string) => {
-      const variable = ALIASES[name.toLowerCase()];
-      return variable ? (values[variable] ?? whole) : whole;
-    }),
+    text: text
+      .replace(SPACED, (whole, space: string, name: string) => {
+        const variable = ALIASES[name.toLowerCase()];
+        if (!variable) return whole;
+        const value = values[variable] ?? "";
+        return value ? `${space}${value}` : "";
+      })
+      .trim(),
   };
 }

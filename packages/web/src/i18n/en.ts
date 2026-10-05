@@ -758,7 +758,9 @@ export const EN: Record<string, string> = {
   Perso: "Personal",
   "Souvent tapées": "Often typed",
   "{count} fois": "{count} times",
-  "Ce que le prompt doit porter à la place de {saisie}.": "What the prompt carries in place of {saisie}.",
+  "Ce que le prompt doit porter à la place de {saisie} ; vide, il part sans.": "What the prompt carries in place of {saisie}; left empty, it goes without.",
+  "Envoyer sans saisie": "Send without input",
+  "Insérer sans saisie": "Insert without input",
   Prompts: "Prompts",
   "Prompts enregistrés": "Saved prompts",
   "Les prompts qu'on envoie souvent à Claude, d'un clic, par la palette (/) ou par un raccourci.":
