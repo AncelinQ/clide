@@ -527,8 +527,8 @@ fichiers ; un shell devenu Claude ne change pas de groupe.
 - `Ctrl+Maj+PageDown` et `PageUp` sautent les onglets d'un groupe replié, comme
   Chrome ; la palette les atteint toujours.
 - « Fermer le groupe », au clic droit de l'étiquette, ferme tous ses onglets après
-  une confirmation qui dit ce qui y tourne ; un fichier modifié demande comme
-  aujourd'hui.
+  une confirmation qui dit ce qui y tourne ; un fichier modifié reste ouvert, sa
+  croix demandant comme aujourd'hui.
 - L'onglet Scripts n'entre dans aucun groupe. Un shell rangé dans Scripts quitte
   son groupe ; sorti des scripts, il le retrouve s'il existe encore.
 - Replier, déplier, grouper par type et dégrouper sont des commandes de la
@@ -541,7 +541,10 @@ la puce, hors du groupe ; avec le réglage sur « rejoindre », il entre dans le
 groupe, qui se déplie pour le montrer. Un groupe « Revue » fait à la main réunit un onglet Claude et deux fichiers ; replié,
 sa puce passe à ⚠ quand Claude y attend une permission.
 
-**État.** Spécifiée avec `/sc:brainstorm` le 2026-10-05 ; ni conçue ni planifiée.
+**État.** Faite, les deux paliers, selon
+[`design-groupes-onglets.md`](design-groupes-onglets.md) : `tabOrder` reste le seul
+ordre, chaque groupe y est rassemblé à la lecture ; le type d'un onglet est celui
+de son ouverture, que le serveur garde (`openedAs`).
 
 ---
 

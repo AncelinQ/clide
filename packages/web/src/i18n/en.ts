@@ -956,4 +956,11 @@ export const EN: Record<string, string> = {
   "Replier ou déplier le groupe de l'onglet": "Collapse or expand the tab's group",
   "Retirer l'onglet de son groupe": "Remove the tab from its group",
   "Dégrouper le groupe de l'onglet": "Ungroup the tab's group",
+  "Grouper les onglets Claude": "Group Claude tabs",
+  "Grouper les shells": "Group shells",
+  "Nouvel onglet d'un type groupé": "New tab of a grouped type",
+  "Quand « Grouper les onglets Claude » ou « Grouper les shells » a fait un groupe, l'onglet de ce type qu'on ouvre ensuite se pose juste après lui, ou y entre.":
+    "Once “Group Claude tabs” or “Group shells” has made a group, a tab of that type opened afterwards lands right after it, or joins it.",
+  "S'ouvre à côté du groupe": "Opens next to the group",
+  "Rejoint le groupe": "Joins the group",
 };

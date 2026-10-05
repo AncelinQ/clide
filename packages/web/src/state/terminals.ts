@@ -10,7 +10,7 @@ import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { nativeZoom, onZoomChange } from "@/state/interface";
 import { applyMarkers } from "@/state/editor";
-import { forgetInGroups, unfoldTab } from "@/state/groups";
+import { forgetInGroups, placeNewTab, unfoldTab } from "@/state/groups";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
   activateProject,
@@ -125,8 +125,14 @@ function onMessage(message: ServerMessage): void {
         const next = { ...current, terminals: { ...current.terminals, [id]: { info: message.terminal, owner } } };
         return {
           terminals: next.terminals,
-          // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
-          projects: remember(owner === current.activeRoot ? lookedAt(next, owner, id) : rememberTab(current.projects, owner, id)),
+          // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son
+          // projet, et se pose près du groupe de son type s'il y en a un.
+          projects: placeNewTab(
+            next,
+            remember(owner === current.activeRoot ? lookedAt(next, owner, id) : rememberTab(current.projects, owner, id)),
+            owner,
+            message.terminal,
+          ),
           // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
           // reprend une session choisie dans History — sauf si l'on a changé de
           // projet entre la demande et la réponse : il attend qu'on y revienne.

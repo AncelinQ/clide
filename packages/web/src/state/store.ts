@@ -66,6 +66,9 @@ export type ScriptLaunch = "show" | "stay";
 /** Comment s'ouvrent les menus du « + » des onglets et de la barre de Claude : au survol, ou au clic seulement. */
 export type MenuOpening = "hover" | "click";
 
+/** Où va un onglet ouvert quand un groupe de son type existe. */
+export type NewTabInGroup = "beside" | "join";
+
 /** Langue de l'interface ; `auto` suit celle du système. */
 export type Language = "auto" | "fr" | "en";
 
@@ -166,6 +169,8 @@ export interface State {
   menuOpening: MenuOpening;
   /** Un prompt « insérer » dont la `{saisie}` vient d'être donnée part aussitôt, au lieu d'attendre Entrée dans le terminal. */
   sendAfterInput: boolean;
+  /** Un onglet ouvert quand un groupe de son type existe : à côté du groupe, ou dedans. */
+  newTabInGroup: NewTabInGroup;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -201,7 +206,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput"
+  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput" | "newTabInGroup"
 > {
   let raw: unknown;
   try {
@@ -294,6 +299,7 @@ function persist(): void {
       scriptLaunch: state.scriptLaunch,
       menuOpening: state.menuOpening,
       sendAfterInput: state.sendAfterInput,
+      newTabInGroup: state.newTabInGroup,
     },
   };
   const text = JSON.stringify(saved);

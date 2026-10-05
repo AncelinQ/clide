@@ -3,8 +3,9 @@
 Contrats et structure de la piste 12 de [`pistes.md`](pistes.md). La piste tient en
 une MR, en deux commits qui suivent ses paliers ; le plan est en fin de document.
 
-Le serveur ne change pas : un groupe est un rangement de la barre, gardé avec le
-projet dans l'état de l'interface, comme `tabOrder`.
+Un groupe est un rangement de la barre, gardé avec le projet dans l'état de
+l'interface, comme `tabOrder`. Le serveur n'y ajoute qu'une chose : le type
+qu'avait un onglet à son ouverture (§ 3, « Par type »).
 
 ---
 
@@ -81,9 +82,11 @@ se saute d'un coup.
 
 **Par type.** `groupByKind` réunit les onglets du type qui ne sont dans aucun
 groupe, dans le groupe de ce type s'il en a un de visible, sinon dans un nouveau
-groupe, nommé Claude ou Shells. Le type est celui de l'ouverture : la commande lit
-`kind` au moment du geste, et un shell devenu Claude, dont le `kind` change, ne
-quitte jamais son groupe — aucun geste ne déplace un onglet déjà rangé.
+groupe, nommé Claude ou Shells. Le type est celui de l'ouverture, pas ce qui
+tourne : `kind` passe à `claude` quand on tape `claude` dans un shell, et revient à
+`shell` quand la session d'un onglet Claude s'arrête. Le serveur garde donc, dans
+`TerminalInfo.openedAs`, le `kind` donné à l'ouverture, qui ne change jamais ; le
+geste et l'ouverture lisent celui-là. Aucun geste ne déplace un onglet déjà rangé.
 
 **À l'ouverture.** `placeOpened` ne joue que s'il existe un groupe visible du type
 de l'onglet ouvert : « à côté », il pose l'onglet juste après le groupe ; « le

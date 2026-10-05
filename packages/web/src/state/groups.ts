@@ -7,13 +7,17 @@
  * un onglet fermé, placer celui qu'on ouvre et déplier le groupe de ce qu'on montre.
  */
 
+import { t } from "@/i18n";
+import { placementOf } from "@/lib/script-shelf";
 import {
   addToGroup,
   createGroup,
   dropInBar,
   gather,
+  groupByKind,
   groupTabId,
   nextColor,
+  placeOpened,
   prune,
   removeFromGroup,
   shiftInBar,
@@ -22,9 +26,11 @@ import {
   updateGroup,
   type Arranged,
   type GroupColor,
+  type GroupKind,
   type TabGroups,
 } from "@/lib/tab-groups";
 import { orderTabs } from "@/lib/tab-order";
+import type { TerminalInfo } from "@/lib/types";
 import { getState, setState, tabsOf, type Project, type State } from "@/state/store";
 
 /** Onglets de la barre du projet `root`, terminaux et fichiers, dans l'ordre rassemblé. */
@@ -109,4 +115,46 @@ export function dropOnBar(root: string | null, moved: string, target: string, si
 /** `Alt+Maj+Page` sur l'onglet `id`. */
 export function shiftTabInBar(root: string | null, id: string, step: -1 | 1): void {
   arrange(root, (groups, order) => shiftInBar(groups, order, id, step));
+}
+
+/** Terminaux de la barre ouverts comme `kind` et rangés dans aucun groupe : ce que le geste par type réunirait. */
+function looseOfKind(current: State, root: string | null, kind: GroupKind): string[] {
+  const members = current.projects.find((item) => item.root === root)?.tabGroups.members ?? {};
+  return tabsOf(current, root)
+    .bar.filter((info) => info.openedAs === kind && !members[info.id])
+    .map((info) => info.id);
+}
+
+/** Vrai si « Grouper les onglets Claude » ou « les shells » a quelque chose à réunir. */
+export function canGroupKind(root: string | null, kind: GroupKind): boolean {
+  return looseOfKind(getState(), root, kind).length > 0;
+}
+
+/**
+ * « Grouper les onglets Claude » ou « les shells » : un geste, pas un mode. Le type
+ * est celui de l'ouverture, `openedAs` : un shell où `claude` tourne reste un shell.
+ */
+export function groupKind(root: string | null, kind: GroupKind): void {
+  const candidates = looseOfKind(getState(), root, kind);
+  const group = {
+    id: crypto.randomUUID(),
+    name: kind === "claude" ? t("Claude") : t("Shells"),
+    color: kind === "claude" ? ("orange" as const) : ("blue" as const),
+    folded: false,
+  };
+  arrange(root, (groups, order) => groupByKind(groups, order, kind, candidates, group));
+}
+
+/**
+ * Projets une fois l'onglet `info` qu'on vient d'ouvrir posé près du groupe de son
+ * type, à côté ou dedans selon le réglage ; tels quels sans groupe de ce type, ou
+ * pour un onglet qui va dans Scripts. `current` connaît déjà le terminal.
+ */
+export function placeNewTab(current: State, projects: Project[], owner: string, info: TerminalInfo): Project[] {
+  const project = projects.find((item) => item.root === owner);
+  if (!project || placementOf(info, project.scripts.placed) !== "bar") return projects;
+  const order = barOrder({ ...current, projects }, owner);
+  const result = placeOpened(project.tabGroups, order, info.id, info.openedAs, current.newTabInGroup);
+  if (!result) return projects;
+  return projects.map((item) => (item.root === owner ? { ...item, tabOrder: result.order, tabGroups: result.groups } : item));
 }

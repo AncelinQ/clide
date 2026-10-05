@@ -12,8 +12,10 @@ import { closeFile } from "@/state/editor";
 import {
   addTabToGroup,
   barOrder,
+  canGroupKind,
   colorGroup,
   dissolveGroup,
+  groupKind,
   newGroupWith,
   removeTabFromGroup,
   renameGroup,
@@ -64,6 +66,9 @@ export function tabGroupItems(root: string | null, id: string): MenuItem[] {
         ]
       : []),
     ...(own ? [{ kind: "item" as const, label: t("Retirer du groupe"), icon: Ungroup, run: () => removeTabFromGroup(root, id) }] : []),
+    { kind: "separator" },
+    { kind: "item", label: t("Grouper les onglets Claude"), disabled: !canGroupKind(root, "claude"), run: () => groupKind(root, "claude") },
+    { kind: "item", label: t("Grouper les shells"), disabled: !canGroupKind(root, "shell"), run: () => groupKind(root, "shell") },
   ];
 }
 

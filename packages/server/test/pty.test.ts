@@ -160,11 +160,16 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
 
-  it("fait d'un shell un onglet Claude le temps d'un claude, puis le rend", async () => {
+  it("fait d'un shell un onglet Claude le temps d'un claude, puis le rend, sans oublier qu'on a ouvert un shell", async () => {
     const terminal = await manager.open({ projectRoot: scratch });
     const kinds: string[] = [];
+    const opened: string[] = [];
     const claude: (string | undefined)[] = [];
-    manager.on("state", (info) => info.id === terminal.id && kinds.push(info.kind));
+    manager.on("state", (info) => {
+      if (info.id !== terminal.id) return;
+      kinds.push(info.kind);
+      opened.push(info.openedAs);
+    });
     manager.on("claude", (id, command) => id === terminal.id && claude.push(command));
     await waitFor(() => kinds.length > 0, 15000);
 
@@ -176,6 +181,8 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     expect(claude).toEqual(["claude --resume x", undefined]);
     expect(kinds).toContain("claude");
     expect(kinds.at(-1)).toBe("shell");
+    expect(terminal.openedAs).toBe("shell");
+    expect(new Set(opened)).toEqual(new Set(["shell"]));
     manager.close(terminal.id);
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);

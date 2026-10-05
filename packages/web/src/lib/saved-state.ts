@@ -85,6 +85,8 @@ export interface SavedPrefs {
   menuOpening: "hover" | "click";
   /** Un prompt « insérer » dont la `{saisie}` vient d'être donnée part aussitôt, au lieu d'attendre Entrée dans le terminal. */
   sendAfterInput: boolean;
+  /** Un onglet ouvert quand un groupe de son type existe : à côté du groupe, ou dedans. */
+  newTabInGroup: "beside" | "join";
 }
 
 export interface SavedState {
@@ -125,6 +127,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   scriptLaunch: "show",
   menuOpening: "hover",
   sendAfterInput: false,
+  newTabInGroup: "beside",
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -304,6 +307,7 @@ function prefs(value: unknown): SavedPrefs {
     scriptLaunch: oneOf(source["scriptLaunch"], ["show", "stay"], DEFAULT_PREFS.scriptLaunch),
     menuOpening: oneOf(source["menuOpening"], ["hover", "click"], DEFAULT_PREFS.menuOpening),
     sendAfterInput: flag(source["sendAfterInput"], DEFAULT_PREFS.sendAfterInput),
+    newTabInGroup: oneOf(source["newTabInGroup"], ["beside", "join"], DEFAULT_PREFS.newTabInGroup),
   };
 }
 

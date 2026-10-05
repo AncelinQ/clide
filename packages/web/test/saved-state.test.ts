@@ -63,6 +63,7 @@ describe("migrate depuis la version 1", () => {
       scriptLaunch: "show",
       menuOpening: "hover",
       sendAfterInput: false,
+      newTabInGroup: "beside",
     });
   });
 });
@@ -156,6 +157,8 @@ describe("migrate en version 2", () => {
   it("retient l'envoi direct après la saisie, faux par défaut", () => {
     expect(migrate({ version: 2, prefs: { sendAfterInput: true } }).prefs.sendAfterInput).toBe(true);
     expect(migrate({ version: 2, prefs: { sendAfterInput: "oui" } }).prefs.sendAfterInput).toBe(false);
+    expect(migrate({ version: 2, prefs: { newTabInGroup: "join" } }).prefs.newTabInGroup).toBe("join");
+    expect(migrate({ version: 2, prefs: { newTabInGroup: "partout" } }).prefs.newTabInGroup).toBe("beside");
     expect(migrate({ version: 2 }).prefs.sendAfterInput).toBe(false);
   });
 

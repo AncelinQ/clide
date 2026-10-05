@@ -19,7 +19,7 @@ import {
 import { tabStops } from "@/lib/script-shelf";
 import { groupOf, hiddenTabs } from "@/lib/tab-groups";
 import { orderTabs } from "@/lib/tab-order";
-import { barOrder, dissolveGroup, newGroupWith, removeTabFromGroup, shiftTabInBar, toggleGroup } from "@/state/groups";
+import { barOrder, dissolveGroup, groupKind, newGroupWith, removeTabFromGroup, shiftTabInBar, toggleGroup } from "@/state/groups";
 import { toggleScripts } from "@/state/shelf";
 import { cycleTheme } from "@/state/theme";
 import { closeFile, revealInTree, saveFile, selectedText } from "@/state/editor";
@@ -260,6 +260,8 @@ export function commands(): Command[] {
         if (group) toggleGroup(activeRoot, group.id);
       },
     },
+    { id: "tabGroup.claude", group: t("Onglets"), label: t("Grouper les onglets Claude"), run: () => groupKind(activeRoot, "claude") },
+    { id: "tabGroup.shell", group: t("Onglets"), label: t("Grouper les shells"), run: () => groupKind(activeRoot, "shell") },
     {
       id: "tabGroup.leave",
       group: t("Onglets"),

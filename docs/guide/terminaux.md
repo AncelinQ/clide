@@ -70,6 +70,18 @@ fichiers.
   ces actions n'ont pas de raccourci par défaut, Réglages › Raccourcis leur en
   donne un.
 
+- **Par type, d'un geste.** « Grouper les onglets Claude » et « Grouper les
+  shells », au clic droit d'un onglet ou dans la palette, réunissent dans un groupe
+  Claude ou Shells les onglets de ce type rangés dans aucun groupe ; refait, le
+  geste complète le groupe qui existe. Le type est celui de l'ouverture : un shell
+  où l'on tape `claude` reste un shell, et un onglet Claude dont la session s'est
+  arrêtée reste un onglet Claude. Un onglet déjà dans un groupe fait à la main n'en
+  bouge pas.
+- **Les onglets ouverts ensuite.** Réglages › Terminal › « Nouvel onglet d'un type
+  groupé » choisit : un onglet Claude ou un shell qu'on ouvre se pose juste après
+  le groupe de son type, hors de lui — le défaut —, ou y entre, et le groupe se
+  déplie pour le montrer. Sans groupe de son type, il va au bout de la barre.
+
 Le projet garde ses groupes d'une ouverture à l'autre, comme l'ordre des onglets.
 Fermer un onglet le fait quitter son groupe, et un groupe vidé disparaît. Un shell
 rangé dans Scripts garde le sien : sorti des scripts, il le retrouve s'il existe
