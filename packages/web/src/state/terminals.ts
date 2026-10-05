@@ -5,6 +5,7 @@ import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import { afterClose, backTarget, lookAt, natureOf, placementOf, shelfOrder, type ScriptsShelf } from "@/lib/script-shelf";
 import { claudeActivity } from "@/lib/claude-title";
+import type { ScreenRow } from "@/lib/claude-picker";
 import { clipboardKey, isTerminalReply } from "@/lib/terminal-input";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
@@ -493,6 +494,37 @@ export function closeTerminal(id: string): void {
     }
     return { terminals, attention, claudeBusy, live, projects, activeTerminalId };
   });
+}
+
+/**
+ * Les lignes de l'écran d'un terminal, telles qu'on les voit : le tampon
+ * alternatif d'un programme plein écran comme Claude Code, sinon le bas du tampon,
+ * quel que soit le défilement. Chaque caractère dit s'il est estompé.
+ */
+export function screenRows(id: string): ScreenRow[] | undefined {
+  const entry = attached.get(id);
+  if (!entry) return undefined;
+  const buffer = entry.term.buffer.active;
+  const rows: ScreenRow[] = [];
+  for (let y = buffer.baseY; y < buffer.baseY + entry.term.rows; y++) {
+    const line = buffer.getLine(y);
+    if (!line) continue;
+    let text = "";
+    const dim: boolean[] = [];
+    for (let x = 0; x < line.length; x++) {
+      const cell = line.getCell(x);
+      // La seconde moitié d'un caractère double n'a rien à elle.
+      if (!cell || cell.getWidth() === 0) continue;
+      const chars = cell.getChars() || " ";
+      for (const char of chars) {
+        text += char;
+        dim.push(cell.isDim() !== 0);
+      }
+    }
+    const kept = text.trimEnd();
+    rows.push({ text: kept, dim: dim.slice(0, [...kept].length) });
+  }
+  return rows;
 }
 
 /** Ce qu'a donné la recherche d'une ligne dans un terminal. */
