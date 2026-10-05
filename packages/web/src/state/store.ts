@@ -30,6 +30,8 @@ export interface Project {
   scripts: ScriptsShelf;
   /** En-têtes repliés du panneau Scripts (`SavedProject.scriptsFolded`). */
   scriptsFolded: string[];
+  /** Groupes et dossiers repliés de la vue Commit (`SavedProject.commitFolded`). */
+  commitFolded: string[];
 }
 
 export type Theme = "auto" | "light" | "dark";

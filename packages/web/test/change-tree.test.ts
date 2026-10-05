@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { changeTree, filesUnder, type ChangeDir } from "../src/lib/change-tree";
+import { changeTree, dirPaths, filesUnder, foldKeys, type ChangeDir } from "../src/lib/change-tree";
 
 type Change = { path: string };
 
@@ -45,5 +45,22 @@ describe("changeTree", () => {
     expect(dir?.name).toBe("a/b/c");
     expect(dir?.path).toBe("a/b/c");
     expect(filesUnder(tree).map((file) => file.path)).toEqual(["a/b/c/f.ts", "a/b/c/g.ts"]);
+  });
+});
+
+describe("foldKeys", () => {
+  it("liste chaque dossier une fois, un dossier fusionné sous son chemin complet", () => {
+    const tree = changeTree([{ path: "a/b/c/f.ts" }, { path: "a/b/c/d/g.ts" }, { path: "a/b/c/e/h.ts" }, { path: "x.ts" }]);
+    expect(dirPaths(tree)).toEqual(["a/b/c", "a/b/c/d", "a/b/c/e"]);
+  });
+
+  it("nomme chaque groupe, même vide, et ses dossiers par groupe|chemin", () => {
+    expect(
+      foldKeys([
+        { id: "conflicts", changes: [] },
+        { id: "changes", changes: [{ path: "src/a.ts" }, { path: "b.ts" }] },
+        { id: "untracked", changes: [{ path: "src/new/c.ts" }] },
+      ]),
+    ).toEqual(["conflicts", "changes", "changes|src", "untracked", "untracked|src/new"]);
   });
 });

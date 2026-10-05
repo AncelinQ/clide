@@ -60,3 +60,18 @@ function baseName(path: string): string {
 export function filesUnder<T extends TreeChange>(dir: ChangeDir<T>): T[] {
   return [...dir.files, ...dir.dirs.flatMap((child) => filesUnder(child))];
 }
+
+/** Chemins des dossiers sous `dir`, à toute profondeur ; un dossier fusionné compte une fois, sous son chemin complet. */
+export function dirPaths<T extends TreeChange>(dir: ChangeDir<T>): string[] {
+  return dir.dirs.flatMap((child) => [child.path, ...dirPaths(child)]);
+}
+
+/**
+ * Tout ce qui se replie dans la vue Commit : chaque groupe, par son identifiant,
+ * même vide, et chaque dossier de ses changements, par `groupe|chemin`. Les
+ * dossiers comptent aussi quand la vue est à plat : le rangement par dossier
+ * les retrouve repliés.
+ */
+export function foldKeys(groups: readonly { id: string; changes: readonly TreeChange[] }[]): string[] {
+  return groups.flatMap((group) => [group.id, ...dirPaths(changeTree(group.changes)).map((path) => `${group.id}|${path}`)]);
+}

@@ -35,6 +35,8 @@ export interface SavedProject {
   scripts: ScriptsShelf;
   /** En-têtes repliés du panneau Scripts : `running`, `groups`, un dossier par son chemin, une catégorie par `chemin|titre`. */
   scriptsFolded: string[];
+  /** Ce qui est replié dans la vue Commit : un groupe par son identifiant, un dossier par `groupe|chemin`. */
+  commitFolded: string[];
 }
 
 export interface SavedLayout {
@@ -135,6 +137,7 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   tabOrder: [],
   scripts: EMPTY_SHELF,
   scriptsFolded: [],
+  commitFolded: [],
 };
 
 type Json = Record<string, unknown>;
@@ -205,6 +208,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     tabOrder: [...new Set(strings(value["tabOrder"]))],
     scripts: shelf(value["scripts"]),
     scriptsFolded: [...new Set(strings(value["scriptsFolded"]))],
+    commitFolded: [...new Set(strings(value["commitFolded"]))],
   };
 }
 
