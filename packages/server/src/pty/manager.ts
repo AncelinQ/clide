@@ -58,6 +58,8 @@ export interface SpawnOptions {
   owner?: string;
   /** Nom de l'onglet, `projet › script` pour un script. */
   label?: string;
+  /** Nom donné d'avance, comme à la main : celui d'une session qu'on reprend. */
+  name?: string;
   script?: string;
 }
 
@@ -141,6 +143,7 @@ export class PtyManager {
     const terminal: Terminal = {
       pty,
       ...(options.label ? { label: options.label } : {}),
+      ...(options.name ? { name: options.name } : {}),
       scanner: new OscScanner(),
       urls: new DevUrlScanner(),
       backlog: "",
@@ -151,7 +154,7 @@ export class PtyManager {
         projectRoot: options.projectRoot,
         cwd: options.projectRoot,
         state: "idle",
-        title: options.label ?? (kind === "claude" ? "claude" : "shell"),
+        title: options.name ?? options.label ?? (kind === "claude" ? "claude" : "shell"),
         exited: false,
         ...(options.owner ? { owner: options.owner } : {}),
         ...(options.script ? { script: options.script } : {}),
@@ -259,6 +262,11 @@ export class PtyManager {
     terminal.info.title = titleOf(terminal);
     this.#emit("state", { ...terminal.info });
     return true;
+  }
+
+  /** Nom donné à un onglet, s'il en a un : ni `claude` ni son nom d'ouverture. */
+  nameOf(id: string): string | undefined {
+    return this.#terminals.get(id)?.name;
   }
 
   write(id: string, data: string): boolean {

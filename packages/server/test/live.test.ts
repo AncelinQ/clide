@@ -57,15 +57,18 @@ describe("LiveSessions", () => {
     live.on((_terminalId, session) => received.push(session));
     live.track("t1", CWD);
 
+    expect(live.sessionOf("t1")).toBeUndefined();
     await writeFile(join(directory, "devinee.jsonl"), line({ type: "ai-title", aiTitle: "devinée" }), "utf8");
     await live.tick();
     expect(received.at(-1)?.sessionId).toBe("devinee");
+    expect(live.sessionOf("t1")).toBe("devinee");
 
     const exact = join(directory, "exacte.jsonl");
     await writeFile(exact, line({ type: "ai-title", aiTitle: "exacte" }), "utf8");
     live.bind("t1", exact, "exacte");
     await live.tick();
     expect(received.at(-1)).toMatchObject({ sessionId: "exacte", title: "exacte" });
+    expect(live.sessionOf("t1")).toBe("exacte");
   });
 
   it("sert l'onglet le plus récent en premier : le transcript créé après lui est le sien", async () => {
