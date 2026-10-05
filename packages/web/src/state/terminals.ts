@@ -10,6 +10,7 @@ import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { nativeZoom, onZoomChange } from "@/state/interface";
 import { applyMarkers } from "@/state/editor";
+import { forgetInGroups, unfoldTab } from "@/state/groups";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
   activateProject,
@@ -247,8 +248,12 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
   const kept = { ...current, terminals: next };
   setState({
     terminals: next,
-    // Les commandes retenues des terminaux que le serveur n'a plus ne serviront plus.
-    projects: current.projects.map((project) => pruneShelf(project, next)),
+    // Les commandes retenues des terminaux que le serveur n'a plus ne serviront plus,
+    // ni leur place dans un groupe ; les fichiers ouverts gardent la leur.
+    projects: forgetInGroups(
+      current.projects.map((project) => pruneShelf(project, next)),
+      (project, id) => next[id] !== undefined || project.openFiles.includes(id),
+    ),
     activeTerminalId:
       ownActiveTab(next, current.activeTerminalId, current.activeRoot) ??
       (current.activeRoot
@@ -450,7 +455,10 @@ export function closeTerminal(id: string): void {
     delete claudeBusy[id];
     const live = { ...current.live };
     delete live[id];
-    let projects = forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project));
+    let projects = forgetInGroups(
+      forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project)),
+      (_, member) => member !== id,
+    );
     let activeTerminalId = current.activeTerminalId;
     const project = projects.find((item) => item.root === current.activeRoot);
     // Les rangements d'avant la fermeture : celui du terminal fermé vient d'être élagué.
@@ -540,6 +548,7 @@ export function focusTerminal(id: string, options: { focus?: boolean } = {}): vo
   const entry = getState().terminals[id];
   if (!entry) return;
   dismissSystem(id);
+  unfoldTab(entry.owner, id);
   setState((current) => {
     const attention = { ...current.attention };
     delete attention[id];

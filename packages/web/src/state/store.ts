@@ -8,6 +8,7 @@ import type { TestTarget } from "@/lib/test-commands";
 import { DEFAULT_LAYOUT, DEFAULT_PROJECT, SAVED_VERSION, migrate, trimRoot, type SavedState } from "@/lib/saved-state";
 import type { Keymap } from "@/lib/keymap";
 import { backTarget, placementOf, splitTabs, type Placement, type ScriptsShelf } from "@/lib/script-shelf";
+import type { TabGroups } from "@/lib/tab-groups";
 import { ownActiveTab, tabToShow } from "@/lib/workspace";
 import { LEGACY_SAVED, SAVED, saveRemote } from "@/state/saved";
 
@@ -32,6 +33,8 @@ export interface Project {
   scriptsFolded: string[];
   /** Groupes et dossiers repliés de la vue Commit (`SavedProject.commitFolded`). */
   commitFolded: string[];
+  /** Groupes de la barre d'onglets (`lib/tab-groups.ts`). */
+  tabGroups: TabGroups;
 }
 
 export type Theme = "auto" | "light" | "dark";

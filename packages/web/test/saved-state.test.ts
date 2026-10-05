@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EMPTY_SHELF } from "../src/lib/script-shelf";
+import { NO_GROUPS } from "../src/lib/tab-groups";
 import { DEFAULT_LAYOUT, DEFAULT_PREFS, SAVED_VERSION, migrate } from "../src/lib/saved-state";
 
 /** Forme réelle d'un état v1, chemins anonymisés. */
@@ -80,7 +81,7 @@ describe("migrate en version 2", () => {
       layout: { showLeft: false, sessionCollapsed: true, previewOpen: true, globalTab: "chantiers" },
       prefs: {},
     });
-    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], scripts: EMPTY_SHELF, scriptsFolded: [], commitFolded: [] });
+    expect(state.projects[0]).toEqual({ root: "C:\\a", browsePath: "src", leftMode: "mcp", bottomMode: "plan", activeTab: "t1", openFiles: ["C:/a/x.ts"], activeFile: null, tabOrder: [], scripts: EMPTY_SHELF, scriptsFolded: [], commitFolded: [], tabGroups: NO_GROUPS });
     expect(state.layout).toMatchObject({ showLeft: false, showRight: true, sessionCollapsed: true, globalTab: "chantiers" });
     expect(state.prefs).toEqual(DEFAULT_PREFS);
   });
@@ -99,6 +100,35 @@ describe("migrate en version 2", () => {
   it("garde l'ordre rangé des onglets, sans doublon ni valeur étrangère", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\\a", tabOrder: ["t2", "C:/a/x.ts", "t2", 4] }], active: "C:\\a" });
     expect(state.projects[0]?.tabOrder).toEqual(["t2", "C:/a/x.ts"]);
+  });
+
+  it("garde les groupes d'onglets, écarte l'illisible et oublie un membre sans groupe", () => {
+    const state = migrate({
+      version: 2,
+      projects: [
+        {
+          root: "C:\\a",
+          tabGroups: {
+            groups: [
+              { id: "g", name: "Revue", color: "pink", folded: true, kind: "claude" },
+              { id: "h", name: 3, color: "fuchsia" },
+              { id: "vide", name: "", color: "blue" },
+              { name: "sans identifiant" },
+            ],
+            members: { t1: "g", t2: "h", t3: "absent", "C:/a/x.ts": "g" },
+          },
+        },
+        { root: "C:\\c" },
+      ],
+    });
+    expect(state.projects[0]?.tabGroups).toEqual({
+      groups: [
+        { id: "g", name: "Revue", color: "pink", folded: true, kind: "claude" },
+        { id: "h", name: "", color: "grey", folded: false },
+      ],
+      members: { t1: "g", t2: "h", "C:/a/x.ts": "g" },
+    });
+    expect(state.projects[1]?.tabGroups).toEqual(NO_GROUPS);
   });
 
   it("garde les en-têtes repliés du panneau Scripts, sans doublon ni valeur étrangère", () => {

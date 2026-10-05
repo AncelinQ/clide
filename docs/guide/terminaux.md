@@ -5,7 +5,7 @@ Chaque projet a ses onglets de terminal : des shells PowerShell, et des onglets 
 La barre d'onglets porte le menu `+` : il ouvre un onglet — Claude, Claude avec un
 modèle choisi, un shell — ou lance la capture d'écran vers le prompt ; chaque entrée
 affiche son raccourci. Un clic droit sur un onglet le renomme, le ferme, ferme les
-autres ou copie son dossier.
+autres, copie son dossier ou le range dans un groupe.
 
 Pour distinguer deux onglets Claude, on les nomme : double-clic sur l'onglet, ou
 clic droit › Renommer, puis Entrée (Échap annule). Le nom tient tant que l'onglet
@@ -35,6 +35,45 @@ terminal s'il y en a une, et interrompt Claude sinon. En rendu fullscreen, Claud
 Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
 Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
 raccourcis de PowerShell, qui collent et annulent de la même façon.
+
+## Grouper les onglets
+
+Des onglets qui vont ensemble — l'onglet Claude d'une revue et les fichiers qu'il
+touche, les shells d'un même serveur — se rangent sous une étiquette, comme les
+groupes d'onglets de Chrome. Un groupe mêle ce qu'on veut : onglets Claude, shells,
+fichiers.
+
+- **Créer et ranger.** Le clic droit d'un onglet propose « Nouveau groupe », qui
+  ouvre aussitôt le nom de l'étiquette (Entrée valide ; vide, l'étiquette n'est
+  qu'une puce de couleur), « Ajouter au groupe › … » et « Retirer du groupe » ;
+  retiré, un onglet se pose juste après son groupe. Les onglets d'un groupe
+  restent côte à côte, dans un cadre teinté de sa couleur.
+- **Replier.** Un clic sur l'étiquette replie le groupe : ses onglets quittent la
+  barre, et l'étiquette dit leur nombre et les signes de ses onglets Claude — ✦ au
+  travail, ⚠ en attente d'une réponse, un point vert fini sans être vu —, comme la
+  pastille du projet. Replier le groupe de l'onglet qu'on regarde le laisse
+  montré, l'étiquette entourée. Montrer un onglet d'un groupe replié, depuis la
+  palette ou une notification, déplie le groupe.
+- **L'étiquette** se renomme par double-clic, et son clic droit la renomme, en
+  change la couleur, la replie, « Dégrouper » — les onglets restent à leur place —
+  ou « Fermer le groupe ». Celui-ci ferme tous ses onglets ; s'il porte un onglet
+  Claude ouvert, une commande en cours ou un fichier modifié, il le dit d'abord, et
+  un fichier modifié reste ouvert.
+- **Au glisser**, un onglet lâché sur un onglet prend son groupe, ou n'en a plus.
+  Lâché devant une étiquette, il se pose avant le groupe ; derrière, il entre en
+  tête d'un groupe déplié, ou se pose juste après un groupe replié. L'étiquette
+  glissée emmène tout le groupe.
+- **Au clavier**, `Alt+Maj+Page suiv./préc.` fait sortir l'onglet de son groupe
+  quand il en atteint le bord, et l'y fait entrer quand il y arrive ; un groupe
+  replié se franchit d'un coup. `Ctrl+Maj+Page suiv./préc.` saute les onglets d'un
+  groupe replié. La palette crée, replie, quitte et dégroupe, sur l'onglet montré :
+  ces actions n'ont pas de raccourci par défaut, Réglages › Raccourcis leur en
+  donne un.
+
+Le projet garde ses groupes d'une ouverture à l'autre, comme l'ordre des onglets.
+Fermer un onglet le fait quitter son groupe, et un groupe vidé disparaît. Un shell
+rangé dans Scripts garde le sien : sorti des scripts, il le retrouve s'il existe
+encore. L'onglet Scripts n'entre dans aucun groupe.
 
 ## L'onglet Scripts
 

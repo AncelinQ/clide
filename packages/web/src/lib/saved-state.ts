@@ -8,6 +8,7 @@
  */
 
 import { EMPTY_SHELF, NATURES, type Nature, type Placement, type ScriptsShelf } from "@/lib/script-shelf";
+import { GROUP_COLORS, NO_GROUPS, type GroupColor, type TabGroup, type TabGroups } from "@/lib/tab-groups";
 
 export const SAVED_VERSION = 2;
 
@@ -37,6 +38,8 @@ export interface SavedProject {
   scriptsFolded: string[];
   /** Ce qui est replié dans la vue Commit : un groupe par son identifiant, un dossier par `groupe|chemin`. */
   commitFolded: string[];
+  /** Groupes de la barre d'onglets et leurs membres. */
+  tabGroups: TabGroups;
 }
 
 export interface SavedLayout {
@@ -138,6 +141,7 @@ export const DEFAULT_PROJECT: Omit<SavedProject, "root"> = {
   scripts: EMPTY_SHELF,
   scriptsFolded: [],
   commitFolded: [],
+  tabGroups: NO_GROUPS,
 };
 
 type Json = Record<string, unknown>;
@@ -192,6 +196,30 @@ function shelf(value: unknown): ScriptsShelf {
   };
 }
 
+/**
+ * Groupes de la barre d'un projet. Un groupe illisible est écarté, une couleur
+ * inconnue devient le gris, un membre qui vise un groupe absent est oublié.
+ */
+function tabGroups(value: unknown): TabGroups {
+  const source = isRecord(value) ? value : {};
+  const groups: TabGroup[] = [];
+  for (const item of Array.isArray(source["groups"]) ? source["groups"] : []) {
+    if (!isRecord(item) || typeof item["id"] !== "string" || groups.some((group) => group.id === item["id"])) continue;
+    const kind = item["kind"];
+    groups.push({
+      id: item["id"],
+      name: text(item["name"], ""),
+      color: oneOf<GroupColor>(item["color"], GROUP_COLORS, "grey"),
+      folded: flag(item["folded"], false),
+      ...(kind === "claude" || kind === "shell" ? { kind } : {}),
+    });
+  }
+  const known = new Set(groups.map((group) => group.id));
+  const members = recordOf(source["members"], (item): item is string => typeof item === "string" && known.has(item));
+  const used = new Set(Object.values(members));
+  return { groups: groups.filter((group) => used.has(group.id)), members };
+}
+
 function project(value: unknown, fallbackTab?: string): SavedProject | undefined {
   if (!isRecord(value) || typeof value["root"] !== "string" || !trimRoot(value["root"])) return undefined;
   const tab = value["activeTab"] ?? fallbackTab;
@@ -209,6 +237,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
     scripts: shelf(value["scripts"]),
     scriptsFolded: [...new Set(strings(value["scriptsFolded"]))],
     commitFolded: [...new Set(strings(value["commitFolded"]))],
+    tabGroups: tabGroups(value["tabGroups"]),
   };
 }
 
