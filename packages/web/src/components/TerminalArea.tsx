@@ -445,6 +445,7 @@ export function TerminalArea() {
   const barIds = bar.map((info) => info.id);
   const showsScripts = useStore(scriptsShown);
   const refusedInput = useStore((state) => state.refusedInput);
+  const terminalNotice = useStore((state) => state.terminalNotice);
   const sessionTab = useStore(sessionTabOf);
   // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés, chaque groupe rassemblé.
   const groups = project?.tabGroups;
@@ -740,7 +741,7 @@ export function TerminalArea() {
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
-            <ClaudeToolbar currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
+            <ClaudeToolbar terminalId={status.id} currentModel={current?.model} currentEffort={current?.effort} servers={servers} />
           )}
           {status?.kind === "shell" && (status.script || placementOf(status, placed) === "scripts") && !activeFile && (
             <ScriptToolbar info={status} inScripts={placementOf(status, placed) === "scripts"} />
@@ -751,6 +752,15 @@ export function TerminalArea() {
               className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-[12px] whitespace-nowrap shadow-sm"
             >
               {t("Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.")}
+            </div>
+          )}
+          {terminalNotice?.id === status?.id && !activeFile && (
+            <div
+              role="status"
+              className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[80%] -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-center text-[12px] shadow-sm"
+              data-terminal-notice
+            >
+              {terminalNotice?.text}
             </div>
           )}
           {activeFile && (

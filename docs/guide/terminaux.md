@@ -163,18 +163,39 @@ tous les cas.
 
 ## Changer de modèle et d'effort
 
-Le premier bouton de la barre montre le modèle de la session et en change : le choix
-est tapé dans la session sous la forme `/model <id>` ; Claude travaille-t-il, la
-commande part dans sa file et s'applique au tour suivant. Le second fait de même pour
-l'effort, avec `/effort <niveau>` : il n'apparaît que si le modèle en a un réglable,
-et marque le niveau que Claude Code recommande. Claude Code garde ce niveau comme
-défaut des prochaines sessions du même modèle (`modelSettings` de son
-`settings.json`). Tous deux montrent la valeur en cours dès l'ouverture de
-l'onglet : avant la première réponse, celle du lancement — `--model` et `--effort`
-de la commande, sinon les réglages local, projet puis utilisateur —, puis chaque
-`/model` ou `/effort` passé dans la session, sans attendre de réponse.
-« Claude avec le modèle », dans `+`, ouvre un nouvel onglet avec
-`claude --model <id>`.
+Le premier bouton de la barre montre le modèle de la session et en change ; le second
+fait de même pour l'effort : il n'apparaît que si le modèle en a un réglable, et
+marque le niveau que Claude Code recommande. **Le changement ne vaut que pour cette
+session** : les autres onglets et les sessions à venir gardent le défaut, qui se
+règle dans Réglages › Claude Code.
+
+Taper `/model <id>` ou `/effort <niveau>` en ferait le défaut : Claude Code l'écrirait
+dans son `settings.json` (`model`, `modelSettings`). Seule la touche `s` de ses
+sélecteurs le garde à la session. La barre pilote donc le sélecteur comme on le
+ferait au clavier : `/model`, la ligne du modèle, `s` ; `/effort`, le niveau, `s`.
+Elle lit l'écran à chaque pas, et s'arrête, sélecteur refermé, dès que ce qu'elle
+voit n'est pas ce qu'elle attend ; un avis en bas du terminal le dit, et rien n'a
+changé. Entrée n'est jamais envoyée dans un sélecteur.
+
+- **Claude travaille** : le changement attend la fin du tour, et l'avis le dit.
+- **La ligne de saisie porte du texte**, ou n'est pas à l'écran — une demande de
+  permission, un menu ouvert : la barre ne tape rien, pour ne pas mêler la commande
+  à ce qu'on écrit ni répondre à la place. La suggestion estompée `Try "…"` ne
+  compte pas.
+- **Dans une conversation entamée**, Claude Code demande de confirmer un changement
+  de modèle : le nouveau relira tout l'historique au prochain message, ce qui coûte
+  des tokens. La barre laisse la réponse : elle donne le clavier au terminal et le
+  dit.
+
+Tous deux montrent la valeur en cours dès l'ouverture de l'onglet : avant la
+première réponse, celle du lancement — `--model` et `--effort` de la commande, sinon
+les réglages local, projet puis utilisateur —, puis chaque changement passé dans la
+session, sans attendre de réponse.
+
+Le menu `+` ouvre un onglet sur un modèle et un effort qui ne valent que pour lui :
+« Claude avec le modèle » propose, pour chaque modèle à effort réglable, « Effort par
+défaut » puis ses niveaux (`claude --model <id> --effort <niveau>`) ; « Claude avec
+l'effort » garde le modèle par défaut (`claude --effort <niveau>`).
 
 Les modèles viennent du catalogue que Claude Code garde en cache pour le compte
 (`~/.claude/cache/model-catalog`) : les principaux d'abord, avec leur description,
@@ -182,9 +203,6 @@ les versions précédentes dans un sous-menu ; les niveaux d'effort de chaque mo
 aussi. Ce cache n'est pas documenté : absent
 ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 `haiku`, que Claude Code accepte toujours.
-
-C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
-Réglages › Claude Code.
 
 Le bouton des serveurs porte un point vert quand un serveur de développement tourne ;
 son menu les ouvre dans le navigateur.
