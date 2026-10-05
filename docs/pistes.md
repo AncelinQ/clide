@@ -451,6 +451,171 @@ d'un script ».
 
 ---
 
+## Piste 12 — Grouper les onglets
+
+**Le besoin.** Quatre onglets Claude, deux shells, des fichiers : la barre se
+remplit et l'on ne voit plus d'un coup d'œil ce qui va ensemble. Pouvoir grouper
+des onglets sous une étiquette qui se replie, comme les groupes d'onglets de
+Chrome, et les dégrouper quand on veut — sans que rien ne change de place sans un
+geste.
+
+**Ce qu'on a déjà.** La barre mêle onglets Claude, shells et fichiers ; le projet
+garde leur ordre (`tabOrder`) d'une ouverture à l'autre, ils se rangent au glisser
+et au clavier, et se renomment par double-clic. Le clic droit d'un onglet le
+renomme, le ferme, ferme les autres, copie son dossier, et range un shell dans
+Scripts. Chaque onglet Claude porte son état — ✦ il travaille, ⚠ il attend, un
+point vert s'il a fini sans être vu — et la pastille du projet compte ces signes
+pour tous ses onglets. Le seul regroupement existant est l'onglet Scripts, épinglé
+en tête, qui montre ses terminaux dans une liste.
+
+**Ce qu'on attend, par palier**
+
+1. **Des groupes faits à la main.**
+   - Un groupe est une étiquette — un nom, une couleur — posée devant des onglets
+     voisins, qui restent contigus. Il réunit ce qu'on veut : onglets Claude,
+     shells, fichiers.
+   - Un clic sur l'étiquette replie le groupe : ses onglets quittent la barre et
+     l'étiquette devient une puce qui dit leur nombre. Un second clic les rend.
+   - Replié, le groupe garde visible l'état de ses onglets Claude : la puce porte
+     ✦, ⚠ ou le point vert, comme la pastille du projet. Un groupe replié où
+     Claude attend une permission se voit sans déplier.
+   - On crée un groupe par le clic droit d'un onglet, « Nouveau groupe » ; on y
+     ajoute un onglet par le même menu, « Ajouter au groupe › … », ou en le
+     glissant entre ses onglets ; on l'en sort en le glissant dehors ou par
+     « Retirer du groupe ». L'étiquette glissée emmène tout le groupe.
+   - « Dégrouper », au clic droit de l'étiquette, retire le groupe : ses onglets
+     restent dans la barre, à leur place.
+2. **Grouper par type, d'un geste.**
+   - « Grouper les onglets Claude » et « Grouper les shells », au clic droit d'un
+     onglet et dans la palette, réunissent en un groupe Claude ou Shells tous les
+     onglets du type qui ne sont pas déjà dans un groupe. Les deux gestes sont
+     indépendants : l'un, l'autre ou les deux.
+   - Le geste range les onglets présents à ce moment-là. Pour ceux qu'on ouvre
+     ensuite, un réglage décide : ils s'ouvrent à côté du groupe, juste après lui
+     et hors de lui, ou le rejoignent d'eux-mêmes. À côté, on les y glisse, ou on
+     refait le geste.
+   - Le type est celui de l'ouverture : un shell où l'on tape `claude` reste où il
+     est, dans Shells s'il y était, avec les signes d'un onglet Claude. Rien ne
+     change de place tout seul.
+   - Un groupe fait à la main garde ses onglets : le geste ne les lui prend pas.
+
+**Tranché** : des groupes repliables dans la barre, façon Chrome, plutôt qu'un
+onglet-groupe qui montre ses terminaux dans une liste, comme Scripts, ou qu'un
+écran partagé ; par type d'un geste, et à la main ; grouper par type est une
+action manuelle, et un réglage choisit si les onglets ouverts ensuite rejoignent
+le groupe de leur type ou s'ouvrent à côté ; un groupe fait à la main admet les
+fichiers ; un shell devenu Claude ne change pas de groupe.
+
+**Par défaut, sauf avis contraire**
+
+- Les groupes sont ceux du projet, gardés d'une ouverture à l'autre comme l'ordre
+  des onglets. Un groupe dont tous les onglets ont fermé disparaît.
+- Refaire « Grouper les shells » quand un groupe Shells existe y ajoute les
+  shells restés hors de tout groupe, plutôt que d'en créer un second ; de même
+  pour Claude.
+- Le nom se change par double-clic sur l'étiquette, comme celui d'un onglet ; un
+  groupe qu'on vient de créer ouvre son champ tout de suite, et un nom vide laisse
+  une puce de couleur seule. La couleur se choisit dans une courte palette, au
+  clic droit de l'étiquette.
+- Le réglage, dans Réglages › Terminal, vaut pour les deux types, Claude et
+  shells, et s'ouvre à côté par défaut. Il ne joue qu'à l'ouverture : il ne range
+  pas les onglets déjà là, et un shell devenu Claude reste où il est.
+- Montrer un onglet d'un groupe replié — depuis la palette, une notification, ou
+  parce qu'un nouvel onglet le rejoint — le déplie.
+- Replier le groupe de l'onglet qu'on regarde ne change pas ce qui est montré :
+  son en-tête quitte la barre, et la puce le signale comme actif.
+- `Ctrl+Maj+PageDown` et `PageUp` sautent les onglets d'un groupe replié, comme
+  Chrome ; la palette les atteint toujours.
+- « Fermer le groupe », au clic droit de l'étiquette, ferme tous ses onglets après
+  une confirmation qui dit ce qui y tourne ; un fichier modifié demande comme
+  aujourd'hui.
+- L'onglet Scripts n'entre dans aucun groupe. Un shell rangé dans Scripts quitte
+  son groupe ; sorti des scripts, il le retrouve s'il existe encore.
+- Replier, déplier, grouper par type et dégrouper sont des commandes de la
+  palette, sans raccourci par défaut : on leur en donne un dans les Réglages.
+
+**Critère.** Trois onglets Claude, deux shells, un fichier. Clic droit › « Grouper
+les shells » : l'étiquette Shells se pose devant les deux shells ; un clic la
+replie en une puce « Shells 2 ». Le shell qu'on ouvre ensuite s'ouvre juste après
+la puce, hors du groupe ; avec le réglage sur « rejoindre », il entre dans le
+groupe, qui se déplie pour le montrer. Un groupe « Revue » fait à la main réunit un onglet Claude et deux fichiers ; replié,
+sa puce passe à ⚠ quand Claude y attend une permission.
+
+**État.** Spécifiée avec `/sc:brainstorm` le 2026-10-05 ; ni conçue ni planifiée.
+
+---
+
+## Piste 13 — Les prompts au clavier
+
+**Le besoin.** Envoyer un prompt enregistré sans lâcher le clavier : ouvrir leur
+liste d'une touche, et lancer les plus fréquents chacun par la sienne, sans avoir
+rien à configurer.
+
+**Ce qu'on a déjà.** Chaque prompt enregistré est une commande de la palette
+(`prompt.run:<id>`) : on peut lui donner un raccourci, mais seulement dans
+Réglages › Raccourcis, perdu parmi toutes les commandes. La palette a un mode `/`
+qui liste les prompts, mais aucune commande ne l'ouvre directement. Les prompts du
+projet (`.claude/clide-prompts.json`, versionnable) passent devant les siens dans
+la liste. Un raccourci tapé dans le terminal est pris avant lui ; ceux de Clide
+sont des `Ctrl+Maj` que ni PowerShell ni Claude Code n'utilisent.
+
+**Ce qu'on attend**
+
+1. **Une touche pour la liste** : une commande ouvre la liste des prompts, filtrée
+   à la frappe ; Entrée lance celui qu'on a choisi, comme un clic.
+2. **Des numéros sans rien configurer** : `Ctrl+Maj+1` à `9` lancent chacun un
+   prompt.
+   - Un prompt reçoit son numéro à sa création — le premier libre — et le garde :
+     en supprimer un autre ne décale rien, et un numéro libéré attend le prochain
+     prompt. Au-delà de neuf, un prompt n'en a pas.
+   - Prompts perso et prompts du projet en reçoivent. Dans un projet, si l'un de
+     ses prompts porte le même numéro qu'un prompt perso, il le prend — comme dans
+     la liste, où il passe d'abord ; le prompt perso garde son numéro partout
+     ailleurs.
+   - Le numéro se réattribue : on change celui d'un prompt, ou on lui donne une
+     tout autre touche.
+3. **La touche d'un prompt, là où sont les prompts** : la vue Prompts montre la
+   touche de chaque prompt à côté de son nom et la laisse changer sur place, sans
+   passer par les Réglages. La liste de la touche, le menu des prompts de la barre
+   flottante et la palette la montrent aussi.
+
+**Tranché** : les trois — une touche pour la liste, des numéros automatiques, la
+touche réglée depuis la vue ; `Ctrl+Maj+1…9` plutôt que `Alt`, que le jeu
+JetBrains utilise, ou `Ctrl`, que la version navigateur ne reçoit pas — `Ctrl+Alt`
+est AltGr sous Windows ; un numéro donné à la création puis fixe, plutôt qu'un
+rang dans la liste ; prompts perso et du projet numérotés, celui du projet prime
+chez lui.
+
+**Par défaut, sauf avis contraire**
+
+- La liste s'ouvre sur `Ctrl+Maj+0`, dans la famille des numéros ; c'est le mode
+  `/` de la palette.
+- Les touches sont à soi : gardées dans la configuration de l'application avec
+  les autres raccourcis, jamais dans le fichier versionné du projet. Un collègue
+  qui reçoit les prompts du projet ne reçoit pas mes touches.
+- `Ctrl+Maj+1` est la touche du 1 de la rangée des chiffres, en AZERTY comme en
+  QWERTY, où Maj+1 donne `!`.
+- Un nouveau prompt prend le premier numéro qui n'est ni à un prompt perso ni à un
+  prompt du projet ouvert : il n'est masqué nulle part à sa création. Les prompts
+  déjà enregistrés reçoivent les leurs une fois, dans l'ordre de la liste.
+- Changer de touche suit la règle des Réglages : Échap annule, Suppr retire la
+  touche, une combinaison déjà prise est retirée à l'autre commande, et on le dit.
+- Un prompt perso masqué dans le projet ouvert montre son numéro grisé, avec le
+  nom du prompt qui le prend ; les Réglages ne comptent pas ce masquage parmi les
+  conflits.
+- Un prompt lancé par sa touche fait ce que fait son clic : `{saisie}` ouvre sa
+  fenêtre, une variable sans valeur le dit, et sans onglet Claude un prompt `send`
+  en ouvre un.
+
+**Critère.** Dans un onglet Claude, `Ctrl+Maj+1` envoie mon premier prompt sans
+que je touche la souris ; `Ctrl+Maj+0` ouvre la liste, trois lettres et Entrée en
+lancent un autre. Dans la vue Prompts, je lis la touche de chaque prompt et j'en
+change une sans ouvrir les Réglages.
+
+**État.** Spécifiée avec `/sc:brainstorm` le 2026-10-05 ; ni conçue ni planifiée.
+
+---
+
 ## Constats en passant
 
 - **Le démarrage est déjà rapide** : interface prête en 180 ms, 430 ms avec le
