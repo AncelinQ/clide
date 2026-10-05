@@ -62,7 +62,7 @@ des onglets présents dans la barre, et rend les deux.
 |---|---|
 | `gather(order, members)` | rassembler chaque groupe à la place de son premier membre |
 | `barItems(order, groups)` | la barre : onglets seuls et groupes avec leurs onglets présents |
-| `createGroup` · `addToGroup` · `removeFromGroup` · `ungroup` | faits à la main ; retiré, un onglet se pose juste après son groupe |
+| `createGroup` · `addToGroup` · `enterGroup` · `removeFromGroup` · `ungroup` | faits à la main ; retiré, un onglet se pose juste après son groupe |
 | `dropInBar(moved, target, side)` | le glisser, onglets et groupes |
 | `shiftInBar(id, step)` | `Alt+Maj+Page` |
 | `groupByKind(kind, candidates)` | « Grouper les onglets Claude / les shells » |
@@ -71,10 +71,12 @@ des onglets présents dans la barre, et rend les deux.
 
 **Le glisser.** Un onglet lâché sur un onglet prend le groupe de celui-ci, ou n'en a
 plus : c'est la règle de Chrome, qu'on lit sans la connaître. Lâché sur une
-étiquette : devant, il se pose avant le groupe, hors de lui ; derrière, il entre en
-tête du groupe déplié, ou se pose juste après un groupe replié. Une étiquette
-glissée emmène tout le groupe, et se pose avant ou après l'onglet visé, ou tout son
-groupe s'il en a un.
+étiquette, de quelque côté qu'il tombe, il entre en tête du groupe, replié ou non
+(`enterGroup`) : l'étiquette est un contenant (`Reorderable holds`), qui s'entoure
+au survol au lieu d'un trait sur un côté. Une étiquette glissée emmène tout le
+groupe, et se pose avant ou après l'onglet visé, ou tout son groupe s'il en a un.
+Pour poser un onglet juste devant un groupe, on le lâche derrière l'onglet qui
+précède ce groupe.
 
 **Le clavier.** `Alt+Maj+Page` fait sortir l'onglet de son groupe quand il en
 atteint le bord, et l'y fait entrer quand il en arrive au bord ; un groupe replié
