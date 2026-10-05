@@ -66,9 +66,9 @@ fichiers.
   Claude ouvert, une commande en cours ou un fichier modifié, il le dit d'abord, et
   un fichier modifié reste ouvert.
 - **Au glisser**, un onglet lâché sur un onglet prend son groupe, ou n'en a plus.
-  Lâché devant une étiquette, il se pose avant le groupe ; derrière, il entre en
-  tête d'un groupe déplié, ou se pose juste après un groupe replié. L'étiquette
-  glissée emmène tout le groupe.
+  Lâché sur une étiquette, qui s'entoure au survol, il entre en tête du groupe,
+  même replié. L'étiquette glissée emmène tout le groupe, devant ou derrière
+  l'onglet ou le groupe visé.
 - **Au clavier**, `Alt+Maj+Page suiv./préc.` fait sortir l'onglet de son groupe
   quand il en atteint le bord, et l'y fait entrer quand il y arrive ; un groupe
   replié se franchit d'un coup. `Ctrl+Maj+Page suiv./préc.` saute les onglets d'un

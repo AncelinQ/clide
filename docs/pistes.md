@@ -481,7 +481,8 @@ en tête, qui montre ses terminaux dans une liste.
      Claude attend une permission se voit sans déplier.
    - On crée un groupe par le clic droit d'un onglet, « Nouveau groupe » ; on y
      ajoute un onglet par le même menu, « Ajouter au groupe › … », ou en le
-     glissant entre ses onglets ; on l'en sort en le glissant dehors ou par
+     glissant entre ses onglets ou sur son étiquette, même replié ; on l'en sort
+     en le glissant dehors ou par
      « Retirer du groupe ». L'étiquette glissée emmène tout le groupe.
    - « Dégrouper », au clic droit de l'étiquette, retire le groupe : ses onglets
      restent dans la barre, à leur place.

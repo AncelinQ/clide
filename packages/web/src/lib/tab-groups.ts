@@ -143,6 +143,15 @@ export function addToGroup(state: TabGroups, order: readonly string[], id: strin
   return { groups: clean({ ...state, members }), order: gather(placed, members) };
 }
 
+/** Fait entrer `id` en tête du groupe `group`, replié ou non : là où va un onglet lâché sur son étiquette. */
+export function enterGroup(state: TabGroups, order: readonly string[], id: string, group: string): Arranged {
+  if (!state.groups.some((item) => item.id === group)) return { groups: state, order: [...order] };
+  const present = block(order, state, group).filter((item) => item !== id);
+  const members = { ...state.members, [id]: group };
+  const placed = present.length > 0 ? place(order, [id], present[0] as string) : [...order];
+  return { groups: clean({ ...state, members }), order: gather(placed, members) };
+}
+
 /** Sort `id` de son groupe ; il se pose juste après lui. Un groupe vidé disparaît. */
 export function removeFromGroup(state: TabGroups, order: readonly string[], id: string): Arranged {
   const group = state.members[id];
@@ -167,10 +176,9 @@ export function updateGroup(state: TabGroups, group: string, patch: Partial<Omit
 
 /**
  * Le glisser. Un onglet lâché sur un onglet prend son groupe, ou n'en a plus. Lâché
- * sur une étiquette : devant, il se pose avant le groupe, hors de lui ; derrière,
- * il entre en tête du groupe déplié, ou se pose juste après le groupe replié. Une
- * étiquette emmène tout son groupe, avant ou après l'onglet visé — ou tout le
- * groupe de celui-ci.
+ * sur une étiquette, de quelque côté qu'il tombe, il entre en tête du groupe,
+ * replié ou non. Une étiquette emmène tout son groupe, avant ou après l'onglet
+ * visé — ou tout le groupe de celui-ci.
  */
 export function dropInBar(state: TabGroups, order: readonly string[], moved: string, target: string, side: "before" | "after"): Arranged {
   const same = { groups: state, order: [...order] };
@@ -186,21 +194,10 @@ export function dropInBar(state: TabGroups, order: readonly string[], moved: str
     return { groups: state, order: place(order, moving, before) };
   }
 
-  const members = { ...state.members };
-  if (targetGroup) {
-    const group = state.groups.find((item) => item.id === targetGroup);
-    const present = block(order, state, targetGroup).filter((id) => id !== moved);
-    if (!group || present.length === 0) return same;
-    if (side === "after" && !group.folded) {
-      members[moved] = targetGroup;
-      return { groups: clean({ ...state, members }), order: gather(place(order, [moved], present[0] as string), members) };
-    }
-    delete members[moved];
-    const before = side === "before" ? (present[0] as string) : following(order, present.at(-1), [moved]);
-    return { groups: clean({ ...state, members }), order: gather(place(order, [moved], before), members) };
-  }
+  if (targetGroup) return enterGroup(state, order, moved, targetGroup);
 
   if (moved === target) return same;
+  const members = { ...state.members };
   const group = state.members[target];
   if (group) members[moved] = group;
   else delete members[moved];

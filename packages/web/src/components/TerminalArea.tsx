@@ -693,7 +693,7 @@ export function TerminalArea() {
             return (
               // Le cadre teinté dit quels onglets vont ensemble ; replié, il ne garde que l'étiquette.
               <div key={label} className={cn("flex shrink-0 items-center gap-1 rounded-lg", GROUP_STYLE[group.color].tint)} data-group-block={group.id}>
-                <Reorderable group="center" id={label} onDrop={dropOn} fixed={renamingTab === label}>
+                <Reorderable group="center" id={label} onDrop={dropOn} fixed={renamingTab === label} holds>
                   <GroupLabel
                     root={project?.root ?? ""}
                     group={group}

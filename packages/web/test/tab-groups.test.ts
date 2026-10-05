@@ -90,18 +90,29 @@ describe("dropInBar", () => {
     expect(bar(out.order, out.groups)).toBe("b a [g: c] d");
   });
 
-  it("devant une étiquette pose hors du groupe, derrière fait entrer en tête", () => {
+  it("fait entrer en tête du groupe un onglet lâché sur son étiquette, de quelque côté qu'il tombe", () => {
     const before = dropInBar(state, order, "d", groupTabId("g"), "before");
-    expect(bar(before.order, before.groups)).toBe("a d [g: b c]");
-    const after = dropInBar(state, order, "d", groupTabId("g"), "after");
-    expect(bar(after.order, after.groups)).toBe("a [g: d b c]");
+    expect(bar(before.order, before.groups)).toBe("a [g: d b c]");
+    const after = dropInBar(state, order, "a", groupTabId("g"), "after");
+    expect(bar(after.order, after.groups)).toBe("[g: a b c] d");
+    // Un membre lâché sur sa propre étiquette passe en tête.
+    const member = dropInBar(state, order, "c", groupTabId("g"), "after");
+    expect(bar(member.order, member.groups)).toBe("a [g: c b] d");
   });
 
-  it("derrière un groupe replié, pose juste après lui sans y entrer", () => {
+  it("fait entrer un onglet dans un groupe replié, qui le reste", () => {
     const folded = groupsOf({ g: ["b", "c"] }, { g: { folded: true } });
-    const result = dropInBar(folded, order, "a", groupTabId("g"), "after");
-    expect(bar(result.order, result.groups)).toBe("[g…] a d");
-    expect(result.groups.members["a"]).toBeUndefined();
+    const result = dropInBar(folded, order, "d", groupTabId("g"), "before");
+    expect(result.groups.members["d"]).toBe("g");
+    expect(result.groups.groups.find((group) => group.id === "g")?.folded).toBe(true);
+    expect(bar(result.order, result.groups)).toBe("a [g…]");
+  });
+
+  it("vide le groupe que l'onglet quitte pour un autre", () => {
+    const two = groupsOf({ g: ["a"], h: ["c", "d"] });
+    const result = dropInBar(two, ["a", "b", "c", "d"], "a", groupTabId("h"), "after");
+    expect(bar(result.order, result.groups)).toBe("b [h: a c d]");
+    expect(result.groups.groups.map((group) => group.id)).toEqual(["h"]);
   });
 
   it("emmène tout le groupe, devant ou derrière un onglet ou un autre groupe", () => {
