@@ -27,9 +27,11 @@ import type { TerminalInfo } from "@/lib/types";
 import { captureInto, commands, effectiveShortcut } from "@/state/commands";
 import { useModels } from "@/state/models";
 import { getState, setState } from "@/state/store";
-import { runPrompt } from "@/state/prompts";
+import { promptKey, runPrompt } from "@/state/prompts";
+import { shadowedBy } from "@/lib/prompt-keys";
 import { place } from "@/state/shelf";
-import { closeTerminal, openTerminal, sendToClaude } from "@/state/terminals";
+import { switchEffort, switchModel } from "@/state/claude-picker";
+import { closeTerminal, openTerminal } from "@/state/terminals";
 
 /** Raccourci effectif d'une commande, surcharges de l'utilisateur comprises. */
 function shortcutLabel(id: string): string | undefined {
@@ -49,6 +51,45 @@ function modelItems(models: ModelChoice[], pick: (model: ModelChoice) => void, c
     ...(current !== undefined ? { checked: model === current } : {}),
     run: () => pick(model),
   });
+  const others = models.filter((model) => !model.main);
+  return [
+    ...models.filter((model) => model.main).map(entry),
+    ...(others.length > 0
+      ? ([{ kind: "separator" }, { kind: "submenu", label: t("Versions précédentes"), items: others.map(entry) }] as MenuItem[])
+      : []),
+  ];
+}
+
+/**
+ * Ouvrir un onglet Claude sur un modèle : chacun qui a un effort réglable devient
+ * un sous-menu, son effort par défaut puis ses niveaux. `--model` et `--effort` ne
+ * valent que pour la session qu'ils lancent.
+ */
+function launchItems(models: ModelChoice[]): MenuItem[] {
+  const open = (model: ModelChoice, effort?: string) =>
+    openTerminal("claude", { command: `claude --model ${model.id}${effort ? ` --effort ${effort}` : ""}` });
+  const entry = (model: ModelChoice): MenuItem => {
+    const efforts = effortsFor(model);
+    if (efforts.length === 0) {
+      return { kind: "item", label: model.name, ...(model.description ? { hint: model.description } : {}), run: () => open(model) };
+    }
+    return {
+      kind: "submenu",
+      label: model.name,
+      items: [
+        { kind: "item", label: t("Effort par défaut"), ...(model.description ? { hint: model.description } : {}), run: () => open(model) },
+        { kind: "separator" },
+        ...efforts.map(
+          (effort): MenuItem => ({
+            kind: "item",
+            label: effort.name,
+            ...(effort.recommended ? { hint: t("recommandé") } : {}),
+            run: () => open(model, effort.id),
+          }),
+        ),
+      ],
+    };
+  };
   const others = models.filter((model) => !model.main);
   return [
     ...models.filter((model) => model.main).map(entry),
@@ -105,7 +146,15 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
       kind: "submenu",
       label: t("Claude avec le modèle"),
       icon: BrainCircuit,
-      items: modelItems(models, (model) => openTerminal("claude", { command: `claude --model ${model.id}` })),
+      items: launchItems(models),
+    },
+    {
+      kind: "submenu",
+      label: t("Claude avec l'effort"),
+      icon: Gauge,
+      items: effortsFor(undefined).map(
+        (effort): MenuItem => ({ kind: "item", label: effort.name, run: () => openTerminal("claude", { command: `claude --effort ${effort.id}` }) }),
+      ),
     },
     {
       kind: "item",
@@ -159,10 +208,13 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
  * n'apparaît que si le modèle en a un réglable.
  */
 export function ClaudeToolbar({
+  terminalId,
   currentModel,
   currentEffort,
   servers,
 }: {
+  /** L'onglet Claude que la barre règle : le modèle et l'effort ne changent que pour sa session. */
+  terminalId: string;
   currentModel: string | undefined;
   currentEffort: string | undefined;
   servers: DevServer[];
@@ -176,23 +228,28 @@ export function ClaudeToolbar({
   const effort = efforts.find((choice) => choice.id === currentEffort);
 
   const modelMenu = (): MenuItem[] => [
-    { kind: "label", label: t("Pour la session en cours (/model)") },
-    ...modelItems(models, (choice) => void sendToClaude(`/model ${choice.id}`), model ?? null),
+    { kind: "label", label: t("Pour cette session seulement ; le défaut, dans Réglages › Claude Code") },
+    ...modelItems(models, (choice) => void switchModel(terminalId, choice), model ?? null),
   ];
   const effortMenu = (): MenuItem[] => [
-    { kind: "label", label: t("Pour la session et les suivantes du modèle (/effort)") },
+    { kind: "label", label: t("Pour cette session seulement ; le défaut, dans Réglages › Claude Code") },
     ...efforts.map(
       (choice): MenuItem => ({
         kind: "item",
         label: choice.name,
         ...(choice.recommended ? { hint: t("recommandé") } : {}),
         checked: choice.id === currentEffort,
-        run: () => void sendToClaude(`/effort ${choice.id}`),
+        run: () => void switchEffort(terminalId, choice.id),
       }),
     ),
   ];
-  const promptMenu = (): MenuItem[] =>
-    prompts.map((prompt) => ({ kind: "item", label: prompt.label, hint: prompt.text, run: () => void runPrompt(prompt) }));
+  const promptMenu = (): MenuItem[] => {
+    const shadowed = shadowedBy(prompts, getState().shortcuts);
+    return prompts.map((prompt) => {
+      const shortcut = shadowed[prompt.id] ? undefined : promptKey(prompt);
+      return { kind: "item", label: prompt.label, hint: prompt.text, ...(shortcut ? { shortcut } : {}), run: () => void runPrompt(prompt) };
+    });
+  };
 
   const button = "h-6 gap-1 px-1.5 text-[11px] [&_svg]:size-3.5";
   return (

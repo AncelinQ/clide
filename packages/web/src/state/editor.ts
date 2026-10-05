@@ -2,11 +2,13 @@ import type * as Monaco from "monaco-editor";
 
 import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
+import { renameMember } from "@/lib/tab-groups";
 import { ownerOf } from "@/lib/workspace";
 import type { Diagnostic, DiagnosticsReport } from "@/lib/types";
 import type { EditorTheme } from "@/lib/vscode-theme";
 import { nativeZoom, onZoomChange } from "@/state/interface";
 import { afterSave, installGutter } from "@/state/gutter";
+import { forgetInGroups, unfoldTab } from "@/state/groups";
 import { getState, setState, type OpenFile, type Project } from "@/state/store";
 
 /**
@@ -168,6 +170,7 @@ export async function openFile(path: string, at?: { line: number; column?: numbe
   const owner = projectFor(path);
   if (!owner) return;
   if (at) pendingReveal.set(path, at);
+  unfoldTab(owner, path);
   const { files } = getState();
   if (!files[path]) {
     setState((current) => ({ files: { ...current.files, [path]: { kind: "loading", dirty: false, changedOnDisk: false } } }));
@@ -381,15 +384,18 @@ function forget(path: string, owner: string): void {
     delete files[path];
     return {
       files,
-      projects: current.projects.map((project) => {
-        if (project.root !== owner) return project;
-        const index = project.openFiles.indexOf(path);
-        const openFiles = project.openFiles.filter((item) => item !== path);
-        // Fermer l'onglet montré montre son voisin, ou rend la place aux terminaux.
-        const activeFile =
-          project.activeFile === path ? (openFiles[Math.min(index, openFiles.length - 1)] ?? null) : project.activeFile;
-        return { ...project, openFiles, activeFile };
-      }),
+      projects: forgetInGroups(
+        current.projects.map((project) => {
+          if (project.root !== owner) return project;
+          const index = project.openFiles.indexOf(path);
+          const openFiles = project.openFiles.filter((item) => item !== path);
+          // Fermer l'onglet montré montre son voisin, ou rend la place aux terminaux.
+          const activeFile =
+            project.activeFile === path ? (openFiles[Math.min(index, openFiles.length - 1)] ?? null) : project.activeFile;
+          return { ...project, openFiles, activeFile };
+        }),
+        (project, id) => project.root !== owner || id !== path,
+      ),
     };
   });
 }
@@ -405,7 +411,9 @@ export function closeFile(path: string, options: { discard?: boolean } = {}): bo
 /** Montre un fichier déjà ouvert, sans le relire. */
 export function showFile(path: string): void {
   const owner = projectFor(path);
-  if (owner) updateOwner(owner, () => ({ activeFile: path }));
+  if (!owner) return;
+  unfoldTab(owner, path);
+  updateOwner(owner, () => ({ activeFile: path }));
 }
 
 /** Montre un fichier dans l'explorateur de son projet : la vue s'ouvre, l'arbre se déplie jusqu'à lui. */
@@ -468,6 +476,7 @@ export function followRename(from: string, to: string): void {
         openFiles: project.openFiles.map(swap),
         activeFile: project.activeFile ? swap(project.activeFile) : null,
         tabOrder: project.tabOrder.map(swap),
+        tabGroups: renameMember(project.tabGroups, swap),
       })),
     };
   });

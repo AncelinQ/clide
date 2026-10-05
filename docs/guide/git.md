@@ -86,8 +86,15 @@ diff, contre le dernier commit, dans un onglet à côté des terminaux.
 Le bouton **Ranger par dossier**, en haut, range chaque groupe en arbre, comme
 « Group by › Directory » de WebStorm : les dossiers d'abord, un dossier qui ne
 contient qu'un dossier fusionné avec lui (`src/lib/deep`), chacun avec le nombre de
-fichiers qu'il contient, repliable, et une case qui coche ou décoche tout son
-contenu. Le choix est gardé dans ce navigateur.
+fichiers qu'il contient, et une case qui coche ou décoche tout son contenu. Le choix
+est gardé dans ce navigateur.
+
+Un clic sur la ligne d'un dossier le replie ou le déplie, de même sur l'en-tête
+d'un groupe — Conflits, Modifications, Non versionnés ; leur case, seule, coche.
+Au clavier, Entrée ou Espace font de même sur la ligne qui a le focus. Les deux
+boutons voisins de **Ranger par dossier** replient ou déplient tout. Le projet
+garde ce qui est replié d'une ouverture à l'autre ; un dossier qui n'a plus de
+changement l'oublie, et revient déplié quand un fichier y change de nouveau.
 
 Le message s'écrit, ou se fait rédiger depuis la session de l'onglet Claude
 (« Rédiger depuis la session », payant comme dans le mode Rédaction). « Amender le

@@ -91,6 +91,7 @@ La palette se lit à son premier caractère, comme celle de VS Code :
 | `>` | une action de l'application, par mots, avec son raccourci ; les dernières lancées en tête | `Ctrl+Maj+P`, `F1` |
 | `@` | une session, par titre, premier prompt, dossier ou branche ; Entrée la montre dans le bloc session | |
 | `#` | un passage dans le texte des sessions ; Entrée l'ouvre dans Activité | |
+| `/` | un prompt enregistré ou un skill, envoyé à l'onglet Claude du projet | `Ctrl+Maj+1` |
 
 Chercher un texte dans les fichiers du projet, c'est la vue Recherche de la colonne
 du projet, par `Ctrl+Maj+F` ou « Rechercher dans les fichiers » dans la palette.
@@ -114,6 +115,7 @@ figure. Hors dépôt, elle passe les dépendances, les sorties de build et les c
 | Replier le bloc session | `Ctrl+Maj+J` |
 | Colonne du projet · panneau global | `Ctrl+Maj+B` · `Ctrl+Maj+E` |
 | Capture d'écran vers le prompt | `Ctrl+Maj+S` |
+| Lancer un prompt enregistré · un prompt par son numéro | `Ctrl+Maj+1` · `Ctrl+Maj+2` à `9` |
 
 Un terminal capte le clavier, et ces touches sont choisies pour ne rien lui voler :
 `Ctrl+Maj` sur des lettres que ni PowerShell ni Claude Code n'utilisent ainsi —
@@ -137,6 +139,11 @@ marque ◦ : dans un terminal, elles lui restent. Dans un navigateur, `Ctrl+W` f
 l'onglet du navigateur avant que Clide ne la voie ; elle ne vaut que dans
 l'application de bureau.
 
+Avec Ctrl ou Alt, la rangée des chiffres se lit par son chiffre, quel que soit le
+clavier : en AZERTY, `Alt+1` est la touche marquée `1 &`, sans Maj. Les numéros des
+prompts (voir [Prompts enregistrés](projet.md#au-clavier)) en profitent, comme les
+`Alt+1` et `Alt+4` du jeu JetBrains.
+
 ## Réglages
 
 Une seule fenêtre, ouverte par la roue en bas à droite, sous la barre d'onglets du
@@ -148,7 +155,10 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
   ce que fait un script lancé au premier plan, « Montrer le script » dans l'onglet
   Scripts (par défaut) ou « Rester où l'on est », le script lancé devenant celui
-  que l'onglet montrera ; l'ouverture des menus du `+` des onglets et de la barre
+  que l'onglet montrera ; où va l'onglet Claude ou le shell qu'on ouvre quand un
+  groupe de son type existe, « S'ouvre à côté du groupe » (par défaut) ou « Rejoint
+  le groupe » (voir [Grouper les onglets](terminaux.md#grouper-les-onglets)) ;
+  l'ouverture des menus du `+` des onglets et de la barre
   de Claude — modèle, effort, prompts, serveurs —, au survol (par défaut) ou au
   clic seulement ;
 - **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
@@ -162,8 +172,8 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 
 Les premières sont propres à Clide, rangées dans sa configuration, jamais dans
 `settings.json`, qui appartient à Claude Code ; la dernière l'édite, et le dit. Le
-modèle y fixe celui des nouvelles sessions ; celui de la session en cours change
-par le bouton du modèle, dans la barre flottante d'un onglet Claude.
+modèle y fixe celui des nouvelles sessions ; celui de la session en cours change,
+pour elle seule, par le bouton du modèle, dans la barre flottante d'un onglet Claude.
 
 L'interface de Claude Code vaut `fullscreen` ou `default`. En plein écran, Claude
 Code dessine lui-même son écran ; en `default`, il écrit la conversation dans

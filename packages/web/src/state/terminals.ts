@@ -5,11 +5,13 @@ import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
 import { afterClose, backTarget, lookAt, natureOf, placementOf, shelfOrder, type ScriptsShelf } from "@/lib/script-shelf";
 import { claudeActivity } from "@/lib/claude-title";
+import type { ScreenRow } from "@/lib/claude-picker";
 import { clipboardKey, isTerminalReply } from "@/lib/terminal-input";
 import type { ServerMessage, TerminalInfo, TerminalKind } from "@/lib/types";
 import { ownActiveTab, ownerOf, tabToShow } from "@/lib/workspace";
 import { nativeZoom, onZoomChange } from "@/state/interface";
 import { applyMarkers } from "@/state/editor";
+import { forgetInGroups, placeNewTab, unfoldTab } from "@/state/groups";
 import { dismissSystem, notifySystem } from "@/state/notify";
 import {
   activateProject,
@@ -124,8 +126,14 @@ function onMessage(message: ServerMessage): void {
         const next = { ...current, terminals: { ...current.terminals, [id]: { info: message.terminal, owner } } };
         return {
           terminals: next.terminals,
-          // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son projet.
-          projects: remember(owner === current.activeRoot ? lookedAt(next, owner, id) : rememberTab(current.projects, owner, id)),
+          // Un onglet qu'on vient d'ouvrir passe devant un fichier montré dans son
+          // projet, et se pose près du groupe de son type s'il y en a un.
+          projects: placeNewTab(
+            next,
+            remember(owner === current.activeRoot ? lookedAt(next, owner, id) : rememberTab(current.projects, owner, id)),
+            owner,
+            message.terminal,
+          ),
           // Un onglet qu'on vient d'ouvrir est ce qu'on regarde, y compris quand il
           // reprend une session choisie dans History — sauf si l'on a changé de
           // projet entre la demande et la réponse : il attend qu'on y revienne.
@@ -247,8 +255,12 @@ function adopt(terminals: TerminalInfo[], backlogs: Record<string, string>): voi
   const kept = { ...current, terminals: next };
   setState({
     terminals: next,
-    // Les commandes retenues des terminaux que le serveur n'a plus ne serviront plus.
-    projects: current.projects.map((project) => pruneShelf(project, next)),
+    // Les commandes retenues des terminaux que le serveur n'a plus ne serviront plus,
+    // ni leur place dans un groupe ; les fichiers ouverts gardent la leur.
+    projects: forgetInGroups(
+      current.projects.map((project) => pruneShelf(project, next)),
+      (project, id) => next[id] !== undefined || project.openFiles.includes(id),
+    ),
     activeTerminalId:
       ownActiveTab(next, current.activeTerminalId, current.activeRoot) ??
       (current.activeRoot
@@ -450,7 +462,10 @@ export function closeTerminal(id: string): void {
     delete claudeBusy[id];
     const live = { ...current.live };
     delete live[id];
-    let projects = forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project));
+    let projects = forgetInGroups(
+      forgetTab(current.projects, id).map((project) => (project.root === closed?.owner ? pruneShelf(project, terminals) : project)),
+      (_, member) => member !== id,
+    );
     let activeTerminalId = current.activeTerminalId;
     const project = projects.find((item) => item.root === current.activeRoot);
     // Les rangements d'avant la fermeture : celui du terminal fermé vient d'être élagué.
@@ -479,6 +494,37 @@ export function closeTerminal(id: string): void {
     }
     return { terminals, attention, claudeBusy, live, projects, activeTerminalId };
   });
+}
+
+/**
+ * Les lignes de l'écran d'un terminal, telles qu'on les voit : le tampon
+ * alternatif d'un programme plein écran comme Claude Code, sinon le bas du tampon,
+ * quel que soit le défilement. Chaque caractère dit s'il est estompé.
+ */
+export function screenRows(id: string): ScreenRow[] | undefined {
+  const entry = attached.get(id);
+  if (!entry) return undefined;
+  const buffer = entry.term.buffer.active;
+  const rows: ScreenRow[] = [];
+  for (let y = buffer.baseY; y < buffer.baseY + entry.term.rows; y++) {
+    const line = buffer.getLine(y);
+    if (!line) continue;
+    let text = "";
+    const dim: boolean[] = [];
+    for (let x = 0; x < line.length; x++) {
+      const cell = line.getCell(x);
+      // La seconde moitié d'un caractère double n'a rien à elle.
+      if (!cell || cell.getWidth() === 0) continue;
+      const chars = cell.getChars() || " ";
+      for (const char of chars) {
+        text += char;
+        dim.push(cell.isDim() !== 0);
+      }
+    }
+    const kept = text.trimEnd();
+    rows.push({ text: kept, dim: dim.slice(0, [...kept].length) });
+  }
+  return rows;
 }
 
 /** Ce qu'a donné la recherche d'une ligne dans un terminal. */
@@ -540,6 +586,7 @@ export function focusTerminal(id: string, options: { focus?: boolean } = {}): vo
   const entry = getState().terminals[id];
   if (!entry) return;
   dismissSystem(id);
+  unfoldTab(entry.owner, id);
   setState((current) => {
     const attention = { ...current.attention };
     delete attention[id];

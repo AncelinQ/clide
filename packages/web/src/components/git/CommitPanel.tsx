@@ -1,5 +1,15 @@
-import { ChevronDown, ChevronRight, FolderTree, GitCommitHorizontal, RefreshCw, Sparkles, Upload } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  FolderTree,
+  GitCommitHorizontal,
+  RefreshCw,
+  Sparkles,
+  Upload,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { FileIcon } from "@/components/FileIcon";
 import { PushDialog } from "@/components/GitChip";
@@ -8,10 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { resolvedLanguage, t } from "@/i18n";
 import { api, post } from "@/lib/api";
-import { changeTree, filesUnder, type ChangeDir } from "@/lib/change-tree";
+import { changeTree, filesUnder, foldKeys, type ChangeDir } from "@/lib/change-tree";
 import { cn } from "cn";
 import { openDiff, openFile } from "@/state/editor";
-import { getState, selectedSessionOf } from "@/state/store";
+import { getState, selectedSessionOf, setState, useStore } from "@/state/store";
 
 type ChangeKind = "modified" | "added" | "deleted" | "renamed" | "untracked" | "conflict";
 
@@ -73,6 +83,23 @@ function writeByDirectory(value: boolean): void {
   }
 }
 
+/** Référence stable pour un projet sans repli : un tableau neuf à chaque lecture relancerait le rendu. */
+const NO_FOLDS: string[] = [];
+
+/** Changements rangés par groupe, pour `foldKeys`. */
+function grouped(changes: readonly Change[]): { id: string; changes: Change[] }[] {
+  return GROUPS.map((group) => ({ id: group.id, changes: changes.filter((change) => group.kinds.includes(change.kind)) }));
+}
+
+/** Entrée ou Espace sur une ligne repliable la replie, comme un clic. */
+function onToggleKey(toggle: () => void) {
+  return (event: KeyboardEvent) => {
+    if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    toggle();
+  };
+}
+
 /** Session dont on peut tirer un message : celle de l'onglet Claude regardé, sinon celle choisie dans History. */
 function currentSessionId(): string | undefined {
   const state = getState();
@@ -97,13 +124,27 @@ export function CommitPanel({ root }: { root: string }) {
   const [pushing, setPushing] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [byDirectory, setByDirectory] = useState(readByDirectory);
-  const [folded, setFolded] = useState<Set<string>>(new Set());
+  // Gardé avec le projet : changer de vue ou relancer l'application ne redéplie rien.
+  const folded = useStore((state) => state.projects.find((project) => project.root === root)?.commitFolded ?? NO_FOLDS);
+
+  const setFolds = useCallback(
+    (change: (current: string[]) => string[]) =>
+      setState((state) => ({
+        projects: state.projects.map((project) => (project.root === root ? { ...project, commitFolded: change(project.commitFolded) } : project)),
+      })),
+    [root],
+  );
+  const toggleFold = (key: string) => setFolds((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
   const load = useCallback(async () => {
     try {
       const { changes: list } = await api<{ changes: Change[] }>("/api/git/changes", { root });
       setChanges(list);
       setError(undefined);
+      // Un dossier qui n'a plus de changement oublie son repli : revenu plus tard, il se montre ouvert.
+      const known = new Set(foldKeys(grouped(list)));
+      const current = getState().projects.find((project) => project.root === root)?.commitFolded ?? [];
+      if (current.some((key) => !known.has(key))) setFolds((keys) => keys.filter((key) => known.has(key)));
       // Un fichier qui apparaît est coché d'office, comme dans les IDE ; un fichier décoché le reste.
       setChecked((current) => {
         const known = new Set(changes?.map((change) => change.path) ?? []);
@@ -117,7 +158,7 @@ export function CommitPanel({ root }: { root: string }) {
     }
     // `changes` sert à reconnaître les nouveaux fichiers, pas à relancer la lecture.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [root]);
+  }, [root, setFolds]);
 
   useEffect(() => {
     setChanges(undefined);
@@ -237,34 +278,28 @@ export function CommitPanel({ root }: { root: string }) {
     </ContextArea>
   );
 
-  /** Un dossier et son contenu, repliable, coché d'un coup. */
+  /** Un dossier et son contenu, repliable d'un clic sur sa ligne, coché d'un coup par sa case. */
   const dirRows = (dir: ChangeDir<Change>, group: string, depth: number): ReactNode[] => {
     const key = `${group}|${dir.path}`;
-    const isFolded = folded.has(key);
+    const isFolded = folded.includes(key);
     const paths = filesUnder(dir).map((change) => change.path);
     const on = paths.filter((path) => checked.has(path)).length;
     return [
       <li
         key={`dir:${key}`}
-        className="flex cursor-default items-center gap-1.5 rounded px-1 py-0.5 text-[12px] hover:bg-accent"
+        tabIndex={0}
+        aria-expanded={!isFolded}
+        title={isFolded ? t("Déplier") : t("Replier")}
+        // Le second clic d'un double-clic replierait aussitôt ce que le premier a déplié.
+        onClick={(event) => event.detail < 2 && toggleFold(key)}
+        onKeyDown={onToggleKey(() => toggleFold(key))}
+        className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-[12px] outline-none hover:bg-accent focus-visible:ring-1 focus-visible:ring-ring"
         style={{ paddingLeft: `${depth * 14 + 4}px` }}
         data-change-dir={dir.path}
       >
-        <button
-          type="button"
-          className="grid size-4 shrink-0 place-items-center"
-          title={isFolded ? t("Déplier") : t("Replier")}
-          onClick={() =>
-            setFolded((current) => {
-              const next = new Set(current);
-              if (next.has(key)) next.delete(key);
-              else next.add(key);
-              return next;
-            })
-          }
-        >
+        <span className="grid size-4 shrink-0 place-items-center">
           {isFolded ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
-        </button>
+        </span>
         <TriCheck state={on === 0 ? false : on === paths.length ? true : "mixed"} onChange={(value) => setMany(paths, value)} />
         <FileIcon name={dir.name} directory open={!isFolded} className="size-3.5" />
         <span className="min-w-0 flex-1 truncate">{dir.name}</span>
@@ -296,6 +331,23 @@ export function CommitPanel({ root }: { root: string }) {
         >
           <FolderTree className="size-3.5" />
         </Button>
+        {changes.length > 0 && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              title={t("Tout replier")}
+              onClick={() => setFolds(() => foldKeys(grouped(changes)))}
+              data-fold-all
+            >
+              <ChevronsDownUp className="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="size-6" title={t("Tout déplier")} onClick={() => setFolds(() => [])} data-unfold-all>
+              <ChevronsUpDown className="size-3.5" />
+            </Button>
+          </>
+        )}
         <Button variant="ghost" size="icon" className="size-6" title={t("Recharger")} onClick={() => void load()}>
           <RefreshCw className="size-3.5" />
         </Button>
@@ -305,23 +357,37 @@ export function CommitPanel({ root }: { root: string }) {
         const items = changes.filter((change) => group.kinds.includes(change.kind));
         if (items.length === 0) return null;
         const on = items.filter((change) => checked.has(change.path)).length;
+        const isFolded = folded.includes(group.id);
         return (
           <div key={group.id}>
-            <label className="flex cursor-pointer items-center gap-2 py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            {/* La ligne replie le groupe ; sa case, seule, coche ou décoche tout ce qu'il contient. */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={!isFolded}
+              title={isFolded ? t("Déplier") : t("Replier")}
+              onClick={(event) => event.detail < 2 && toggleFold(group.id)}
+              onKeyDown={onToggleKey(() => toggleFold(group.id))}
+              className="flex cursor-pointer items-center gap-1.5 rounded py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+              data-change-group={group.id}
+            >
+              {isFolded ? <ChevronRight className="size-3 shrink-0" /> : <ChevronDown className="size-3 shrink-0" />}
               <TriCheck
                 state={on === 0 ? false : on === items.length ? true : "mixed"}
                 onChange={(value) => setMany(items.map((change) => change.path), value)}
               />
               {t(group.label)} <span className="font-normal normal-case">({items.length})</span>
-            </label>
-            <ul className="m-0 list-none p-0">
-              {byDirectory
-                ? (() => {
-                    const tree = changeTree(items);
-                    return [...tree.dirs.flatMap((dir) => dirRows(dir, group.id, 0)), ...tree.files.map((change) => fileRow(change, 0))];
-                  })()
-                : items.map((change) => fileRow(change, 0))}
-            </ul>
+            </div>
+            {!isFolded && (
+              <ul className="m-0 list-none p-0">
+                {byDirectory
+                  ? (() => {
+                      const tree = changeTree(items);
+                      return [...tree.dirs.flatMap((dir) => dirRows(dir, group.id, 0)), ...tree.files.map((change) => fileRow(change, 0))];
+                    })()
+                  : items.map((change) => fileRow(change, 0))}
+              </ul>
+            )}
           </div>
         );
       })}

@@ -108,6 +108,42 @@ export function conflicts(
   return [...byKey.entries()].filter(([, ids]) => ids.length > 1).map(([key, ids]) => ({ key, ids }));
 }
 
+/** Ce que `shortcutOf` lit d'un évènement clavier. */
+export interface KeyPress {
+  key: string;
+  code: string;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  getModifierState?: (key: string) => boolean;
+}
+
+const MODIFIERS = new Set(["Control", "Shift", "Alt", "Meta", "AltGraph"]);
+
+/**
+ * Nom d'une combinaison, ou rien pour une touche de modificateur seule.
+ *
+ * La lettre vient de `key`, pas de la position physique : sur un clavier AZERTY,
+ * `Ctrl+Maj+A` est la touche marquée A. La rangée des chiffres fait exception
+ * avec Ctrl ou Alt : son caractère change d'un clavier à l'autre (`&` ou `1`,
+ * `1` ou `!` avec Maj), son chiffre non. Une combinaison avec AltGr ne donne rien,
+ * c'est un caractère à taper.
+ */
+export function shortcutOf(event: KeyPress): string | undefined {
+  if (MODIFIERS.has(event.key) || event.getModifierState?.("AltGraph")) return undefined;
+  const digit = /^Digit(\d)$/.exec(event.code)?.[1];
+  const key = digit && (event.ctrlKey || event.altKey) ? digit : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+  return [event.ctrlKey && "Ctrl", event.altKey && "Alt", event.shiftKey && "Shift", key].filter(Boolean).join("+");
+}
+
+/**
+ * Une combinaison qui ne porte ni Ctrl ni Alt se tape : elle ne peut pas servir
+ * de raccourci. Les touches de fonction font exception, elles n'écrivent rien.
+ */
+export function isUsableShortcut(shortcut: string): boolean {
+  return /^(Ctrl|Alt)\+/.test(shortcut) || /^(Shift\+)?F([1-9]|1[0-2])$/.test(shortcut);
+}
+
 /** Où se trouve un élément du point de vue des raccourcis. */
 export function focusOf(target: EventTarget | null): Focus {
   if (!(target instanceof Element)) return "other";

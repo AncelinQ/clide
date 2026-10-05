@@ -5,7 +5,7 @@ Chaque projet a ses onglets de terminal : des shells PowerShell, et des onglets 
 La barre d'onglets porte le menu `+` : il ouvre un onglet — Claude, Claude avec un
 modèle choisi, un shell — ou lance la capture d'écran vers le prompt ; chaque entrée
 affiche son raccourci. Un clic droit sur un onglet le renomme, le ferme, ferme les
-autres ou copie son dossier.
+autres, copie son dossier ou le range dans un groupe.
 
 Pour distinguer deux onglets Claude, on les nomme : double-clic sur l'onglet, ou
 clic droit › Renommer, puis Entrée (Échap annule). Le nom tient tant que l'onglet
@@ -35,6 +35,57 @@ terminal s'il y en a une, et interrompt Claude sinon. En rendu fullscreen, Claud
 Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
 Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
 raccourcis de PowerShell, qui collent et annulent de la même façon.
+
+## Grouper les onglets
+
+Des onglets qui vont ensemble — l'onglet Claude d'une revue et les fichiers qu'il
+touche, les shells d'un même serveur — se rangent sous une étiquette, comme les
+groupes d'onglets de Chrome. Un groupe mêle ce qu'on veut : onglets Claude, shells,
+fichiers.
+
+- **Créer et ranger.** Le clic droit d'un onglet propose « Nouveau groupe », qui
+  ouvre aussitôt le nom de l'étiquette (Entrée valide ; vide, l'étiquette n'est
+  qu'une puce de couleur), « Ajouter au groupe › … » et « Retirer du groupe » ;
+  retiré, un onglet se pose juste après son groupe. Les onglets d'un groupe
+  restent côte à côte, dans un cadre teinté de sa couleur.
+- **Replier.** Un clic sur l'étiquette replie le groupe : ses onglets quittent la
+  barre, et l'étiquette dit leur nombre et les signes de ses onglets Claude — ✦ au
+  travail, ⚠ en attente d'une réponse, un point vert fini sans être vu —, comme la
+  pastille du projet. Replier le groupe de l'onglet qu'on regarde le laisse
+  montré, l'étiquette entourée. Montrer un onglet d'un groupe replié, depuis la
+  palette ou une notification, déplie le groupe.
+- **L'étiquette** se renomme par double-clic, et son clic droit la renomme, en
+  change la couleur, la replie, « Dégrouper » — les onglets restent à leur place —
+  ou « Fermer le groupe ». Celui-ci ferme tous ses onglets ; s'il porte un onglet
+  Claude ouvert, une commande en cours ou un fichier modifié, il le dit d'abord, et
+  un fichier modifié reste ouvert.
+- **Au glisser**, un onglet lâché sur un onglet prend son groupe, ou n'en a plus.
+  Lâché devant une étiquette, il se pose avant le groupe ; derrière, il entre en
+  tête d'un groupe déplié, ou se pose juste après un groupe replié. L'étiquette
+  glissée emmène tout le groupe.
+- **Au clavier**, `Alt+Maj+Page suiv./préc.` fait sortir l'onglet de son groupe
+  quand il en atteint le bord, et l'y fait entrer quand il y arrive ; un groupe
+  replié se franchit d'un coup. `Ctrl+Maj+Page suiv./préc.` saute les onglets d'un
+  groupe replié. La palette crée, replie, quitte et dégroupe, sur l'onglet montré :
+  ces actions n'ont pas de raccourci par défaut, Réglages › Raccourcis leur en
+  donne un.
+
+- **Par type, d'un geste.** « Grouper les onglets Claude » et « Grouper les
+  shells », au clic droit d'un onglet ou dans la palette, réunissent dans un groupe
+  Claude ou Shells les onglets de ce type rangés dans aucun groupe ; refait, le
+  geste complète le groupe qui existe. Le type est celui de l'ouverture : un shell
+  où l'on tape `claude` reste un shell, et un onglet Claude dont la session s'est
+  arrêtée reste un onglet Claude. Un onglet déjà dans un groupe fait à la main n'en
+  bouge pas.
+- **Les onglets ouverts ensuite.** Réglages › Terminal › « Nouvel onglet d'un type
+  groupé » choisit : un onglet Claude ou un shell qu'on ouvre se pose juste après
+  le groupe de son type, hors de lui — le défaut —, ou y entre, et le groupe se
+  déplie pour le montrer. Sans groupe de son type, il va au bout de la barre.
+
+Le projet garde ses groupes d'une ouverture à l'autre, comme l'ordre des onglets.
+Fermer un onglet le fait quitter son groupe, et un groupe vidé disparaît. Un shell
+rangé dans Scripts garde le sien : sorti des scripts, il le retrouve s'il existe
+encore. L'onglet Scripts n'entre dans aucun groupe.
 
 ## L'onglet Scripts
 
@@ -112,18 +163,39 @@ tous les cas.
 
 ## Changer de modèle et d'effort
 
-Le premier bouton de la barre montre le modèle de la session et en change : le choix
-est tapé dans la session sous la forme `/model <id>` ; Claude travaille-t-il, la
-commande part dans sa file et s'applique au tour suivant. Le second fait de même pour
-l'effort, avec `/effort <niveau>` : il n'apparaît que si le modèle en a un réglable,
-et marque le niveau que Claude Code recommande. Claude Code garde ce niveau comme
-défaut des prochaines sessions du même modèle (`modelSettings` de son
-`settings.json`). Tous deux montrent la valeur en cours dès l'ouverture de
-l'onglet : avant la première réponse, celle du lancement — `--model` et `--effort`
-de la commande, sinon les réglages local, projet puis utilisateur —, puis chaque
-`/model` ou `/effort` passé dans la session, sans attendre de réponse.
-« Claude avec le modèle », dans `+`, ouvre un nouvel onglet avec
-`claude --model <id>`.
+Le premier bouton de la barre montre le modèle de la session et en change ; le second
+fait de même pour l'effort : il n'apparaît que si le modèle en a un réglable, et
+marque le niveau que Claude Code recommande. **Le changement ne vaut que pour cette
+session** : les autres onglets et les sessions à venir gardent le défaut, qui se
+règle dans Réglages › Claude Code.
+
+Taper `/model <id>` ou `/effort <niveau>` en ferait le défaut : Claude Code l'écrirait
+dans son `settings.json` (`model`, `modelSettings`). Seule la touche `s` de ses
+sélecteurs le garde à la session. La barre pilote donc le sélecteur comme on le
+ferait au clavier : `/model`, la ligne du modèle, `s` ; `/effort`, le niveau, `s`.
+Elle lit l'écran à chaque pas, et s'arrête, sélecteur refermé, dès que ce qu'elle
+voit n'est pas ce qu'elle attend ; un avis en bas du terminal le dit, et rien n'a
+changé. Entrée n'est jamais envoyée dans un sélecteur.
+
+- **Claude travaille** : le changement attend la fin du tour, et l'avis le dit.
+- **La ligne de saisie porte du texte**, ou n'est pas à l'écran — une demande de
+  permission, un menu ouvert : la barre ne tape rien, pour ne pas mêler la commande
+  à ce qu'on écrit ni répondre à la place. La suggestion estompée `Try "…"` ne
+  compte pas.
+- **Dans une conversation entamée**, Claude Code demande de confirmer un changement
+  de modèle : le nouveau relira tout l'historique au prochain message, ce qui coûte
+  des tokens. La barre laisse la réponse : elle donne le clavier au terminal et le
+  dit.
+
+Tous deux montrent la valeur en cours dès l'ouverture de l'onglet : avant la
+première réponse, celle du lancement — `--model` et `--effort` de la commande, sinon
+les réglages local, projet puis utilisateur —, puis chaque changement passé dans la
+session, sans attendre de réponse.
+
+Le menu `+` ouvre un onglet sur un modèle et un effort qui ne valent que pour lui :
+« Claude avec le modèle » propose, pour chaque modèle à effort réglable, « Effort par
+défaut » puis ses niveaux (`claude --model <id> --effort <niveau>`) ; « Claude avec
+l'effort » garde le modèle par défaut (`claude --effort <niveau>`).
 
 Les modèles viennent du catalogue que Claude Code garde en cache pour le compte
 (`~/.claude/cache/model-catalog`) : les principaux d'abord, avec leur description,
@@ -131,9 +203,6 @@ les versions précédentes dans un sous-menu ; les niveaux d'effort de chaque mo
 aussi. Ce cache n'est pas documenté : absent
 ou d'une autre forme, il cède la place aux alias `opus`, `fable`, `sonnet` et
 `haiku`, que Claude Code accepte toujours.
-
-C'est le modèle de la session en cours. Celui des nouvelles sessions se règle dans
-Réglages › Claude Code.
 
 Le bouton des serveurs porte un point vert quand un serveur de développement tourne ;
 son menu les ouvre dans le navigateur.

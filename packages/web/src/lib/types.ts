@@ -11,7 +11,10 @@ export type TerminalState = "idle" | "running" | "failed";
 
 export interface TerminalInfo {
   id: string;
+  /** Ce qui tourne : un shell, ou une session `claude`, qui change au fil des sessions. */
   kind: TerminalKind;
+  /** Ce qu'on a ouvert, qui ne change jamais : c'est le type d'un onglet quand on groupe par type. */
+  openedAs: TerminalKind;
   projectRoot: string;
   cwd: string;
   state: TerminalState;

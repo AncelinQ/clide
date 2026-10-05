@@ -1,6 +1,7 @@
 import { globalTabs } from "@/components/GlobalTabs";
 import { t } from "@/i18n";
-import { commandFor, focusOf } from "@/lib/keymap";
+import { commandFor, focusOf, isUsableShortcut, shortcutOf } from "@/lib/keymap";
+import { LIST_KEY } from "@/lib/prompt-keys";
 import { openDoc } from "@/lib/api";
 import { post, quotePath } from "@/lib/api";
 import {
@@ -16,7 +17,9 @@ import {
   updateProject,
 } from "@/state/store";
 import { tabStops } from "@/lib/script-shelf";
-import { orderTabs, shiftTab } from "@/lib/tab-order";
+import { groupOf, hiddenTabs } from "@/lib/tab-groups";
+import { orderTabs } from "@/lib/tab-order";
+import { barOrder, dissolveGroup, groupKind, newGroupWith, removeTabFromGroup, shiftTabInBar, toggleGroup } from "@/state/groups";
 import { toggleScripts } from "@/state/shelf";
 import { cycleTheme } from "@/state/theme";
 import { closeFile, revealInTree, saveFile, selectedText } from "@/state/editor";
@@ -44,28 +47,36 @@ function ownTabs(): string[] {
   return orderTabs(activeProject()?.tabOrder ?? [], own);
 }
 
-/** Terminaux de la barre du projet actif, dans l'ordre où leurs onglets sont rangés. */
+/**
+ * Terminaux de la barre du projet actif, dans l'ordre où leurs onglets sont rangés,
+ * groupes rassemblés. Ceux d'un groupe replié n'en sont pas, sauf celui qu'on
+ * regarde : on en repart.
+ */
 function barTabs(): string[] {
   const current = getState();
-  return orderTabs(
-    activeProject()?.tabOrder ?? [],
-    tabsOf(current, current.activeRoot).bar.map((info) => info.id),
-  );
+  const project = activeProject(current);
+  const terminals = new Set(tabsOf(current, current.activeRoot).bar.map((info) => info.id));
+  const order = barOrder(current, current.activeRoot);
+  const hidden = project ? hiddenTabs(project.tabGroups, order) : new Set<string>();
+  return order.filter((id) => terminals.has(id) && (!hidden.has(id) || id === current.activeTerminalId));
+}
+
+/** Onglet montré au centre du projet actif, terminal de la barre ou fichier. */
+function shownTab(): string | undefined {
+  const project = activeProject();
+  if (!project || scriptsShown()) return undefined;
+  const { activeTerminalId } = getState();
+  return project.activeFile ?? (activeTerminalId && barTabs().includes(activeTerminalId) ? activeTerminalId : undefined);
 }
 
 /**
- * Décale d'un cran l'onglet montré au centre, terminal ou fichier. L'onglet
- * Scripts est épinglé : il ne bouge pas, et ses scripts n'ont pas de place dans
- * la barre.
+ * Décale d'un cran l'onglet montré au centre, terminal ou fichier : il entre dans
+ * un groupe ou en sort à son bord. L'onglet Scripts est épinglé : il ne bouge pas,
+ * et ses scripts n'ont pas de place dans la barre.
  */
 function shiftActiveTab(step: -1 | 1): void {
-  const project = activeProject();
-  if (!project || scriptsShown()) return;
-  const { activeTerminalId } = getState();
-  const bar = barTabs();
-  const order = orderTabs(project.tabOrder, [...bar, ...project.openFiles]);
-  const shown = project.activeFile ?? (activeTerminalId && bar.includes(activeTerminalId) ? activeTerminalId : undefined);
-  if (shown) updateProject(project.root, { tabOrder: shiftTab(order, shown, step) });
+  const shown = shownTab();
+  if (shown) shiftTabInBar(getState().activeRoot, shown, step);
 }
 
 function cycle<T>(items: T[], current: T | null | undefined, step: number): T | undefined {
@@ -228,6 +239,49 @@ export function commands(): Command[] {
     { id: "tab.previous", group: t("Onglets"), label: t("Onglet précédent"), shortcut: "Ctrl+Shift+PageUp", run: () => nextTab(-1) },
     { id: "tab.moveLeft", group: t("Onglets"), label: t("Déplacer l'onglet à gauche"), shortcut: "Alt+Shift+PageUp", run: () => shiftActiveTab(-1) },
     { id: "tab.moveRight", group: t("Onglets"), label: t("Déplacer l'onglet à droite"), shortcut: "Alt+Shift+PageDown", run: () => shiftActiveTab(1) },
+    // Les groupes, sur l'onglet montré : sans raccourci par défaut, chacun leur en donne un.
+    {
+      id: "tabGroup.new",
+      group: t("Onglets"),
+      label: t("Nouveau groupe avec l'onglet"),
+      run: () => {
+        const shown = shownTab();
+        if (shown) newGroupWith(activeRoot, shown);
+      },
+    },
+    {
+      id: "tabGroup.fold",
+      group: t("Onglets"),
+      label: t("Replier ou déplier le groupe de l'onglet"),
+      run: () => {
+        const shown = shownTab();
+        const project = activeProject();
+        const group = shown && project ? groupOf(project.tabGroups, shown) : undefined;
+        if (group) toggleGroup(activeRoot, group.id);
+      },
+    },
+    { id: "tabGroup.claude", group: t("Onglets"), label: t("Grouper les onglets Claude"), run: () => groupKind(activeRoot, "claude") },
+    { id: "tabGroup.shell", group: t("Onglets"), label: t("Grouper les shells"), run: () => groupKind(activeRoot, "shell") },
+    {
+      id: "tabGroup.leave",
+      group: t("Onglets"),
+      label: t("Retirer l'onglet de son groupe"),
+      run: () => {
+        const shown = shownTab();
+        if (shown) removeTabFromGroup(activeRoot, shown);
+      },
+    },
+    {
+      id: "tabGroup.ungroup",
+      group: t("Onglets"),
+      label: t("Dégrouper le groupe de l'onglet"),
+      run: () => {
+        const shown = shownTab();
+        const project = activeProject();
+        const group = shown && project ? groupOf(project.tabGroups, shown) : undefined;
+        if (group) dissolveGroup(activeRoot, group.id);
+      },
+    },
     {
       id: "tab.capture",
       group: t("Onglets"),
@@ -293,7 +347,9 @@ export function commands(): Command[] {
       shortcut: "Ctrl+Shift+U",
       run: openLatestDevServer,
     },
+    { id: "palette.prompts", group: t("Prompts"), label: t("Lancer un prompt enregistré"), shortcut: LIST_KEY, run: () => openPalette("/") },
     // Chaque prompt enregistré est une commande : la palette le trouve, un raccourci peut le lancer.
+    // Ceux du projet passent d'abord : sur une même touche, c'est le leur qui part.
     ...cachedPrompts().map((prompt) => ({
       id: `prompt.run:${prompt.id}`,
       group: t("Prompts"),
@@ -321,29 +377,6 @@ export function openPalette(prefix: string): void {
 export function effectiveShortcut(command: Command, overrides: Record<string, string | null>): string | undefined {
   if (command.id in overrides) return overrides[command.id] ?? undefined;
   return command.shortcut;
-}
-
-const MODIFIERS = new Set(["Control", "Shift", "Alt", "Meta", "AltGraph"]);
-
-/**
- * Nom d'une combinaison, ou rien pour une touche de modificateur seule.
- *
- * La lettre vient de `key`, pas de la position physique : sur un clavier AZERTY,
- * `Ctrl+Maj+A` est la touche marquée A. Une combinaison avec AltGr ne donne rien,
- * c'est un caractère à taper.
- */
-export function shortcutOf(event: KeyboardEvent): string | undefined {
-  if (MODIFIERS.has(event.key) || event.getModifierState?.("AltGraph")) return undefined;
-  const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  return [event.ctrlKey && "Ctrl", event.altKey && "Alt", event.shiftKey && "Shift", key].filter(Boolean).join("+");
-}
-
-/**
- * Une combinaison qui ne porte ni Ctrl ni Alt se tape : elle ne peut pas servir
- * de raccourci. Les touches de fonction font exception, elles n'écrivent rien.
- */
-export function isUsableShortcut(shortcut: string): boolean {
-  return /^(Ctrl|Alt)\+/.test(shortcut) || /^(Shift\+)?F([1-9]|1[0-2])$/.test(shortcut);
 }
 
 /**
