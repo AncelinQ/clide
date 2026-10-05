@@ -51,6 +51,8 @@ export interface SessionSummary {
   price?: SessionCost;
   /** Ticket porté par la branche de la session. */
   ticket?: string;
+  /** Nom donné à l'onglet où la session a tourné. */
+  tabName?: string;
   prLinks: { prUrl?: string; prNumber?: number }[];
 }
 

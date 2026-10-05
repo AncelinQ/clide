@@ -40,6 +40,7 @@ interface Tracked {
   launch: Promise<ClaudeLaunch>;
   reader?: TranscriptReader;
   path?: string;
+  sessionId?: string;
   /** Dernier état envoyé, pour ne prévenir qu'en cas de changement. */
   sent?: string;
 }
@@ -112,9 +113,15 @@ export class LiveSessions {
     const tracked = this.#tracked.get(terminalId);
     if (!tracked || tracked.path === path) return;
     tracked.path = path;
+    tracked.sessionId = sessionId;
     tracked.reader = new TranscriptReader(path, sessionId);
     tracked.sent = undefined;
     void this.tick();
+  }
+
+  /** Session que suit un onglet, une fois rattachée. */
+  sessionOf(terminalId: string): string | undefined {
+    return this.#tracked.get(terminalId)?.sessionId;
   }
 
   /** Vrai si un onglet suit ce transcript. */
@@ -155,6 +162,7 @@ export class LiveSessions {
         const match = await findLiveTranscript(tracked.cwd, tracked.since, claimed, this.home, tracked.resumed);
         if (!match) continue;
         tracked.path = match.path;
+        tracked.sessionId = match.sessionId;
         tracked.reader = new TranscriptReader(match.path, match.sessionId);
         claimed.add(match.path);
       }

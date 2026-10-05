@@ -87,6 +87,7 @@ import { readMcpStatus } from "../platform/mcp.js";
 import { openPath } from "../platform/open.js";
 import type { NotificationWatcher } from "../notifications/watcher.js";
 import type { LiveSessions } from "../sessions/live.js";
+import type { SessionNames } from "../sessions/names.js";
 import { moveToRecycleBin } from "../platform/trash.js";
 import { calibrationOf, costOfSession } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
@@ -101,6 +102,8 @@ export interface ApiContext {
   terminals: PtyManager;
   notifications: NotificationWatcher;
   live: LiveSessions;
+  /** Nom de l'onglet où chaque session a tourné. */
+  names: SessionNames;
   /**
    * Fichiers que les mutations modifient. Portés par le contexte plutôt que
    * résolus dans chaque route : ce sont les seuls endroits où l'application
@@ -433,7 +436,7 @@ function writeupKind(value: unknown): WriteupKind {
  * ouverture de panneau.
  */
 export const routes: Record<string, Handler> = {
-  "/api/sessions": async (params, { index }) => {
+  "/api/sessions": async (params, { index, names }) => {
     await index.refresh();
     await index.save();
     const projectDir = params.get("projectDir");
@@ -443,7 +446,13 @@ export const routes: Record<string, Handler> = {
         .list(projectDir ? { projectDir } : {})
         .map((session) => {
           const ticket = ticketOfBranch(session.gitBranch);
-          return { ...session, price: costOfSession(session, index, calibration), ...(ticket ? { ticket } : {}) };
+          const tabName = names.get(session.sessionId);
+          return {
+            ...session,
+            price: costOfSession(session, index, calibration),
+            ...(ticket ? { ticket } : {}),
+            ...(tabName ? { tabName } : {}),
+          };
         }),
     };
   },

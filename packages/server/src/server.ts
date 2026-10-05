@@ -12,6 +12,7 @@ import {
   claudeHome,
   legacyAppDataDir,
   migrateAppData,
+  resumedSessionId,
   settingsFile,
   SearchIndex,
 } from "@clide/core";
@@ -24,6 +25,7 @@ import { legacyHookScripts, migrateHooks } from "./notifications/hook.js";
 import { terminalOf } from "./notifications/target.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
+import { SessionNames } from "./sessions/names.js";
 import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
@@ -236,6 +238,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const manager = new PtyManager();
   const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());
   const live = new LiveSessions();
+  const names = new SessionNames(join(options.dataDir ?? appDataDir(), "session-names.json"));
   const context: ApiContext = {
     index: new SessionIndex(),
     search: new SearchIndex(),
@@ -243,6 +246,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     terminals: manager,
     notifications,
     live,
+    names,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
     workspace: new WorkspaceRoots(undefined, [join(claudeHome(), "skills"), join(claudeHome(), "commands")]),
@@ -251,6 +255,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   for (const module of SERVER_MODULES) module.start?.(context);
   // Les projets de la dernière session, en attendant que le client redise les siens.
   void context.workspace.update(await savedRoots(context.dataDir));
+  await names.load();
   await context.index.load();
   await notifications.start();
 
@@ -275,6 +280,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     if (!notification.terminalId || !notification.transcriptPath || !notification.sessionId) return;
     const terminal = manager.get(notification.terminalId);
     if (terminal?.kind === "claude") live.bind(terminal.id, notification.transcriptPath, notification.sessionId);
+  });
+  // Une session garde le nom de l'onglet où elle tourne, et un onglet sans nom
+  // prend celui de la session qu'il montre : reprise par `/resume` ou à la main.
+  live.on((terminalId, session) => {
+    const name = names.match(session.sessionId, manager.nameOf(terminalId));
+    if (name) manager.rename(terminalId, name);
   });
 
   const http: Server = createServer((request, response) => {
@@ -431,8 +442,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             // Projet en lecture seule, ou disparu depuis son ouverture.
           }
 
+          // Une session reprise depuis History rouvre son onglet sous son nom.
+          const resumed = resumedSessionId(message.initialCommand);
+          const name = resumed ? names.get(resumed) : undefined;
           const terminal = await manager.open({
             projectRoot: message.projectRoot,
+            ...(name ? { name } : {}),
             ...(message.kind ? { kind: message.kind } : {}),
             ...(message.cols !== undefined ? { cols: message.cols } : {}),
             ...(message.rows !== undefined ? { rows: message.rows } : {}),
@@ -451,9 +466,13 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         case "resize":
           manager.resize(message.id, message.cols, message.rows);
           break;
-        case "rename":
-          manager.rename(message.id, message.name);
+        case "rename": {
+          if (!manager.rename(message.id, message.name)) break;
+          // La session que montre l'onglet suit son nom, jusqu'à le perdre avec lui.
+          const sessionId = live.sessionOf(message.id);
+          if (sessionId) names.set(sessionId, manager.nameOf(message.id));
           break;
+        }
         case "close":
           manager.close(message.id);
           break;
@@ -471,6 +490,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       live.stop();
       notifications.stop();
       manager.closeAll();
+      await names.flush();
       await Promise.all(SERVER_MODULES.map((module) => module.stop?.()));
       // `http.close()` attend la fin des connexions en cours : une WebSocket
       // ouverte ne se termine jamais d'elle-même, et l'arrêt resterait bloqué.

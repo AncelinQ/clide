@@ -328,6 +328,7 @@ export const EN: Record<string, string> = {
   "Ajouter": "Add",
   "Aucun serveur dans tes autres projets.": "No server in your other projects.",
   "reprendre": "resume",
+  "nom de son onglet": "its tab's name",
   "reprendre ici": "use here",
   "/ seulement": "/ only",
   "auto seulement": "auto only",
