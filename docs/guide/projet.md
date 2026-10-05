@@ -230,6 +230,11 @@ dernières réponses données à ce prompt dans ce navigateur). Une variable san
 valeur arrête l'envoi et le dit : « explique {sélection} » ne part pas sans
 sélection.
 
+Pour un prompt **insérer** qui porte `{saisie}`, la fenêtre propose un interrupteur
+**Envoyer directement** : la saisie faite, le prompt part validé au lieu d'attendre
+Entrée dans le terminal. Le choix est retenu d'une fois sur l'autre, et le bouton de
+la fenêtre dit ce qu'il fera : Envoyer, ou Insérer.
+
 Un prompt part dans l'onglet Claude du projet ; sans onglet Claude, un onglet
 s'ouvre avec le prompt en argument de `claude`. On le lance d'un clic dans la vue,
 par la palette (`/` puis son nom — les skills y sont aussi), par le bouton des prompts

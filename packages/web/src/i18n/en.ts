@@ -916,4 +916,7 @@ export const EN: Record<string, string> = {
     "The tabs’ “+”, and Claude’s toolbar: model, effort, prompts, dev servers. A click opens them either way.",
   "Au survol": "On hover",
   "Au clic": "On click",
+  "Envoyer directement": "Send right away",
+  "Sinon, le prompt est inséré dans l'onglet Claude, à compléter avant Entrée.": "Otherwise the prompt is inserted in the Claude tab, to complete before Enter.",
+  Insérer: "Insert",
 };

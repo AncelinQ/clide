@@ -126,8 +126,8 @@ export interface State {
   activityFocus: { sessionId: string; index: number; agentId?: string } | null;
   /** Sous-agents où l'on est descendu depuis l'activité d'une session, du plus haut au plus profond. */
   activityAgents: { sessionId: string; path: { agentId: string; label: string }[] } | null;
-  /** Un prompt enregistré attend la valeur de `{saisie}` ; la fenêtre répond par `resolve`. */
-  promptInput: { label: string; resolve: (value: string | undefined) => void } | null;
+  /** Un prompt enregistré attend la valeur de `{saisie}` ; la fenêtre répond par `resolve`, et sait par `mode` si le prompt partira validé. */
+  promptInput: { label: string; mode: "insert" | "send"; resolve: (value: string | undefined) => void } | null;
   /** Terminal de script fini qui vient de refuser une frappe : le cadre le rappelle un instant. */
   refusedInput: string | null;
   /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
@@ -159,6 +159,8 @@ export interface State {
   scriptLaunch: ScriptLaunch;
   /** Les menus du « + » des onglets et de la barre de Claude s'ouvrent au survol, ou au clic seulement. */
   menuOpening: MenuOpening;
+  /** Un prompt « insérer » dont la `{saisie}` vient d'être donnée part aussitôt, au lieu d'attendre Entrée dans le terminal. */
+  sendAfterInput: boolean;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -194,7 +196,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate" | "scriptLaunch" | "menuOpening"
+  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput"
 > {
   let raw: unknown;
   try {
@@ -286,6 +288,7 @@ function persist(): void {
       autoUpdate: state.autoUpdate,
       scriptLaunch: state.scriptLaunch,
       menuOpening: state.menuOpening,
+      sendAfterInput: state.sendAfterInput,
     },
   };
   const text = JSON.stringify(saved);

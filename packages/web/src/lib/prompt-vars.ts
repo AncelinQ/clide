@@ -26,6 +26,16 @@ export function variablesOf(text: string): PromptVariable[] {
 }
 
 /**
+ * Comment part un prompt : validé en mode `send` ; tapé pour être complété en
+ * mode `insert`, sauf si sa `{saisie}` vient d'être donnée et que l'on a choisi,
+ * dans la fenêtre qui la demande, d'envoyer aussitôt — la complétion est faite.
+ */
+export function departure(prompt: { text: string; mode: "insert" | "send" }, sendAfterInput: boolean): "insert" | "send" {
+  if (prompt.mode === "send") return "send";
+  return sendAfterInput && variablesOf(prompt.text).includes("saisie") ? "send" : "insert";
+}
+
+/**
  * Remplace les variables par leurs valeurs. Une variable sans valeur arrête
  * l'envoi plutôt que de partir vide : « explique {sélection} » sans sélection
  * enverrait une demande sans objet. Une accolade qui n'est pas une variable

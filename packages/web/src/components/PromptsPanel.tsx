@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { api, post } from "@/lib/api";
@@ -209,13 +211,18 @@ function rememberAnswer(label: string, text: string): void {
 }
 
 /**
- * Demande la valeur de `{saisie}` quand un prompt enregistré en porte une.
+ * Demande la valeur de `{saisie}` quand un prompt enregistré en porte une. Pour
+ * un prompt « insérer », un interrupteur à côté des boutons propose de l'envoyer
+ * aussitôt plutôt que de le laisser à compléter dans le terminal ; son réglage
+ * est retenu.
  * `data-takes-focus` garde le focus au champ quand le menu qui a lancé le prompt
  * se referme.
  */
 export function PromptInputDialog() {
   const request = useStore((state) => state.promptInput);
+  const sendAfterInput = useStore((state) => state.sendAfterInput);
   const [value, setValue] = useState("");
+  const sends = request?.mode === "send" || sendAfterInput;
   useEffect(() => setValue(""), [request]);
   const past = request ? (readAnswers()[request.label] ?? []).filter((item) => typeof item === "string") : [];
   const answer = (text: string | undefined) => {
@@ -244,12 +251,20 @@ export function PromptInputDialog() {
           }}
         />
         {!value.trim() && <SuggestionChips items={past} onPick={setValue} />}
-        <DialogFooter>
+        <DialogFooter className="sm:items-center">
+          {request?.mode === "insert" && (
+            <div className="flex items-center gap-2 sm:mr-auto" title={t("Sinon, le prompt est inséré dans l'onglet Claude, à compléter avant Entrée.")}>
+              <Switch id="prompt-send-after-input" checked={sendAfterInput} onCheckedChange={(checked) => setState({ sendAfterInput: checked })} />
+              <Label htmlFor="prompt-send-after-input" className="cursor-pointer text-[12.5px] font-normal">
+                {t("Envoyer directement")}
+              </Label>
+            </div>
+          )}
           <Button variant="ghost" onClick={() => answer(undefined)}>
             {t("Annuler")}
           </Button>
           <Button disabled={!value.trim()} onClick={() => answer(value.trim())}>
-            {t("Envoyer")}
+            {sends ? t("Envoyer") : t("Insérer")}
           </Button>
         </DialogFooter>
       </DialogContent>
