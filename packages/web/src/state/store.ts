@@ -138,6 +138,8 @@ export interface State {
   promptInput: { label: string; mode: "insert" | "send"; resolve: (value: string | undefined) => void } | null;
   /** Terminal de script fini qui vient de refuser une frappe : le cadre le rappelle un instant. */
   refusedInput: string | null;
+  /** Avis montré un instant en bas d'un terminal : un changement de modèle qui attend, ou qui n'a pas pu se faire. */
+  terminalNotice: { id: string; text: string } | null;
   /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
   renamingTab: string | null;
   /** Fichier que l'explorateur doit déplier et sélectionner dès qu'il est monté ; il l'efface une fois fait. */
@@ -254,6 +256,7 @@ let state: State = {
   paletteQuery: ">",
   promptInput: null,
   refusedInput: null,
+  terminalNotice: null,
   renamingTab: null,
   revealFile: null,
   addingProject: false,
