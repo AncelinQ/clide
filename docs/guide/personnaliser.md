@@ -155,7 +155,10 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
   ce que fait un script lancé au premier plan, « Montrer le script » dans l'onglet
   Scripts (par défaut) ou « Rester où l'on est », le script lancé devenant celui
-  que l'onglet montrera ; l'ouverture des menus du `+` des onglets et de la barre
+  que l'onglet montrera ; où va l'onglet Claude ou le shell qu'on ouvre quand un
+  groupe de son type existe, « S'ouvre à côté du groupe » (par défaut) ou « Rejoint
+  le groupe » (voir [Grouper les onglets](terminaux.md#grouper-les-onglets)) ;
+  l'ouverture des menus du `+` des onglets et de la barre
   de Claude — modèle, effort, prompts, serveurs —, au survol (par défaut) ou au
   clic seulement ;
 - **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
