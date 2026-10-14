@@ -33,6 +33,11 @@ export class Updater {
   private state: Omit<UpdateState, "current">;
   private timer: ReturnType<typeof setInterval> | undefined;
   private auto = true;
+  /**
+   * Version téléchargée et installable. Une nouvelle recherche qui ne trouve rien
+   * de plus récent, ou qui échoue, y revient au lieu de la faire oublier.
+   */
+  private downloaded: string | undefined;
 
   constructor(private readonly emit: (state: UpdateState) => void) {
     this.state = app.isPackaged ? { status: "idle" } : { status: "unsupported", error: "version de développement" };
@@ -47,17 +52,31 @@ export class Updater {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.on("checking-for-update", () => this.set({ status: "checking" }));
-    autoUpdater.on("update-not-available", () => this.set({ status: "none", checkedAt: Date.now() }));
-    autoUpdater.on("update-available", (info) => this.set({ status: "downloading", version: info.version, progress: 0 }));
+    autoUpdater.on("update-not-available", () =>
+      this.set(this.downloaded ? { status: "ready", version: this.downloaded, checkedAt: Date.now() } : { status: "none", checkedAt: Date.now() }),
+    );
+    autoUpdater.on("update-available", (info) => {
+      // Une version plus récente prend la place de la précédente dans le cache d'electron-updater ;
+      // la même est retrouvée dans ce cache sans être retéléchargée.
+      if (info.version !== this.downloaded) this.downloaded = undefined;
+      this.set({ status: "downloading", version: info.version, progress: 0 });
+    });
     autoUpdater.on("download-progress", (progress) =>
       this.set({ status: "downloading", version: this.state.version, progress: Math.round(progress.percent) }),
     );
-    autoUpdater.on("update-downloaded", (info) =>
-      this.set({ status: "ready", version: info.version, checkedAt: Date.now() }),
-    );
-    autoUpdater.on("error", (error) =>
-      this.set({ status: "error", error: error.message, version: this.state.version, checkedAt: Date.now() }),
-    );
+    autoUpdater.on("update-downloaded", (info) => {
+      this.downloaded = info.version;
+      this.set({ status: "ready", version: info.version, checkedAt: Date.now() });
+    });
+    autoUpdater.on("error", (error) => {
+      // Seule une recherche qui échoue laisse intact le fichier déjà téléchargé.
+      if (this.state.status === "checking" && this.downloaded) {
+        this.set({ status: "ready", version: this.downloaded, error: error.message, checkedAt: Date.now() });
+        return;
+      }
+      this.downloaded = undefined;
+      this.set({ status: "error", error: error.message, version: this.state.version, checkedAt: Date.now() });
+    });
     setTimeout(() => this.scheduled(), FIRST_CHECK);
     this.timer = setInterval(() => this.scheduled(), EVERY);
   }
@@ -71,9 +90,12 @@ export class Updater {
     clearInterval(this.timer);
   }
 
-  /** Une version déjà téléchargée ou en cours de téléchargement n'est pas recherchée de nouveau. */
+  /**
+   * Rien ne se recherche pendant un téléchargement. Une version prête, si : une
+   * plus récente a pu paraître depuis, et c'est elle qui sera téléchargée.
+   */
   check(): UpdateState {
-    const busy = ["unsupported", "checking", "downloading", "ready"];
+    const busy = ["unsupported", "checking", "downloading"];
     if (!busy.includes(this.state.status)) {
       // Les échecs arrivent aussi par l'événement `error`, qui les affiche.
       autoUpdater.checkForUpdates().catch(() => undefined);

@@ -150,8 +150,10 @@ function updateMessage(update: UpdateState): string {
       return t("À jour.");
     case "downloading":
       return t("Téléchargement de la version {version}… {progress} %", { version: update.version ?? "", progress: update.progress ?? 0 });
-    case "ready":
-      return t("La version {version} est prête ; elle sera aussi installée à la fermeture de Clide.", { version: update.version ?? "" });
+    case "ready": {
+      const ready = t("La version {version} est prête ; elle sera aussi installée à la fermeture de Clide.", { version: update.version ?? "" });
+      return update.error ? `${ready} ${t("La recherche d'une plus récente a échoué : {error}", { error: update.error })}` : ready;
+    }
     case "error":
       return t("Échec : {error}", { error: update.error ?? "" });
     default:
@@ -172,21 +174,22 @@ function UpdateGroup() {
           <p className="text-[13px]">{t("Version {version}", { version: update.current })}</p>
           <p className={cn("text-[12px] text-muted-foreground", update.status === "error" && "text-destructive")}>{updateMessage(update)}</p>
         </div>
-        {update.status === "ready" ? (
-          <Button size="sm" className="shrink-0" onClick={() => window.clide?.update.install()}>
-            {t("Redémarrer et installer")}
-          </Button>
-        ) : (
+        {/* Une version prête n'empêche pas de chercher : une plus récente a pu paraître depuis. */}
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="shrink-0"
             disabled={busy || update.status === "unsupported"}
             onClick={() => void window.clide?.update.check()}
           >
             {update.status === "checking" ? <Loader2 className="size-4 animate-spin" /> : t("Rechercher")}
           </Button>
-        )}
+          {update.status === "ready" && (
+            <Button size="sm" onClick={() => window.clide?.update.install()}>
+              {t("Redémarrer et installer")}
+            </Button>
+          )}
+        </div>
       </div>
       <Toggle
         label={t("Automatiques")}
