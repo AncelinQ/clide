@@ -61,8 +61,8 @@ On coche des scripts, puis **Lancer (N)** les démarre ensemble ; **Enregistrer
 comme groupe** les garde sous un nom (« Tout démarrer »), dans
 `.claude/clide-scripts.json` du projet, avec des chemins relatifs à lui pour qu'un
 groupe se partage. Un groupe se lance ou s'arrête d'un bouton (Ctrl+C à chacun de
-ses onglets). En tête, **En cours** liste ce qui tourne, avec l'adresse qu'un
-serveur de développement a annoncée.
+ses onglets). En tête, **En cours** liste ce qui tourne, avec sous son nom l'adresse
+qu'un serveur de développement a annoncée.
 
 Les scripts des dossiers liés sont listés à la suite, chacun avec le gestionnaire
 que désigne son propre lockfile : lancer les scripts d'un dépôt npm avec le `pnpm`

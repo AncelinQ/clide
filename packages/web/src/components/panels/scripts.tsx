@@ -269,22 +269,27 @@ export function ScriptsPanel({ root }: { root: string }) {
                   {t("En cours")}
                 </FoldHeader>
                 {isOpen("running") && (
-                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                  <ul className="m-0 grid list-none grid-cols-1 gap-0.5 p-0">
                     {running.map(({ info }) => (
-                      <li key={info.id} className="flex items-center gap-2 px-1 text-[12px]">
-                        <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
-                        <span className="min-w-0 flex-1 truncate">{info.title}</span>
-                        {info.devUrl && (
-                          <a href={info.devUrl} target="_blank" rel="noreferrer" title={info.devUrl} className="max-w-[45%] min-w-0 truncate font-mono text-[11px] text-muted-foreground hover:text-foreground hover:underline">
-                            {info.devUrl.replace(/^https?:\/\//, "")}
-                          </a>
-                        )}
-                        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Arrêter (Ctrl+C)")} onClick={() => interruptTerminal(info.id)}>
-                          <Square className="size-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Aller à l'onglet")} onClick={() => focusTerminal(info.id)}>
-                          <SquareArrowOutUpRight className="size-3.5" />
-                        </Button>
+                      // L'adresse passe sous le nom : chacun a toute la largeur, et les boutons restent sur la ligne du nom.
+                      <li key={info.id} className="flex items-start gap-2 px-1 py-0.5 text-[12px]">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{info.title}</span>
+                          {info.devUrl && (
+                            <a href={info.devUrl} target="_blank" rel="noreferrer" title={info.devUrl} className="block truncate font-mono text-[10.5px] text-muted-foreground hover:text-foreground hover:underline">
+                              {info.devUrl.replace(/^https?:\/\//, "")}
+                            </a>
+                          )}
+                        </span>
+                        <span className="-my-0.5 flex shrink-0">
+                          <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Arrêter (Ctrl+C)")} onClick={() => interruptTerminal(info.id)}>
+                            <Square className="size-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-6 shrink-0" title={t("Aller à l'onglet")} onClick={() => focusTerminal(info.id)}>
+                            <SquareArrowOutUpRight className="size-3.5" />
+                          </Button>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -298,7 +303,7 @@ export function ScriptsPanel({ root }: { root: string }) {
                   {t("Groupes")}
                 </FoldHeader>
                 {isOpen("groups") && (
-                  <ul className="m-0 grid list-none gap-0.5 p-0">
+                  <ul className="m-0 grid list-none grid-cols-1 gap-0.5 p-0">
                     {groups.map((group) => (
                       <li key={group.id} className="group flex items-center gap-2 px-1 text-[12px]" title={group.scripts.map((script) => script.name).join(", ")}>
                         <Layers className="size-3.5 shrink-0 text-muted-foreground" />
