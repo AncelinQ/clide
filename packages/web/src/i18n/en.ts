@@ -885,6 +885,7 @@ export const EN: Record<string, string> = {
   "À jour.": "Up to date.",
   "Téléchargement de la version {version}… {progress} %": "Downloading version {version}… {progress} %",
   "La version {version} est prête ; elle sera aussi installée à la fermeture de Clide.": "Version {version} is ready; it will also be installed when Clide closes.",
+  "La recherche d'une plus récente a échoué : {error}": "Checking for a newer one failed: {error}",
   "Échec : {error}": "Failed: {error}",
   "Depuis les versions publiées sur GitHub.": "From the versions published on GitHub.",
   "Redémarrer et installer": "Restart and install",

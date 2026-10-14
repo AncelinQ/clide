@@ -149,7 +149,11 @@ prompts (voir [Prompts enregistrés](projet.md#au-clavier)) en profitent, comme 
 Une seule fenêtre, ouverte par la roue en bas à droite, sous la barre d'onglets du
 panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 
-- **Général** : la langue de l'interface ;
+- **Général** : les mises à jour, dans l'application de bureau — la version
+  installée, **Rechercher**, qui cherche encore quand une version est déjà prête
+  (une plus récente a pu paraître depuis ; sinon, celle qui est prête le reste),
+  et les vérifications automatiques ; la langue de l'interface ; le dossier des
+  projets, où s'ouvre « Parcourir… » ;
 - **Apparence** : les couleurs de l'interface, et les onglets du panneau global en
   colonne ou en ligne ;
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;

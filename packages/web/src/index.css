@@ -107,6 +107,14 @@
     /* La toile ; unie quand ses deux couleurs sont égales. */
     background: linear-gradient(var(--canvas-angle), var(--canvas), var(--canvas-end));
   }
+
+  /*
+   * Dans les réglages, ce qui se clique le montre au survol. En couche de base, un
+   * `cursor-*` posé sur un élément l'emporte toujours.
+   */
+  [data-settings] :is(button, input[type="checkbox"], input[type="radio"], input[type="color"], input[type="range"]):not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /*
