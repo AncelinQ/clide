@@ -552,7 +552,7 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <DialogContent className="flex h-[min(760px,calc(100vh-2rem))] max-w-none gap-0 p-0 sm:max-w-4xl">
+      <DialogContent className="flex h-[min(760px,calc(100vh-2rem))] max-w-none gap-0 p-0 sm:max-w-4xl" data-settings>
         <DialogHeader className="sr-only">
           <DialogTitle>{t("Réglages")}</DialogTitle>
           <DialogDescription>{t("Réglages de Clide et de Claude Code.")}</DialogDescription>
