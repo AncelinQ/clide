@@ -61,8 +61,8 @@ On coche des scripts, puis **Lancer (N)** les démarre ensemble ; **Enregistrer
 comme groupe** les garde sous un nom (« Tout démarrer »), dans
 `.claude/clide-scripts.json` du projet, avec des chemins relatifs à lui pour qu'un
 groupe se partage. Un groupe se lance ou s'arrête d'un bouton (Ctrl+C à chacun de
-ses onglets). En tête, **En cours** liste ce qui tourne, avec l'adresse qu'un
-serveur de développement a annoncée.
+ses onglets). En tête, **En cours** liste ce qui tourne, avec sous son nom l'adresse
+qu'un serveur de développement a annoncée.
 
 Les scripts des dossiers liés sont listés à la suite, chacun avec le gestionnaire
 que désigne son propre lockfile : lancer les scripts d'un dépôt npm avec le `pnpm`
@@ -255,8 +255,9 @@ quel que soit le clavier : en AZERTY, `Ctrl+Maj+2` est la touche marquée `2 é`
 `Ctrl+Maj+0` n'est pas pris : Windows le garde pour changer de méthode de saisie
 dès que plusieurs langues sont installées.
 
-La touche d'un prompt se voit à côté de son nom, dans la vue, la palette et le menu
-de la barre flottante. Un clic dessus, dans la vue, écoute la combinaison suivante :
+La touche d'un prompt se voit à côté de son nom dans la palette et le menu de la
+barre flottante, et dans la vue à côté de son texte, sous le nom. Un clic dessus,
+dans la vue, écoute la combinaison suivante :
 Échap annule, Suppr retire la touche, et une combinaison déjà prise est retirée à
 l'autre action, ce que la vue dit. Réglages › Raccourcis, où chaque prompt est une
 action, fait de même.
