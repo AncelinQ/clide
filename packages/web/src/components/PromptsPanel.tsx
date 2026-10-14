@@ -123,19 +123,14 @@ export function PromptsPanel({ root }: { root: string }) {
     const id = promptCommand(prompt.id);
     const key = promptKey(prompt, shortcuts);
     const owner = shadowed[prompt.id];
-    if (keys.recording === id) {
-      return (
-        <span className="shrink-0 self-center text-[11px] text-primary" data-prompt-key={prompt.id}>
-          {t("tape la combinaison… (Échap : annuler, Suppr : aucun)")}
-        </span>
-      );
-    }
+    // La consigne prend sa propre ligne : à la place de la touche, elle écraserait le texte dans une colonne étroite.
+    if (keys.recording === id) return undefined;
     return (
       <button
         type="button"
         className={cn(
-          "shrink-0 self-center rounded px-0.5 hover:bg-background",
-          !key && "text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100",
+          "relative shrink-0 rounded px-0.5 hover:bg-background",
+          !key && "hidden text-[11px] text-muted-foreground group-focus-within:block group-hover:block",
           owner && "opacity-50",
         )}
         title={
@@ -160,30 +155,48 @@ export function PromptsPanel({ root }: { root: string }) {
     items.length > 0 && (
       <div>
         <p className="py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
-        <ul className="m-0 grid list-none gap-1 p-0">
+        <ul className="m-0 grid list-none grid-cols-1 gap-1 p-0">
+          {/*
+           * Deux lignes qui tiennent dans une colonne étroite : le nom et, au survol, les
+           * boutons, qui prennent la place du badge ; dessous, le texte et la touche.
+           * Le clic du nom couvre toute la ligne (`after:inset-0`) : touche et boutons,
+           * positionnés après lui, restent au-dessus.
+           */}
           {items.map((prompt) => (
-            <li key={prompt.id} className="group flex items-start gap-2 rounded px-1 py-1 hover:bg-accent">
-              <button type="button" className="min-w-0 flex-1 text-left" title={t("Envoyer à Claude")} onClick={() => void run(prompt)}>
-                <span className="flex items-center gap-1.5 text-[12.5px]">
-                  {prompt.label}
-                  <Badge variant="secondary" className="px-1 py-0 text-[10px] font-normal">
+            <li key={prompt.id} className="group relative rounded px-1 py-1 hover:bg-accent">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-[12.5px] after:absolute after:inset-0"
+                  title={t("Envoyer à Claude")}
+                  onClick={() => void run(prompt)}
+                >
+                  <span className="truncate">{prompt.label}</span>
+                  <Badge variant="secondary" className="px-1 py-0 text-[10px] font-normal group-focus-within:hidden group-hover:hidden">
                     {prompt.mode === "send" ? t("envoie") : t("insère")}
                   </Badge>
+                </button>
+                <span className="relative -my-1 hidden shrink-0 group-focus-within:flex group-hover:flex">
+                  <Button variant="ghost" size="icon" className="size-6" title={t("Envoyer à Claude")} onClick={() => void run(prompt)}>
+                    <Play className="size-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-6" title={t("Modifier")} onClick={() => setEditing(prompt)}>
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-6" title={t("Supprimer")} onClick={() => remove(prompt)}>
+                    <Trash2 className="size-3.5" />
+                  </Button>
                 </span>
-                <span className="block truncate font-mono text-[11px] text-muted-foreground">{prompt.text}</span>
-              </button>
-              {keyChip(prompt)}
-              <span className="flex shrink-0 opacity-0 group-hover:opacity-100">
-                <Button variant="ghost" size="icon" className="size-6" title={t("Envoyer à Claude")} onClick={() => void run(prompt)}>
-                  <Play className="size-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-6" title={t("Modifier")} onClick={() => setEditing(prompt)}>
-                  <Pencil className="size-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-6" title={t("Supprimer")} onClick={() => remove(prompt)}>
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </span>
+              </div>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">{prompt.text}</span>
+                {keyChip(prompt)}
+              </div>
+              {keys.recording === promptCommand(prompt.id) && (
+                <p className="relative m-0 text-[11px] text-primary" data-prompt-key={prompt.id}>
+                  {t("tape la combinaison… (Échap : annuler, Suppr : aucun)")}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -213,15 +226,17 @@ export function PromptsPanel({ root }: { root: string }) {
       {suggestions.length > 0 && (
         <div>
           <p className="py-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t("Souvent tapées")}</p>
-          <ul className="m-0 grid list-none gap-1 p-0">
+          <ul className="m-0 grid list-none grid-cols-1 gap-1 p-0">
             {suggestions.map((suggestion) => (
               <li key={suggestion.command} className="flex items-center gap-2 px-1 text-[12px]">
-                <span className="min-w-0 flex-1 truncate font-mono">{suggestion.command}</span>
-                <span className="text-[11px] text-muted-foreground">{t("{count} fois", { count: suggestion.count })}</span>
+                <span className="min-w-0 flex-1 truncate font-mono" title={suggestion.command}>
+                  {suggestion.command}
+                </span>
+                <span className="shrink-0 text-[11px] whitespace-nowrap text-muted-foreground">{t("{count} fois", { count: suggestion.count })}</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-[11px]"
+                  className="h-6 shrink-0 px-1.5 text-[11px]"
                   onClick={() =>
                     setEditing({ label: suggestion.command.replace(/^\//, ""), text: `${suggestion.command} {saisie}`, mode: "insert", scope: "user" })
                   }

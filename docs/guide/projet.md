@@ -255,8 +255,9 @@ quel que soit le clavier : en AZERTY, `Ctrl+Maj+2` est la touche marquée `2 é`
 `Ctrl+Maj+0` n'est pas pris : Windows le garde pour changer de méthode de saisie
 dès que plusieurs langues sont installées.
 
-La touche d'un prompt se voit à côté de son nom, dans la vue, la palette et le menu
-de la barre flottante. Un clic dessus, dans la vue, écoute la combinaison suivante :
+La touche d'un prompt se voit à côté de son nom dans la palette et le menu de la
+barre flottante, et dans la vue à côté de son texte, sous le nom. Un clic dessus,
+dans la vue, écoute la combinaison suivante :
 Échap annule, Suppr retire la touche, et une combinaison déjà prise est retirée à
 l'autre action, ce que la vue dit. Réglages › Raccourcis, où chaque prompt est une
 action, fait de même.
