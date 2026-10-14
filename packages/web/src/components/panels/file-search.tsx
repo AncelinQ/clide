@@ -108,7 +108,7 @@ export function FileSearchPanel({ root }: { root: string }) {
   const count = answer?.files.reduce((total, file) => total + file.matches.length, 0) ?? 0;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-2">
       <div className="flex items-center gap-0.5 rounded-md border bg-background pr-1 focus-within:ring-1 focus-within:ring-ring">
         <Input
           ref={input}
@@ -185,7 +185,7 @@ export function FileSearchPanel({ root }: { root: string }) {
                   >
                     {isFolded ? <ChevronRight className="size-3 shrink-0" /> : <ChevronDown className="size-3 shrink-0" />}
                     <FileIcon name={name} directory={false} className="size-3.5" />
-                    <span className="shrink-0">{name}</span>
+                    <span className="min-w-0 truncate">{name}</span>
                     <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{folder}</span>
                     <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10.5px] tabular-nums text-muted-foreground">{file.matches.length}</span>
                   </button>
@@ -199,12 +199,21 @@ export function FileSearchPanel({ root }: { root: string }) {
                             onClick={() => void openFile(absolute(root, file.path), { line: match.line, column: match.column })}
                           >
                             <span className="w-8 shrink-0 text-right font-mono text-[10.5px] text-muted-foreground tabular-nums">{match.line}</span>
-                            <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] whitespace-pre">
-                              {match.preview.slice(0, match.previewStart).trimStart()}
-                              <mark className="rounded-sm bg-amber-300/50 text-foreground dark:bg-amber-400/30">
+                            {/*
+                             * L'occurrence reste visible quelle que soit la largeur : la suite de la
+                             * ligne n'a que la place qui reste (`flex-1` part de zéro), et le début ne
+                             * cède qu'une fois la suite disparue, tronqué par la gauche (`rtl`) pour
+                             * garder ce qui touche l'occurrence. Seule une occurrence plus large que la
+                             * colonne se coupe.
+                             */}
+                            <span className="flex min-w-0 flex-1 overflow-hidden font-mono text-[11.5px] whitespace-pre">
+                              <span dir="rtl" className="min-w-0 overflow-hidden text-ellipsis">
+                                <bdi dir="ltr">{match.preview.slice(0, match.previewStart).trimStart()}</bdi>
+                              </span>
+                              <mark className="shrink-0 rounded-sm bg-amber-300/50 text-foreground dark:bg-amber-400/30">
                                 {match.preview.slice(match.previewStart, match.previewStart + match.length)}
                               </mark>
-                              {match.preview.slice(match.previewStart + match.length)}
+                              <span className="min-w-0 flex-1 overflow-hidden text-ellipsis">{match.preview.slice(match.previewStart + match.length)}</span>
                             </span>
                           </button>
                         </li>
