@@ -109,10 +109,10 @@
   }
 
   /*
-   * Dans les réglages, ce qui se clique le montre au survol. En couche de base, un
-   * `cursor-*` posé sur un élément l'emporte toujours.
+   * Dans les réglages et les dossiers liés, ce qui se clique le montre au survol.
+   * En couche de base, un `cursor-*` posé sur un élément l'emporte toujours.
    */
-  [data-settings] :is(button, input[type="checkbox"], input[type="radio"], input[type="color"], input[type="range"]):not(:disabled) {
+  :is([data-settings], [data-linked-island]) :is(button, input[type="checkbox"], input[type="radio"], input[type="color"], input[type="range"]):not(:disabled) {
     cursor: pointer;
   }
 }
