@@ -25,7 +25,7 @@ import type {
   SlashCommand,
 } from "@/lib/types";
 import { isInside } from "@/lib/workspace";
-import { getState, selectSession, selectedSessionOf, setState, useStore } from "@/state/store";
+import { getState, selectSession, setState, shownSelectionOf, useStore } from "@/state/store";
 import { focusTerminal, resumeSession } from "@/state/terminals";
 import { openTranscript, showTerminals } from "@/state/editor";
 import { ownerOf } from "@/lib/workspace";
@@ -45,7 +45,7 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
   const [removing, setRemoving] = useState<string>();
   const activeRoot = useStore((store) => store.activeRoot);
   const scope = fixedScope ?? (activeRoot ? chosenScope : "all");
-  const selectedSession = useStore(selectedSessionOf);
+  const selectedSession = useStore(shownSelectionOf);
   const showCosts = useStore((store) => store.showCosts);
   // Le transcript s'ouvre dans le projet ouvert qui contient la session, sinon dans le projet actif.
   const showTranscript = (session: SessionSummary) => {
@@ -95,6 +95,11 @@ export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScop
                     key={session.sessionId}
                     selected={selectedSession?.sessionId === session.sessionId}
                     onClick={() => {
+                      // Un second clic retire le choix : le bloc revient à la session de l'onglet.
+                      if (selectedSession?.sessionId === session.sessionId) {
+                        selectSession(null);
+                        return;
+                      }
                       // Choisir la session de l'onglet actif n'est pas s'en détacher :
                       // le bloc continue de la suivre.
                       const current = getState();

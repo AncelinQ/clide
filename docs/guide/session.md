@@ -21,7 +21,9 @@ de zéro dans le suivi de session, sur la session neuve ou celle que nomme
 Le bloc session suit l'onglet Claude actif. Choisir une session dans History l'en
 détache — sauf si c'est justement celle de l'onglet actif, qu'il continue de
 suivre — et le bloc le dit : une puce « détaché » dans son en-tête, qui ramène
-à l'onglet d'un clic ; un clic sur un onglet de terminal rattache aussi. Le serveur relie chaque onglet Claude à son transcript, puis le
+à l'onglet d'un clic ; un clic sur un onglet de terminal rattache aussi, comme un
+second clic sur la session choisie dans History, qui la désélectionne. History ne
+surligne une session que tant que le bloc la montre. Le serveur relie chaque onglet Claude à son transcript, puis le
 lit par ajouts :
 
 - **par les hooks**, quand ils sont installés : `SessionStart` donne la session
