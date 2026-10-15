@@ -95,7 +95,7 @@ function RecentProjects() {
             <button
               key={root}
               type="button"
-              className="flex items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-accent"
+              className="flex cursor-pointer items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-accent"
               title={root}
               onClick={() => openProject(root)}
             >
@@ -131,17 +131,17 @@ function Welcome({ root }: { root?: string }) {
         {root ?? t("Ouvre un projet pour commencer.")}
       </p>
       {!root && (
-        <Button className="mt-1" onClick={() => setState({ addingProject: true })}>
+        <Button className="mt-1 cursor-pointer" onClick={() => setState({ addingProject: true })}>
           <FolderOpen /> {t("Ouvrir un projet")}
         </Button>
       )}
       {!root && <RecentProjects />}
       {root && (
         <div className="mt-1 flex gap-2">
-          <Button onClick={() => openTerminal("claude", { command: "claude" })}>
+          <Button className="cursor-pointer" onClick={() => openTerminal("claude", { command: "claude" })}>
             <Sparkles /> {t("Démarrer Claude")}
           </Button>
-          <Button variant="outline" onClick={() => openTerminal("shell")}>
+          <Button variant="outline" className="cursor-pointer" onClick={() => openTerminal("shell")}>
             <TerminalIcon /> Shell
           </Button>
         </div>
