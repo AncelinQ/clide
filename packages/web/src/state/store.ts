@@ -477,6 +477,19 @@ export const selectedSessionOf = (current: State = state): SessionSummary | unde
   current.activeRoot ? current.selectedSessions[current.activeRoot] : undefined;
 
 /**
+ * Session de History que le bloc montre. Le choix reste en mémoire quand le bloc
+ * suit l'onglet et sa session vivante : il ne s'affiche plus, et ne se montre pas
+ * comme sélectionné.
+ */
+export function shownSelectionOf(current: State = state): SessionSummary | undefined {
+  const selected = selectedSessionOf(current);
+  if (!selected || !current.followLive) return selected;
+  const tab = sessionTabOf(current);
+  const followed = tab ? current.live[tab] : undefined;
+  return !followed || followed.sessionId === selected.sessionId ? selected : undefined;
+}
+
+/**
  * Montre une session de History dans le bloc du projet actif, ou retire le choix.
  * Choisir détache le bloc de l'onglet ; retirer le laisse suivre.
  */
