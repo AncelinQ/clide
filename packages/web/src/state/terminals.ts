@@ -1,5 +1,5 @@
 import { FitAddon } from "@xterm/addon-fit";
-import { Terminal } from "@xterm/xterm";
+import { Terminal, type IDisposable } from "@xterm/xterm";
 
 import { t } from "@/i18n";
 import { socketUrl } from "@/lib/api";
@@ -41,6 +41,8 @@ interface Attached {
   term: Terminal;
   fit: FitAddon;
   host: HTMLDivElement;
+  /** Recalage de la barre de défilement qui attend le prochain rendu. */
+  resync?: IDisposable;
 }
 
 const attached = new Map<string, Attached>();
@@ -718,8 +720,35 @@ export function resize(id: string, options: { focus?: boolean } = {}): void {
     // Hôte pas encore mesuré : le prochain redimensionnement rattrapera.
     return;
   }
+  resyncScrollbar(entry);
   send({ t: "resize", id, cols: entry.term.cols, rows: entry.term.rows });
   if (options.focus !== false) entry.term.focus();
+}
+
+/**
+ * Recale la barre de défilement d'xterm sur son canevas au rendu qui suit un
+ * ajustement.
+ *
+ * xterm cale sa barre sur la hauteur de son canevas, qu'il ne remesure qu'une
+ * fois le terminal vu à l'écran. Un terminal ajusté à la frame où il réapparaît
+ * garde une barre calculée sur l'ancienne hauteur : il croit avoir les lignes
+ * gagnées à faire défiler, et rien ne le détrompe avant le prochain défilement.
+ * L'écran alternatif de Claude plein écran ne défile jamais : la barre y reste,
+ * et la tirer ne bouge rien. Un rendu n'a lieu qu'une fois le canevas remesuré.
+ */
+function resyncScrollbar(entry: Attached): void {
+  entry.resync?.dispose();
+  const once = entry.term.onRender(() => {
+    once.dispose();
+    entry.resync = undefined;
+    viewportOf(entry.term)?.queueSync?.();
+  });
+  entry.resync = once;
+}
+
+/** Le viewport d'xterm, hors de son API publique : renommé un jour, le recalage ne fait plus rien. */
+function viewportOf(term: Terminal): { queueSync?: () => void } | undefined {
+  return (term as unknown as { _core?: { _viewport?: { queueSync?: () => void } } })._core?._viewport;
 }
 
 export function resizeActive(): void {
