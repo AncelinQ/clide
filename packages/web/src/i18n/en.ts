@@ -982,4 +982,5 @@ export const EN: Record<string, string> = {
   "Le curseur d'effort de Claude Code ne s'est pas refermé.": "Claude Code's effort slider didn't close.",
   "Claude Code demande de confirmer : le nouveau modèle relira toute la conversation au prochain message. Réponds dans le terminal.":
     "Claude Code asks you to confirm: the new model will re-read the whole conversation on the next message. Answer in the terminal.",
+  "Claude Code n'a pas validé /rename : regarde sa ligne de saisie.": "Claude Code didn't run /rename: check its input line.",
 };

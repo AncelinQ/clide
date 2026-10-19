@@ -64,7 +64,8 @@ export function effortSlider(lines: readonly string[]): { levels: string[]; curr
 
 /**
  * Ce qu'on a commencé à taper sur la ligne de saisie de Claude Code : la ligne qui
- * commence par `❯` juste sous un filet. Les caractères estompés — une suggestion
+ * commence par `❯` juste sous un filet, où s'inscrit le nom de la session quand
+ * elle en a un (`──── refonte ─`). Les caractères estompés — une suggestion
  * comme `Try "…"` — n'en sont pas. Rien quand la ligne n'est pas à l'écran : une
  * demande de permission ou un menu ouvert la remplace, et y taper y répondrait.
  */
@@ -72,7 +73,7 @@ export function inputDraft(rows: readonly ScreenRow[]): string | undefined {
   for (let index = 1; index < rows.length; index++) {
     const row = rows[index] as ScreenRow;
     const above = (rows[index - 1] as ScreenRow).text.trim();
-    if (!/^─+$/.test(above)) continue;
+    if (!/^─{2,}(?: .+ )?─+$/.test(above)) continue;
     // Par caractère, comme `dim` : une ligne peut porter des caractères hors du plan de base.
     const chars = [...row.text];
     const start = chars.indexOf("❯");

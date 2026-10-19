@@ -62,7 +62,7 @@ export {
   type Rates,
   type SessionCost,
 } from "./cost/pricing.js";
-export { findLiveTranscript, resumedSessionId, type TranscriptMatch } from "./transcript/live.js";
+export { findLiveTranscript, resumedSessionId, type TranscriptMatch, withSessionName } from "./transcript/live.js";
 
 export {
   extractPlan,

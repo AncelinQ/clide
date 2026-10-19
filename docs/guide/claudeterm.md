@@ -61,7 +61,8 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
 
 - Les **terminaux survivent au rechargement** de la page, avec leur sortie.
 - **Nom d'onglet retenu par session** : History le montre devant le titre de la
-  session, et la reprendre rouvre son onglet sous ce nom.
+  session, et la reprendre rouvre son onglet sous ce nom. Claude Code le reçoit
+  aussi (`/rename`, `--name`), pour sa ligne de saisie, son titre et `/resume`.
 - **Groupes d'onglets** repliables, comme ceux de Chrome : faits à la main,
   fichiers compris, ou par type d'un geste ; repliés, ils montrent les signes de
   leurs onglets Claude.

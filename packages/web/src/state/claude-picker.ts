@@ -1,5 +1,6 @@
 /**
- * Change le modèle ou l'effort d'un onglet Claude pour sa session seule.
+ * Change le modèle ou l'effort d'un onglet Claude pour sa session seule, et
+ * donne à la session le nom de l'onglet.
  *
  * `/model <id>` et `/effort <niveau>` font du choix le défaut des sessions
  * suivantes ; seule la touche `s` de leurs sélecteurs le garde à la session. Clide
@@ -177,6 +178,25 @@ export function switchEffort(id: string, level: string): Promise<void> {
     typeInto(id, "s");
     if (!(await waitFor(id, (screen) => (effortSlider(screen) ? undefined : true)))) {
       giveUp(id, t("Le curseur d'effort de Claude Code ne s'est pas refermé."));
+    }
+  });
+}
+
+/**
+ * Donne `name` à la session de l'onglet `id` par `/rename` : Claude Code le
+ * montre dans sa ligne de saisie, son titre et `/resume`, et le garde dans le
+ * transcript. Un nom vide ne part pas : `/rename` seul en ferait inventer un.
+ */
+export function renameSession(id: string, name: string): Promise<void> {
+  // Comme le serveur pour l'onglet ; un caractère de contrôle validerait ou fermerait avant la fin.
+  const clean = name.slice(0, 80).replace(/[\u0000-\u001f\u007f]/g, " ").trim();
+  if (!clean) return Promise.resolve();
+  return drive(id, async () => {
+    await command(id, `/rename ${clean}`);
+    // Une suggestion ouverte par le nom — la mention d'un fichier après `@` —
+    // prend l'Entrée pour elle, et la ligne garde le texte.
+    if (!(await waitFor(id, () => (inputDraft(screenRows(id) ?? []) === "" ? true : undefined)))) {
+      throw new Abort(t("Claude Code n'a pas validé /rename : regarde sa ligne de saisie."));
     }
   });
 }

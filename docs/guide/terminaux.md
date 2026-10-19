@@ -18,6 +18,16 @@ là, elle rouvre son onglet sous ce nom. Un onglet sans nom qui la reprend par
 `/resume` le prend aussi ; un onglet déjà nommé garde le sien, que la session
 retient désormais. Retirer le nom d'un onglet le retire à sa session.
 
+Claude Code reçoit aussi ce nom : il l'inscrit sur le filet de sa ligne de saisie,
+dans son titre de terminal et dans `/resume`. Renommer un onglet Claude tape
+`/rename <nom>` dans sa session, une fois le tour de Claude fini, comme un
+changement de modèle ; si la ligne de saisie porte un brouillon, rien ne part et un
+avis le dit : il suffit de renommer à nouveau une fois la ligne vide. Une session
+reprise depuis History reçoit son nom par `--name`. Retirer le nom d'un onglet ne
+le retire pas à Claude Code, qui garde le dernier — `/rename` sans nom en ferait
+inventer un. Deux sessions ouvertes ne portent jamais le même nom dans Claude
+Code : la seconde y en reçoit un autre, et l'onglet garde le sien.
+
 Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la
 session, les prompts enregistrés, les serveurs de développement. Elle reste

@@ -89,6 +89,10 @@ describe("inputDraft", () => {
     expect(inputDraft([rule, row("❯ "), rule])).toBe("");
   });
 
+  it("trouve la ligne sous un filet qui porte le nom de la session", () => {
+    expect(inputDraft([row("─────────────── l’app d'essai ─"), row("❯ corrige le test"), rule])).toBe("corrige le test");
+  });
+
   it("garde le texte tapé devant une suggestion estompée", () => {
     expect(inputDraft([rule, row("❯ /mo del", 5), rule])).toBe("/mo");
   });

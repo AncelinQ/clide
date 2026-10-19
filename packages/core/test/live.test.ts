@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { encodeProjectPath } from "../src/paths.js";
-import { findLiveTranscript, resumedSessionId } from "../src/transcript/live.js";
+import { findLiveTranscript, resumedSessionId, withSessionName } from "../src/transcript/live.js";
 
 const CWD = String.raw`C:\Projets\app`;
 let home: string;
@@ -77,5 +77,25 @@ describe("resumedSessionId", () => {
     expect(resumedSessionId("claude")).toBeUndefined();
     expect(resumedSessionId("claude --continue")).toBeUndefined();
     expect(resumedSessionId(undefined)).toBeUndefined();
+  });
+});
+
+describe("withSessionName", () => {
+  const command = "claude --resume 0350d6a5-5bec-4df4-ba51-45df51df60f7";
+
+  it("ajoute le nom entre apostrophes de PowerShell", () => {
+    expect(withSessionName(command, "refonte du routeur")).toBe(`${command} --name 'refonte du routeur'`);
+  });
+
+  it("double l'apostrophe et les guillemets simples typographiques", () => {
+    expect(withSessionName(command, "l'app et l’API")).toBe(`${command} --name 'l''app et l’’API'`);
+  });
+
+  it("change un caractère de contrôle en espace, pour ne pas valider la ligne avant la fin", () => {
+    expect(withSessionName(command, "a\rb\nc")).toBe(`${command} --name 'a b c'`);
+  });
+
+  it("laisse la session reprise lisible", () => {
+    expect(resumedSessionId(withSessionName(command, "nom"))).toBe("0350d6a5-5bec-4df4-ba51-45df51df60f7");
   });
 });

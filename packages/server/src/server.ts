@@ -13,6 +13,7 @@ import {
   legacyAppDataDir,
   migrateAppData,
   resumedSessionId,
+  withSessionName,
   settingsFile,
   SearchIndex,
 } from "@clide/core";
@@ -442,21 +443,23 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             // Projet en lecture seule, ou disparu depuis son ouverture.
           }
 
-          // Une session reprise depuis History rouvre son onglet sous son nom.
+          // Une session reprise depuis History rouvre son onglet sous son nom, et
+          // Claude Code le reprend aussi.
           const resumed = resumedSessionId(message.initialCommand);
           const name = resumed ? names.get(resumed) : undefined;
+          const initialCommand = name && message.initialCommand ? withSessionName(message.initialCommand, name) : message.initialCommand;
           const terminal = await manager.open({
             projectRoot: message.projectRoot,
             ...(name ? { name } : {}),
             ...(message.kind ? { kind: message.kind } : {}),
             ...(message.cols !== undefined ? { cols: message.cols } : {}),
             ...(message.rows !== undefined ? { rows: message.rows } : {}),
-            ...(message.initialCommand ? { initialCommand: message.initialCommand } : {}),
+            ...(initialCommand ? { initialCommand } : {}),
             ...(message.owner ? { owner: message.owner } : {}),
             ...(message.label ? { label: message.label } : {}),
             ...(message.script ? { script: message.script } : {}),
           });
-          if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, message.initialCommand);
+          if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, initialCommand);
           post({ t: "opened", terminal });
           break;
         }
