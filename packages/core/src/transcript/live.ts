@@ -25,6 +25,20 @@ export function resumedSessionId(command: string | undefined): string | undefine
 }
 
 /**
+ * La commande, suivie de `--name '<nom>'` : Claude Code montre ce nom dans sa
+ * ligne de saisie, son titre de terminal et `/resume`.
+ *
+ * La commande est tapée dans PowerShell : le nom passe entre apostrophes, où les
+ * guillemets simples typographiques (`’` de « l’app ») ferment aussi la chaîne et
+ * se doublent comme l'apostrophe. Un caractère de contrôle validerait la ligne
+ * avant la fin : il devient une espace.
+ */
+export function withSessionName(command: string, name: string): string {
+  const clean = name.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/['‘’‚‛]/g, "$&$&");
+  return `${command} --name '${clean}'`;
+}
+
+/**
  * Transcript d'une session lancée dans un onglet, trouvé sans l'aide des hooks.
  *
  * Claude Code range les sessions par dossier de lancement, et une session neuve

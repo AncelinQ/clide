@@ -30,6 +30,7 @@ import { barItems, gather, groupTabId } from "@/lib/tab-groups";
 import { orderTabs } from "@/lib/tab-order";
 import { Reorderable } from "@/components/Reorderable";
 import { CloseGroupDialog, GROUP_STYLE, GroupLabel, contentsOf, closeGroup, tabGroupItems } from "@/components/TabGroups";
+import { renameSession } from "@/state/claude-picker";
 import { dropOnBar } from "@/state/groups";
 import { closeFile, isDiff, isTranscript, revealInTree, saveFile, showFile, showTerminals } from "@/state/editor";
 import { formatSessionCost } from "@/components/panels/costs";
@@ -647,7 +648,10 @@ export function TerminalArea() {
                   initial={info.title}
                   className="w-40 flex-none"
                   onSubmit={(value) => {
-                    if (value.trim() !== info.title) renameTerminal(info.id, value);
+                    if (value.trim() !== info.title) {
+                      renameTerminal(info.id, value);
+                      void renameSession(info.id, value);
+                    }
                     endRename(info.id);
                   }}
                   onCancel={() => endRename(info.id)}
