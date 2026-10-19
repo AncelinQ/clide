@@ -45,7 +45,6 @@ export {
   projectEvents,
   type BashEdit,
   type FileTrack,
-  type QueuedPrompt,
   type SessionProjection,
   type TokenCounts,
   type TokenUsage,

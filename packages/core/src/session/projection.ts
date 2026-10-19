@@ -33,11 +33,6 @@ export interface BashEdit {
   at?: string;
 }
 
-export interface QueuedPrompt {
-  text: string;
-  at?: string;
-}
-
 /** Volume de tokens, par nature : c'est à ce grain que se fait la facturation. */
 export interface TokenCounts {
   input: number;
@@ -89,14 +84,6 @@ export interface SessionProjection {
    * Absent quand la dernière réponse n'en note pas.
    */
   effort?: string;
-  /**
-   * Prompts en attente, dans l'ordre où Claude les prendra.
-   *
-   * Rejoués depuis les `queue-operation` : `enqueue` ajoute, `remove` retire le
-   * texte absorbé en cours de tour, `dequeue` prend le premier, `popAll` vide
-   * tout. Sur le corpus de référence, ce rejeu ne rencontre aucune incohérence.
-   */
-  queue: QueuedPrompt[];
   /** Tickets que Claude a lus ou modifiés par les outils Linear, par identifiant. */
   tickets: Record<string, TicketTrace>;
   startedAt?: string;
@@ -139,9 +126,8 @@ export class SessionProjector {
   #modelArgs: string | undefined;
   /** Réponses déjà comptées par le dernier `cost-state`, s'il y en a un. */
   #costed: Set<string> | undefined;
-  #state: Omit<SessionProjection, "files" | "bashEdits" | "unknownTypes" | "prLinks" | "tokens" | "queue" | "tickets">;
+  #state: Omit<SessionProjection, "files" | "bashEdits" | "unknownTypes" | "prLinks" | "tokens" | "tickets">;
   readonly #tickets = new TicketTracker();
-  #queue: QueuedPrompt[] = [];
 
   constructor(sessionId: string) {
     this.#state = { id: sessionId, messageCount: 0, eventCount: 0 };
@@ -233,10 +219,6 @@ export class SessionProjector {
         break;
       }
 
-      case "queue-operation":
-        this.#applyQueue(event);
-        break;
-
       case "cost-state": {
         const cost = readCostState(event);
         if (cost) {
@@ -311,27 +293,6 @@ export class SessionProjector {
         if (!isKnownEventType(event.type)) {
           this.#unknown.set(event.type, (this.#unknown.get(event.type) ?? 0) + 1);
         }
-    }
-  }
-
-  #applyQueue(event: TranscriptEvent): void {
-    const text = readString(event, "content");
-    const at = readString(event, "timestamp");
-    switch (event["operation"]) {
-      case "enqueue":
-        if (text) this.#queue.push({ text, ...(at ? { at } : {}) });
-        break;
-      case "remove": {
-        const index = this.#queue.findIndex((entry) => entry.text === text);
-        if (index >= 0) this.#queue.splice(index, 1);
-        break;
-      }
-      case "dequeue":
-        this.#queue.shift();
-        break;
-      case "popAll":
-        this.#queue = [];
-        break;
     }
   }
 
@@ -477,7 +438,6 @@ export class SessionProjector {
       ...this.#state,
       ...(this.#context !== undefined ? { tokens: this.#tokens() } : {}),
       prLinks: [...this.#prLinks],
-      queue: [...this.#queue],
       tickets: this.#tickets.snapshot(),
       files: [...this.#files.values()],
       bashEdits: [...this.#bashEdits.values()],

@@ -65,7 +65,6 @@ import {
   renameTerminal,
   resize,
   resizeActive,
-  sendToClaude,
   typeAsUser,
 } from "@/state/terminals";
 import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
@@ -266,69 +265,6 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
   );
 }
 
-/**
- * Prompts mis en file dans l'onglet Claude regardé, dans l'ordre où Claude les
- * prendra, et de quoi en ajouter un.
- *
- * Ajouter revient à taper dans l'onglet : Claude Code met lui-même en file ce qui
- * arrive pendant qu'il travaille. Retirer n'est pas offert : Claude Code ne
- * l'expose pas, et le simuler au clavier dans son interface pourrait viser le
- * mauvais prompt.
- */
-function QueueStrip({ queue }: { queue: { text: string; at?: string }[] }) {
-  const [draft, setDraft] = useState("");
-  const [adding, setAdding] = useState(false);
-  if (queue.length === 0 && !adding) {
-    return (
-      <div className="flex shrink-0 justify-end px-3 pt-1">
-        <button
-          type="button"
-          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
-          onClick={() => setAdding(true)}
-        >
-          {t("mettre un prompt en file")}
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="mx-2 mt-1 shrink-0 rounded-md border px-2 py-1.5 text-[12px]">
-      {queue.length > 0 && (
-        <>
-          <div className="mb-1 text-[11px] text-muted-foreground">{t("En attente ({count})", { count: queue.length })}</div>
-          <ol className="m-0 grid list-decimal gap-0.5 pl-5">
-            {queue.map((entry, index) => (
-              <li key={`${index}|${entry.text}`} className="truncate" title={entry.text}>
-                {entry.text}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-      <form
-        className="mt-1 flex gap-1"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const text = draft.trim();
-          if (!text) return;
-          // Une ligne : un retour à la ligne enverrait le prompt en morceaux.
-          if (sendToClaude(text.replace(/\s*\n\s*/g, " "))) setDraft("");
-        }}
-      >
-        <input
-          className="h-7 min-w-0 flex-1 rounded border bg-transparent px-2 text-[12px] outline-none focus:border-primary"
-          value={draft}
-          placeholder={t("prompt à mettre en file")}
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <Button type="submit" variant="outline" size="sm" className="h-7 text-[11px]">
-          {t("ajouter")}
-        </Button>
-      </form>
-    </div>
-  );
-}
-
 /** Onglet d'un fichier ouvert : son icône, un point tant qu'il n'est pas enregistré. */
 function FileTab({ path, active, onClose }: { path: string; active: boolean; onClose: () => void }) {
   const dirty = useStore((state) => state.files[path]?.dirty === true);
@@ -490,10 +426,10 @@ export function TerminalArea() {
     requestAnimationFrame(resizeActive);
   }, [widths.bottom, sessionCollapsed]);
 
-  // Le cadre change aussi de taille sans geste à suivre : la file de prompts paraît
-  // avec la session et grandit avec ses prompts. Sans nouvel ajustement, xterm
-  // garde des lignes que le cadre ne montre plus, et la dernière est rognée. Il ne
-  // prend pas le clavier : le champ de la file le garde.
+  // Tout changement de taille du cadre réajuste le terminal montré, y compris
+  // quand rien de ce qui l'entoure n'appelle `resizeActive` : xterm garderait des
+  // lignes que le cadre ne montre plus, et la dernière serait rognée. Il ne prend
+  // pas le clavier : un champ qu'on remplit à ce moment-là le garde.
   const frame = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = frame.current;
@@ -809,7 +745,6 @@ export function TerminalArea() {
           : ""}
       </footer>
 
-      {status?.kind === "claude" && current && <QueueStrip queue={current.queue ?? []} />}
     </Island>
 
     {/* Sans projet ouvert, le bloc du bas s'efface comme la colonne du projet : l'accueil a tout le centre. */}

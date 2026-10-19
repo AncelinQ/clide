@@ -111,9 +111,11 @@ de la file soit reconstituable depuis les events.
 **Critère.** Ce que montre le panneau correspond à ce que montre `claude` dans le
 terminal, sans décalage.
 
-**État.** Fait : la file se lit au-dessus du bloc session, et un prompt s'y ajoute
-en le tapant dans l'onglet Claude. Retirer n'est pas offert : Claude Code ne l'expose
-pas, et le simuler au clavier dans son interface pourrait viser le mauvais prompt.
+**État.** Faite, puis retirée le 2026-10-19. La file se lisait sous le terminal, et
+un prompt s'y ajoutait en le tapant dans l'onglet Claude. À l'usage, elle tenait du
+gadget : Claude Code montre déjà sa file dans le terminal, elle prenait une ligne
+au terminal en permanence, et un prompt en cours d'écriture disparaissait quand la
+file se vidait.
 
 **Ce que l'usage en dit.** La file vit rarement plus de quelques secondes : sur 400
 mises en file, 327 sont absorbées par le tour en cours (`absorbed_mid_turn`), 57

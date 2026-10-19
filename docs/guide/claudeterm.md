@@ -31,7 +31,6 @@ ClaudeTerm ne parle pas à git, hormis la branche lue dans l'index des sessions.
   qu'un compteur de tokens.
 - **Usage** de l'abonnement : les limites, des jauges, une ligne de statut à
   installer.
-- **File d'attente des prompts**, affichée et alimentable.
 - **Sous-agents** : descendre dans l'activité d'un appel `Agent`, et remonter.
 - **Détail d'une ligne** d'activité, et « Voir dans le terminal ».
 - **Captures** : vignettes dans l'activité et galerie.
