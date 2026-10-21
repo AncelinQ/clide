@@ -45,6 +45,12 @@ describe("terminalEnvironment", () => {
     expect(env["PATH"]).toBe("C:\\bin");
     expect(env).not.toHaveProperty("CLAUDE_CODE_ENTRYPOINT");
   });
+
+  it("annonce xterm, que le serveur ait un TERM ou non", () => {
+    // Sans lui, Claude Code dessine `>` au lieu de `❯` : sa ligne de saisie n'est plus reconnue.
+    expect(terminalEnvironment("t1", { PATH: "C:\\bin" })["TERM"]).toBe("xterm-256color");
+    expect(terminalEnvironment("t1", { PATH: "C:\\bin", TERM: "cygwin" })["TERM"]).toBe("xterm-256color");
+  });
 });
 
 describe("shellProfileScript", () => {
