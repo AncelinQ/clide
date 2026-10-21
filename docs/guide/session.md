@@ -117,16 +117,6 @@ transcript se retrouve sous `<session>/subagents/agent-<agentId>.jsonl`. Le clie
 ne donne que la session et l'identifiant : le serveur cherche le transcript parmi
 ceux qu'il a découverts, jamais par un chemin reçu.
 
-## La file d'attente
-
-Un prompt tapé pendant que Claude travaille part dans sa file. Elle se reconstitue en
-rejouant les `queue-operation` du transcript : `enqueue` ajoute le texte, `remove`
-retire celui qu'absorbe le tour en cours, `dequeue` prend le premier, `popAll` vide
-tout. La file de l'onglet regardé s'affiche au-dessus du bloc session, et un prompt
-s'y ajoute en le tapant dans l'onglet ; retirer n'est pas offert, Claude Code ne
-l'exposant pas. En pratique la file vit quelques secondes : la plupart des prompts
-sont absorbés par le tour en cours.
-
 ## Restaurer un fichier
 
 L'onglet Fichiers liste ce que la session a changé, avec le diff exact. Chaque
