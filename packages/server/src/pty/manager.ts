@@ -92,6 +92,9 @@ const BACKLOG_MAX = 256 * 1024;
 
 const DEFAULT_SHELL = "pwsh.exe";
 
+/** Le terminal que les onglets émulent : xterm.js, côté client. */
+const TERMINAL_TYPE = "xterm-256color";
+
 /**
  * Terminaux ConPTY de l'application.
  *
@@ -132,7 +135,7 @@ export class PtyManager {
     const id = randomUUID();
 
     const pty = spawn(DEFAULT_SHELL, profile.args, {
-      name: "xterm-256color",
+      name: TERMINAL_TYPE,
       cols: options.cols ?? 100,
       rows: options.rows ?? 30,
       cwd: options.projectRoot,
@@ -375,12 +378,19 @@ export function cleanEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 }
 
 /**
- * Environnement d'un onglet : celui du serveur nettoyé, et le nom de l'onglet.
+ * Environnement d'un onglet : celui du serveur nettoyé, le type de terminal, et
+ * le nom de l'onglet.
+ *
+ * `TERM` décrit xterm.js, pas le terminal d'où le serveur a été lancé. Sous
+ * Windows, node-pty ne le tire pas de son option `name`, et Clide lancé depuis
+ * l'Explorateur n'en a pas : Claude Code se croirait alors sans Unicode et
+ * dessinerait `>` et `√` au lieu de `❯` et `✔`, que la lecture de son écran
+ * (`lib/claude-picker.ts` côté client) ne reconnaît pas.
  *
  * `claude` transmet son environnement à ses hooks : leur script rapporte ainsi
  * l'onglet exact d'où vient chaque événement, ce que le dossier de la session ne
  * dit pas quand deux onglets y travaillent.
  */
 export function terminalEnvironment(id: string, env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...cleanEnvironment(env), CLIDE_TERMINAL_ID: id };
+  return { ...cleanEnvironment(env), TERM: TERMINAL_TYPE, CLIDE_TERMINAL_ID: id };
 }
