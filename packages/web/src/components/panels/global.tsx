@@ -35,13 +35,13 @@ import { agoLabel } from "@/components/panels/usage";
 // ─── History ────────────────────────────────────────────────────────────────
 
 /**
- * Sessions de Claude Code. À droite, celles du projet ouvert, ou de tous les
- * projets au choix ; sans projet ouvert, toutes. Dans la colonne du projet,
+ * Sessions de Claude Code. À droite, celles de tous les projets, ou du projet
+ * ouvert au choix : la colonne du projet montre déjà les siennes. Là,
  * `fixedScope` les borne au projet, sans choix.
  */
 export function HistoryPanel({ filter, fixedScope }: { filter: string; fixedScope?: "project" }) {
   const state = useAsync(() => api<{ sessions: SessionSummary[] }>("/api/sessions"), []);
-  const [chosenScope, setScope] = useState("project");
+  const [chosenScope, setScope] = useState("all");
   const [removing, setRemoving] = useState<string>();
   const activeRoot = useStore((store) => store.activeRoot);
   const scope = fixedScope ?? (activeRoot ? chosenScope : "all");
