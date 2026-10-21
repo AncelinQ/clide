@@ -491,6 +491,24 @@ export function TerminalArea() {
     requestAnimationFrame(resizeActive);
   }, [widths.bottom, sessionCollapsed]);
 
+  // Le cadre change aussi de taille sans geste à suivre : la file de prompts paraît
+  // avec la session et grandit avec ses prompts. Sans nouvel ajustement, xterm
+  // garde des lignes que le cadre ne montre plus, et la dernière est rognée. Il ne
+  // prend pas le clavier : le champ de la file le garde.
+  const frame = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = frame.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() =>
+      requestAnimationFrame(() => {
+        const { activeTerminalId } = getState();
+        if (activeTerminalId) resize(activeTerminalId, { focus: false });
+      }),
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const center = useRef<HTMLDivElement>(null);
   const bottomStart = useRef(0);
 
@@ -739,7 +757,7 @@ export function TerminalArea() {
             />
           </>
         )}
-        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
+        <div ref={frame} className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
           {!status && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
