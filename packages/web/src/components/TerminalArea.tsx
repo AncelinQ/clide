@@ -712,13 +712,13 @@ export function TerminalArea() {
               {t("Script terminé : ▷ le relance. Pour taper une commande, ouvre un shell.")}
             </div>
           )}
-          {terminalNotice?.id === status?.id && !activeFile && (
+          {terminalNotice && terminalNotice.id === status?.id && !activeFile && (
             <div
               role="status"
               className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[80%] -translate-x-1/2 rounded-md border bg-card px-3 py-1.5 text-center text-[12px] shadow-sm"
               data-terminal-notice
             >
-              {terminalNotice?.text}
+              {terminalNotice.text}
             </div>
           )}
           {activeFile && (
