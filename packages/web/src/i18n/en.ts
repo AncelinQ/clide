@@ -787,6 +787,7 @@ export const EN: Record<string, string> = {
   "Enregistrer comme groupe": "Save as a group",
   "Tout démarrer": "Start everything",
   "lié {name}": "linked {name}",
+  "worktree {name}": "worktree {name}",
   "Scripts du package.json, espaces de travail compris, et commandes des autres outils (make, cargo, go, python, scripts). Chacun tourne dans son onglet ; cochés, ils se lancent ensemble.":
     "package.json scripts, workspaces included, and the other tools' commands (make, cargo, go, python, scripts). Each runs in its own tab; ticked, they start together.",
   "Des dossiers liés": "From linked folders",

@@ -130,6 +130,8 @@ export interface McpStatus {
 export interface ProjectScripts {
   /** Scripts des dossiers liés, chacun avec son propre gestionnaire. */
   linked?: ProjectScripts[];
+  /** Scripts des autres worktrees du dépôt, le principal compris quand le projet est un worktree. */
+  worktrees?: (ProjectScripts & { branch?: string; main: boolean })[];
   root: string;
   manager: string;
   managerDetected: boolean;

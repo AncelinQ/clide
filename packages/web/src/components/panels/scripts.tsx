@@ -187,9 +187,10 @@ function ScriptLine({
 }
 
 /**
- * Scripts du projet et de ses dossiers liés, chacun dans son onglet : on en
- * coche plusieurs pour les lancer ensemble, et un groupe enregistré les relance
- * d'un coup. Un script en cours se voit en tête, avec son adresse s'il en annonce une.
+ * Scripts du projet, de ses dossiers liés et des autres worktrees de son dépôt,
+ * chacun dans son onglet : on en coche plusieurs pour les lancer ensemble, et un
+ * groupe enregistré les relance d'un coup. Un script en cours se voit en tête,
+ * avec son adresse s'il en annonce une.
  */
 export function ScriptsPanel({ root }: { root: string }) {
   const state = useAsync(() => api<ProjectScripts>("/api/scripts", { root }), [root]);
@@ -199,7 +200,8 @@ export function ScriptsPanel({ root }: { root: string }) {
   const [error, setError] = useState<string>();
   const terminals = useStore((store) => store.terminals);
   const folded = useStore((store) => store.projects.find((project) => project.root === root)?.scriptsFolded ?? NO_FOLDS);
-  const isOpen = (key: string) => !folded.includes(key);
+  // Une clé retenue inverse l'état par défaut : déplié en général, replié pour un worktree.
+  const isOpen = (key: string, closed = false) => folded.includes(key) === closed;
   const fold = (key: string) => () => toggleScriptsFold(root, key);
 
   const loadGroups = useCallback(() => {
@@ -254,9 +256,21 @@ export function ScriptsPanel({ root }: { root: string }) {
   return (
     <Async state={state}>
       {(project) => {
+        // Les worktrees partent repliés : un dépôt en a vite plusieurs, qu'on ne lance pas tous.
         const folders = [
-          { title: undefined as string | undefined, project },
-          ...(project.linked ?? []).map((folder) => ({ title: t("lié {name}", { name: shortName(folder.root) }), project: folder })),
+          { key: project.root, title: undefined as string | undefined, project, closed: false },
+          ...(project.linked ?? []).map((folder) => ({
+            key: folder.root,
+            title: t("lié {name}", { name: shortName(folder.root) }),
+            project: folder,
+            closed: false,
+          })),
+          ...(project.worktrees ?? []).map((folder) => ({
+            key: `worktree|${folder.root}`,
+            title: t("worktree {name}", { name: folder.branch ?? shortName(folder.root) }),
+            project: folder,
+            closed: true,
+          })),
         ];
         const empty = folders.every(({ project: folder }) => sectionsOf(folder).length === 0);
         if (empty) return <Empty icon={Package}>{t("Aucun script dans ce projet.")}</Empty>;
@@ -340,16 +354,16 @@ export function ScriptsPanel({ root }: { root: string }) {
 
             {error && <p className="text-[12px] text-destructive">{error}</p>}
 
-            {folders.map(({ title, project: folder }) => {
+            {folders.map(({ key: folderKey, title, project: folder, closed }) => {
               const sections = sectionsOf(folder);
               if (sections.length === 0) return null;
               const items = sections.flatMap((section) => section.items);
               const busy = (list: readonly Runnable[]) => list.some((item) => runningScriptTab(item.directory, item.name) !== undefined);
               return (
-                <div key={folder.root} className="grid grid-cols-1 gap-1">
+                <div key={folderKey} className="grid grid-cols-1 gap-1">
                   <FoldHeader
-                    open={isOpen(folder.root)}
-                    onToggle={fold(folder.root)}
+                    open={isOpen(folderKey, closed)}
+                    onToggle={fold(folderKey)}
                     count={items.length}
                     running={busy(items)}
                     title={folder.root}
@@ -369,7 +383,7 @@ export function ScriptsPanel({ root }: { root: string }) {
                     {title ?? (folder.managerDetected ? folder.manager : t("{manager} (défaut, aucun lockfile)", { manager: folder.manager }))}
                   </FoldHeader>
                   {/* Décalées sous leur dossier : on voit ce que replier le dossier cache. */}
-                  {isOpen(folder.root) && (
+                  {isOpen(folderKey, closed) && (
                     <div className="grid grid-cols-1 gap-1 pl-2">
                       {sections.map((section) => {
                         const key = `${folder.root}|${section.title}`;
