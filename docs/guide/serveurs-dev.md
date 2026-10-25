@@ -15,7 +15,10 @@ il est retrouvé à son port. Le serveur de l'application relève les sockets en
 écoute (`netstat -ano`) et garde ceux des processus qui descendent des onglets du
 projet, qu'ils répondent en HTML — un débogueur ou une API en JSON n'ont rien à
 montrer — et qu'ils ne soient pas un serveur MCP de Claude. Le relevé passe toutes
-les trente secondes ; le menu nomme ces serveurs par leur commande.
+les trente secondes ; le menu nomme ces serveurs par leur commande. Chaque serveur
+n'est sondé qu'une fois, à son apparition, et pas de nouveau tant qu'il écoute :
+son journal ne reçoit pas une requête par relevé. Seul un serveur qui n'a pas
+encore répondu, le temps de compiler sa première page, est sondé au relevé suivant.
 
 Le serveur lit la sortie des onglets shell pendant qu'une commande tourne, jamais
 celle de Claude : une adresse citée dans une réponse n'est pas un serveur. Seules

@@ -30,8 +30,9 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { t } from "@/i18n";
-import { PATHS_MIME, api, post, quotePath } from "@/lib/api";
+import { PATHS_MIME, api, post } from "@/lib/api";
 import { baseName, fs, parentPath, type OnConflict, type Outcome } from "@/lib/fs";
+import { quotePath } from "@/lib/terminal-input";
 import type { DirectoryEntry, DirectoryListing } from "@/lib/types";
 import { isInside, segments } from "@/lib/workspace";
 import { openProject, setState, useStore, type Project } from "@/state/store";

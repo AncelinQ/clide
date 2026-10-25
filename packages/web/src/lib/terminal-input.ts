@@ -14,6 +14,18 @@ export function isTerminalReply(data: string): boolean {
 }
 
 /**
+ * Chemin tel qu'on le tape dans un onglet : PowerShell, ou le prompt de Claude
+ * qui le lit comme du texte. Entre guillemets doubles s'il porte un espace ou un
+ * caractère que PowerShell interprète hors guillemets ; entre guillemets simples
+ * s'il porte `$` ou `` ` ``, que PowerShell développe même entre guillemets
+ * doubles (une apostrophe y est alors doublée).
+ */
+export function quotePath(path: string): string {
+  if (/[$`]/.test(path)) return `'${path.replace(/'/g, "''")}'`;
+  return /[\s'"()&;<>|{}@,]/.test(path) ? `"${path}"` : path;
+}
+
+/**
  * Alt+V tel que xterm l'envoie : le collage d'image de Claude Code sous Windows,
  * qui lit l'image dans le presse-papiers et la joint au message.
  */

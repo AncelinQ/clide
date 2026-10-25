@@ -62,7 +62,7 @@ import { CaptureCancelled, cancelCapture, captureScreen } from "../platform/capt
 import { listModels } from "../platform/models.js";
 import { pickPath } from "../platform/picker.js";
 import { addJsonArgs, removeArgs, runClaudeMcp, runClaudePrint, type CliScope } from "../platform/claude-cli.js";
-import { servesHtml } from "../platform/html-probe.js";
+import { pageServers } from "../platform/html-probe.js";
 import { recentSubjects } from "../platform/git.js";
 import {
   DirtyTreeError,
@@ -646,9 +646,7 @@ export const routes: Record<string, Handler> = {
     const pids = new Map([...terminals.ownedPids()].filter(([, id]) => own.has(id)));
     if (pids.size === 0) return { servers: [] };
     const [sockets, list] = await Promise.all([listListening(), processes.list()]);
-    const found = discoverServers(sockets, list, pids);
-    const html = await Promise.all(found.map((server) => servesHtml(server.url)));
-    return { servers: found.filter((_server, index) => html[index]) };
+    return { servers: await pageServers(discoverServers(sockets, list, pids), sockets) };
   },
 
   /** Message de commit ou description de MR déjà rédigé ; `null` tant qu'on ne l'a pas demandé. */

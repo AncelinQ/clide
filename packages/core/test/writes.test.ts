@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { McpStore, safeServerName } from "../src/mcp/store.js";
 import { SettingsEditor, SettingsParseError } from "../src/settings/editor.js";
-import { SkillStore, renderSkill, safeDirectoryName } from "../src/skills/store.js";
+import { SkillStore, parseFrontmatter, renderSkill, safeDirectoryName } from "../src/skills/store.js";
 
 let dir: string;
 let home: string;
@@ -49,8 +49,14 @@ describe("renderSkill", () => {
     });
 
     expect(text.startsWith("---\nname: commit\n")).toBe(true);
-    expect(text).toContain("description: Commit et MR");
+    expect(text).toContain('description: "Commit et MR"');
     expect(text).toContain("  du texte    indenté");
+  });
+
+  it("écrit une description qui se relit telle quelle, deux-points, dièse et guillemets compris", () => {
+    const description = 'Revue : vérifie le #ticket et les "TODO" \\ FIXME';
+    const text = renderSkill({ scope: "user", directory: "x", description, body: "" });
+    expect(parseFrontmatter(text).fields["description"]).toBe(description);
   });
 
   it("reprend le nom du dossier quand aucun n'est donné", () => {
@@ -64,7 +70,7 @@ describe("renderSkill", () => {
       description: "une ligne\nune autre",
       body: "",
     });
-    expect(text).toContain("description: une ligne une autre");
+    expect(text).toContain('description: "une ligne une autre"');
   });
 
   it("traduit les modes d'invocation en leurs clés", () => {
