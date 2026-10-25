@@ -983,4 +983,16 @@ export const EN: Record<string, string> = {
   "Claude Code demande de confirmer : le nouveau modèle relira toute la conversation au prochain message. Réponds dans le terminal.":
     "Claude Code asks you to confirm: the new model will re-read the whole conversation on the next message. Answer in the terminal.",
   "Claude Code n'a pas validé /rename : regarde sa ligne de saisie.": "Claude Code didn't run /rename: check its input line.",
+  "Rechercher dans le terminal": "Find in terminal",
+  "Résultat précédent (Maj+Entrée)": "Previous match (Shift+Enter)",
+  "Résultat précédent": "Previous match",
+  "Résultat suivant (Entrée)": "Next match (Enter)",
+  "Résultat suivant": "Next match",
+  "Fermer (Échap)": "Close (Esc)",
+  "Fermer la recherche": "Close search",
+  "Expression invalide": "Invalid expression",
+  "Aucun résultat": "No results",
+  "Plus de {count}": "Over {count}",
+  "{index} sur {count}": "{index} of {count}",
+  "dans le terminal seulement": "in the terminal only",
 };

@@ -19,6 +19,8 @@ export interface Binding {
   key: string;
   /** Seulement hors du terminal et des champs de saisie. */
   outside?: boolean;
+  /** Seulement dans un terminal qui a le focus, où elle passe devant les autres commandes. */
+  terminal?: boolean;
 }
 
 /** Touches qu'un préréglage ajoute aux défauts, par commande. */
@@ -52,17 +54,29 @@ export interface Bindable {
   id: string;
   /** Raccourci par défaut, valable partout. */
   shortcut?: string;
+  /**
+   * `terminal` : une action sur le terminal qui a le focus. Ses touches ne valent
+   * que là, et y passent devant celles des autres commandes, qui gardent les
+   * mêmes partout ailleurs.
+   */
+  scope?: "terminal";
 }
 
 /**
  * Touches d'une commande. Un raccourci choisi par l'utilisateur remplace tout —
- * défaut et préréglage — et vaut partout ; `null` retire toutes les touches.
+ * défaut et préréglage — et vaut partout où vaut la commande ; `null` retire
+ * toutes les touches.
  */
 export function bindingsOf(
   command: Bindable,
   keymap: Keymap,
   overrides: Record<string, string | null>,
 ): Binding[] {
+  const bindings = ownBindings(command, keymap, overrides);
+  return command.scope === "terminal" ? bindings.map((binding) => ({ ...binding, terminal: true })) : bindings;
+}
+
+function ownBindings(command: Bindable, keymap: Keymap, overrides: Record<string, string | null>): Binding[] {
   if (command.id in overrides) {
     const chosen = overrides[command.id];
     return chosen ? [{ key: chosen }] : [];
@@ -72,7 +86,13 @@ export function bindingsOf(
 }
 
 export function applies(binding: Binding, focus: Focus): boolean {
+  if (binding.terminal) return focus === "terminal";
   return !binding.outside || focus === "other" || focus === "editor";
+}
+
+/** Deux commandes dont les touches peuvent se gêner : même portée. */
+export function sameScope(a: Bindable, b: Bindable): boolean {
+  return a.scope === b.scope;
 }
 
 /** La commande qu'une touche déclenche là où est le focus, s'il y en a une. */
@@ -83,29 +103,33 @@ export function commandFor(
   keymap: Keymap,
   overrides: Record<string, string | null>,
 ): string | undefined {
-  return commands.find((command) =>
+  const matching = commands.filter((command) =>
     bindingsOf(command, keymap, overrides).some((binding) => binding.key === shortcut && applies(binding, focus)),
-  )?.id;
+  );
+  return (matching.find((command) => command.scope === "terminal") ?? matching[0])?.id;
 }
 
 /**
  * Touches portées par plusieurs commandes à la fois. Deux liaisons se gênent dès
  * qu'un même focus les rend actives ensemble — hors du terminal, toutes le sont.
+ * Une commande du terminal ne gêne pas une commande générale sur la même touche :
+ * elle la remplace dans le terminal, à dessein.
  */
 export function conflicts(
   commands: readonly Bindable[],
   keymap: Keymap,
   overrides: Record<string, string | null>,
 ): { key: string; ids: string[] }[] {
-  const byKey = new Map<string, string[]>();
+  const byKey = new Map<string, { key: string; ids: string[] }>();
   for (const command of commands) {
     for (const binding of bindingsOf(command, keymap, overrides)) {
-      const ids = byKey.get(binding.key) ?? [];
-      if (!ids.includes(command.id)) ids.push(command.id);
-      byKey.set(binding.key, ids);
+      const slot = `${command.scope ?? ""}:${binding.key}`;
+      const entry = byKey.get(slot) ?? { key: binding.key, ids: [] };
+      if (!entry.ids.includes(command.id)) entry.ids.push(command.id);
+      byKey.set(slot, entry);
     }
   }
-  return [...byKey.entries()].filter(([, ids]) => ids.length > 1).map(([key, ids]) => ({ key, ids }));
+  return [...byKey.values()].filter((entry) => entry.ids.length > 1);
 }
 
 /** Ce que `shortcutOf` lit d'un évènement clavier. */
@@ -144,10 +168,13 @@ export function isUsableShortcut(shortcut: string): boolean {
   return /^(Ctrl|Alt)\+/.test(shortcut) || /^(Shift\+)?F([1-9]|1[0-2])$/.test(shortcut);
 }
 
-/** Où se trouve un élément du point de vue des raccourcis. */
+/**
+ * Où se trouve un élément du point de vue des raccourcis. La barre de recherche
+ * d'un terminal en fait partie : son raccourci y ramène au champ.
+ */
 export function focusOf(target: EventTarget | null): Focus {
   if (!(target instanceof Element)) return "other";
-  if (target.closest(".xterm")) return "terminal";
+  if (target.closest(".xterm, [data-terminal-find]")) return "terminal";
   if (target.closest(".monaco-editor")) return "editor";
   if (target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']")) return "input";
   return "other";

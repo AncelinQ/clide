@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Keys } from "@/components/CommandPalette";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { KEYMAPS, bindingsOf, conflicts, isUsableShortcut, shortcutOf, type Keymap } from "@/lib/keymap";
+import { KEYMAPS, bindingsOf, conflicts, isUsableShortcut, sameScope, shortcutOf, type Keymap } from "@/lib/keymap";
 import { isShadowing } from "@/lib/prompt-keys";
 import { commands, effectiveShortcut } from "@/state/commands";
 import { cachedPrompts } from "@/state/prompts";
@@ -51,9 +51,14 @@ export function useShortcutRecording(): { recording: string | undefined; record:
         setNotice(t("{shortcut} se tape : un raccourci demande Ctrl ou Alt.", { shortcut }));
         return;
       }
+      // Seule une commande de même portée perd sa touche : une commande du
+      // terminal partage la sienne avec une commande générale, à dessein.
+      const recorded = all.find((command) => command.id === recording);
       const taken = all.find(
         (command) =>
-          command.id !== recording && bindingsOf(command, keymap, overrides).some((binding) => binding.key === shortcut),
+          command.id !== recording &&
+          (!recorded || sameScope(command, recorded)) &&
+          bindingsOf(command, keymap, overrides).some((binding) => binding.key === shortcut),
       );
       setState((current) => ({
         shortcuts: {
@@ -151,7 +156,7 @@ export function ShortcutsEditor() {
               {recording === command.id ? (
                 <span className="text-[11px] text-primary">{t("tape la combinaison… (Échap : annuler, Suppr : aucun)")}</span>
               ) : shortcut || extra.length > 0 ? (
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5" title={command.scope === "terminal" ? t("dans le terminal seulement") : undefined}>
                   {shortcut && <Keys shortcut={shortcut} />}
                   {extra.map((binding) => (
                     <span key={binding.key} className="flex items-center gap-0.5" title={binding.outside ? t("hors du terminal") : undefined}>

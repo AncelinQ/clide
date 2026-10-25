@@ -1,6 +1,6 @@
 import { globalTabs } from "@/components/GlobalTabs";
 import { t } from "@/i18n";
-import { commandFor, focusOf, isUsableShortcut, shortcutOf } from "@/lib/keymap";
+import { commandFor, focusOf, isUsableShortcut, shortcutOf, type Bindable } from "@/lib/keymap";
 import { LIST_KEY } from "@/lib/prompt-keys";
 import { openDoc } from "@/lib/api";
 import { post } from "@/lib/api";
@@ -27,14 +27,12 @@ import { closeFile, revealInTree, saveFile, selectedText } from "@/state/editor"
 import { focusFileSearch } from "@/components/panels/file-search";
 import { openLatestDevServer } from "@/components/DevServers";
 import { cachedPrompts, runPrompt } from "@/state/prompts";
-import { closeTerminal, focusTerminal, openTerminal, typeAsUser } from "@/state/terminals";
+import { closeTerminal, focusTerminal, openTerminal, openTerminalFind, typeAsUser } from "@/state/terminals";
 
-export interface Command {
-  id: string;
+/** Une action atteignable au clavier ; son raccourci par défaut est au format de `shortcutOf`. */
+export interface Command extends Bindable {
   label: string;
   group: string;
-  /** Raccourci par défaut, au format de `shortcutOf`. */
-  shortcut?: string;
   run: () => void;
 }
 
@@ -159,6 +157,19 @@ export function commands(): Command[] {
         updateProject(project.root, { leftMode: "search" });
         // La vue se monte au rendu suivant : le focus attend qu'elle soit là.
         setTimeout(() => focusFileSearch(text), 50);
+      },
+    },
+    {
+      id: "terminal.find",
+      group: t("Onglets"),
+      label: t("Rechercher dans le terminal"),
+      // Les mêmes touches que la recherche dans les fichiers, qui les garde hors du terminal.
+      shortcut: "Ctrl+Shift+F",
+      scope: "terminal",
+      run: () => {
+        // Le terminal qu'on voit : un fichier ouvert au centre le cache.
+        const id = activeTab();
+        if (id && !activeProjectFile()) openTerminalFind(id);
       },
     },
     {

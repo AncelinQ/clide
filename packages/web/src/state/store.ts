@@ -140,6 +140,12 @@ export interface State {
   refusedInput: string | null;
   /** Avis montré un instant en bas d'un terminal : un changement de modèle qui attend, ou qui n'a pas pu se faire. */
   terminalNotice: { id: string; text: string } | null;
+  /**
+   * Terminal dont la barre de recherche est ouverte, une seule à la fois. Chaque
+   * demande (`request`) y ramène le focus ; `seed` est le texte sélectionné à ce
+   * moment-là, qui devient la recherche.
+   */
+  terminalFind: { id: string; request: number; seed: string } | null;
   /** Onglet dont le nom est en cours de saisie, dans la barre : le menu contextuel l'y ouvre. */
   renamingTab: string | null;
   /** Fichier que l'explorateur doit déplier et sélectionner dès qu'il est monté ; il l'efface une fois fait. */
@@ -255,6 +261,7 @@ let state: State = {
   promptInput: null,
   refusedInput: null,
   terminalNotice: null,
+  terminalFind: null,
   renamingTab: null,
   revealFile: null,
   addingProject: false,

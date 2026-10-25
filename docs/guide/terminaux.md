@@ -57,6 +57,30 @@ Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
 Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
 raccourcis de PowerShell, qui collent et annulent de la même façon.
 
+## Rechercher dans le terminal
+
+`Ctrl+Maj+F`, quand un terminal a le clavier, ouvre une barre de recherche dans son
+coin haut droit, sous la barre flottante s'il en a une. Elle cherche dans tout ce
+que le terminal garde, historique compris (10 000 lignes). Hors d'un terminal, la
+même touche reste « Rechercher dans les fichiers » ; la palette propose aussi
+« Rechercher dans le terminal ».
+
+- Les résultats se surlignent à la frappe, dans la couleur d'accent, et se
+  marquent dans la marge de défilement. Le compteur dit où l'on est (« 3 sur 12 »).
+- **Entrée** va au résultat suivant, **Maj+Entrée** au précédent ; **Échap** ferme
+  la barre et rend le clavier au terminal.
+- **Aa**, **ab** et **.\*** respectent la casse, ne gardent que les mots entiers ou
+  lisent la recherche comme une expression régulière, comme dans la recherche des
+  fichiers.
+- Un texte sélectionné sur une ligne devient la recherche. `Ctrl+Maj+F` de nouveau
+  ramène au champ, sans perdre la recherche en cours.
+- Chaque terminal garde sa barre en changeant d'onglet ; une seule est ouverte à la
+  fois.
+
+Un onglet Claude en rendu fullscreen redessine son écran au lieu d'écrire dans
+l'historique : seul ce qu'il montre se cherche. La conversation entière se cherche
+dans Activité, ou par `#` dans la palette.
+
 ## Grouper les onglets
 
 Des onglets qui vont ensemble — l'onglet Claude d'une revue et les fichiers qu'il

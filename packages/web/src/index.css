@@ -169,6 +169,8 @@ input[type="color"]::-webkit-color-swatch {
 :root {
   --term-bg: #ffffff;
   --term-fg: #1c1c1e;
+  /* Le blanc translucide qu'xterm prend par défaut disparaît sur un fond blanc. */
+  --term-selection: #add6ff;
   --ansi-0: #000000;
   --ansi-1: #cd3131;
   --ansi-2: #00a41e;
@@ -190,6 +192,7 @@ input[type="color"]::-webkit-color-swatch {
 .dark {
   --term-bg: #16161a;
   --term-fg: #e8e8ed;
+  --term-selection: #ffffff4d;
   --ansi-0: #000000;
   --ansi-1: #cd3131;
   --ansi-2: #0dbc79;

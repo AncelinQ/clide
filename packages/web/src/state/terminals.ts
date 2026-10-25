@@ -1,4 +1,5 @@
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import { Terminal, type IDisposable } from "@xterm/xterm";
 
 import { t } from "@/i18n";
@@ -40,6 +41,7 @@ import {
 interface Attached {
   term: Terminal;
   fit: FitAddon;
+  search: SearchAddon;
   host: HTMLDivElement;
   /** Recalage de la barre de défilement qui attend le prochain rendu. */
   resync?: IDisposable;
@@ -751,6 +753,30 @@ function viewportOf(term: Terminal): { queueSync?: () => void } | undefined {
   return (term as unknown as { _core?: { _viewport?: { queueSync?: () => void } } })._core?._viewport;
 }
 
+let findRequests = 0;
+
+/**
+ * Ouvre la recherche d'un terminal, ou y ramène le focus si elle l'est déjà. Le
+ * texte sélectionné dans le terminal, sur une ligne, devient la recherche.
+ */
+export function openTerminalFind(id: string): void {
+  const selection = attached.get(id)?.term.getSelection() ?? "";
+  const seed = selection.includes("\n") || !selection.trim() ? "" : selection;
+  findRequests += 1;
+  setState({ terminalFind: { id, request: findRequests, seed } });
+}
+
+/** Ferme la recherche d'un terminal et lui rend le clavier. */
+export function closeTerminalFind(id: string): void {
+  setState((current) => (current.terminalFind?.id === id ? { terminalFind: null } : {}));
+  attached.get(id)?.term.focus();
+}
+
+/** La recherche d'un terminal monté ; aucune tant que React n'a pas monté son hôte. */
+export function searchOf(id: string): SearchAddon | undefined {
+  return attached.get(id)?.search;
+}
+
 export function resizeActive(): void {
   const { activeTerminalId } = getState();
   if (activeTerminalId) resize(activeTerminalId);
@@ -782,9 +808,13 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
     // écrit la conversation dans l'historique du terminal.
     scrollback: 10_000,
     theme,
+    // Les surlignages de la recherche sont des décorations, qu'xterm range dans ses API proposées.
+    allowProposedApi: true,
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
+  const search = new SearchAddon({ highlightLimit: 1000 });
+  term.loadAddon(search);
   term.open(host);
   term.onData((data) => typeAsUser(info.id, data));
   // Rendue à false, la frappe échappe à xterm et le navigateur fait son copier ou
@@ -797,7 +827,7 @@ export function mount(info: TerminalInfo, host: HTMLDivElement, theme: Record<st
     if (action === "copy") setTimeout(() => term.clearSelection());
     return action === undefined;
   });
-  attached.set(info.id, { term, fit, host });
+  attached.set(info.id, { term, fit, search, host });
   // Monté caché, il ne peut pas s'ajuster : il prend la taille du terminal qu'on
   // voit, celle où le serveur l'a ouvert, plutôt que les 80x24 de xterm.
   const size = host.clientWidth > 0 ? undefined : visibleSize();

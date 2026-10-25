@@ -1,7 +1,7 @@
 import { CaseSensitive, ChevronDown, ChevronRight, Regex, Search, SlidersHorizontal, WholeWord } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Empty } from "@/components/common";
+import { Empty, Toggle } from "@/components/common";
 import { FileIcon } from "@/components/FileIcon";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
@@ -32,23 +32,6 @@ const focusRequests = new EventTarget();
 /** Met le focus sur la recherche du projet, pré-remplie avec `text` s'il y en a un. */
 export function focusFileSearch(text?: string): void {
   focusRequests.dispatchEvent(new CustomEvent("focus", { detail: text }));
-}
-
-function Toggle({ on, title, onClick, children }: { on: boolean; title: string; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-pressed={on}
-      onClick={onClick}
-      className={cn(
-        "grid size-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-accent hover:text-foreground",
-        on && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary",
-      )}
-    >
-      {children}
-    </button>
-  );
 }
 
 function absolute(root: string, path: string): string {
