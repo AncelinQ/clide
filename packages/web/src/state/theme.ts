@@ -49,6 +49,8 @@ export function terminalTheme(): Record<string, string> {
     background: read("--term-bg"),
     foreground: read("--term-fg"),
     cursor: read("--term-fg"),
+    // Aussi le résultat courant d'une recherche, qu'xterm sélectionne.
+    selectionBackground: read("--term-selection"),
   };
   ANSI.forEach((name, index) => {
     theme[name] = read(`--ansi-${index}`);

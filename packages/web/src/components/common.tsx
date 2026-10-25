@@ -65,6 +65,24 @@ export function Empty({ icon: Icon, children }: { icon: LucideIcon; children: Re
   );
 }
 
+/** Option à bascule d'une recherche (casse, mot entier, expression) : une icône, son nom au survol. */
+export function Toggle({ on, title, onClick, children }: { on: boolean; title: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-pressed={on}
+      onClick={onClick}
+      className={cn(
+        "grid size-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-accent hover:text-foreground",
+        on && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** Bande de section pleine largeur, sans carte ni ombre. */
 export function Section({ children }: { children: ReactNode }) {
   return (

@@ -70,6 +70,32 @@ describe("commandFor", () => {
   });
 });
 
+describe("commandes du terminal", () => {
+  // Dans l'ordre de state/commands.ts : la commande générale vient d'abord.
+  const SEARCHES: Bindable[] = [
+    { id: "search.files", shortcut: "Ctrl+Shift+F" },
+    { id: "terminal.find", shortcut: "Ctrl+Shift+F", scope: "terminal" },
+  ];
+
+  it("prennent leur touche dans le terminal et la laissent à la commande générale ailleurs", () => {
+    expect(commandFor("Ctrl+Shift+F", "terminal", SEARCHES, "clide", {})).toBe("terminal.find");
+    for (const focus of ["other", "input", "editor"] as const) {
+      expect(commandFor("Ctrl+Shift+F", focus, SEARCHES, "clide", {})).toBe("search.files");
+    }
+  });
+
+  it("gardent leur portée avec une touche choisie par l'utilisateur", () => {
+    expect(bindingsOf(SEARCHES[1] as Bindable, "vscode", { "terminal.find": "Alt+F" })).toEqual([{ key: "Alt+F", terminal: true }]);
+    expect(commandFor("Alt+F", "other", SEARCHES, "clide", { "terminal.find": "Alt+F" })).toBeUndefined();
+  });
+
+  it("ne sont pas en conflit avec la commande générale qu'elles remplacent, mais entre elles oui", () => {
+    expect(conflicts(SEARCHES, "clide", {})).toEqual([]);
+    const two: Bindable[] = [...SEARCHES, { id: "terminal.clear", shortcut: "Ctrl+Shift+F", scope: "terminal" }];
+    expect(conflicts(two, "clide", {})).toEqual([{ key: "Ctrl+Shift+F", ids: ["terminal.find", "terminal.clear"] }]);
+  });
+});
+
 describe("shortcutOf", () => {
   it("nomme une lettre par son caractère, la touche marquée A en AZERTY", () => {
     expect(shortcutOf(press("A", "KeyQ", { ctrl: true, shift: true }))).toBe("Ctrl+Shift+A");
@@ -112,7 +138,7 @@ describe("conflicts", () => {
   it("n'attribue jamais à un préréglage une touche par défaut de Clide", () => {
     // Les défauts de state/commands.ts.
     const defaults = new Set([
-      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+1", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+H", "Ctrl+Shift+J",
+      "Alt+PageDown", "Alt+PageUp", "Ctrl+Shift+1", "Ctrl+Shift+A", "Ctrl+Shift+B", "Ctrl+Shift+E", "Ctrl+Shift+F", "Ctrl+Shift+H", "Ctrl+Shift+J",
       "Ctrl+Shift+O", "Ctrl+Shift+P", "Ctrl+Shift+PageDown", "Ctrl+Shift+PageUp", "Ctrl+Shift+S", "Ctrl+Shift+T",
       "Ctrl+Shift+U", "Ctrl+Shift+W", "Ctrl+Shift+X",
     ]);

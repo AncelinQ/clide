@@ -24,6 +24,7 @@ import { moduleBottomViews } from "@/modules";
 import { FileIcon } from "@/components/FileIcon";
 import { ScriptsList, ScriptsTab } from "@/components/ScriptsShelf";
 import { ClaudeToolbar, NewTabMenu, ScriptToolbar, tabItems } from "@/components/TerminalMenus";
+import { TerminalFind } from "@/components/TerminalFind";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
 import { barItems, gather, groupTabId } from "@/lib/tab-groups";
@@ -208,10 +209,15 @@ function droppedPaths(data: DataTransfer, desktop: Window["clide"]): string[] {
  *
  * Les instances vivent hors de React et ne sont jamais détruites au rendu : ce
  * composant ne fait que leur prêter un nœud et signaler les redimensionnements.
+ *
+ * La barre de recherche vit à côté de l'hôte, pas dedans : elle suit l'échelle
+ * de l'interface, que le terminal ignore, et reste montée quand on change
+ * d'onglet, avec sa recherche.
  */
-function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean }) {
+function TerminalHost({ info, active, underToolbar }: { info: TerminalInfo; active: boolean; underToolbar: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const desktop = window.clide;
+  const find = useStore((state) => (state.terminalFind?.id === info.id ? state.terminalFind : null));
 
   useEffect(() => {
     if (ref.current) mount(info, ref.current, terminalTheme());
@@ -225,43 +231,53 @@ function TerminalHost({ info, active }: { info: TerminalInfo; active: boolean })
   }, [active, info.id]);
 
   return (
-    // La marge est sur le cadre, pas sur l'hôte : xterm calcule ses lignes sur la
-    // hauteur de son parent, padding compris en `border-box`, et sa dernière ligne
-    // déborderait sous le bord.
-    <div
-      className={cn("absolute inset-0 p-2", active ? "block" : "hidden")}
-      data-unzoom
-      onDragOver={(event) => {
-        if (desktop || event.dataTransfer.types.includes(PATHS_MIME) || event.dataTransfer.types.includes("Files")) {
+    <div className={cn("absolute inset-0", active ? "block" : "hidden")}>
+      {/* La marge est sur le cadre, pas sur l'hôte : xterm calcule ses lignes sur la
+          hauteur de son parent, padding compris en `border-box`, et sa dernière ligne
+          déborderait sous le bord. */}
+      <div
+        className="absolute inset-0 p-2"
+        data-unzoom
+        onDragOver={(event) => {
+          if (desktop || event.dataTransfer.types.includes(PATHS_MIME) || event.dataTransfer.types.includes("Files")) {
+            event.preventDefault();
+          }
+        }}
+        onDrop={(event) => {
+          const paths = droppedPaths(event.dataTransfer, desktop);
+          if (paths.length > 0) {
+            event.preventDefault();
+            typeAsUser(info.id, `${paths.map(quotePath).join(" ")} `);
+            return;
+          }
+          const images = imagesOf(event.dataTransfer.files);
+          if (images.length === 0) return;
           event.preventDefault();
-        }
-      }}
-      onDrop={(event) => {
-        const paths = droppedPaths(event.dataTransfer, desktop);
-        if (paths.length > 0) {
+          void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
+        }}
+        // En phase de capture, avant que xterm ne colle : une image seule dans le
+        // presse-papiers n'a pas de texte à coller. Claude Code la lit lui-même sur
+        // son raccourci de collage d'image et la joint au message ; un shell en
+        // reçoit le chemin.
+        onPasteCapture={(event) => {
+          const images = imagesOf(event.clipboardData.files);
+          if (images.length === 0 || event.clipboardData.getData("text/plain")) return;
           event.preventDefault();
-          typeAsUser(info.id, `${paths.map(quotePath).join(" ")} `);
-          return;
-        }
-        const images = imagesOf(event.dataTransfer.files);
-        if (images.length === 0) return;
-        event.preventDefault();
-        void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
-      }}
-      // En phase de capture, avant que xterm ne colle : une image seule dans le
-      // presse-papiers n'a pas de texte à coller. Claude Code la lit lui-même sur
-      // son raccourci de collage d'image et la joint au message ; un shell en
-      // reçoit le chemin.
-      onPasteCapture={(event) => {
-        const images = imagesOf(event.clipboardData.files);
-        if (images.length === 0 || event.clipboardData.getData("text/plain")) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (info.kind === "claude") typeAsUser(info.id, IMAGE_PASTE);
-        else void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
-      }}
-    >
-      <div ref={ref} className="size-full" />
+          event.stopPropagation();
+          if (info.kind === "claude") typeAsUser(info.id, IMAGE_PASTE);
+          else void typeImages(info.id, images).catch((error: unknown) => console.error("[clide]", error));
+        }}
+      >
+        <div ref={ref} className="size-full" />
+      </div>
+      {find && (
+        <TerminalFind
+          terminalId={info.id}
+          request={find.request}
+          seed={find.seed}
+          className={underToolbar ? "top-11" : "top-2"}
+        />
+      )}
     </div>
   );
 }
@@ -696,7 +712,13 @@ export function TerminalArea() {
         <div ref={frame} className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
           {!status && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
-            <TerminalHost key={info.id} info={info} active={info.id === status?.id && !activeFile} />
+            <TerminalHost
+              key={info.id}
+              info={info}
+              active={info.id === status?.id && !activeFile}
+              // La barre d'outils ci-dessous, quand le terminal en a une : la recherche se range dessous.
+              underToolbar={info.kind === "claude" ? !info.exited : Boolean(info.script) || placementOf(info, placed) === "scripts"}
+            />
           ))}
           {status?.kind === "claude" && !status.exited && !activeFile && (
             <ClaudeToolbar terminalId={status.id} currentModel={current?.model} currentEffort={current?.effort} servers={servers} />

@@ -83,6 +83,7 @@ const UI: Record<string, string[]> = {
   "--canvas": ["titleBar.activeBackground", "activityBar.background", "sideBar.background", "editor.background"],
   "--term-bg": ["terminal.background", "panel.background", "editor.background"],
   "--term-fg": ["terminal.foreground", "editor.foreground", "foreground"],
+  "--term-selection": ["terminal.selectionBackground", "editor.selectionBackground"],
 };
 
 const ANSI = [

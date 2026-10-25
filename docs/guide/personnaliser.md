@@ -95,6 +95,7 @@ La palette se lit à son premier caractère, comme celle de VS Code :
 
 Chercher un texte dans les fichiers du projet, c'est la vue Recherche de la colonne
 du projet, par `Ctrl+Maj+F` ou « Rechercher dans les fichiers » dans la palette.
+Dans un terminal, la même touche cherche dans le terminal.
 
 La recherche de fichiers suit git dans un dépôt : ni ce que le `.gitignore` écarte,
 ni les fichiers suivis supprimés du disque ; un fichier non suivi mais non ignoré y
@@ -107,7 +108,7 @@ figure. Hors dépôt, elle passe les dépendances, les sorties de build et les c
 | Nouveau shell · nouvel onglet Claude | `Ctrl+Maj+T` · `Ctrl+Maj+A` |
 | Fermer l'onglet | `Ctrl+Maj+W` |
 | Basculer sur les scripts | `Ctrl+Maj+X` |
-| Rechercher dans les fichiers | `Ctrl+Maj+F` |
+| Rechercher dans les fichiers · dans le terminal, depuis un terminal | `Ctrl+Maj+F` |
 | Onglet suivant · précédent | `Ctrl+Maj+Page suiv.` · `Ctrl+Maj+Page préc.` |
 | Déplacer l'onglet à droite · à gauche | `Alt+Maj+Page suiv.` · `Alt+Maj+Page préc.` |
 | Projet suivant · précédent | `Alt+Page suiv.` · `Alt+Page préc.` |
@@ -125,7 +126,10 @@ ne laisse pas intercepter. La touche est prise en phase de capture, avant xterm 
 elle n'atteint pas le shell, et la palette se ferme sans laisser de caractère. Une
 combinaison qui n'est à aucune action passe au terminal telle quelle. Les
 raccourcis se changent dans les préférences ; une combinaison déjà prise est
-retirée à l'autre action, et le dialogue le dit.
+retirée à l'autre action, et le dialogue le dit. Une action du terminal, comme
+« Rechercher dans le terminal », fait exception : sa touche ne vaut que dans un
+terminal, où elle passe devant celle d'une action générale, qui la garde partout
+ailleurs.
 
 **Jeu de raccourcis.** Les préférences proposent VS Code (par défaut), JetBrains, ou
 Clide seul. Un jeu ajoute ses touches à celles du tableau, sans en retirer : VS Code
