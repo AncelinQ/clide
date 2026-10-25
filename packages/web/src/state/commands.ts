@@ -3,7 +3,8 @@ import { t } from "@/i18n";
 import { commandFor, focusOf, isUsableShortcut, shortcutOf } from "@/lib/keymap";
 import { LIST_KEY } from "@/lib/prompt-keys";
 import { openDoc } from "@/lib/api";
-import { post, quotePath } from "@/lib/api";
+import { post } from "@/lib/api";
+import { quotePath } from "@/lib/terminal-input";
 import {
   activateProject,
   activeProject,

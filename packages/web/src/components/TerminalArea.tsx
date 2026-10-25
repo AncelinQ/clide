@@ -42,7 +42,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 import { t } from "@/i18n";
 import { placementOf, splitTabs } from "@/lib/script-shelf";
-import { IMAGE_PASTE } from "@/lib/terminal-input";
+import { IMAGE_PASTE, quotePath } from "@/lib/terminal-input";
 import {
   DEFAULT_WIDTHS,
   activeProject,
@@ -68,7 +68,7 @@ import {
   resizeActive,
   typeAsUser,
 } from "@/state/terminals";
-import { PATHS_MIME, api, quotePath, saveImage } from "@/lib/api";
+import { PATHS_MIME, api, saveImage } from "@/lib/api";
 import { recentProjects } from "@/lib/recents";
 import { NameInput, useAsync } from "@/components/common";
 import { ScrollArea } from "@/components/ui/scroll-area";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clipboardKey, isTerminalReply } from "../src/lib/terminal-input";
+import { clipboardKey, isTerminalReply, quotePath } from "../src/lib/terminal-input";
 
 describe("isTerminalReply", () => {
   it("reconnaît les réponses de xterm au programme", () => {
@@ -50,5 +50,23 @@ describe("clipboardKey", () => {
     expect(clipboardKey(key("v", { ctrlKey: false }), false)).toBeUndefined();
     expect(clipboardKey(key("v", { type: "keyup" }), false)).toBeUndefined();
     expect(clipboardKey(key("x"), true)).toBeUndefined();
+  });
+});
+
+describe("quotePath", () => {
+  it("laisse un chemin ordinaire tel quel", () => {
+    expect(quotePath("C:\\Projets\\clide\\a.ts")).toBe("C:\\Projets\\clide\\a.ts");
+  });
+
+  it("met entre guillemets doubles un chemin à espace ou à caractère spécial de PowerShell", () => {
+    expect(quotePath("C:\\Mes Projets\\a.ts")).toBe('"C:\\Mes Projets\\a.ts"');
+    expect(quotePath("C:\\x\\a (1).png")).toBe('"C:\\x\\a (1).png"');
+    expect(quotePath("C:\\R&D\\a.ts")).toBe('"C:\\R&D\\a.ts"');
+    expect(quotePath("C:\\x\\l'outil.ts")).toBe('"C:\\x\\l\'outil.ts"');
+  });
+
+  it("garde $ et ` littéraux : guillemets simples, apostrophe doublée", () => {
+    expect(quotePath("C:\\data\\$cache\\x.txt")).toBe("'C:\\data\\$cache\\x.txt'");
+    expect(quotePath("C:\\a`b\\l'outil.txt")).toBe("'C:\\a`b\\l''outil.txt'");
   });
 });
