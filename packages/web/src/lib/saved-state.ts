@@ -45,8 +45,6 @@ export interface SavedProject {
 export interface SavedLayout {
   /** Colonnes et liste de l'onglet Scripts en pixels ; îlot du bas en part de la hauteur du centre. */
   widths: { left: number; right: number; bottom: number; scripts: number };
-  /** Hauteur du bas de chaque pile de vues, en pixels, par identifiant de pile. */
-  stacks: Record<string, number>;
   showLeft: boolean;
   showRight: boolean;
   sessionCollapsed: boolean;
@@ -99,7 +97,6 @@ export interface SavedState {
 
 export const DEFAULT_LAYOUT: SavedLayout = {
   widths: { left: 290, right: 340, bottom: 0.38, scripts: 220 },
-  stacks: {},
   showLeft: true,
   showRight: true,
   sessionCollapsed: false,
@@ -170,15 +167,6 @@ export function trimRoot(root: string): string {
   return root.replace(/[\\/]+$/, "");
 }
 
-/**
- * Activité de la colonne gauche. Les dossiers liés, un mode à part avant les
- * barres d'activité, vivent désormais sous l'explorateur.
- */
-function leftActivity(value: unknown): string {
-  if (value === "links") return "explorer";
-  return text(value, DEFAULT_PROJECT.leftMode);
-}
-
 /** Mode du bloc session. Le commit, un temps en bas, vit dans la colonne du projet. */
 function bottomActivity(value: unknown): string {
   if (value === "commit") return DEFAULT_PROJECT.bottomMode;
@@ -231,7 +219,7 @@ function project(value: unknown, fallbackTab?: string): SavedProject | undefined
   return {
     root: trimRoot(value["root"]),
     browsePath: text(value["browsePath"], DEFAULT_PROJECT.browsePath),
-    leftMode: leftActivity(value["leftMode"]),
+    leftMode: text(value["leftMode"], DEFAULT_PROJECT.leftMode),
     bottomMode: bottomActivity(value["bottomMode"]),
     activeTab: typeof tab === "string" ? tab : null,
     openFiles,
@@ -264,7 +252,6 @@ function layout(value: unknown): SavedLayout {
       bottom: number(widths["bottom"], DEFAULT_LAYOUT.widths.bottom),
       scripts: number(widths["scripts"], DEFAULT_LAYOUT.widths.scripts),
     },
-    stacks: recordOf(source["stacks"], (item): item is number => typeof item === "number" && Number.isFinite(item)),
     showLeft: flag(source["showLeft"], DEFAULT_LAYOUT.showLeft),
     showRight: flag(source["showRight"], DEFAULT_LAYOUT.showRight),
     sessionCollapsed: flag(source["sessionCollapsed"], DEFAULT_LAYOUT.sessionCollapsed),

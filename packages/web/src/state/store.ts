@@ -187,8 +187,6 @@ export interface State {
   newestFirst: Record<string, boolean>;
   /** Largeurs des colonnes, tirées à la souris : projet et panneau global, en pixels. */
   widths: Widths;
-  /** Hauteur du bas de chaque pile de vues, en pixels. */
-  stacks: Record<string, number>;
 }
 
 export interface Widths {
@@ -207,7 +205,7 @@ function restored(): Pick<
   State,
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
-  | "sessionCollapsed" | "globalTab" | "keymap" | "stacks" | "showCosts" | "disabledModules" | "projectsFolder"
+  | "sessionCollapsed" | "globalTab" | "keymap" | "showCosts" | "disabledModules" | "projectsFolder"
   | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput" | "newTabInGroup"
 > {
   let raw: unknown;
@@ -275,7 +273,6 @@ function persist(): void {
     active: state.activeRoot,
     layout: {
       widths: state.widths,
-      stacks: state.stacks,
       showLeft: state.showLeft,
       showRight: state.showRight,
       sessionCollapsed: state.sessionCollapsed,

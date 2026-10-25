@@ -49,18 +49,18 @@ droite = ce qui ne dépend d'aucun projet.**
 ┌ barre de titre : (projet A) (projet B) (+)  ⑂ branche ↑1 !12 ●3   📖 ◐            ┐
 ├──┬──────────────┬──────────────────────────────────────┬────────────────────┬──┤
 │🗂│ fichiers     │ onglets terminaux                 +   │ filtre             │⚙ │
-│🕘│              │ ┌──────────────────────────────────┐ │                    │🕘│
-│📦│              │ │ terminal                         │ │ panneau choisi     │🔍│
-│✦ │              │ └──────────────────────────────────┘ │                    │▦ │
-│⛓ │ ──────────── │ dossier · mode · état                │                    │✦ │
-│⑂ │ DOSSIERS LIÉS├──────── poignée ─────────────────────┤                    │⛓ │
-│  │              │ 📋 📈 🖼 📄 🔀 ✎  bloc session   ⓘ ˅ │                    │… │
+│🔗│              │ ┌──────────────────────────────────┐ │                    │🕘│
+│🕘│              │ │ terminal                         │ │ panneau choisi     │🔍│
+│📦│              │ └──────────────────────────────────┘ │                    │▦ │
+│✦ │              │ dossier · mode · état                │                    │✦ │
+│⛓ │              ├──────── poignée ─────────────────────┤                    │⛓ │
+│⑂ │              │ 📋 📈 🖼 📄 🔀 ✎  bloc session   ⓘ ˅ │                    │… │
 └──┴──────────────┴──────────────────────────────────────┴────────────────────┴──┘
 ```
 
 Deux barres d'icônes bordent la fenêtre. À gauche, les vues du projet :
-Explorateur (ses fichiers, et dessous ses dossiers liés), Historique du projet,
-Scripts, Skills, MCP, Worktrees. À droite, les onglets du panneau global. Cliquer
+Explorateur, Dossiers liés, Historique du projet, Scripts, Skills, MCP,
+Worktrees. À droite, les onglets du panneau global. Cliquer
 une icône ouvre sa vue ; cliquer celle qui est ouverte replie la colonne, et la
 barre reste là pour la rouvrir. Au centre, le terminal et le bloc session sont
 deux îlots : la poignée qui les sépare règle la hauteur du bloc, un double-clic la

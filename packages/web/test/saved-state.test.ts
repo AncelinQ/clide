@@ -236,9 +236,9 @@ describe("migrate sur un état abîmé", () => {
     expect(state.prefs.showCosts).toBe(false);
   });
 
-  it("range les dossiers liés, ancien mode à part, sous l'explorateur", () => {
+  it("rouvre chaque projet sur sa vue de gauche, dossiers liés compris", () => {
     const state = migrate({ version: 2, projects: [{ root: "C:\a", leftMode: "links" }, { root: "C:\b", leftMode: "mcp" }] });
-    expect(state.projects.map((project) => project.leftMode)).toEqual(["explorer", "mcp"]);
+    expect(state.projects.map((project) => project.leftMode)).toEqual(["links", "mcp"]);
   });
 
   it("prend le premier projet quand le projet actif n'est plus ouvert", () => {
