@@ -1,9 +1,8 @@
-import { FolderGit2, FolderTree, History, Info, Plug, RefreshCw, Search, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { FolderGit2, FolderTree, History, Info, Link2, Plug, RefreshCw, Search, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 import { FileTree } from "@/components/FileTree";
 import type { Activity } from "@/components/ActivityBar";
-import { Splitter, clamp } from "@/components/Splitter";
 import { TabRow } from "@/components/GlobalTabs";
 import { ChantiersPanel } from "@/components/panels/chantiers";
 import { SearchPanel } from "@/components/panels/search";
@@ -28,7 +27,7 @@ import { cn } from "cn";
 import { t } from "@/i18n";
 import { docUrl } from "@/lib/api";
 import { moduleGlobalViews, moduleProjectViews } from "@/modules";
-import { activeProject, setState, useStore, type Project } from "@/state/store";
+import { activeProject, useStore } from "@/state/store";
 
 /** Coquille commune des trois colonnes : un îlot posé sur la toile. */
 export function Island({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -63,9 +62,15 @@ export function projectActivities(disabledModules: readonly string[]): ProjectAc
       id: "explorer",
       icon: FolderTree,
       label: t("Explorateur"),
+      about: t("Les fichiers du projet."),
+    },
+    {
+      id: "links",
+      icon: Link2,
+      label: t("Dossiers liés"),
       doc: "projet#dossiers-lies",
       about: t(
-        "Les fichiers du projet, puis les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json, qui en donne l'accès à Claude ; leurs rôles vont dans un fichier de prompt que chaque session reçoit, qui lui dit à quoi ils servent.",
+        "Les autres projets dont celui-ci dépend. Leurs chemins vont dans .claude/settings.local.json, qui en donne l'accès à Claude ; leurs rôles vont dans un fichier de prompt que chaque session reçoit, qui lui dit à quoi ils servent.",
       ),
     },
     {
@@ -107,7 +112,7 @@ export function projectActivities(disabledModules: readonly string[]): ProjectAc
       about: t("Les worktrees git du dépôt, leur état et les sessions qui y vivent."),
     },
   ];
-  return [...core.slice(0, 3), ...fromModules, ...core.slice(3)];
+  return [...core.slice(0, 4), ...fromModules, ...core.slice(4)];
 }
 
 /** En-tête d'une vue : son titre, ce qu'elle montre sur demande, et ses actions. */
@@ -147,45 +152,6 @@ function ViewHeader({ title, about, doc, actions }: { title: string; about?: str
   );
 }
 
-/** Hauteur du bas d'une pile, tirée à la souris et mémorisée. */
-function useStackHeight(id: string, fallback: number): [number, (value: number) => void] {
-  const height = useStore((state) => state.stacks[id]) ?? fallback;
-  return [height, (value) => setState((current) => ({ stacks: { ...current.stacks, [id]: value } }))];
-}
-
-/** L'explorateur au-dessus, les dossiers liés dessous, séparés par une poignée. */
-function ExplorerStack({ project }: { project: Project }) {
-  const [height, setHeight] = useStackHeight("explorer/links", 200);
-  const start = useRef(0);
-  const box = useRef<HTMLDivElement>(null);
-  return (
-    // Deux îlots, comme le terminal et le bloc du bas : l'explorateur, puis les dossiers liés.
-    <div ref={box} className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <Island className="min-h-0 flex-1">
-        {/* Une instance par projet : chacune garde ses dossiers dépliés sans les prêter au suivant. */}
-        <FileTree key={project.root} project={project} />
-      </Island>
-      <Splitter
-        orientation="horizontal"
-        className="on-canvas"
-        onStart={() => (start.current = height)}
-        onDrag={(dy) => setHeight(clamp(start.current - dy, 60, (box.current?.clientHeight ?? 600) - 120))}
-        onReset={() => setHeight(200)}
-      />
-      <div className="flex min-h-0 shrink-0 [&>*]:flex-1" style={{ height }} data-linked-island>
-        <Island>
-          <ViewHeader title={t("Dossiers liés")} />
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="px-3 py-2">
-              <LinksPanel root={project.root} />
-            </div>
-          </ScrollArea>
-        </Island>
-      </div>
-    </div>
-  );
-}
-
 export function ProjectColumn() {
   const project = useStore(activeProject);
   const disabledModules = useStore((state) => state.disabledModules);
@@ -197,11 +163,24 @@ export function ProjectColumn() {
   const activities = projectActivities(disabledModules);
   const activity = activities.find((entry) => entry.id === project.leftMode) ?? (activities[0] as (typeof activities)[number]);
 
-  if (activity.id === "explorer") return <ExplorerStack project={project} />;
+  if (activity.id === "explorer") {
+    return (
+      <Island>
+        {/* Une instance par projet : chacune garde ses dossiers dépliés sans les prêter au suivant. */}
+        <FileTree key={project.root} project={project} />
+      </Island>
+    );
+  }
 
   const body = () => {
     if (activity.render) return activity.render(project.root);
     switch (activity.id) {
+      case "links":
+        return (
+          <div data-linked-island>
+            <LinksPanel root={project.root} />
+          </div>
+        );
       case "search":
         return <FileSearchPanel root={project.root} />;
       case "history":
