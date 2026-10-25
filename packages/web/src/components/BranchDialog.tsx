@@ -90,9 +90,14 @@ export function BranchDialog({
         return;
       }
       onDone(
-        result.stashed
-          ? t("Sur {branch}. Les modifications sont mises de côté : « Réappliquer le dernier stash » les reprend.", { branch })
-          : t("Sur {branch}.", { branch }),
+        !result.stashed
+          ? t("Sur {branch}.", { branch })
+          : current
+            ? t("Sur {branch}. Les modifications sont mises de côté : de retour sur {current}, le menu de la branche propose de les réappliquer.", {
+                branch,
+                current,
+              })
+            : t("Sur {branch}. Les modifications sont mises de côté (git stash).", { branch }),
       );
       onClose();
     });

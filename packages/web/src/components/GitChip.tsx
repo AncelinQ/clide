@@ -48,6 +48,13 @@ export interface GitStatus {
   upstreamGone?: boolean;
 }
 
+/** Modifications qu'un changement de branche a mises de côté en quittant la branche courante. */
+interface SetAside {
+  hash: string;
+  from: string;
+  to: string;
+}
+
 interface PushPlan {
   branch: string;
   head: string;
@@ -158,14 +165,14 @@ export function pendingSummary(status: GitStatus): string {
   return parts.length > 0 ? parts.join(" · ") : t("à jour");
 }
 
-type StatusWithStashes = GitStatus & { stashes: number };
+type StatusWithSetAside = GitStatus & { setAside?: SetAside };
 
 /**
  * Dernier état connu de chaque dossier. Revenir sur un projet le montre aussitôt,
  * en attendant le relevé : sans lui, la puce de la barre de titre manque le temps
  * de `git status`, et tout ce que la barre centre glisse puis revient.
  */
-const knownStatus = new Map<string, StatusWithStashes | null>();
+const knownStatus = new Map<string, StatusWithSetAside | null>();
 
 /**
  * État git d'un dossier, relevé toutes les dix secondes et au retour sur la
@@ -173,15 +180,15 @@ const knownStatus = new Map<string, StatusWithStashes | null>();
  * cliquer.
  */
 export function useGitStatus(root: string | undefined) {
-  const [status, setStatus] = useState<StatusWithStashes | null>(() => (root ? (knownStatus.get(root) ?? null) : null));
+  const [status, setStatus] = useState<StatusWithSetAside | null>(() => (root ? (knownStatus.get(root) ?? null) : null));
   const refresh = useCallback(() => {
     if (!root) return Promise.resolve();
-    const keep = (next: StatusWithStashes | null) => {
+    const keep = (next: StatusWithSetAside | null) => {
       knownStatus.set(root, next);
       setStatus(next);
     };
-    return api<{ status: GitStatus | null; stashes: number }>("/api/git/status", { root })
-      .then((result) => keep(result.status ? { ...result.status, stashes: result.stashes } : null))
+    return api<{ status: GitStatus | null; setAside?: SetAside }>("/api/git/status", { root })
+      .then((result) => keep(result.status ? { ...result.status, ...(result.setAside ? { setAside: result.setAside } : {}) } : null))
       .catch(() => keep(null));
   }, [root]);
   useEffect(() => {
@@ -426,11 +433,11 @@ export function GitChip({ root }: { root: string }) {
   if (!status) return null;
   const tag = review ? `${review.forge === "github" ? "#" : "!"}${review.number}` : undefined;
 
-  const act = async (label: string, path: string) => {
+  const act = async (label: string, path: string, body: Record<string, unknown> = {}) => {
     setBusy(label);
     setMessage(undefined);
     try {
-      await post(path, { root });
+      await post(path, { root, ...body });
       setMessage({ text: t("{action} : fait.", { action: label }), error: false });
     } catch (caught) {
       setMessage({ text: (caught as Error).message, error: true });
@@ -441,6 +448,7 @@ export function GitChip({ root }: { root: string }) {
   };
 
   const name = status.branch ?? (status.head ? t("détaché {head}", { head: status.head }) : t("dépôt vide"));
+  const setAside = status.setAside;
   return (
     <>
       <DropdownMenu>
@@ -546,9 +554,13 @@ export function GitChip({ root }: { root: string }) {
           <DropdownMenuItem disabled={!!busy} onSelect={() => setBranching(true)}>
             <GitBranchPlus /> {t("Branches et worktrees…")}
           </DropdownMenuItem>
-          {status.stashes > 0 && (
-            <DropdownMenuItem disabled={!!busy} onSelect={() => void act(t("Stash réappliqué"), "/api/git/stash-pop")}>
-              <ArchiveRestore /> {t("Réappliquer le dernier stash ({count})", { count: status.stashes })}
+          {setAside && (
+            <DropdownMenuItem
+              disabled={!!busy}
+              title={t("Mises de côté en passant sur {branch}", { branch: setAside.to })}
+              onSelect={() => void act(t("Modifications réappliquées"), "/api/git/stash-pop", { hash: setAside.hash })}
+            >
+              <ArchiveRestore /> {t("Réappliquer les modifications mises de côté")}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

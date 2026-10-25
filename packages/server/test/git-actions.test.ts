@@ -16,11 +16,13 @@ import {
   gitPush,
   gitStatus,
   listBranches,
+  listStashes,
   pullMany,
   parseBranches,
+  parseStashList,
   parseStatusV2,
   pushPlan,
-  stashCount,
+  setAsideFor,
   stashPop,
   switchBranch,
   worktreeFolder,
@@ -28,6 +30,15 @@ import {
 
 const run = promisify(execFile);
 const git = (cwd: string, ...args: string[]) => run("git", args, { cwd, windowsHide: true });
+
+describe("parseStashList", () => {
+  it("lit hash, position et message, et ignore ce qui n'est pas une entrée", () => {
+    const hash = "a".repeat(40);
+    expect(parseStashList([`${hash}\0stash@{0}\0On main: Clide : avant de passer de main à x`, "", "bruit"].join("\n"))).toEqual([
+      { hash, ref: "stash@{0}", subject: "On main: Clide : avant de passer de main à x" },
+    ]);
+  });
+});
 
 describe("parseStatusV2", () => {
   it("repère un amont disparu : nommé, mais sans écart", () => {
@@ -223,14 +234,50 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
 
     expect(await switchBranch(mine, "aqn/feat/neuve", { stash: true })).toEqual({ stashed: true });
     expect(await gitStatus(mine)).toMatchObject({ branch: "aqn/feat/neuve", changed: 0 });
-    expect(await stashCount(mine)).toBe(1);
+    expect(await setAsideFor(mine, "aqn/feat/neuve")).toBeUndefined();
 
     await switchBranch(mine, "main");
-    await stashPop(mine);
+    const aside = await setAsideFor(mine, "main");
+    expect(aside).toMatchObject({ from: "main", to: "aqn/feat/neuve" });
+    await stashPop(mine, aside!.hash);
     expect(await readFile(join(mine, "a.txt"), "utf8")).toBe("modifié");
-    expect(await stashCount(mine)).toBe(0);
+    expect(await listStashes(mine)).toEqual([]);
     await git(mine, "checkout", "--", "a.txt");
   }, 30_000);
+
+  it("réapplique le stash mis de côté même quand un autre a été poussé par-dessus", async () => {
+    await writeFile(join(mine, "a.txt"), "le mien");
+    await switchBranch(mine, "aqn/feat/neuve", { stash: true });
+    // Une autre session pousse son propre stash : le nôtre passe en stash@{1}.
+    await writeFile(join(mine, "a.txt"), "celui d'un autre");
+    await git(mine, "stash", "push", "-m", "autre session");
+
+    await switchBranch(mine, "main");
+    const aside = await setAsideFor(mine, "main");
+    await stashPop(mine, aside!.hash);
+    expect(await readFile(join(mine, "a.txt"), "utf8")).toBe("le mien");
+    expect((await listStashes(mine)).map((stash) => stash.subject)).toEqual(["On aqn/feat/neuve: autre session"]);
+
+    await git(mine, "checkout", "--", "a.txt");
+    await git(mine, "stash", "drop");
+  }, 30_000);
+
+  it("remet à sa place ce qu'il a mis de côté si le changement échoue, sans toucher aux autres stashs", async () => {
+    await writeFile(join(mine, "a.txt"), "d'avant");
+    await git(mine, "stash", "push", "-m", "déjà là");
+    await writeFile(join(mine, "a.txt"), "en cours");
+
+    await expect(switchBranch(mine, "aqn/feat/inexistante", { stash: true })).rejects.toThrow();
+    expect(await readFile(join(mine, "a.txt"), "utf8")).toBe("en cours");
+    expect((await listStashes(mine)).map((stash) => stash.subject)).toEqual(["On main: déjà là"]);
+
+    await git(mine, "checkout", "--", "a.txt");
+    await git(mine, "stash", "drop");
+  }, 30_000);
+
+  it("refuse de réappliquer un stash qui n'est plus dans la liste", async () => {
+    await expect(stashPop(mine, "0".repeat(40))).rejects.toThrow("plus dans les stashs");
+  });
 
   it("passe sur une branche qui n'existe que sur le dépôt distant", async () => {
     await git(theirs, "checkout", "-b", "collegue/y");
@@ -286,7 +333,7 @@ describe("fetch, pull et push sur de vrais dépôts", () => {
     await writeFile(join(mine, "brouillon-non-suivi.txt"), "x");
     await createBranch(mine, "aqn/feat/non-suivi");
     await expect(switchBranch(mine, "main")).resolves.toEqual({ stashed: false });
-    expect(await stashCount(mine)).toBe(0);
+    expect(await listStashes(mine)).toEqual([]);
     await rm(join(mine, "brouillon-non-suivi.txt"));
   }, 30_000);
 });

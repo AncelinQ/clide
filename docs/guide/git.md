@@ -44,9 +44,12 @@ l'on continue à taper.
 - **Changer de branche** avec des modifications non commitées de fichiers suivis
   ne se fait pas en silence : la fenêtre dit combien de fichiers sont en jeu et
   propose de les mettre de côté (`git stash push --include-untracked`, sous un
-  message qui dit de quelle branche ils viennent). « Réappliquer le dernier stash »
-  apparaît dans le menu tant qu'il en reste un. Si le changement échoue, le stash
-  est réappliqué. Les fichiers non suivis, eux, ne bloquent rien : git les laisse
+  message qui dit de quelle branche ils viennent). De retour sur cette branche, le
+  menu propose « Réappliquer les modifications mises de côté ». Seul ce stash-là
+  est proposé, et il est retrouvé par son hash : la pile de stashs est commune au
+  dépôt et à tous ses worktrees, et un stash poussé entre-temps par une autre
+  session ou un autre outil n'est jamais réappliqué à sa place. Si le changement
+  échoue, le stash est réappliqué. Les fichiers non suivis, eux, ne bloquent rien : git les laisse
   en place d'une branche à l'autre, et refuse seul — en le disant — ceux qu'un
   fichier de l'autre branche écraserait.
 - **Créer une branche** part de HEAD et garde les modifications en cours.
