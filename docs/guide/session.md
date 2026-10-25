@@ -45,7 +45,9 @@ La barre d'état porte le mode de permission, le mode plan et la taille du
 contexte ; l'activité, la consommation de la session. Une réponse s'écrit en
 plusieurs events qui répètent le même `message.id` et le même `usage` : les tokens
 sont comptés une fois par réponse. Le bloc bascule sur Plan quand l'onglet regardé
-entre en mode plan.
+entre en mode plan, et quand on choisit une session qui a un plan — dans History,
+la palette ou ailleurs. Une session sans plan laisse le bloc sur son mode, comme un
+mode Plan masqué dans le bloc.
 
 ## Le détail d'une ligne
 

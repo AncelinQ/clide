@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import { syncWorkspace } from "@/lib/api";
+import { api, syncWorkspace } from "@/lib/api";
 import { restoreLook, type LookPair } from "@/lib/looks";
 import { restoreImportedTheme, type ImportedTheme } from "@/lib/vscode-theme";
 import type { ClaudeNotification, DiagnosticsReport, LiveSession, NotificationKind, SessionSummary, TerminalInfo, TestSuite } from "@/lib/types";
@@ -488,7 +488,8 @@ export function shownSelectionOf(current: State = state): SessionSummary | undef
 
 /**
  * Montre une session de History dans le bloc du projet actif, ou retire le choix.
- * Choisir détache le bloc de l'onglet ; retirer le laisse suivre.
+ * Choisir détache le bloc de l'onglet ; retirer le laisse suivre. Une session
+ * qui a un plan ouvre le bloc sur lui.
  */
 export function selectSession(session: SessionSummary | null, options: { follow?: boolean } = {}): void {
   setState((current) => {
@@ -498,6 +499,22 @@ export function selectSession(session: SessionSummary | null, options: { follow?
     else delete selectedSessions[current.activeRoot];
     return { selectedSessions, followLive: options.follow ?? session === null };
   });
+  if (session && state.activeRoot) void showPlanOf(state.activeRoot, session.sessionId);
+}
+
+/**
+ * Met le bloc d'un projet sur le plan de la session choisie, si elle en a un et
+ * qu'elle est toujours choisie à la réponse : un autre choix fait entre-temps
+ * l'emporte. Le mode Plan masqué dans le bloc n'est pas imposé.
+ */
+async function showPlanOf(root: string, sessionId: string): Promise<void> {
+  if (state.hiddenModes["session"]?.includes("plan")) return;
+  try {
+    const { plan } = await api<{ plan?: unknown }>("/api/session/plan", { id: sessionId });
+    if (plan && state.selectedSessions[root]?.sessionId === sessionId) setBottomMode("plan", root);
+  } catch {
+    // Transcript disparu ou illisible : le bloc reste sur son mode.
+  }
 }
 
 export function updateProject(root: string, patch: Partial<Project>): void {
