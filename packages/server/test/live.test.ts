@@ -71,6 +71,25 @@ describe("LiveSessions", () => {
     expect(live.sessionOf("t1")).toBe("exacte");
   });
 
+  it("prévient quand /rename nomme la session, mais pas quand Claude Code réécrit le même nom", async () => {
+    const live = new LiveSessions(home);
+    const received: LiveSession[] = [];
+    live.on((_terminalId, session) => received.push(session));
+    live.track("t1", CWD);
+
+    const path = join(directory, "abc.jsonl");
+    await writeFile(path, line({ type: "mode", mode: "normal" }), "utf8");
+    await live.tick();
+    await appendFile(path, line({ type: "custom-title", customTitle: "revue" }), "utf8");
+    await live.tick();
+    expect(received).toHaveLength(2);
+    expect(received[1]?.name).toBe("revue");
+
+    await appendFile(path, line({ type: "custom-title", customTitle: "revue" }), "utf8");
+    await live.tick();
+    expect(received).toHaveLength(2);
+  });
+
   it("sert l'onglet le plus récent en premier : le transcript créé après lui est le sien", async () => {
     const live = new LiveSessions(home);
     const bound: string[] = [];

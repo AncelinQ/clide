@@ -65,6 +65,8 @@ export interface SessionProjection {
   gitBranch?: string;
   version?: string;
   title?: string;
+  /** Nom donné par `/rename` ou `claude --name`, que Claude Code réécrit à l'identique au fil de la session. */
+  name?: string;
   lastPrompt?: string;
   agentName?: string;
   mode?: string;
@@ -189,6 +191,12 @@ export class SessionProjector {
       case "ai-title": {
         const title = readString(event, "aiTitle");
         if (title) s.title = title;
+        break;
+      }
+
+      case "custom-title": {
+        const name = readString(event, "customTitle");
+        if (name) s.name = name;
         break;
       }
 

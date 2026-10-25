@@ -26,7 +26,7 @@ import { legacyHookScripts, migrateHooks } from "./notifications/hook.js";
 import { terminalOf } from "./notifications/target.js";
 import { NotificationWatcher } from "./notifications/watcher.js";
 import { LiveSessions } from "./sessions/live.js";
-import { SessionNames } from "./sessions/names.js";
+import { SessionNames, TabNames } from "./sessions/names.js";
 import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
@@ -240,6 +240,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const notifications = new NotificationWatcher(options.dataDir ?? appDataDir());
   const live = new LiveSessions();
   const names = new SessionNames(join(options.dataDir ?? appDataDir(), "session-names.json"));
+  const tabNames = new TabNames(names);
   const context: ApiContext = {
     index: new SessionIndex(),
     search: new SearchIndex(),
@@ -265,11 +266,15 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   live.start();
   // Un onglet fermé ne suit plus rien ; son transcript redevient disponible pour
   // un autre onglet du même dossier.
-  manager.on("exit", (id) => live.forget(id));
+  manager.on("exit", (id) => {
+    live.forget(id);
+    tabNames.forget(id);
+  });
   // Chaque `claude` lancé dans un onglet repart de zéro : une nouvelle session, ou
   // celle que nomme `--resume`. À sa sortie, l'onglet ne suit plus rien.
   manager.on("claude", (id, command) => {
     live.forget(id);
+    tabNames.forget(id);
     const terminal = manager.get(id);
     if (command !== undefined && terminal) live.track(id, terminal.cwd, command);
   });
@@ -282,10 +287,11 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     const terminal = manager.get(notification.terminalId);
     if (terminal?.kind === "claude") live.bind(terminal.id, notification.transcriptPath, notification.sessionId);
   });
-  // Une session garde le nom de l'onglet où elle tourne, et un onglet sans nom
-  // prend celui de la session qu'il montre : reprise par `/resume` ou à la main.
+  // Une session garde le nom de l'onglet où elle tourne, un onglet sans nom prend
+  // celui de la session qu'il montre — reprise par `/resume` ou à la main —, et
+  // un `/rename` tapé dans Claude Code renomme l'onglet.
   live.on((terminalId, session) => {
-    const name = names.match(session.sessionId, manager.nameOf(terminalId));
+    const name = tabNames.follow(terminalId, session.sessionId, manager.nameOf(terminalId), session.name);
     if (name) manager.rename(terminalId, name);
   });
 
