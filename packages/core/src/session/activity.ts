@@ -26,7 +26,25 @@ export type ActivityEntry =
       /** Sous-agent lancé par cet appel, dont le transcript porte le détail. */
       agentId?: string;
     } & Pictured)
-  | { kind: "note"; at?: string; text: string };
+  | { kind: "note"; at?: string; text: string }
+  | {
+      kind: "handback";
+      at?: string;
+      /** Type du sous-agent (`Explore`…), quand le transcript le dit. */
+      agent?: string;
+      /** Sous-agent lancé par un appel de la session, dont le transcript porte le détail. */
+      agentId?: string;
+      text: string;
+    }
+  | {
+      kind: "message";
+      at?: string;
+      /** Une autre session ou un agent coéquipier (`peer`), ou le coordinateur. */
+      sender: "peer" | "coordinator";
+      /** Nom de l'expéditeur, quand il en a un. */
+      from?: string;
+      text: string;
+    };
 
 export interface ActivityFeed {
   entries: ActivityEntry[];
@@ -41,7 +59,7 @@ export interface ActivityFeed {
  * avec son entrée et ce qu'il a rendu.
  */
 export type ActivityDetail =
-  | { kind: "prompt" | "command" | "answer" | "note"; text: string }
+  | { kind: "prompt" | "command" | "answer" | "note" | "handback" | "message"; text: string }
   | { kind: "tool"; name: string; input?: Record<string, unknown>; result?: string; failed?: boolean };
 
 /** Ce qu'un résultat d'outil garde au plus : une sortie de build peut peser des mégaoctets. */
@@ -169,6 +187,101 @@ export function summarizeTool(name: string, input: Record<string, unknown> | und
  */
 const SYNTHETIC = /^\s*<(local-command-caveat|command-message|command-name|system-reminder)/;
 
+/** Ce qu'une entrée relayée devient, hors de son texte. */
+type RelayedEntry =
+  | { kind: "handback"; agent?: string; agentId?: string }
+  | { kind: "message"; sender: "peer" | "coordinator"; from?: string }
+  | { kind: "note" };
+
+interface Relayed {
+  entry: RelayedEntry;
+  /** Ce que la ligne de l'activité résume. */
+  shown: string;
+  /** Le détail de l'entrée. */
+  full: string;
+}
+
+const REPORT_START = "The report follows:\n";
+
+/** La phrase par laquelle Claude Code annonce un message qu'il relaie. */
+const ANNOUNCE = /^(?:Another Claude session|The coordinator) sent a message[^\n]*\n/;
+
+/** Note du harnais en tête d'un compte rendu (« instruction-shaped pattern… ») : pas le compte rendu. */
+const HARNESS_NOTE = /^(?:\s*\[harness:[^\n]*\]\s*(?:\n|$))+/;
+
+function contentText(event: TranscriptEvent): string {
+  return blocks(event)
+    .flatMap((block) => (block.type === "text" && block.text ? [block.text] : []))
+    .join("\n");
+}
+
+/**
+ * Le compte rendu d'un sous-agent, sans le cadre que Claude Code met autour : son
+ * préambule, qui rappelle que ce n'est pas l'utilisateur qui parle, et le retrait
+ * de deux espaces de chaque ligne.
+ */
+function reportOf(origin: Record<string, unknown>): string {
+  const text = origin["handbackReportText"];
+  if (typeof text === "string") return text.trim();
+  const body = typeof origin["body"] === "string" ? origin["body"] : "";
+  const at = body.indexOf(REPORT_START);
+  if (at < 0) return body.trim();
+  return body
+    .slice(at + REPORT_START.length)
+    .split("\n")
+    .map((line) => line.replace(/^ {2}/, ""))
+    .join("\n")
+    .trim();
+}
+
+/**
+ * Un message `user` que l'utilisateur n'a pas tapé, reconnu à son `origin` :
+ * Claude Code y range ce qu'il remet de lui-même à la session. Le compte rendu
+ * d'un sous-agent (`peer` avec `handback`), le message d'une autre session ou du
+ * coordinateur, la fin d'une tâche de fond. `human`, ou pas d'`origin`, est un
+ * vrai prompt.
+ *
+ * `agents` donne le type de chaque sous-agent lancé par la session : un compte
+ * rendu ne le nomme pas toujours, mais porte l'identifiant de son sous-agent.
+ */
+function relayed(event: TranscriptEvent, agents: ReadonlyMap<string, string>): Relayed | undefined {
+  const origin = event["origin"];
+  if (!origin || typeof origin !== "object") return undefined;
+  const record = origin as Record<string, unknown>;
+  const name = typeof record["name"] === "string" && record["name"] ? record["name"] : undefined;
+
+  switch (record["kind"]) {
+    case "peer": {
+      if (record["handback"] !== true) {
+        const body = typeof record["body"] === "string" ? record["body"] : contentText(event).replace(ANNOUNCE, "");
+        return { entry: { kind: "message", sender: "peer", ...(name ? { from: name } : {}) }, shown: body, full: body.trim() };
+      }
+      const from = record["from"];
+      const agentId = typeof from === "string" && agents.has(from) ? from : undefined;
+      const agent = name ?? (agentId ? agents.get(agentId) : undefined);
+      const report = reportOf(record);
+      return {
+        entry: { kind: "handback", ...(agent ? { agent } : {}), ...(agentId ? { agentId } : {}) },
+        shown: report.replace(HARNESS_NOTE, ""),
+        full: report,
+      };
+    }
+    case "coordinator": {
+      const text = contentText(event).replace(ANNOUNCE, "").trim();
+      return { entry: { kind: "message", sender: "coordinator" }, shown: text, full: text };
+    }
+    case "task-notification": {
+      const content = contentText(event);
+      const summary = /<summary>([\s\S]*?)<\/summary>/.exec(content)?.[1]?.trim();
+      const result = /<result>([\s\S]*?)<\/result>/.exec(content)?.[1]?.trim();
+      if (!summary) return { entry: { kind: "note" }, shown: content, full: content.trim() };
+      return { entry: { kind: "note" }, shown: summary, full: result ? `${summary}\n\n${result}` : summary };
+    }
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Construit le déroulé lisible d'une session.
  *
@@ -200,11 +313,20 @@ export function buildActivity(
   // Rempli au même endroit que `entries` : l'indice d'une entrée désigne son détail.
   const details: ActivityDetail[] | undefined = options.details ? [] : undefined;
   const detailByUseId = new Map<string, ActivityDetail & { kind: "tool" }>();
+  // Type de chaque sous-agent : par appel tant qu'il n'a pas répondu, puis par identifiant.
+  const agentTypeByUseId = new Map<string, string>();
+  const agentTypes = new Map<string, string>();
 
   for (const event of events) {
     const at = typeof event.timestamp === "string" ? event.timestamp : undefined;
 
     if (event.type === "user") {
+      const relay = relayed(event, agentTypes);
+      if (relay) {
+        entries.push({ ...relay.entry, ...(at ? { at } : {}), text: condense(relay.shown, textMax) });
+        details?.push({ kind: relay.entry.kind, text: relay.full });
+        continue;
+      }
       // La réponse d'un appel à un sous-agent porte son identifiant, qui nomme son
       // transcript : c'est le seul lien entre la session et le détail du sous-agent.
       const result = event["toolUseResult"];
@@ -218,6 +340,8 @@ export function buildActivity(
           const tool = block.tool_use_id ? toolByUseId.get(block.tool_use_id) : undefined;
           if (tool && block.is_error) tool.failed = true;
           if (tool && agentId) tool.agentId = agentId;
+          const agentType = block.tool_use_id ? agentTypeByUseId.get(block.tool_use_id) : undefined;
+          if (agentId && agentType !== undefined) agentTypes.set(agentId, agentType);
           if (tool) picture(tool, imagesIn(block.content), options.images === true);
           const detail = block.tool_use_id ? detailByUseId.get(block.tool_use_id) : undefined;
           if (detail) {
@@ -263,6 +387,9 @@ export function buildActivity(
             summary: summarizeTool(block.name, block.input, toolMax),
           };
           if (block.id) toolByUseId.set(block.id, entry);
+          if (block.id && (block.name === "Agent" || block.name === "Task")) {
+            agentTypeByUseId.set(block.id, firstString(block.input, ["subagent_type"]) ?? "");
+          }
           entries.push(entry);
           if (details) {
             const detail: ActivityDetail & { kind: "tool" } = {
