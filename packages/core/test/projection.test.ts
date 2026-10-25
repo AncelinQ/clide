@@ -18,6 +18,18 @@ describe("SessionProjector", () => {
     expect(projection.title).toBe("titre courant");
   });
 
+  it("garde le dernier nom donné par /rename, à part du titre deviné", () => {
+    const projection = projectEvents(SID, [
+      { type: "ai-title", aiTitle: "titre deviné" },
+      { type: "custom-title", customTitle: "revue" },
+      { type: "custom-title", customTitle: "front" },
+      { type: "custom-title" },
+    ]);
+
+    expect(projection.name).toBe("front");
+    expect(projection.title).toBe("titre deviné");
+  });
+
   it("date le début sur le premier horodatage et l'activité sur le dernier", () => {
     const projection = projectEvents(SID, [
       { type: "user", timestamp: "2026-08-31T07:35:51.674Z" },

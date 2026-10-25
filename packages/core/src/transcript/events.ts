@@ -34,6 +34,7 @@ export const KNOWN_EVENT_TYPES = [
   "bridge-session",
   "continued-in",
   "cost-state",
+  "custom-title",
   "file-history-delta",
   "file-history-snapshot",
   "frame-link",

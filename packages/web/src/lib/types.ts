@@ -233,6 +233,8 @@ export interface TokenUsage {
 export interface LiveSession {
   sessionId: string;
   title?: string;
+  /** Nom donné par `/rename` ou `claude --name`. */
+  name?: string;
   permissionMode?: string;
   planMode?: boolean;
   /** Modèle et effort en cours : ceux du transcript, sinon ceux du lancement. */

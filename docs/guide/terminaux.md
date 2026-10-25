@@ -25,8 +25,13 @@ changement de modèle ; si la ligne de saisie porte un brouillon, rien ne part e
 avis le dit : il suffit de renommer à nouveau une fois la ligne vide. Une session
 reprise depuis History reçoit son nom par `--name`. Retirer le nom d'un onglet ne
 le retire pas à Claude Code, qui garde le dernier — `/rename` sans nom en ferait
-inventer un. Deux sessions ouvertes ne portent jamais le même nom dans Claude
-Code : la seconde y en reçoit un autre, et l'onglet garde le sien.
+inventer un.
+
+L'inverse vaut aussi : `/rename <nom>` tapé dans la session renomme son onglet, et
+`/rename` seul lui donne le nom que Claude invente. Deux sessions ouvertes ne
+portent jamais le même nom dans Claude Code : la seconde y en reçoit un autre, que
+son onglet prend aussi. Un onglet sans nom qui rattache une session nommée par
+Claude Code prend ce nom-là avant celui que la session a pu garder dans Clide.
 
 Sur un onglet Claude, une petite barre flottante occupe le coin haut droit du
 terminal, comme les modes d'affichage d'un Markdown : le modèle et l'effort de la

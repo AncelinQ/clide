@@ -635,6 +635,18 @@
       "hasUnknownModelCost": false
     }
   ],
+  "custom-title": [
+    {
+      "type": "custom-title",
+      "customTitle": "[texte 10]",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "type": "custom-title",
+      "customTitle": "[texte 10]",
+      "sessionId": "00000000-0000-4000-8000-000000000001"
+    }
+  ],
   "file-history-delta": [
     {
       "type": "file-history-delta",

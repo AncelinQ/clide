@@ -45,14 +45,17 @@ export class SessionNames {
 
   /**
    * Accorde un onglet et la session qu'il montre : nommé, il donne son nom à la
-   * session ; sans nom, il reçoit celui qu'elle a gardé, rendu ici.
+   * session ; sans nom, il reçoit celui que lui donne Claude Code (`claudeName`),
+   * sinon celui qu'elle a gardé ici, rendu par la fonction.
    */
-  match(sessionId: string, tabName: string | undefined): string | undefined {
+  match(sessionId: string, tabName: string | undefined, claudeName?: string): string | undefined {
     if (tabName) {
       this.set(sessionId, tabName);
       return undefined;
     }
-    return this.get(sessionId);
+    const name = claudeName ?? this.get(sessionId);
+    if (name) this.set(sessionId, name);
+    return name;
   }
 
   /** Attend la fin des écritures en cours. */
@@ -65,5 +68,35 @@ export class SessionNames {
     // Écrit à côté puis renommé : une coupure en pleine écriture ne perd pas tout.
     await writeFile(`${this.file}.tmp`, text, "utf8");
     await rename(`${this.file}.tmp`, this.file);
+  }
+}
+
+/**
+ * Fait suivre à chaque onglet Claude le nom que Claude Code donne à sa session.
+ *
+ * Au rattachement d'une session, la règle de `SessionNames.match` s'applique.
+ * Ensuite, seul un nouveau nom renomme l'onglet : Claude Code réécrit le même au
+ * fil de la session, et un onglet renommé dans Clide pendant que Claude Code
+ * refusait `/rename` ne doit pas reprendre l'ancien à la relecture suivante.
+ */
+export class TabNames {
+  /** Par onglet : la session suivie et le dernier nom que lui donnait Claude Code. */
+  readonly #seen = new Map<string, { sessionId: string; claudeName: string | undefined }>();
+
+  constructor(private readonly names: SessionNames) {}
+
+  /** Nom à donner à l'onglet après ce relevé de sa session ; `undefined` le laisse tel quel. */
+  follow(terminalId: string, sessionId: string, tabName: string | undefined, claudeName: string | undefined): string | undefined {
+    const before = this.#seen.get(terminalId);
+    this.#seen.set(terminalId, { sessionId, claudeName });
+    if (before?.sessionId !== sessionId) return this.names.match(sessionId, tabName, claudeName);
+    if (!claudeName || claudeName === before.claudeName) return undefined;
+    this.names.set(sessionId, claudeName);
+    return claudeName === tabName ? undefined : claudeName;
+  }
+
+  /** L'onglet ne suit plus de session : la prochaine sera un rattachement. */
+  forget(terminalId: string): void {
+    this.#seen.delete(terminalId);
   }
 }

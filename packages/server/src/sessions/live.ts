@@ -16,6 +16,8 @@ import { claudeLaunch, type ClaudeLaunch } from "./launch.js";
 export interface LiveSession {
   sessionId: string;
   title?: string;
+  /** Nom donné par `/rename` ou `claude --name`. */
+  name?: string;
   permissionMode?: string;
   planMode?: boolean;
   /** Modèle et effort en cours : ceux du transcript, sinon ceux du lancement. */
@@ -180,6 +182,7 @@ export class LiveSessions {
         session = {
           sessionId: projection.id,
           ...(projection.title ? { title: projection.title } : {}),
+          ...(projection.name ? { name: projection.name } : {}),
           ...(fresh && projection.permissionMode ? { permissionMode: projection.permissionMode } : {}),
           ...(fresh && projection.planMode !== undefined ? { planMode: projection.planMode } : {}),
           ...(model ? { model } : {}),
