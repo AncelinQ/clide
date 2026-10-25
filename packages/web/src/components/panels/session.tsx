@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Async, Empty, Row, Rows, useAsync } from "@/components/common";
 import { Markdown } from "@/components/Markdown";
-import { ActivityDetailDialog } from "@/components/panels/activity-detail";
+import { ActivityDetailDialog, senderOf } from "@/components/panels/activity-detail";
 import { Thumbnails } from "@/components/panels/captures";
 import { DiffLines, FileRestoreDialog } from "@/components/panels/file-restore";
 import { Button } from "@/components/ui/button";
@@ -229,6 +229,8 @@ const ACTIVITY_LABEL: Record<string, string> = {
   answer: "claude",
   tool: "outil",
   note: "note",
+  handback: "retour",
+  message: "message",
 };
 
 /** Volume et coût de la session, en tête de son activité. */
@@ -383,6 +385,12 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                       entry.kind === "tool" && entry.failed && "text-destructive",
                     )}
                   >
+                    {/* La colonne du libellé est trop étroite pour « retour de Explore » : qui parle ouvre le texte. */}
+                    {(entry.kind === "handback" || entry.kind === "message") && (
+                      <span className="text-muted-foreground">
+                        {entry.kind === "handback" ? (entry.agent ?? t("sous-agent")) : senderOf(entry)} ·{" "}
+                      </span>
+                    )}
                     {entry.kind === "tool" ? entry.summary : entry.text}
                     {(entry.kind === "tool" || entry.kind === "prompt") && entry.images ? (
                       <Thumbnails
@@ -393,7 +401,7 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                       />
                     ) : null}
                   </span>
-                  {entry.kind === "tool" && entry.agentId && (
+                  {(entry.kind === "tool" || entry.kind === "handback") && entry.agentId && (
                     <button
                       type="button"
                       className="flex shrink-0 items-start gap-0.5 text-[11px] text-primary underline-offset-2 hover:underline"
@@ -402,7 +410,13 @@ export function ActivityPanel({ session }: { session: ShownSession }) {
                         setState({
                           activityAgents: {
                             sessionId: session.sessionId,
-                            path: [...(path ?? []), { agentId: entry.agentId!, label: entry.summary }],
+                            path: [
+                              ...(path ?? []),
+                              {
+                                agentId: entry.agentId!,
+                                label: entry.kind === "tool" ? entry.summary : (entry.agent ?? t("sous-agent")),
+                              },
+                            ],
                           },
                         })
                       }

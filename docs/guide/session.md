@@ -119,6 +119,16 @@ transcript se retrouve sous `<session>/subagents/agent-<agentId>.jsonl`. Le clie
 ne donne que la session et l'identifiant : le serveur cherche le transcript parmi
 ceux qu'il a découverts, jamais par un chemin reçu.
 
+Un sous-agent lancé en arrière-plan remet son compte rendu à la session quand il a
+fini. Claude Code l'écrit dans le transcript comme un message, mais l'activité ne
+le montre pas comme un prompt : la ligne dit « retour », suivie du type du
+sous-agent (`Explore` · …), et son détail donne le compte rendu en markdown, sans
+le cadre que Claude Code met autour. « ouvrir » y mène aussi à l'activité du
+sous-agent. Les autres messages que Claude Code relaie sont rangés de même : celui
+d'une autre session ou du coordinateur sous « message », avec son expéditeur, et la
+fin d'une tâche de fond en « note », par son résumé. Seul ce que tu as tapé
+s'affiche « moi », et compte pour les demandes que lisent le schéma et la rédaction.
+
 ## Restaurer un fichier
 
 L'onglet Fichiers liste ce que la session a changé, avec le diff exact. Chaque

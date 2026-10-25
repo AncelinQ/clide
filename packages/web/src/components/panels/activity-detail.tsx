@@ -19,7 +19,7 @@ import { useStore } from "@/state/store";
 import { revealInTerminal, type RevealOutcome } from "@/state/terminals";
 
 type ActivityDetail =
-  | { kind: "prompt" | "command" | "answer" | "note"; text: string }
+  | { kind: "prompt" | "command" | "answer" | "note" | "handback" | "message"; text: string }
   | { kind: "tool"; name: string; input?: Record<string, unknown>; result?: string; failed?: boolean };
 
 const KIND_LABEL: Record<ActivityEntry["kind"], string> = {
@@ -28,7 +28,22 @@ const KIND_LABEL: Record<ActivityEntry["kind"], string> = {
   answer: "Réponse de Claude",
   tool: "Appel d'outil",
   note: "Note",
+  handback: "Retour d'un sous-agent",
+  message: "Message",
 };
+
+/** Titre du détail : un retour ou un message dit de qui il vient. */
+function titleOf(entry: ActivityEntry): string {
+  if (entry.kind === "handback") return entry.agent ? t("Retour de {agent}", { agent: entry.agent }) : t(KIND_LABEL.handback);
+  if (entry.kind === "message") return t("Message de {from}", { from: senderOf(entry) });
+  return t(KIND_LABEL[entry.kind]);
+}
+
+/** Qui a envoyé un message relayé à la session. */
+export function senderOf(entry: ActivityEntry & { kind: "message" }): string {
+  if (entry.sender === "coordinator") return t("coordinateur");
+  return entry.from ?? t("une autre session");
+}
 
 /** Première ligne parlante d'un texte, débarrassée des marques de markdown que le terminal n'affiche pas. */
 function firstLine(text: string, max: number): string {
@@ -120,7 +135,7 @@ export function ActivityDetailDialog({
       <DialogContent className="max-h-[88vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {t(KIND_LABEL[entry.kind])}
+            {titleOf(entry)}
             {entry.kind === "tool" && <Badge variant="secondary">{entry.name}</Badge>}
             {entry.kind === "tool" && entry.failed && <Badge variant="destructive">{t("échec")}</Badge>}
           </DialogTitle>
@@ -152,8 +167,9 @@ export function ActivityDetailDialog({
               </section>
             </div>
           )}
-          {detail && detail.kind === "answer" && <Markdown text={detail.text} />}
-          {detail && detail.kind !== "tool" && detail.kind !== "answer" && (
+          {/* Un compte rendu de sous-agent est du markdown, comme une réponse de Claude. */}
+          {detail && (detail.kind === "answer" || detail.kind === "handback") && <Markdown text={detail.text} />}
+          {detail && detail.kind !== "tool" && detail.kind !== "answer" && detail.kind !== "handback" && (
             <p className="text-[12.5px] break-words whitespace-pre-wrap">{detail.text}</p>
           )}
         </div>

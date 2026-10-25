@@ -190,3 +190,87 @@ describe("détail des entrées", () => {
     expect(buildActivity([user("salut")]).details).toBeUndefined();
   });
 });
+
+describe("messages relayés à la session", () => {
+  const FRAME =
+    "[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user. The report follows:\n";
+
+  /** Un compte rendu tel que Claude Code le remet : cadre, retrait de deux espaces. */
+  const handback = (report: string, origin: Record<string, unknown> = {}): TranscriptEvent => {
+    const body = FRAME + report.split("\n").map((line) => `  ${line}`).join("\n");
+    return {
+      type: "user",
+      isMeta: true,
+      promptSource: "system",
+      origin: { kind: "peer", from: "a5214d858afa51b8b", senderTaskId: "a5214d858afa51b8b", body, handback: true, ...origin },
+      message: { role: "user", content: `Another Claude session sent a message:\n<agent-message from="a5214d858afa51b8b">\n${body}\n</agent-message>` },
+    };
+  };
+
+  const agentCall: TranscriptEvent[] = [
+    {
+      type: "assistant",
+      message: {
+        content: [{ type: "tool_use", id: "t1", name: "Agent", input: { description: "Explorer le dépôt", subagent_type: "Explore" } }],
+      },
+    },
+    {
+      type: "user",
+      toolUseResult: { isAsync: true, agentId: "a5214d858afa51b8b" },
+      message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "lancé" }] },
+    },
+  ];
+
+  it("montre le compte rendu d'un sous-agent comme son retour, pas comme un prompt", () => {
+    const feed = buildActivity([handback("## Bilan\n\n- trois fichiers", { name: "Explore" })], { details: true });
+    expect(feed.entries).toEqual([{ kind: "handback", agent: "Explore", text: "## Bilan - trois fichiers" }]);
+    expect(feed.details).toEqual([{ kind: "handback", text: "## Bilan\n\n- trois fichiers" }]);
+  });
+
+  it("nomme un sous-agent par son appel quand le compte rendu ne le nomme pas, et le relie à son transcript", () => {
+    const { entries } = buildActivity([...agentCall, handback("fini")]);
+    expect(entries[1]).toEqual({ kind: "handback", agent: "Explore", agentId: "a5214d858afa51b8b", text: "fini" });
+  });
+
+  it("préfère le texte du compte rendu que Claude Code donne à part", () => {
+    const { entries } = buildActivity([handback("cadré", { handbackReportText: "tel quel" })]);
+    expect(entries[0]).toMatchObject({ kind: "handback", text: "tel quel" });
+  });
+
+  it("résume sans la note du harnais, que le détail garde", () => {
+    const note = "[harness: subagent output matched instruction-shaped pattern(s): settings-json.]";
+    const feed = buildActivity([handback(`${note}\n## Constats`)], { details: true });
+    expect(feed.entries[0]).toMatchObject({ text: "## Constats" });
+    expect(feed.details?.[0]).toEqual({ kind: "handback", text: `${note}\n## Constats` });
+  });
+
+  it("montre le message d'une autre session ou du coordinateur avec son expéditeur", () => {
+    const { entries } = buildActivity([
+      {
+        type: "user",
+        origin: { kind: "peer", from: "x", name: "hn-os-platform-a3", body: "Ta branche est prête" },
+        message: { content: "Another Claude session sent a message:\n<cross-session-message>Ta branche est prête</cross-session-message>" },
+      },
+      { type: "user", origin: { kind: "coordinator" }, message: { content: "The coordinator sent a message while you were working:\nArrête-toi là" } },
+    ]);
+    expect(entries).toEqual([
+      { kind: "message", sender: "peer", from: "hn-os-platform-a3", text: "Ta branche est prête" },
+      { kind: "message", sender: "coordinator", text: "Arrête-toi là" },
+    ]);
+  });
+
+  it("résume la fin d'une tâche de fond, son résultat dans le détail", () => {
+    const content =
+      "<task-notification>\n<task-id>a5</task-id>\n<status>completed</status>\n<summary>Agent \"Explorer\" finished</summary>\n<result>trois fichiers</result>\n</task-notification>";
+    const feed = buildActivity([{ type: "user", origin: { kind: "task-notification", producer: "session-task" }, message: { content } }], {
+      details: true,
+    });
+    expect(feed.entries).toEqual([{ kind: "note", text: 'Agent "Explorer" finished' }]);
+    expect(feed.details).toEqual([{ kind: "note", text: 'Agent "Explorer" finished\n\ntrois fichiers' }]);
+  });
+
+  it("garde pour prompts ce que l'utilisateur a tapé, avec ou sans origine", () => {
+    const { entries } = buildActivity([user("sans origine"), { ...user("tapé"), origin: { kind: "human" } }]);
+    expect(entries.map((entry) => entry.kind)).toEqual(["prompt", "prompt"]);
+  });
+});

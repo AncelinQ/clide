@@ -4,13 +4,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Async, Empty, useAsync } from "@/components/common";
 import { t } from "@/i18n";
 import { api, formatDate, shortName } from "@/lib/api";
-import type { SessionSummary } from "@/lib/types";
+import type { ActivityEntry, SessionSummary } from "@/lib/types";
 import { selectSession, setBottomMode, setState } from "@/state/store";
 
 interface Hit {
   sessionId: string;
   index: number;
-  kind: "prompt" | "command" | "answer" | "tool" | "note";
+  kind: ActivityEntry["kind"];
   name?: string;
   at?: string;
   snippet: string;
@@ -24,6 +24,8 @@ const KIND_LABEL: Record<Hit["kind"], string> = {
   answer: "claude",
   tool: "outil",
   note: "note",
+  handback: "retour",
+  message: "message",
 };
 
 /** Sans accents ni casse, comme côté serveur, pour surligner ce qui a été trouvé. */

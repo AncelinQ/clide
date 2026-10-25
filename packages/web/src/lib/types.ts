@@ -179,7 +179,11 @@ export type ActivityEntry =
   | { kind: "prompt"; at?: string; text: string; images?: number }
   | { kind: "command" | "note"; at?: string; text: string }
   | { kind: "answer"; at?: string; text: string; model?: string }
-  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean; agentId?: string; images?: number };
+  | { kind: "tool"; at?: string; name: string; summary: string; failed?: boolean; agentId?: string; images?: number }
+  /** Le compte rendu qu'un sous-agent remet à la session. */
+  | { kind: "handback"; at?: string; agent?: string; agentId?: string; text: string }
+  /** Le message d'une autre session, d'un agent coéquipier ou du coordinateur. */
+  | { kind: "message"; at?: string; sender: "peer" | "coordinator"; from?: string; text: string };
 
 export interface ProcessNode {
   pid: number;
