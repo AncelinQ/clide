@@ -37,6 +37,9 @@ tous couverts par des tests :
 - **Seule la portée projet des serveurs MCP s'écrit.** `~/.claude.json` porte aussi
   l'historique et l'état de chaque projet : les portées perso et locale passent par
   la CLI `claude mcp`.
+- **Un serveur MCP copié dans le projet n'y apporte pas ses secrets en clair.** Le
+  `.mcp.json` est partagé avec le projet : la copie est refusée tant que les valeurs
+  de `env` et `headers` ne passent pas par des variables d'environnement (`${NOM}`).
 
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.

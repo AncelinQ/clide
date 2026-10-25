@@ -230,7 +230,11 @@ export function DangerButton({ label, onConfirm }: { label: string; onConfirm: (
   );
 }
 
-/** Bouton d'action : désactivé pendant l'appel, erreur rendue en place. */
+/**
+ * Bouton d'action : désactivé pendant l'appel, erreur rendue en place. L'erreur
+ * se coupe à la largeur disponible et se lit en entier au survol : un bouton ne
+ * passe pas à la ligne, et un long message élargirait la colonne qui le porte.
+ */
 export function ActionButton({
   children,
   onAction,
@@ -247,8 +251,9 @@ export function ActionButton({
     <Button
       variant={variant}
       size="sm"
-      className="h-6 px-2 text-[11px]"
+      className={cn("h-6 px-2 text-[11px]", error && "max-w-full min-w-0 shrink")}
       disabled={busy}
+      {...(error ? { title: error } : {})}
       onClick={async () => {
         setBusy(true);
         setError(undefined);
@@ -261,7 +266,7 @@ export function ActionButton({
         }
       }}
     >
-      {error ?? children}
+      {error ? <span className="truncate">{error}</span> : children}
     </Button>
   );
 }
