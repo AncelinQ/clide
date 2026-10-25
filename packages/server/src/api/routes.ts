@@ -1190,7 +1190,11 @@ export const mutations: Record<string, Mutation> = {
     return { output: await runClaudeMcp(removeArgs(scope, name), root) };
   },
 
-  /** Recopie un serveur dans le `.mcp.json` du projet, secrets compris, sans passer par la page. */
+  /**
+   * Recopie un serveur dans le `.mcp.json` du projet sans passer par la page. Un
+   * serveur venu d'ailleurs qui porte des secrets en clair est refusé : ce fichier
+   * est partagé avec le projet.
+   */
   "/api/mcp/copy": async (_params, _context, body) => {
     const root = requireField(body, "root", isString);
     const name = requireField(body, "name", isString);

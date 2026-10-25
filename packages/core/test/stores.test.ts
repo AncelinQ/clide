@@ -238,10 +238,14 @@ describe("McpStore", () => {
     expect(await store.listAll(join(dir, "app"))).toEqual([]);
   });
 
-  it("recopie un serveur d'un autre projet avec ses secrets, sans les exposer en liste", async () => {
+  it("recopie un serveur d'un autre projet dont les secrets passent par des variables", async () => {
     await write(
       "autre/.mcp.json",
-      JSON.stringify({ mcpServers: { db: { command: "npx", args: ["db"], env: { TOKEN: "secret-de-test" } } } }),
+      JSON.stringify({
+        mcpServers: {
+          db: { command: "npx", args: ["db"], env: { TOKEN: "${DB_TOKEN}" }, headers: { Authorization: "Bearer ${API}" } },
+        },
+      }),
     );
     await mkdir(join(dir, "app"), { recursive: true });
     const store = new McpStore(dir, userConfig());
@@ -251,7 +255,37 @@ describe("McpStore", () => {
 
     await store.copyToProject(join(dir, "app"), { scope: "project", root: join(dir, "autre"), name: "db" });
     const written = JSON.parse(await readFile(join(dir, "app", ".mcp.json"), "utf8"));
-    expect(written.mcpServers.db.env.TOKEN).toBe("secret-de-test");
+    expect(written.mcpServers.db).toMatchObject({ env: { TOKEN: "${DB_TOKEN}" }, headers: { Authorization: "Bearer ${API}" } });
+  });
+
+  it("refuse d'écrire dans le .mcp.json partagé les secrets en clair d'un serveur venu d'ailleurs", async () => {
+    await write(
+      ".claude.json",
+      JSON.stringify({
+        mcpServers: { perso: { url: "https://x", headers: { Authorization: "Bearer secret-de-test" } } },
+      }),
+    );
+    await write("autre/.mcp.json", JSON.stringify({ mcpServers: { db: { command: "npx", env: { TOKEN: "secret-de-test" } } } }));
+    await mkdir(join(dir, "app"), { recursive: true });
+    const store = new McpStore(dir, userConfig());
+
+    await expect(
+      store.copyToProject(join(dir, "app"), { scope: "user", root: join(dir, "app"), name: "perso" }),
+    ).rejects.toThrow("secrets non copiés dans .mcp.json, partagé avec le projet : Authorization");
+    await expect(
+      store.copyToProject(join(dir, "app"), { scope: "project", root: join(dir, "autre"), name: "db" }),
+    ).rejects.toThrow(": TOKEN.");
+    expect(existsSync(join(dir, "app", ".mcp.json"))).toBe(false);
+  });
+
+  it("recopie un serveur sans secret, d'où qu'il vienne", async () => {
+    await write(".claude.json", JSON.stringify({ mcpServers: { web: { command: "npx", args: ["web"] } } }));
+    await mkdir(join(dir, "app"), { recursive: true });
+    const store = new McpStore(dir, userConfig());
+
+    await store.copyToProject(join(dir, "app"), { scope: "user", root: join(dir, "app"), name: "web" });
+    const written = JSON.parse(await readFile(join(dir, "app", ".mcp.json"), "utf8"));
+    expect(written.mcpServers.web).toEqual({ command: "npx", args: ["web"] });
   });
 
   it("montre les serveurs des dossiers liés sous leur propre portée", async () => {
@@ -267,6 +301,12 @@ describe("McpStore", () => {
     );
     expect(edited).toEqual({ url: "https://nouvelle", headers: { Authorization: "Bearer vrai", "X-Autre": "neuf" } });
     expect(() => restoreMasked({ env: { CLE: MASK } }, undefined)).toThrow("valeur masquée");
+  });
+
+  it("refuse une valeur masquée qu'on a modifiée autour du masque", () => {
+    expect(() =>
+      restoreMasked({ headers: { Authorization: `${MASK}-suite` } }, { headers: { Authorization: "Bearer vrai" } }),
+    ).toThrow("valeur masquée modifiée : retape le secret en entier (headers.Authorization)");
   });
 });
 

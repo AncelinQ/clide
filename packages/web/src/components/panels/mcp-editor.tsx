@@ -247,7 +247,9 @@ export function McpEditor({
 /**
  * Serveurs déjà configurés dans d'autres projets, à reprendre ici.
  *
- * La copie se fait côté serveur, secrets compris : la page ne les voit jamais.
+ * La copie se fait côté serveur, et la page ne voit jamais de secret. Elle est
+ * refusée pour un serveur dont les secrets sont en clair plutôt qu'en variables
+ * `${NOM}` : le `.mcp.json` est partagé avec le projet.
  */
 export function McpLibrary({ root, onCopied }: { root: string; onCopied: () => void }) {
   const state = useAsync(() => api<{ servers: McpServer[] }>("/api/mcp/library", { root }), [root]);

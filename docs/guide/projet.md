@@ -206,11 +206,21 @@ le disque : il faut interroger chaque serveur, ce que fait `claude mcp list`.
 
 Les serveurs du `.mcp.json` s'ajoutent et se modifient dans un éditeur. Les
 secrets (`env`, `headers`) y arrivent masqués : laisser un `***` en place garde la
-valeur d'origine, que le serveur remet à l'écriture ; un `***` sans valeur d'origine
-est refusé plutôt qu'écrit. Les serveurs des dossiers liés sont montrés à part — ils
+valeur d'origine, que le serveur remet à l'écriture. Un `***` sans valeur d'origine,
+ou modifié (du texte tapé autour), est refusé plutôt qu'écrit : il faut retaper le
+secret en entier. Les serveurs des dossiers liés sont montrés à part — ils
 ne s'appliquent pas au projet — avec de quoi les copier ici, et ceux des autres
 dossiers où l'on a travaillé, tirés de l'index des sessions, se reprennent de même.
-Une copie se fait côté serveur, secrets compris : la page ne les voit jamais.
+Une copie se fait côté serveur : la page ne voit jamais les secrets.
+
+Le `.mcp.json` est partagé avec le projet, et souvent commité. Un serveur copié
+d'ailleurs — portée personnelle ou locale, dossier lié, autre projet — n'y entre
+donc pas avec des secrets en clair : la copie est refusée et nomme les valeurs en
+cause. Il faut d'abord les remplacer, à la source, par des variables
+d'environnement (`"TOKEN": "${DB_TOKEN}"`, `"Authorization": "Bearer ${API_KEY}"`),
+que Claude Code remplace au lancement. Clide ne fait pas ce remplacement à ta
+place : une variable absente, sans valeur par défaut, empêche Claude Code de lire
+tout le `.mcp.json`. Un serveur sans secret se copie tel quel.
 
 Les portées `local` et `user` vivent dans `~/.claude.json`, qui porte aussi
 l'historique et l'état de chaque projet : on ne le réécrit pas, l'écriture passe par

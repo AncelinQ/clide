@@ -213,13 +213,30 @@ export class McpStore {
     return out.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  /** Recopie un serveur d'une portée ou d'un dossier dans le `.mcp.json` du projet. */
+  /**
+   * Recopie un serveur d'une portée ou d'un dossier dans le `.mcp.json` du projet.
+   *
+   * Ce fichier est partagé avec le projet, et souvent commité : un serveur venu
+   * d'ailleurs — personnel, local, d'un autre dépôt — n'y entre pas avec des
+   * secrets en clair. La copie est refusée tant que ses valeurs de `env` et
+   * `headers` ne passent pas par des variables d'environnement (`${NOM}`), que
+   * Claude Code remplace au lancement. Écrire ces variables à sa place ne
+   * conviendrait pas : une variable absente, sans valeur par défaut, fait échouer
+   * la lecture du `.mcp.json` entier.
+   */
   async copyToProject(
     targetRoot: string,
     from: { scope: McpSourceScope; root: string; name: string },
   ): Promise<McpServer> {
     const config = await this.rawConfig(from.scope, from.root, from.name);
     if (!config) throw new Error(`serveur ${from.name} introuvable`);
+    const own = from.scope === "project" && normalizeRoot(from.root) === normalizeRoot(targetRoot);
+    const secrets = own ? [] : literalSecrets(config);
+    if (secrets.length > 0) {
+      throw new Error(
+        `secrets non copiés dans .mcp.json, partagé avec le projet : ${secrets.join(", ")}. Remplace-les à la source par des variables \${NOM}.`,
+      );
+    }
     return this.saveProjectServer(targetRoot, from.name, config);
   }
 
@@ -294,12 +311,27 @@ function normalizeRoot(path: string): string {
 }
 
 /**
+ * Clés de `env` et `headers` dont la valeur est écrite en clair. Une valeur qui
+ * passe par une variable (`${TOKEN}`, `Bearer ${TOKEN}`) ne porte pas le secret.
+ */
+export function literalSecrets(config: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  for (const field of ["env", "headers"] as const) {
+    for (const [key, value] of Object.entries(asRecord(config[field]) ?? {})) {
+      if (typeof value === "string" && value !== "" && !value.includes("${")) out.push(key);
+    }
+  }
+  return out;
+}
+
+/**
  * Remet les valeurs d'origine à la place des valeurs masquées.
  *
  * La page ne voit `env` et `headers` que masqués : un serveur qu'on édite revient
  * avec des `***` là où l'on n'a rien touché. Une valeur masquée sans valeur
  * d'origine est refusée plutôt qu'écrite telle quelle : `***` n'est le jeton de
- * personne.
+ * personne. Une valeur où l'on a tapé autour du masque l'est aussi : elle
+ * remplacerait le secret par `***` et ce qu'on y a ajouté.
  */
 export function restoreMasked(
   config: Record<string, unknown>,
@@ -313,6 +345,9 @@ export function restoreMasked(
     const restored: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(values)) {
       if (value !== MASK) {
+        if (typeof value === "string" && value.includes(MASK)) {
+          throw new Error(`valeur masquée modifiée : retape le secret en entier (${field}.${key})`);
+        }
         restored[key] = value;
         continue;
       }
