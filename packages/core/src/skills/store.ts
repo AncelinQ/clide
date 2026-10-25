@@ -84,10 +84,28 @@ export function parseFrontmatter(text: string): Frontmatter {
   for (const line of header.split("\n")) {
     const match = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line);
     if (!match?.[1]) continue;
-    const value = (match[2] ?? "").trim();
-    fields[match[1]] = value.replace(/^["'](.*)["']$/, "$1");
+    fields[match[1]] = unquote((match[2] ?? "").trim());
   }
   return { fields, body };
+}
+
+/**
+ * Valeur d'une chaîne YAML entre guillemets. Les guillemets doubles portent des
+ * échappements (`\"`, `\\`), que JSON décode à l'identique ; entre guillemets
+ * simples, seul `''` vaut une apostrophe.
+ */
+function unquote(value: string): string {
+  if (/^"(.*)"$/.test(value)) {
+    try {
+      const decoded: unknown = JSON.parse(value);
+      if (typeof decoded === "string") return decoded;
+    } catch {
+      // Échappement propre à YAML (`\x41`…) : on garde le texte entre les guillemets.
+    }
+    return value.slice(1, -1);
+  }
+  if (/^'(.*)'$/.test(value)) return value.slice(1, -1).replace(/''/g, "'");
+  return value;
 }
 
 function invocationOf(fields: Record<string, string>): SkillInvocation {
@@ -524,7 +542,9 @@ function samePathLoose(a: string, b: string): boolean {
 /** Sérialise un skill : en-tête régénéré, corps intouché. */
 export function renderSkill(draft: SkillDraft): string {
   const fields: [string, string][] = [["name", draft.name?.trim() || draft.directory.trim()]];
-  if (draft.description) fields.push(["description", draft.description.replace(/\r?\n/g, " ").trim()]);
+  // La description est du texte libre : en clair, un `: ` casse l'en-tête et un
+  // ` #` la coupe. Une chaîne JSON est une chaîne YAML entre guillemets doubles.
+  if (draft.description) fields.push(["description", JSON.stringify(draft.description.replace(/\r?\n/g, " ").trim())]);
   if (draft.allowedTools?.length) fields.push(["allowed-tools", draft.allowedTools.join(", ")]);
   if (draft.invocation === "manual-only") fields.push(["disable-model-invocation", "true"]);
   if (draft.invocation === "auto-only") fields.push(["user-invocable", "false"]);

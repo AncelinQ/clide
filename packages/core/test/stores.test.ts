@@ -43,6 +43,14 @@ describe("parseFrontmatter", () => {
     expect(parseFrontmatter('---\nname: "mon skill"\n---\n').fields["name"]).toBe("mon skill");
   });
 
+  it("décode les échappements des guillemets doubles et l'apostrophe doublée des simples", () => {
+    const { fields } = parseFrontmatter(
+      "---\ndescription: \"dit \\\"oui\\\" : C:\\\\x\"\nname: 'l''outil'\n---\n",
+    );
+    expect(fields["description"]).toBe('dit "oui" : C:\\x');
+    expect(fields["name"]).toBe("l'outil");
+  });
+
   it("rend le texte tel quel sans en-tête", () => {
     expect(parseFrontmatter("# Juste du markdown\n").fields).toEqual({});
   });
