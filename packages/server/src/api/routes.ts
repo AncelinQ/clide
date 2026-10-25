@@ -77,7 +77,7 @@ import {
   pullMany,
   pushPlan,
   remoteUrl,
-  stashCount,
+  setAsideFor,
   stashPop,
   switchBranch,
 } from "../platform/git-actions.js";
@@ -599,11 +599,14 @@ export const routes: Record<string, Handler> = {
     diagram: await readDiagram(dataDir, requireParam(params, "id")),
   }),
 
-  /** Branche, amont, écart et fichiers touchés ; `null` hors d'un dépôt git. */
+  /**
+   * Branche, amont, écart et fichiers touchés ; `null` hors d'un dépôt git. S'y
+   * ajoute ce qu'un changement de branche a mis de côté en quittant celle-ci.
+   */
   "/api/git/status": async (params) => {
     const root = requireParam(params, "root");
     const status = await gitStatus(root);
-    return { status, stashes: status ? await stashCount(root) : 0 };
+    return { status, setAside: status?.branch ? await setAsideFor(root, status.branch) : undefined };
   },
 
   /**
@@ -1060,7 +1063,7 @@ export const mutations: Record<string, Mutation> = {
   },
 
   "/api/git/stash-pop": async (_params, _context, body) => {
-    await stashPop(requireField(body, "root", isString));
+    await stashPop(requireField(body, "root", isString), requireField(body, "hash", isString));
     return { ok: true };
   },
 

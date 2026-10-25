@@ -343,12 +343,65 @@ export async function remoteUrl(root: string): Promise<string | undefined> {
   return (await git(root, ["remote", "get-url", remote], 15_000)).trim();
 }
 
-/** Nombre d'entrées de `git stash list`. */
-export async function stashCount(root: string): Promise<number> {
+/** Une entrée de `git stash list`. */
+export interface StashEntry {
+  /** Hash du commit de stash : il désigne l'entrée quoi qu'on pousse par-dessus. */
+  hash: string;
+  /** `stash@{n}`, valable le temps d'une commande : un stash poussé depuis le décale. */
+  ref: string;
+  /** Message, précédé par git de la branche d'origine (`On main: …`). */
+  subject: string;
+}
+
+/** Lit `git stash list --format=%H%x00%gd%x00%gs`, du plus récent au plus ancien. */
+export function parseStashList(text: string): StashEntry[] {
+  return text.split(/\r?\n/).flatMap((line) => {
+    const [hash, ref, subject] = line.split("\0");
+    return hash && ref && subject !== undefined && /^[0-9a-f]{40,64}$/.test(hash) ? [{ hash, ref, subject }] : [];
+  });
+}
+
+/** Stashs du dépôt, communs à tous ses worktrees ; aucun hors d'un dépôt. */
+export async function listStashes(root: string): Promise<StashEntry[]> {
   try {
-    return (await git(root, ["stash", "list"], 15_000)).split(/\r?\n/).filter(Boolean).length;
+    return parseStashList(await git(root, ["stash", "list", "--format=%H%x00%gd%x00%gs"], 15_000));
   } catch {
-    return 0;
+    return [];
+  }
+}
+
+/** Modifications qu'un changement de branche a mises de côté. */
+export interface SetAside {
+  hash: string;
+  /** Branche quittée, où elles ont été faites. */
+  from: string;
+  /** Branche sur laquelle on passait. */
+  to: string;
+}
+
+const setAsideMessage = (from: string, to: string) => `Clide : avant de passer de ${from} à ${to}`;
+const SET_ASIDE = /(?:^|: )Clide : avant de passer de (\S+) à (\S+)$/;
+
+/**
+ * Le stash que Clide a fait en quittant `branch`, le plus récent s'il y en a
+ * plusieurs. La pile de stashs est commune au dépôt et à tous ses worktrees, et
+ * d'autres outils y poussent : seul celui-là revient de droit à cette branche,
+ * qu'un seul worktree peut avoir à la fois.
+ */
+export async function setAsideFor(root: string, branch: string): Promise<SetAside | undefined> {
+  for (const entry of await listStashes(root)) {
+    const [, from, to] = SET_ASIDE.exec(entry.subject) ?? [];
+    if (from === branch && to) return { hash: entry.hash, from, to };
+  }
+  return undefined;
+}
+
+/** Hash du stash le plus récent, `undefined` si la pile est vide. */
+async function newestStash(root: string): Promise<string | undefined> {
+  try {
+    return (await git(root, ["rev-parse", "--verify", "--quiet", "refs/stash"], 15_000)).trim() || undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -374,7 +427,8 @@ export class DirtyTreeError extends Error {
  * Des modifications non commitées de fichiers suivis bloquent le changement tant
  * qu'on n'a pas dit quoi en faire : les emporter sur l'autre branche peut les
  * mêler à un travail qui n'a rien à voir. `stash` les met de côté sous un message
- * qui dit d'où elles viennent. Les fichiers non suivis, eux, ne bloquent rien :
+ * qui dit d'où elles viennent, que `setAsideFor` retrouve au retour sur cette
+ * branche. Les fichiers non suivis, eux, ne bloquent rien :
  * git les laisse en place, et refuse seul — en le disant — ceux qu'un fichier de
  * l'autre branche écraserait.
  */
@@ -389,17 +443,22 @@ export async function switchBranch(
   if (status.conflicted > 0) throw new Error("des conflits sont en cours : les résoudre avant de changer de branche");
   const dirty = status.changed > 0;
   if (dirty && !options.stash) throw new DirtyTreeError(status.changed);
+  let stashed: string | undefined;
   if (dirty) {
-    await git(root, ["stash", "push", "--include-untracked", "-m", `Clide : avant de passer de ${status.branch ?? status.head ?? "?"} à ${name}`]);
+    const before = await newestStash(root);
+    await git(root, ["stash", "push", "--include-untracked", "-m", setAsideMessage(status.branch ?? status.head ?? "?", name)]);
+    // Rien de neuf en haut de la pile : git n'a rien mis de côté, et celui qui y est appartient à un autre.
+    const after = await newestStash(root);
+    if (after !== before) stashed = after;
   }
   try {
     await git(root, ["switch", name]);
   } catch (error) {
     // Le changement a échoué : ce qu'on vient de mettre de côté revient à sa place.
-    if (dirty) await git(root, ["stash", "pop"]).catch(() => undefined);
+    if (stashed) await stashPop(root, stashed).catch(() => undefined);
     throw error;
   }
-  return { stashed: dirty };
+  return { stashed: stashed !== undefined };
 }
 
 /** Crée une branche depuis HEAD et passe dessus ; les modifications en cours la suivent. */
@@ -408,9 +467,15 @@ export async function createBranch(root: string, name: string): Promise<void> {
   await git(root, ["switch", "-c", name]);
 }
 
-/** Réapplique le dernier stash et le retire de la liste s'il s'applique sans conflit. */
-export async function stashPop(root: string): Promise<void> {
-  await git(root, ["stash", "pop"]);
+/**
+ * Réapplique le stash désigné par son hash et le retire de la liste s'il
+ * s'applique sans conflit. Sa position se relit juste avant : un stash poussé
+ * entre-temps, par une autre session ou un autre worktree, l'a décalée.
+ */
+export async function stashPop(root: string, hash: string): Promise<void> {
+  const entry = (await listStashes(root)).find((stash) => stash.hash === hash);
+  if (!entry) throw new Error("ces modifications ne sont plus dans les stashs");
+  await git(root, ["stash", "pop", entry.ref]);
 }
 
 /** Un nom de branche devient un nom de dossier : `aqn/feat/x` donne `aqn-feat-x`. */
