@@ -71,11 +71,11 @@ reconnaît les cibles d'un Makefile, les commandes courantes de cargo, de go et 
 python (pytest, pip, Django), et les scripts `.ps1` et `.sh` de la racine et de
 `scripts/`.
 
-Viennent ensuite les **autres worktrees du dépôt**, sous « worktree <branche> » :
-depuis `main`, on lance le `dev` d'une branche en cours sans l'ouvrir comme
-projet, et depuis un worktree ouvert comme projet, ceux du dépôt principal. Leur
-terminal s'appelle `<dossier du worktree> › dev`, et chacun garde son
-gestionnaire. Ils partent repliés : un dépôt en accumule vite plusieurs. Un
+Viennent ensuite les **autres worktrees du dépôt**, chacun sous « worktree »
+suivi de sa branche : depuis `main`, on lance le `dev` d'une branche en cours
+sans l'ouvrir comme projet, et depuis un worktree ouvert comme projet, ceux du
+dépôt principal. Leur terminal s'appelle `<dossier du worktree> › dev`, et
+chacun garde son gestionnaire. Ils partent repliés : un dépôt en accumule vite plusieurs. Un
 worktree neuf n'a pas encore ses dépendances : « installer » sur son en-tête les
 pose. Le dépôt et un worktree lancés ensemble se disputent le port du serveur de
 développement ; Vite en prend un autre, et l'adresse affichée sous **En cours**
@@ -86,7 +86,8 @@ typecheck — viennent en tête, en gras. « installer » lance `<gestionnaire>
 install` à la racine du dossier, dans son onglet comme un script.
 
 Chaque en-tête se replie d'un clic : En cours, Groupes, un dossier entier (le
-projet, un dossier lié ou un worktree), ou une catégorie (un `package.json`, make, cargo…).
+projet, un dossier lié ou un worktree), ou une catégorie (un `package.json`,
+make, cargo…).
 Replié, il garde son nombre de scripts, et un point vert si l'un d'eux tourne. Le
 projet retient ce qu'on a replié d'une session à l'autre.
 
