@@ -744,6 +744,7 @@ export function TerminalArea() {
                 <NameInput
                   whole
                   initial={info.title}
+                  label={t("Nom de l'onglet")}
                   className="w-40 flex-none"
                   onSubmit={(value) => {
                     if (value.trim() !== info.title) {

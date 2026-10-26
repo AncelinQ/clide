@@ -299,12 +299,18 @@ export function NameInput({
   onSubmit,
   onCancel,
   whole = false,
+  label,
   className,
 }: {
   initial: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
   whole?: boolean;
+  /**
+   * Ce que le champ demande, pour un lecteur d'écran : il n'a pas d'étiquette
+   * visible. Inutile quand un `<label>` l'entoure déjà.
+   */
+  label?: string;
   className?: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -328,6 +334,7 @@ export function NameInput({
     <input
       ref={input}
       data-takes-focus
+      aria-label={label}
       defaultValue={initial}
       spellCheck={false}
       className={cn("min-w-0 flex-1 rounded border border-primary bg-background px-1 text-[12px] outline-none", className)}

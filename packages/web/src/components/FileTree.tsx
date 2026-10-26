@@ -507,7 +507,12 @@ export function FileTree({ project }: { project: Project }) {
     editing?.kind === "create" ? (
       <li className="flex items-center gap-1.5 py-0.5 pr-2" style={{ paddingLeft: 8 + depth * 12 + 16 }}>
         <FileIcon name="" directory={editing.type === "dir"} />
-        <NameInput initial="" onSubmit={(value) => void submitEdit(value)} onCancel={() => setEditing(undefined)} />
+        <NameInput
+          initial=""
+          label={editing.type === "dir" ? t("Nom du nouveau dossier") : t("Nom du nouveau fichier")}
+          onSubmit={(value) => void submitEdit(value)}
+          onCancel={() => setEditing(undefined)}
+        />
       </li>
     ) : null;
 
@@ -640,7 +645,12 @@ export function FileTree({ project }: { project: Project }) {
                     )}
                     <FileIcon name={entry.name} directory={entry.directory} open={open} />
                     {renaming ? (
-                      <NameInput initial={entry.name} onSubmit={(value) => void submitEdit(value)} onCancel={() => setEditing(undefined)} />
+                      <NameInput
+                        initial={entry.name}
+                        label={t("Nouveau nom de {name}", { name: entry.name })}
+                        onSubmit={(value) => void submitEdit(value)}
+                        onCancel={() => setEditing(undefined)}
+                      />
                     ) : (
                       <span className={cn("truncate", (entry.name.startsWith(".") || entry.ignored) && "opacity-60", entry.ignored && "italic")} title={entry.ignored ? t("Ignoré par git (.gitignore)") : undefined}>
                         {entry.name}

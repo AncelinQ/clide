@@ -264,6 +264,7 @@ export function GroupLabel({
           <NameInput
             whole
             initial={group.name}
+            label={t("Nom du groupe")}
             className="w-32 flex-none"
             onSubmit={(value) => {
               renameGroup(root, group.id, value);

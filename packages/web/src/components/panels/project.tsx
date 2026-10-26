@@ -61,6 +61,7 @@ function LinkRow({
             <NameInput
               whole
               initial={link.role ?? ""}
+              label={t("Rôle du dossier lié")}
               onSubmit={(value) => {
                 setRenaming(false);
                 if (value.trim() !== (link.role ?? "")) void onRename(value.trim());
