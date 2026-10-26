@@ -47,25 +47,59 @@ function DialogOverlay({
   )
 }
 
+/**
+ * Retient ce qui a le focus au premier rendu d'une fenêtre ouverte. `onOpenAutoFocus`
+ * viendrait trop tard : un champ `autoFocus` de la fenêtre a déjà pris le focus.
+ */
+function RememberOpener({ into }: { into: React.RefObject<Element | null> }) {
+  const done = React.useRef(false)
+  if (!done.current) {
+    done.current = true
+    into.current = document.activeElement
+  }
+  return null
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  fallbackFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** À la fermeture, quand rien n'avait le focus à l'ouverture ou que c'est parti. */
+  fallbackFocus?: () => void
 }) {
+  // Les fenêtres s'ouvrent par l'état, sans `DialogTrigger` : Radix ne saurait à
+  // qui rendre le focus en se fermant, et le laisserait sur `body`. Il revient à ce
+  // qui l'avait à l'ouverture, sauf si quelque chose l'a pris entre-temps (une
+  // commande qui montre un terminal, une autre fenêtre). Une fenêtre qui le rend
+  // elle-même appelle `preventDefault` dans son `onCloseAutoFocus`.
+  const opener = React.useRef<Element | null>(null)
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+          if (event.defaultPrevented) return
+          event.preventDefault()
+          const back = opener.current
+          opener.current = null
+          if (document.activeElement && document.activeElement !== document.body) return
+          if (back instanceof HTMLElement && back !== document.body && back.isConnected) back.focus()
+          else fallbackFocus?.()
+        }}
         className={cn(
           "fixed top-[50%] left-[50%] z-50 grid w-full grid-cols-1 max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
           className
         )}
         {...props}
       >
+        <RememberOpener into={opener} />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
