@@ -13,8 +13,8 @@
 import { t } from "@/i18n";
 import { effortSlider, highlightedModel, inputDraft, isModelPicker, isSwitchConfirm } from "@/lib/claude-picker";
 import type { ModelChoice } from "@/lib/models";
-import { getState, setState, subscribe } from "@/state/store";
-import { focusTerminal, screenRows, typeInto } from "@/state/terminals";
+import { getState, subscribe } from "@/state/store";
+import { NOTICE_MS, focusTerminal, screenRows, showNotice, typeInto } from "@/state/terminals";
 
 const KEY = { home: "\x1b[H", down: "\x1b[B", right: "\x1b[C", left: "\x1b[D", escape: "\x1b" };
 
@@ -23,22 +23,8 @@ const STEP_TIMEOUT_MS = 3000;
 const POLL_MS = 40;
 /** Lignes parcourues au plus dans le sélecteur de modèle ; il en compte une douzaine, et boucle. */
 const MAX_ROWS = 40;
-/** Durée d'un avis d'échec en bas du terminal. */
-const NOTICE_MS = 6000;
-
 /** Onglets où un geste est en cours : un second attendrait l'écran du premier. */
 const running = new Set<string>();
-let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-
-/** Un avis en bas du terminal ; sans durée, il reste jusqu'au suivant. */
-function notice(id: string, text: string | null, lasts?: number): void {
-  if (noticeTimer) clearTimeout(noticeTimer);
-  noticeTimer = undefined;
-  setState((state) =>
-    text ? { terminalNotice: { id, text } } : state.terminalNotice?.id === id ? { terminalNotice: null } : {},
-  );
-  if (text && lasts) noticeTimer = setTimeout(() => notice(id, null), lasts);
-}
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const lines = (id: string): string[] => (screenRows(id) ?? []).map((row) => row.text);
@@ -97,18 +83,18 @@ async function drive(id: string, body: () => Promise<void>): Promise<void> {
   running.add(id);
   try {
     if (getState().claudeBusy[id]) {
-      notice(id, t("Le changement attend la fin du tour de Claude."));
-      if (!(await idle(id))) return notice(id, null);
+      showNotice(id, t("Le changement attend la fin du tour de Claude."));
+      if (!(await idle(id))) return showNotice(id, null);
     }
     if (getState().attention[id] === "permission") throw new Abort(t("Claude attend ta réponse : réponds-lui d'abord."));
     const draft = inputDraft(screenRows(id) ?? []);
     if (draft === undefined) throw new Abort(t("La ligne de saisie de Claude n'est pas à l'écran : ferme ce qui y est ouvert, puis recommence."));
     if (draft) throw new Abort(t("La ligne de saisie de Claude n'est pas vide : envoie ou efface ce qui y est écrit, puis recommence."));
     await body();
-    notice(id, null);
+    showNotice(id, null);
   } catch (error) {
     if (!(error instanceof Abort)) throw error;
-    notice(id, error.message, NOTICE_MS);
+    showNotice(id, error.message, NOTICE_MS);
   } finally {
     running.delete(id);
   }

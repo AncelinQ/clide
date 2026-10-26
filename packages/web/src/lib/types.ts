@@ -27,6 +27,8 @@ export interface TerminalInfo {
   owner?: string;
   /** Script que l'onglet fait tourner (`dossier|nom`). */
   script?: string;
+  /** Rouvert au lancement et pas encore montré : son shell part à son premier affichage. */
+  dormant?: true;
 }
 
 /** Coût d'une session, avec ce qu'il vaut : relevé, estimé, plancher ou inconnu. */

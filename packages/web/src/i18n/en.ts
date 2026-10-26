@@ -927,6 +927,11 @@ export const EN: Record<string, string> = {
     "The tabs’ “+”, and Claude’s toolbar: model, effort, prompts, dev servers. A click opens them either way.",
   "Au survol": "On hover",
   "Au clic": "On click",
+  "Au lancement": "At startup",
+  "Rouvrir les onglets de terminal": "Reopen terminal tabs",
+  "Chaque shell revient dans son dossier, avec ses dernières lignes en gris et la commande qui tournait, à relancer. Un onglet Claude reprend sa session. Rien ne démarre avant le premier affichage. Décoché, ce qui était gardé est effacé.":
+    "Each shell comes back in its folder, with its last lines in grey and the command that was running, ready to run again. A Claude tab resumes its session. Nothing starts until the tab is first shown. Unchecked, what was kept is erased.",
+  "Claude reprend sa session : renvoie ta demande dans un instant.": "Claude is resuming its session: send your request again in a moment.",
   "Envoyer directement": "Send right away",
   "Sinon, le prompt est inséré dans l'onglet Claude, à compléter avant Entrée.": "Otherwise the prompt is inserted in the Claude tab, to complete before Enter.",
   Insérer: "Insert",

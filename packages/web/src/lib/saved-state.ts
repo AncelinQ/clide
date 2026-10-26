@@ -85,6 +85,8 @@ export interface SavedPrefs {
   sendAfterInput: boolean;
   /** Un onglet ouvert quand un groupe de son type existe : à côté du groupe, ou dedans. */
   newTabInGroup: "beside" | "join";
+  /** Les terminaux du dernier arrêt rouvrent au lancement ; le serveur relit ce réglage. */
+  restoreTabs: boolean;
 }
 
 export interface SavedState {
@@ -125,6 +127,7 @@ export const DEFAULT_PREFS: SavedPrefs = {
   menuOpening: "hover",
   sendAfterInput: false,
   newTabInGroup: "beside",
+  restoreTabs: true,
 };
 
 /** Échelles proposées pour l'interface, en pour cent. */
@@ -295,6 +298,7 @@ function prefs(value: unknown): SavedPrefs {
     menuOpening: oneOf(source["menuOpening"], ["hover", "click"], DEFAULT_PREFS.menuOpening),
     sendAfterInput: flag(source["sendAfterInput"], DEFAULT_PREFS.sendAfterInput),
     newTabInGroup: oneOf(source["newTabInGroup"], ["beside", "join"], DEFAULT_PREFS.newTabInGroup),
+    restoreTabs: flag(source["restoreTabs"], DEFAULT_PREFS.restoreTabs),
   };
 }
 

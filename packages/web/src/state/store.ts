@@ -179,6 +179,8 @@ export interface State {
   sendAfterInput: boolean;
   /** Un onglet ouvert quand un groupe de son type existe : à côté du groupe, ou dedans. */
   newTabInGroup: NewTabInGroup;
+  /** Les terminaux du dernier arrêt rouvrent au lancement. */
+  restoreTabs: boolean;
   /** Modules coupés dans les Réglages : leurs vues n'apparaissent nulle part. */
   disabledModules: string[];
   /** Section ouverte de la fenêtre Réglages. */
@@ -212,7 +214,7 @@ function restored(): Pick<
   | "projects" | "activeRoot" | "theme" | "look" | "vscodeTheme" | "terminalFont" | "uiFont" | "shortcuts" | "language" | "tabLayout"
   | "visibleTabs" | "hiddenModes" | "newestFirst" | "showHidden" | "widths" | "showLeft" | "showRight"
   | "sessionCollapsed" | "globalTab" | "keymap" | "showCosts" | "disabledModules" | "projectsFolder"
-  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput" | "newTabInGroup"
+  | "autoUpdate" | "scriptLaunch" | "menuOpening" | "sendAfterInput" | "newTabInGroup" | "restoreTabs"
 > {
   let raw: unknown;
   try {
@@ -307,6 +309,7 @@ function persist(): void {
       menuOpening: state.menuOpening,
       sendAfterInput: state.sendAfterInput,
       newTabInGroup: state.newTabInGroup,
+      restoreTabs: state.restoreTabs,
     },
   };
   const text = JSON.stringify(saved);

@@ -609,6 +609,34 @@ export function focusTerminal(id: string, options: { focus?: boolean } = {}): vo
 }
 
 /**
+ * Montre un onglet Claude rouvert au lancement et pas encore montré, ce qui
+ * reprend sa session. Rien n'y écoute avant : un avis dit de renvoyer la demande,
+ * qui serait perdue, ou tapée dans le shell avant Claude. Faux pour un onglet
+ * éveillé, où l'on peut taper.
+ */
+export function wakeClaudeTab(id: string): boolean {
+  if (!getState().terminals[id]?.info.dormant) return false;
+  focusTerminal(id);
+  showNotice(id, t("Claude reprend sa session : renvoie ta demande dans un instant."), NOTICE_MS);
+  return true;
+}
+
+/** Durée d'un avis qui s'efface seul en bas du terminal. */
+export const NOTICE_MS = 6000;
+
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Un avis en bas du terminal ; sans durée, il reste jusqu'au suivant. `null` retire le sien. */
+export function showNotice(id: string, text: string | null, lasts?: number): void {
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = undefined;
+  setState((state) =>
+    text ? { terminalNotice: { id, text } } : state.terminalNotice?.id === id ? { terminalNotice: null } : {},
+  );
+  if (text && lasts) noticeTimer = setTimeout(() => showNotice(id, null), lasts);
+}
+
+/**
  * Onglet Claude du projet courant où envoyer une commande : l'actif s'il en est
  * un, sinon le premier ouvert. Aucun s'il n'y a pas d'onglet Claude vivant.
  */
@@ -633,10 +661,14 @@ export function claudeTabFor(root: string | null): string | undefined {
  * Entrée part à part, un instant après : reçu dans le même bloc que le texte,
  * Claude Code le lit comme un collage, où Entrée ajoute une ligne au lieu
  * d'envoyer. Une commande courte passe, un prompt de trois lignes reste en saisie.
+ *
+ * Un onglet rouvert au lancement et pas encore montré n'a pas de Claude qui
+ * l'écoute : voir `wakeClaudeTab`.
  */
 export function sendToClaude(command: string): boolean {
   const id = claudeTabFor(getState().activeRoot);
   if (!id) return false;
+  if (wakeClaudeTab(id)) return true;
   typeInto(id, command);
   setTimeout(() => typeInto(id, "\r"), 150);
   focusTerminal(id);
@@ -653,8 +685,17 @@ export function typeIntoActive(data: string): string | undefined {
   return id && typeAsUser(id, data) ? id : undefined;
 }
 
-/** Écrit dans un terminal désigné, sans condition : c'est Clide qui y tape. */
+/**
+ * Écrit dans un terminal désigné, sans condition : c'est Clide qui y tape. Un
+ * terminal rouvert au lancement est d'abord lancé, même hors de vue ; le serveur
+ * tape la saisie à son premier prompt.
+ */
 export function typeInto(id: string, data: string): void {
+  if (getState().terminals[id]?.info.dormant) {
+    const term = attached.get(id)?.term;
+    const size = term ? { cols: term.cols, rows: term.rows } : (visibleSize() ?? { cols: 100, rows: 30 });
+    send({ t: "wake", id, ...size });
+  }
   send({ t: "input", id, data });
 }
 
@@ -723,7 +764,10 @@ export function resize(id: string, options: { focus?: boolean } = {}): void {
     return;
   }
   resyncScrollbar(entry);
-  send({ t: "resize", id, cols: entry.term.cols, rows: entry.term.rows });
+  const size = { id, cols: entry.term.cols, rows: entry.term.rows };
+  // Un terminal rouvert au lancement n'a pas de shell : son premier affichage le
+  // lance, à la taille où on le voit.
+  send(getState().terminals[id]?.info.dormant ? { t: "wake", ...size } : { t: "resize", ...size });
   if (options.focus !== false) entry.term.focus();
 }
 

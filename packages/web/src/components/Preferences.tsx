@@ -385,10 +385,28 @@ function TerminalSection({ open }: { open: boolean }) {
           {t("Revenir aux valeurs par défaut")}
         </button>
       </Group>
+      <RestoreTabsGroup />
       <ScriptLaunchGroup />
       <NewTabInGroupGroup />
       <MenuOpeningGroup />
     </div>
+  );
+}
+
+/** Les terminaux du dernier arrêt reviennent au lancement, ou Clide repart sans eux. */
+function RestoreTabsGroup() {
+  const restoreTabs = useStore((state) => state.restoreTabs);
+  return (
+    <Group title={t("Au lancement")}>
+      <Toggle
+        label={t("Rouvrir les onglets de terminal")}
+        hint={t(
+          "Chaque shell revient dans son dossier, avec ses dernières lignes en gris et la commande qui tournait, à relancer. Un onglet Claude reprend sa session. Rien ne démarre avant le premier affichage. Décoché, ce qui était gardé est effacé.",
+        )}
+        checked={restoreTabs}
+        onChange={(value) => setState({ restoreTabs: value })}
+      />
+    </Group>
   );
 }
 
