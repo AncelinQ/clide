@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
@@ -31,6 +31,7 @@ import { calibrationOf } from "./sessions/costs.js";
 import { readRawBody, saveAttachment } from "./platform/attachments.js";
 import { ProcessLister } from "./platform/processes.js";
 import { PtyManager } from "./pty/manager.js";
+import { TerminalSnapshots, restorable, restoreTabsOf } from "./pty/saved-terminals.js";
 import { parseClientMessage, type ServerMessage } from "./protocol.js";
 import { OutsideWorkspace, WorkspaceRoots, checkRoots, rootsOfSavedState } from "./workspace/roots.js";
 import { ServerBus } from "./bus.js";
@@ -221,12 +222,12 @@ function statusOf(error: unknown): number {
   return 400;
 }
 
-/** Projets ouverts à la dernière sauvegarde de l'interface ; aucun si elle est absente ou illisible. */
-async function savedRoots(dataDir: string): Promise<string[]> {
+/** Dernière sauvegarde de l'interface ; rien si elle est absente ou illisible. */
+async function savedUiState(dataDir: string): Promise<unknown> {
   try {
-    return rootsOfSavedState(JSON.parse(await readFile(join(dataDir, "ui-state.json"), "utf8")));
+    return JSON.parse(await readFile(join(dataDir, "ui-state.json"), "utf8")) as unknown;
   } catch {
-    return [];
+    return undefined;
   }
 }
 
@@ -255,8 +256,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     bus: new ServerBus(),
   };
   for (const module of SERVER_MODULES) module.start?.(context);
+  const uiState = await savedUiState(context.dataDir);
   // Les projets de la dernière session, en attendant que le client redise les siens.
-  void context.workspace.update(await savedRoots(context.dataDir));
+  const roots = rootsOfSavedState(uiState);
+  void context.workspace.update(roots);
   await names.load();
   await context.index.load();
   await notifications.start();
@@ -294,6 +297,22 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     const name = tabNames.follow(terminalId, session.sessionId, manager.nameOf(terminalId), session.name);
     if (name) manager.rename(terminalId, name);
   });
+
+  // Les terminaux du dernier arrêt reviennent endormis, sous leur identifiant :
+  // l'ordre des onglets, les groupes et l'étagère Scripts, rangés par lui, restent
+  // valables. Le réglage décoché efface ce qui était gardé.
+  const snapshots = new TerminalSnapshots(context.dataDir, () => manager.snapshot((id) => live.sessionOf(id)));
+  context.snapshots = snapshots;
+  snapshots.enabled = restoreTabsOf(uiState);
+  for (const loaded of restorable(await snapshots.load(), roots, existsSync)) manager.restore(loaded);
+  snapshots.start();
+  // La liste est réécrite sans ce qui n'a pas été rouvert.
+  snapshots.schedule();
+  const changed = (): void => snapshots.schedule();
+  manager.on("state", changed);
+  manager.on("exit", changed);
+  manager.on("claude", changed);
+  live.on(changed);
 
   const http: Server = createServer((request, response) => {
     void handleRequest(request, response);
@@ -466,7 +485,29 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
             ...(message.script ? { script: message.script } : {}),
           });
           if (terminal.kind === "claude") live.track(terminal.id, terminal.cwd, initialCommand);
+          snapshots.schedule();
           post({ t: "opened", terminal });
+          break;
+        }
+        case "wake": {
+          const saved = manager.dormantOf(message.id);
+          // Déjà réveillé, par une saisie qui l'a précédé : la taille vaut quand même.
+          if (!saved) {
+            manager.resize(message.id, message.cols, message.rows);
+            break;
+          }
+          // Une session attachée est reprise, sous le nom de l'onglet ou celui
+          // qu'elle a gardé ; un onglet Claude qui n'en avait pas encore relance
+          // `claude`. Un shell rejoue sa sortie et retrouve sa commande.
+          const resume = saved.sessionId ? `claude --resume ${saved.sessionId}` : saved.kind === "claude" ? "claude" : undefined;
+          const name = saved.sessionId ? (manager.nameOf(message.id) ?? names.get(saved.sessionId)) : undefined;
+          const initialCommand = resume && name ? withSessionName(resume, name) : resume;
+          const terminal = await manager.wake(message.id, {
+            cols: message.cols,
+            rows: message.rows,
+            ...(initialCommand ? { initialCommand } : {}),
+          });
+          if (terminal && initialCommand) live.track(terminal.id, terminal.cwd, initialCommand);
           break;
         }
         case "input":
@@ -496,10 +537,14 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     port,
     token,
     async close() {
+      // Avant tout le reste : tuer les terminaux, ou cesser de suivre leurs
+      // sessions, changerait ce qui doit rouvrir au lancement suivant.
+      snapshots.flushSync();
       live.stop();
       notifications.stop();
       manager.closeAll();
       await names.flush();
+      await snapshots.flush();
       await Promise.all(SERVER_MODULES.map((module) => module.stop?.()));
       // `http.close()` attend la fin des connexions en cours : une WebSocket
       // ouverte ne se termine jamais d'elle-même, et l'arrêt resterait bloqué.

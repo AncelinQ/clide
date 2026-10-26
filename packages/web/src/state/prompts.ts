@@ -4,7 +4,7 @@ import { numberNew, promptCommand } from "@/lib/prompt-keys";
 import { departure, expand, variablesOf, type PromptVariable } from "@/lib/prompt-vars";
 import { selectedText } from "@/state/editor";
 import { getState, setState } from "@/state/store";
-import { claudeTabFor, focusTerminal, openTerminal, typeInto } from "@/state/terminals";
+import { claudeTabFor, focusTerminal, openTerminal, typeInto, wakeClaudeTab } from "@/state/terminals";
 
 export interface SavedPrompt {
   id: string;
@@ -118,6 +118,7 @@ export async function runPrompt(prompt: SavedPrompt): Promise<string | undefined
     openTerminal("claude", { command: `claude '${argument}'` });
     return undefined;
   }
+  if (wakeClaudeTab(id)) return undefined;
   typeInto(id, result.text);
   // Entrée part à part : reçue avec le texte, Claude Code la lirait comme un saut de ligne collé.
   if (mode === "send") setTimeout(() => typeInto(id, "\r"), 150);

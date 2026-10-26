@@ -64,6 +64,7 @@ describe("migrate depuis la version 1", () => {
       menuOpening: "hover",
       sendAfterInput: false,
       newTabInGroup: "beside",
+      restoreTabs: true,
     });
   });
 });
@@ -160,6 +161,12 @@ describe("migrate en version 2", () => {
     expect(migrate({ version: 2, prefs: { newTabInGroup: "join" } }).prefs.newTabInGroup).toBe("join");
     expect(migrate({ version: 2, prefs: { newTabInGroup: "partout" } }).prefs.newTabInGroup).toBe("beside");
     expect(migrate({ version: 2 }).prefs.sendAfterInput).toBe(false);
+  });
+
+  it("rouvre les onglets au lancement tant que ce n'est pas décoché", () => {
+    expect(migrate({ version: 2, prefs: { restoreTabs: false } }).prefs.restoreTabs).toBe(false);
+    expect(migrate({ version: 2, prefs: { restoreTabs: "non" } }).prefs.restoreTabs).toBe(true);
+    expect(migrate({ version: 2 }).prefs.restoreTabs).toBe(true);
   });
 
   it("garde ce que retient l'onglet Scripts", () => {

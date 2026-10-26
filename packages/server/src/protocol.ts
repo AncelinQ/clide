@@ -21,6 +21,8 @@ export type ClientMessage =
     }
   | { t: "input"; id: string; data: string }
   | { t: "resize"; id: string; cols: number; rows: number }
+  /** Premier affichage d'un terminal rouvert au lancement : son shell part à cette taille. */
+  | { t: "wake"; id: string; cols: number; rows: number }
   /** Nom donné à l'onglet ; vide, il reprend son nom par défaut. */
   | { t: "rename"; id: string; name: string }
   | { t: "close"; id: string };
@@ -93,11 +95,13 @@ export function parseClientMessage(raw: string): ClientMessage | undefined {
       const data = str("data");
       return id !== undefined && data !== undefined ? { t: "input", id, data } : undefined;
     }
-    case "resize": {
+    case "resize":
+    case "wake": {
       const id = str("id");
       const cols = num("cols");
       const rows = num("rows");
-      return id && cols !== undefined && rows !== undefined ? { t: "resize", id, cols, rows } : undefined;
+      if (!id || cols === undefined || rows === undefined) return undefined;
+      return { t: value["t"] === "wake" ? "wake" : "resize", id, cols, rows };
     }
     case "rename": {
       const id = str("id");

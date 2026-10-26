@@ -92,6 +92,7 @@ import { moveToRecycleBin } from "../platform/trash.js";
 import { calibrationOf, costOfSession } from "../sessions/costs.js";
 import type { ProcessLister } from "../platform/processes.js";
 import type { PtyManager } from "../pty/manager.js";
+import { restoreTabsOf, type TerminalSnapshots } from "../pty/saved-terminals.js";
 import type { WorkspaceRoots } from "../workspace/roots.js";
 import type { ServerBus } from "../bus.js";
 
@@ -116,6 +117,8 @@ export interface ApiContext {
   workspace: WorkspaceRoots;
   /** Canal interne : ce que les routes ont fait, que les modules suivent. */
   bus: ServerBus;
+  /** Terminaux gardés pour le lancement suivant, selon le réglage de l'interface. */
+  snapshots?: TerminalSnapshots;
 }
 
 export type Handler = (params: URLSearchParams, context: ApiContext) => Promise<unknown>;
@@ -1219,7 +1222,7 @@ export const mutations: Record<string, Mutation> = {
    * Capture interactive d'une zone de l'écran. La requête attend la fin de la
    * sélection, jusqu'à deux minutes, et rend le chemin de l'image.
    */
-  "/api/ui-state/save": async (_params, { dataDir }, body) => {
+  "/api/ui-state/save": async (_params, { dataDir, snapshots }, body) => {
     const state = requireField(body, "state", isRecord);
     const text = JSON.stringify(state, null, 2);
     if (Buffer.byteLength(text) > UI_STATE_MAX_BYTES) throw new Error("état de l'interface trop volumineux");
@@ -1229,6 +1232,9 @@ export const mutations: Record<string, Mutation> = {
     const file = uiStateFile(dataDir);
     await writeFile(`${file}.tmp`, text, "utf8");
     await rename(`${file}.tmp`, file);
+    // Le réglage qui rouvre les onglets vit avec les autres préférences : décoché,
+    // il efface aussitôt ce qui était gardé.
+    if (snapshots) snapshots.enabled = restoreTabsOf(state);
     return { ok: true };
   },
 

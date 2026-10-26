@@ -57,6 +57,38 @@ Code tient lui-même la sélection faite à la souris et la copie au relâcher ;
 Maj+glisser fait une sélection du terminal, que Ctrl+C copie. Un shell garde les
 raccourcis de PowerShell, qui collent et annulent de la même façon.
 
+## Rouvrir les onglets au lancement
+
+Quitter Clide — fermer la fenêtre, une mise à jour, un redémarrage de la machine —
+ne perd pas ses onglets de terminal. Au lancement suivant, chacun revient à sa
+place, sous son nom, dans son groupe et dans l'onglet Scripts. Aucun ne démarre
+avant d'être montré : dix onglets rouverts ne lancent pas dix `claude` d'un coup.
+
+- **Un shell** repart dans son dossier. Ses dernières lignes reviennent en gris,
+  sans leurs couleurs, au-dessus de « ── session restaurée ── » : PowerShell
+  démarre sur un écran vide, on les retrouve en remontant. La commande qui
+  tournait à la fermeture — un `pnpm dev`, un `ping -t` — est retapée au prompt
+  sans être lancée : Entrée la relance. Une commande sur plusieurs lignes n'est
+  pas retapée.
+- **Un onglet Claude** reprend sa session par `claude --resume`, sous son nom. Il
+  repart sur le modèle par défaut, pas sur celui choisi pour la session. Fermé
+  avant que sa session ne soit trouvée, il relance `claude`.
+- **Un onglet de script** retrouve sa sortie ; ▷ le relance, même avant qu'on
+  l'ait montré.
+
+Un onglet dont le projet a été fermé, ou dont le dossier n'existe plus — un
+worktree supprimé —, ne revient pas. Un dossier courant disparu cède la place à
+celui du projet.
+
+Une commande ou un prompt envoyé à un onglet Claude pas encore montré l'affiche,
+et un avis demande de renvoyer : Claude n'écoute qu'une fois sa session reprise.
+
+La liste des onglets est écrite à chaque changement, la sortie des shells toutes
+les 30 secondes, et tout l'est à la fermeture : après un arrêt brutal, la sortie
+peut manquer de ses dernières secondes. Réglages › Terminal › « Rouvrir les onglets
+de terminal » désactive la fonction et efface ce qui était gardé (voir
+[Sécurité et données](securite.md#dossier-de-donnees-et-reprise-d-une-installation-anterieure)).
+
 ## Rechercher dans le terminal
 
 `Ctrl+Maj+F`, quand un terminal a le clavier, ouvre une barre de recherche dans son
