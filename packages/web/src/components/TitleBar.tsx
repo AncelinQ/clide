@@ -99,6 +99,18 @@ export function TitleBar() {
     setAdding(false);
   };
 
+  // Les boutons-icônes portent le texte de leur infobulle en `aria-label` : Radix ne
+  // relie l'infobulle au bouton qu'une fois ouverte, et sans nom un lecteur d'écran
+  // n'annonce que « bouton ».
+  const labels = {
+    left: t("Colonne du projet"),
+    add: t("Ouvrir un projet"),
+    pull: t("Mettre à jour les projets ouverts et leurs dossiers liés (git pull)"),
+    doc: t("Documentation"),
+    theme: t(THEME_LABEL[theme]),
+    right: t("Panneau global"),
+  };
+
   // Deux côtés de même largeur : les projets restent au centre de la barre, quelle
   // que soit la largeur de la puce git.
   return (
@@ -110,13 +122,15 @@ export function TitleBar() {
               variant="ghost"
               size="icon"
               className="size-7"
+              aria-label={labels.left}
+              aria-pressed={showLeft}
               disabled={!activeRoot}
               onClick={() => setState({ showLeft: !showLeft })}
             >
               <PanelLeft />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t("Colonne du projet")}</TooltipContent>
+          <TooltipContent>{labels.left}</TooltipContent>
         </Tooltip>
       </div>
 
@@ -216,11 +230,11 @@ export function TitleBar() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setAdding(true)}>
+            <Button variant="ghost" size="icon" className="size-7" aria-label={labels.add} onClick={() => setAdding(true)}>
               <Plus />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t("Ouvrir un projet")}</TooltipContent>
+          <TooltipContent>{labels.add}</TooltipContent>
         </Tooltip>
 
         {projects.length > 0 && (
@@ -230,6 +244,7 @@ export function TitleBar() {
                 variant="ghost"
                 size="icon"
                 className="size-7"
+                aria-label={labels.pull}
                 disabled={pulling}
                 onClick={() =>
                   void pullRepositories(
@@ -241,7 +256,7 @@ export function TitleBar() {
                 {pulling ? <LoaderCircle className="animate-spin" /> : <CloudDownload />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t("Mettre à jour les projets ouverts et leurs dossiers liés (git pull)")}</TooltipContent>
+            <TooltipContent>{labels.pull}</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -257,20 +272,20 @@ export function TitleBar() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => openDoc()}>
+            <Button variant="ghost" size="icon" className="size-7" aria-label={labels.doc} onClick={() => openDoc()}>
               <BookOpen />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t("Documentation")}</TooltipContent>
+          <TooltipContent>{labels.doc}</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7" onClick={cycleTheme}>
+            <Button variant="ghost" size="icon" className="size-7" aria-label={labels.theme} onClick={cycleTheme}>
               <ThemeIcon />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t(THEME_LABEL[theme])}</TooltipContent>
+          <TooltipContent>{labels.theme}</TooltipContent>
         </Tooltip>
 
         <SettingsDialog />
@@ -281,12 +296,14 @@ export function TitleBar() {
               variant="ghost"
               size="icon"
               className="size-7"
+              aria-label={labels.right}
+              aria-pressed={showRight}
               onClick={() => setState({ showRight: !showRight })}
             >
               <PanelRight />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t("Panneau global")}</TooltipContent>
+          <TooltipContent>{labels.right}</TooltipContent>
         </Tooltip>
 
         <Dialog open={adding} onOpenChange={setAdding}>
