@@ -1,8 +1,11 @@
+import { claudeInfoReader } from "../platform/claude-info.js";
 import { installStatusline, readUsage, refreshApiUsage, uninstallStatusline } from "../platform/usage.js";
 import { costReport } from "../sessions/costs.js";
 import type { ServerModule } from "./module.js";
 
-/** Consommation : limites de l'abonnement et coût des sessions. */
+const readClaudeInfo = claudeInfoReader();
+
+/** Consommation : limites de l'abonnement, coût des sessions, version de Claude Code et état des services. */
 export const consumption: ServerModule = {
   id: "consumption",
   routes: {
@@ -15,6 +18,13 @@ export const consumption: ServerModule = {
       await index.save();
       return costReport(index);
     },
+
+    /**
+     * Version installée de Claude Code, dernière version publiée et état des
+     * services. Sources publiques, sans identifiant : lues à l'ouverture de
+     * l'onglet, et gardées un moment. `refresh=1` les relit.
+     */
+    "/api/claude-info": async (params) => readClaudeInfo(params.get("refresh") === "1"),
   },
   mutations: {
     /** Déclare la ligne de statut qui relève l'usage. Action explicite, comme les hooks. */
