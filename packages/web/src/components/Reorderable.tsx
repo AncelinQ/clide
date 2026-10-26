@@ -118,8 +118,13 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
     setDrag(null);
   };
 
-  /** Les gestes de la liste, pour `shown`, l'ordre affiché, aperçu compris. */
-  const bind = (shown: readonly string[]): ReorderList => ({
+  /**
+   * Les gestes de la liste, pour `shown`, l'ordre affiché, aperçu compris.
+   * `carried` : ce qui suit l'élément tiré, les onglets d'une étiquette de groupe.
+   * Les survoler, c'est survoler l'élément tiré : ils ne sont pas une place où
+   * aller, et l'aperçu reviendrait en arrière sous le pointeur.
+   */
+  const bind = (shown: readonly string[], carried: readonly string[] = []): ReorderList => ({
     drag,
     zone: {
       onDragOver: (event) => {
@@ -159,7 +164,7 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
         event.dataTransfer.dropEffect = "move";
         track(event);
         const now = current.current;
-        if (!now || id === now.id) return;
+        if (!now || id === now.id || carried.includes(id)) return;
         // Un onglet sur une étiquette y entrera : elle s'entoure, l'aperçu reste tel quel.
         if (holds && !now.holder) {
           if (now.into !== id) setDrag({ ...now, into: id }, false);
@@ -197,7 +202,12 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
 
 /**
  * Un élément d'une liste rangée par `useReorder`. Son emplacement se vide pendant
- * qu'on le tire ; un contenant survolé, où il entrera, s'entoure.
+ * qu'on le tire.
+ *
+ * `holds` en fait un contenant, l'étiquette d'un groupe : un élément lâché dessus
+ * y entre, et il s'entoure au survol. Un autre contenant se pose devant ou derrière
+ * lui. `fixed` le retient en place, le temps qu'on sélectionne du texte dans un
+ * champ qu'il porte.
  */
 export function ReorderItem({
   list,
@@ -223,75 +233,3 @@ export function ReorderItem({
   );
 }
 
-/**
- * Enveloppe un onglet qu'on range au glisser-déposer. Un trait vertical montre
- * la place d'arrivée ; Échap annule, comme tout glisser du navigateur.
- * `fixed` le retient en place, le temps qu'on sélectionne du texte dans un champ
- * qu'il porte.
- *
- * `holds` en fait un contenant, l'étiquette d'un groupe : ce qu'on y lâche y entre,
- * et c'est lui qui s'entoure plutôt qu'un trait sur un côté. Un autre contenant se
- * pose devant ou derrière lui. Le côté reste transmis : c'est `onDrop` qui décide.
- */
-export function Reorderable({
-  group,
-  id,
-  onDrop,
-  fixed = false,
-  holds = false,
-  children,
-}: {
-  group: string;
-  id: string;
-  onDrop: (moved: string, target: string, side: "before" | "after") => void;
-  fixed?: boolean;
-  holds?: boolean;
-  children: ReactNode;
-}) {
-  const [aim, setAim] = useState<{ side: "before" | "after"; into: boolean }>();
-  const accepts = (types: readonly string[]) => types.includes(mime(group));
-  return (
-    <div
-      draggable={!fixed}
-      data-tab-id={id}
-      className="relative shrink-0"
-      onDragStart={(event) => {
-        event.dataTransfer.setData(mime(group), id);
-        if (holds) event.dataTransfer.setData(HOLDER, "");
-        event.dataTransfer.effectAllowed = "move";
-      }}
-      onDragOver={(event) => {
-        if (!accepts(event.dataTransfer.types)) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        const box = event.currentTarget.getBoundingClientRect();
-        const side = event.clientX < box.left + box.width / 2 ? "before" : "after";
-        const into = holds && !event.dataTransfer.types.includes(HOLDER);
-        if (aim?.side !== side || aim.into !== into) setAim({ side, into });
-      }}
-      onDragLeave={(event) => {
-        // Passer sur un enfant fait aussi sortir du parent : on ne s'en tient qu'à la vraie sortie.
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAim(undefined);
-      }}
-      onDrop={(event) => {
-        const moved = event.dataTransfer.getData(mime(group));
-        const at = aim?.side;
-        setAim(undefined);
-        if (!moved || !at) return;
-        event.preventDefault();
-        if (moved !== id) onDrop(moved, id, at);
-      }}
-    >
-      {aim?.into ? (
-        <span className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-2 ring-primary" />
-      ) : (
-        aim && (
-          <span
-            className={cn("pointer-events-none absolute inset-y-0.5 z-10 w-0.5 rounded bg-primary", aim.side === "before" ? "-left-[3px]" : "-right-[3px]")}
-          />
-        )
-      )}
-      {children}
-    </div>
-  );
-}
