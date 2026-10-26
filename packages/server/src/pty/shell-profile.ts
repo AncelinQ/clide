@@ -58,13 +58,18 @@ function global:prompt {
   if ($global:__clideInner) { & $global:__clideInner } else { 'PS ' + $PWD.Path + '> ' }
 }
 
-# Marqueur de début de commande. PSReadLine peut être absent ou déjà pourvu d'un
-# gestionnaire : l'échec est sans conséquence, l'état « en cours » se déduit alors
-# du prochain END.
+# Marqueur de début de commande, avec la ligne tapée : un onglet rouvert au
+# lancement la retape. Elle part en base64, car un ; la couperait et un caractère
+# de contrôle fermerait la séquence. PSReadLine peut être absent ou déjà pourvu
+# d'un gestionnaire : l'échec est sans conséquence, l'état « en cours » se déduit
+# alors du prochain END.
 try {
   Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
     param($key, $arg)
-    __clideEmit 'START'
+    $line = $null
+    $cursor = $null
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref] $line, [ref] $cursor)
+    __clideEmit ('START;' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([string] $line)))
     [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
   }
 } catch {

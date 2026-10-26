@@ -13,7 +13,8 @@ const ST = `${ESC}\\`;
 
 export type ShellEvent =
   | { kind: "cwd"; path: string }
-  | { kind: "command-start" }
+  /** Une commande part, avec la ligne tapée quand le profil la donne. */
+  | { kind: "command-start"; command?: string }
   | { kind: "command-end"; exitCode: number }
   /** `claude` lancé dans le shell, avec sa ligne de commande. */
   | { kind: "claude-start"; command: string }
@@ -35,6 +36,12 @@ export function uriToPath(uri: string): string | undefined {
   // Un hôte peut précéder le chemin : `file://host/partage` reste un chemin UNC.
   if (path.startsWith("/") && /^\/[A-Za-z]:/.test(path)) path = path.slice(1);
   return path.replace(/\//g, "\\");
+}
+
+/** Texte UTF-8 d'une chaîne base64 ; rien si elle n'en est pas une. */
+function fromBase64(value: string): string | undefined {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return undefined;
+  return Buffer.from(value, "base64").toString("utf8");
 }
 
 interface Parsed {
@@ -59,7 +66,10 @@ function parseSequence(body: string): Parsed {
   // l'afficher, sinon une version plus récente du profil cracherait du texte
   // parasite dans le terminal.
   const [marker, value] = payload.split(";");
-  if (marker === "START") return { ours: true, event: { kind: "command-start" } };
+  if (marker === "START") {
+    const command = value === undefined ? undefined : fromBase64(value);
+    return { ours: true, event: command === undefined ? { kind: "command-start" } : { kind: "command-start", command } };
+  }
   // La ligne de commande peut porter des `;` : elle court jusqu'au bout.
   if (marker === "CLAUDE_START") {
     return { ours: true, event: { kind: "claude-start", command: payload.slice("CLAUDE_START;".length) } };
