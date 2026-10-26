@@ -81,10 +81,24 @@ const SGR = /\u001b\[[0-9;:]*m/g;
 
 /**
  * Remet le terminal dans un état neutre après une sortie qui a pu s'arrêter au
- * milieu d'un programme plein écran : écran principal, curseur visible, souris et
- * collage entre crochets coupés.
+ * milieu d'un programme plein écran : curseur visible, souris et collage entre
+ * crochets coupés.
  */
-const RESET_MODES = `${ESC}[?1049l${ESC}[?25h${ESC}[?1000l${ESC}[?1002l${ESC}[?1003l${ESC}[?1006l${ESC}[?2004l`;
+const RESET_MODES = `${ESC}[?25h${ESC}[?1000l${ESC}[?1002l${ESC}[?1003l${ESC}[?1006l${ESC}[?2004l`;
+
+const ALT_SCREEN = /\u001b\[\?(1049|1047|47)([hl])/g;
+
+/**
+ * Sortie de l'écran alternatif, quand la sortie s'y trouve encore : par le mode
+ * qui y est entré. Rien sinon : hors de cet écran, `?1049l` ramènerait quand même
+ * le curseur à sa dernière position sauvegardée, souvent le haut de l'écran, et
+ * la suite s'écrirait par-dessus la sortie rejouée.
+ */
+function leaveAltScreen(text: string): string {
+  let last: RegExpMatchArray | undefined;
+  for (const match of text.matchAll(ALT_SCREEN)) last = match;
+  return last?.[2] === "h" ? `${ESC}[?${last[1]}l` : "";
+}
 
 const GREY = `${ESC}[90m`;
 const PLAIN = `${ESC}[0m`;
@@ -96,7 +110,7 @@ const PLAIN = `${ESC}[0m`;
 export function replayOf(scrollback: string): string {
   if (!scrollback) return "";
   const text = scrollback.replace(SGR, "");
-  return `${GREY}${text}${RESET_MODES}${PLAIN}\r\n${GREY}── session restaurée ──${PLAIN}\r\n`;
+  return `${GREY}${text}${leaveAltScreen(text)}${RESET_MODES}${PLAIN}\r\n${GREY}── session restaurée ──${PLAIN}\r\n`;
 }
 
 /**

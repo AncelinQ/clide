@@ -89,6 +89,13 @@ describe("replayOf", () => {
     expect(replay.endsWith(`\r\n${ESC}[90m── session restaurée ──${ESC}[0m\r\n`)).toBe(true);
   });
 
+  it("ne quitte l'écran alternatif que si la sortie s'y trouve encore, par le mode qui y est entré", () => {
+    // Hors de cet écran, `?1049l` ramènerait le curseur en haut, sur la sortie rejouée.
+    expect(replayOf("PS C:\\app> ")).not.toMatch(/\u001b\[\?(1049|1047|47)l/);
+    expect(replayOf(`${ESC}[?1049hvim${ESC}[?1049lPS C:\\app> `).match(/\u001b\[\?1049l/g)).toHaveLength(1);
+    expect(replayOf(`${ESC}[?1047hless`)).toContain(`less${ESC}[?1047l`);
+  });
+
   it("ne rejoue rien d'une sortie vide", () => {
     expect(replayOf("")).toBe("");
   });
