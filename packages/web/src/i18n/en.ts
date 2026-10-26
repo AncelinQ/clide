@@ -688,7 +688,8 @@ export const EN: Record<string, string> = {
   "Chaque module ajoute ses vues aux barres. Coupé, il n'apparaît plus nulle part ; rien de ce qu'il a écrit n'est effacé.":
     "Each module adds its views to the bars. Turned off, it shows nowhere; nothing it wrote is deleted.",
   Consommation: "Consumption",
-  "Les limites de l'abonnement et ce que coûtent les sessions.": "The plan's limits and what sessions cost.",
+  "Les limites de l'abonnement, ce que coûtent les sessions, la version de Claude Code et l'état des services.":
+    "The plan's limits, what sessions cost, the Claude Code version and the services' status.",
   "Nouveau fichier": "New file",
   "Nouveau dossier": "New folder",
   Couper: "Cut",
@@ -1051,4 +1052,28 @@ export const EN: Record<string, string> = {
   "Ouvrir dans l'éditeur": "Open in the editor",
   "Projet fermé : ouvre-le pour ouvrir ce fichier": "Project closed: open it to open this file",
   "Épingler dans le mémo": "Pin to the memo",
+  "Version introuvable": "Version not found",
+  "{version} disponible": "{version} available",
+  "claude --version n'a pas répondu : la CLI n'est pas dans le PATH de Clide.":
+    "claude --version did not answer: the CLI is not in Clide's PATH.",
+  "Mettre à jour Claude Code": "Update Claude Code",
+  "Lance claude update dans un nouvel onglet shell du projet ouvert.":
+    "Runs claude update in a new shell tab of the open project.",
+  "Ouvre un projet : la mise à jour se lance dans un de ses onglets.":
+    "Open a project: the update runs in one of its tabs.",
+  "Services Anthropic": "Anthropic services",
+  "Tous les services fonctionnent": "All services are operational",
+  "Page de statut indisponible : {reason}": "Status page unavailable: {reason}",
+  "Incidents en cours": "Ongoing incidents",
+  "délai dépassé": "timed out",
+  "réseau injoignable ({code})": "network unreachable ({code})",
+  "page de statut illisible": "unreadable status page",
+  opérationnel: "operational",
+  ralenti: "degraded",
+  "panne partielle": "partial outage",
+  "panne majeure": "major outage",
+  maintenance: "maintenance",
+  "analyse en cours": "investigating",
+  "cause identifiée": "identified",
+  "sous surveillance": "monitoring",
 };

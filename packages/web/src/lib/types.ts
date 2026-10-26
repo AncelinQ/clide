@@ -318,6 +318,25 @@ export interface UsageReport {
   sessions: SessionUsage[];
 }
 
+/** État de la page de statut d'Anthropic : l'ensemble, puis ce qui ne va pas. */
+export interface ServiceStatus {
+  /** `none`, `minor`, `major`, `critical` ou `maintenance`. */
+  indicator: string;
+  description: string;
+  degraded: { name: string; status: string }[];
+  incidents: { name: string; status: string; impact: string; url?: string; updatedAt?: string }[];
+}
+
+/** Version de Claude Code et état des services, tels que `/api/claude-info` les rend. */
+export interface ClaudeInfo {
+  version: string | null;
+  latest: string | null;
+  /** La dernière version, quand elle est plus récente que celle installée. */
+  update: string | null;
+  status: ServiceStatus | null;
+  statusError?: string;
+}
+
 /** Un test lu dans son fichier (ligne à partir de 1), avec les blocs qui l'englobent. */
 export interface TestCase {
   name: string;
