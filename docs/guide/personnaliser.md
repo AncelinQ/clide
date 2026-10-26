@@ -28,6 +28,14 @@ palette lui est repassée à chaque changement. Sans cela, le jaune et le cyan
 réglés pour un fond noir deviennent illisibles sur blanc — c'est tout le terminal
 qui suit l'apparence, pas seulement son fond.
 
+Les infobulles le suivent aussi : aucune n'est celle, grise, du système. Elles
+prennent le fond et la bordure des menus, et paraissent après un court survol,
+sous l'élément ou à côté des barres d'icônes, toujours dans la fenêtre. Passer
+d'un bouton au suivant les affiche aussitôt. Sur une poignée de
+redimensionnement ou une ligne large, elles se posent près du pointeur. Au
+clavier, l'élément qui reçoit le focus montre la sienne. On peut amener le
+pointeur dessus sans la perdre ; Échap, un clic ou la molette la ferment.
+
 ## Couleurs de l'interface
 
 Les préférences donnent à choisir les couleurs de l'interface, comme un thème
