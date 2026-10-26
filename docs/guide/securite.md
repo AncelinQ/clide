@@ -48,8 +48,18 @@ cela écarte le geste involontaire sans bloquer la page.
 
 Ce que l'application garde pour elle — index des sessions et de la recherche,
 schémas, rédactions, sauvegardes des fichiers restaurés, profil PowerShell,
-événements des hooks, terminaux à rouvrir — vit dans `%LOCALAPPDATA%\clide`. Rien
-n'y est nécessaire à Claude Code : le dossier peut être supprimé, il se reconstruit.
+événements des hooks, terminaux à rouvrir, mémos des projets — vit dans
+`%LOCALAPPDATA%\clide`. Rien n'y est nécessaire à Claude Code, et le dossier se
+reconstruit s'il est supprimé, à une exception près : le Mémo des projets, ci-dessous,
+qui est à soi.
+
+Le [Mémo](projet.md#memo) de chaque projet y vit : `memo.json` pour ses liens et ses
+fichiers épinglés, `memo\` pour ses notes. Rien n'en est écrit dans le projet.
+L'éditeur n'ouvre, de tout le dossier de données, que `memo\`. Une adresse n'est
+gardée qu'en http, https ou mailto, contrôlée à l'écriture puis de nouveau à
+l'ouverture : un lien ne lance rien d'autre que le navigateur ou la messagerie,
+même si `memo.json` a été modifié à la main. Un fichier ne s'épingle que s'il est
+dans un projet ouvert, ses dossiers liés ou ses worktrees.
 
 Pour [rouvrir les onglets au lancement](terminaux.md#rouvrir-les-onglets-au-lancement),
 Clide y écrit `terminals.json`, la liste des terminaux ouverts — dossier, nom,

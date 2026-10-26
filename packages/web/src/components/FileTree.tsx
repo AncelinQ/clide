@@ -9,6 +9,7 @@ import {
   FilePlus,
   FolderPlus,
   ListCollapse,
+  Pin,
   RefreshCw,
   Scissors,
   Trash2,
@@ -35,8 +36,9 @@ import { baseName, fs, parentPath, type OnConflict, type Outcome } from "@/lib/f
 import { quotePath } from "@/lib/terminal-input";
 import type { DirectoryEntry, DirectoryListing } from "@/lib/types";
 import { isInside, segments } from "@/lib/workspace";
-import { openProject, setState, useStore, type Project } from "@/state/store";
+import { getState, openProject, setState, useStore, type Project } from "@/state/store";
 import { followRename, openFile as openInEditor } from "@/state/editor";
+import { pinFiles } from "@/state/memo";
 import { openTerminal, typeIntoActive } from "@/state/terminals";
 import { cn } from "cn";
 
@@ -444,6 +446,20 @@ export function FileTree({ project }: { project: Project }) {
         : ([
             { kind: "item", label: t("Ouvrir"), run: () => openFile(entry) },
             { kind: "item", label: t("Aperçu (Espace)"), icon: Eye, run: () => setPreviewing(entry.path) },
+            // Les fichiers de la sélection, pas ses dossiers : l'éditeur n'ouvre pas un dossier.
+            ...(getState().disabledModules.includes("memo")
+              ? []
+              : [
+                  {
+                    kind: "item",
+                    label: t("Épingler dans le mémo"),
+                    icon: Pin,
+                    run: () => {
+                      const files = chosen.filter((path) => rows.find((row) => row.entry.path === path)?.entry.directory === false);
+                      void pinFiles(root, files.length > 0 ? files : [entry.path]).catch(report);
+                    },
+                  },
+                ]),
             { kind: "separator" },
           ] as MenuItem[])),
       { kind: "item", label: t("Couper"), icon: Scissors, shortcut: "Ctrl+X", run: () => (clipboard = { mode: "cut", paths: chosen }) },

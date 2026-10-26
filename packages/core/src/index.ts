@@ -122,6 +122,8 @@ export {
 export { checkName, createEntry, keepBothName, renameEntry, transfer, type OnConflict, type Outcome } from "./files/operations.js";
 export { ChangedOnDisk, EDIT_LIMIT, dominantEol, modifiedAt, readEditable, writeEditable, type EditableFile } from "./files/editing.js";
 export { PromptStore, projectPromptsFile, slashCommandOf, topCommands, type SavedPrompt } from "./prompts/store.js";
+export { defaultLinkName, normalizeUrl, noteFileName, noteName } from "./memo/links.js";
+export { MemoStore, memoNotesRoot, type MemoLink, type MemoNote, type MemoPin, type ProjectMemo } from "./memo/store.js";
 export { findTodos, parseEslint, parseTsc, type Diagnostic, type DiagnosticsReport, type Severity, type ToolReport } from "./diagnostics/parse.js";
 export {
   detectTests,

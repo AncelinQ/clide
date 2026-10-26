@@ -1,6 +1,6 @@
 # La colonne du projet
 
-À gauche, ce qui appartient au projet ouvert, une vue par icône de la barre d'activité : l'explorateur, les dossiers liés, l'historique des sessions du projet, les scripts, les skills, les serveurs MCP, les worktrees.
+À gauche, ce qui appartient au projet ouvert, une vue par icône de la barre d'activité : l'explorateur, les dossiers liés, l'historique des sessions du projet, les scripts, les prompts, le mémo, les skills, les serveurs MCP, les worktrees.
 
 ## Dossiers liés
 
@@ -293,4 +293,33 @@ alors sa touche estompée, avec le nom de celui qui la prend.
 Sous la liste, **Souvent tapées** relève les commandes `/…` tapées au moins trois
 fois ces trente derniers jours, hors de celles de Claude Code lui-même et de celles
 déjà enregistrées ; « Enregistrer » en fait un prompt en un clic.
+
+## Mémo
+
+Ce qu'on garde à portée d'un projet sans le mettre dans son dépôt : ses liens, ses
+notes, les fichiers qu'on ouvre souvent. Le mode Mémo de la colonne du projet les
+range en trois sections repliables ; le champ du haut les filtre, et `+` en ajoute.
+
+- **Liens** : une adresse — doc, ticket, maquette, environnement — et un nom ; sans
+  nom, le lien prend celui de son hôte. Un clic l'ouvre dans le navigateur. Seules
+  les adresses http, https et mailto sont gardées : une adresse sans schéma reçoit
+  `https://`, une adresse mail devient un lien `mailto:`. Un lien glissé depuis le
+  navigateur s'ajoute.
+- **Notes** : des fichiers Markdown à soi, ouverts dans l'éditeur, rangés dans les
+  données de Clide et jamais dans le projet. Le double-clic renomme, et l'onglet de
+  l'éditeur suit ; « corbeille », en deux clics, met la note à la corbeille de
+  Windows, d'où elle se restaure.
+- **Fichiers épinglés** : les fichiers du projet, ou de ses dossiers liés, qu'on
+  ouvre souvent. « Épingler dans le mémo », au menu d'un fichier de l'explorateur,
+  épingle la sélection ; des fichiers glissés sur le mode aussi, et « + › Épingler
+  un fichier… » ouvre la fenêtre de Windows. Un fichier déplacé ou supprimé reste
+  listé, « introuvable ».
+
+Liens et fichiers épinglés se rangent au glisser, ou par « Monter » et « Descendre »
+au menu d'une ligne, qui copie aussi l'adresse ou le chemin. L'onglet Mémo du panneau
+global réunit les mémos de tous les projets (voir
+[Le panneau global](panneau-global.md#memo)).
+
+Le mémo d'un projet est rangé sous son dossier : renommé ou déplacé, le projet repart
+d'un mémo vide. Le module se coupe dans Réglages › Modules.
 

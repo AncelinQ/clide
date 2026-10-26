@@ -67,8 +67,11 @@ type ItemProps = {
  * Les éléments doivent rester frères dans le DOM pendant le glisser : un élément
  * qui change de parent est démonté, et Chrome n'envoie plus `dragend` à la source
  * démontée.
+ *
+ * `axis` : une rangée (`x`, des onglets) ou une liste (`y`, des lignes).
  */
-export function useReorder(group: string, onDrop: (moved: string, target: string, side: "before" | "after") => void) {
+export function useReorder(group: string, onDrop: (moved: string, target: string, side: "before" | "after") => void, axis: "x" | "y" = "x") {
+  const along = (event: { clientX: number; clientY: number }) => (axis === "x" ? event.clientX : event.clientY);
   const [drag, setDragState] = useState<Drag | null>(null);
   // Copie lue par les gestionnaires : `dragover` revient avant que React n'ait rendu le dernier changement.
   const current = useRef<Drag | null>(null);
@@ -93,10 +96,11 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
     for (const [id, element] of elements.current) {
       const from = was.get(id);
       if (!from) continue;
-      const shift = from.left - element.getBoundingClientRect().left;
+      const to = element.getBoundingClientRect();
+      const shift = axis === "x" ? from.left - to.left : from.top - to.top;
       if (Math.abs(shift) < 1) continue;
       element.style.transition = "none";
-      element.style.transform = `translateX(${shift}px)`;
+      element.style.transform = `${axis === "x" ? "translateX" : "translateY"}(${shift}px)`;
       void element.offsetWidth;
       element.style.transition = `transform ${SLIDE_MS}ms ease`;
       element.style.transform = "";
@@ -106,9 +110,8 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
 
   const accepts = (event: DragEvent<HTMLElement>) => current.current !== null && event.dataTransfer.types.includes(mime(group));
   const track = (event: DragEvent<HTMLElement>) => {
-    if (event.clientX !== pointer.current.at) {
-      pointer.current = { at: event.clientX, dir: event.clientX > pointer.current.at ? 1 : -1 };
-    }
+    const at = along(event);
+    if (at !== pointer.current.at) pointer.current = { at, dir: at > pointer.current.at ? 1 : -1 };
   };
   const commit = () => {
     const done = current.current;
@@ -150,7 +153,7 @@ export function useReorder(group: string, onDrop: (moved: string, target: string
         event.dataTransfer.setData(mime(group), id);
         if (holds) event.dataTransfer.setData(HOLDER, "");
         event.dataTransfer.effectAllowed = "move";
-        pointer.current = { at: event.clientX, dir: 0 };
+        pointer.current = { at: along(event), dir: 0 };
         setDrag({ id, holder: holds, lifted: false }, false);
         // Pas tout de suite : le navigateur prend l'image du glisser à la fin de ce gestionnaire.
         setTimeout(() => {

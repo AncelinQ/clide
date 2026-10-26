@@ -1,12 +1,13 @@
 import { consumption } from "@/modules/consumption";
 import { diagnosticsModule } from "@/modules/diagnostics";
 import { git } from "@/modules/git";
+import { memoModule } from "@/modules/memo";
 import { promptsModule } from "@/modules/prompts";
 import { scripts } from "@/modules/scripts";
 import type { BottomView, GlobalView, ProjectView, WebModule } from "@/modules/types";
 
 /** Modules de l'interface, dans l'ordre où leurs vues s'ajoutent aux barres. */
-export const WEB_MODULES: readonly WebModule[] = [scripts, git, diagnosticsModule, promptsModule, consumption];
+export const WEB_MODULES: readonly WebModule[] = [scripts, git, diagnosticsModule, promptsModule, memoModule, consumption];
 
 function enabled(disabled: readonly string[]): WebModule[] {
   return WEB_MODULES.filter((module) => !disabled.includes(module.id));
