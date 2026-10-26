@@ -12,7 +12,7 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { Island } from "@/components/columns";
 import { useDevServers } from "@/components/DevServers";
@@ -27,10 +27,20 @@ import { ClaudeToolbar, NewTabMenu, ScriptToolbar, tabItems } from "@/components
 import { TerminalFind } from "@/components/TerminalFind";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
-import { NO_GROUPS, barEntries, barItems, dropInBar, gather } from "@/lib/tab-groups";
+import { barMove, holderOf } from "@/lib/bar-keys";
+import { NO_GROUPS, barEntries, barItems, dropInBar, gather, type BarEntry } from "@/lib/tab-groups";
 import { orderTabs } from "@/lib/tab-order";
 import { ReorderItem, useReorder } from "@/components/Reorderable";
-import { CloseGroupDialog, GROUP_STYLE, GroupLabel, contentsOf, closeGroup, tabGroupItems } from "@/components/TabGroups";
+import {
+  CloseGroupDialog,
+  GROUP_STYLE,
+  GroupLabel,
+  contentsOf,
+  closeGroup,
+  tabGroupItems,
+  TAB_FOCUS,
+  type TabProps,
+} from "@/components/TabGroups";
 import { renameSession } from "@/state/claude-picker";
 import { dropOnBar } from "@/state/groups";
 import { closeFile, isDiff, isTranscript, revealInTree, saveFile, showFile, showTerminals } from "@/state/editor";
@@ -224,10 +234,14 @@ function TerminalHost({ info, active, underToolbar }: { info: TerminalInfo; acti
   }, [info.id]);
 
   // Un terminal qui devient visible prend le clavier, sauf à la liste de l'onglet
-  // Scripts : on la parcourt aux flèches en montrant chaque script.
+  // Scripts, qu'on parcourt aux flèches en montrant chaque script, et à la barre
+  // d'onglets, où Suppr laisse le focus sur l'onglet voisin. Un clic ou Entrée sur
+  // un onglet donne le clavier au terminal par `focusTerminal`.
   useEffect(() => {
     if (!active) return;
-    requestAnimationFrame(() => resize(info.id, { focus: !document.activeElement?.closest("[data-scripts-list]") }));
+    requestAnimationFrame(() =>
+      resize(info.id, { focus: !document.activeElement?.closest("[data-scripts-list], [data-tab-bar]") }),
+    );
   }, [active, info.id]);
 
   return (
@@ -283,7 +297,7 @@ function TerminalHost({ info, active, underToolbar }: { info: TerminalInfo; acti
 }
 
 /** Onglet d'un fichier ouvert : son icône, un point tant qu'il n'est pas enregistré. */
-function FileTab({ path, active, onClose }: { path: string; active: boolean; onClose: () => void }) {
+function FileTab({ path, active, onClose, tab }: { path: string; active: boolean; onClose: () => void; tab: TabProps }) {
   const dirty = useStore((state) => state.files[path]?.dirty === true);
   const title = useStore((state) => state.files[path]?.title);
   const name = title ?? baseName(path);
@@ -305,21 +319,26 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
       ]}
     >
       <div
+        {...tab}
         title={path}
         onClick={() => showFile(path)}
         onAuxClick={(event) => event.button === 1 && onClose()}
         className={cn(
           "group flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 transition-colors",
+          TAB_FOCUS,
           active ? "border-border bg-muted text-foreground" : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
         <FileIcon name={iconName} directory={false} className="size-3.5" />
         {isDiff(path) && <span className="text-[10px] text-muted-foreground">±</span>}
         <span className={cn(dirty && "italic")}>{name}</span>
+        {/* L'italique ne se lit pas : le nom de l'onglet le dit. */}
+        {dirty && <span className="sr-only">{`, ${t("modifié")}`}</span>}
         {/* Le point d'un fichier modifié laisse place à la croix au survol, comme dans VS Code. */}
         <span className="relative size-3">
           {dirty && <span className="absolute inset-0.5 rounded-full bg-foreground/70 group-hover:hidden" />}
           <X
+            aria-hidden
             className={cn("absolute inset-0 size-3 opacity-50 hover:opacity-100", dirty && "hidden group-hover:block")}
             onClick={(event) => {
               event.stopPropagation();
@@ -333,10 +352,19 @@ function FileTab({ path, active, onClose }: { path: string; active: boolean; onC
 }
 
 /** Fermer un fichier modifié : enregistrer, abandonner les changements, ou y rester. */
-function CloseFileDialog({ path, onDone }: { path: string | undefined; onDone: () => void }) {
+function CloseFileDialog({
+  path,
+  onDone,
+  onCloseAutoFocus,
+}: {
+  path: string | undefined;
+  onDone: () => void;
+  /** Ouverte sans déclencheur, la fenêtre ne saurait pas à qui rendre le focus. */
+  onCloseAutoFocus: (event: Event) => void;
+}) {
   return (
     <Dialog open={!!path} onOpenChange={(open) => !open && onDone()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("Enregistrer {name} ?", { name: path ? baseName(path) : "" })}</DialogTitle>
           <DialogDescription>{t("Ses changements seront perdus s'ils ne sont pas enregistrés.")}</DialogDescription>
@@ -421,12 +449,21 @@ export function TerminalArea() {
     dragged?.kind === "label" ? dragged.ids : [],
   );
   const [closingGroup, setClosingGroup] = useState<string>();
+  // Ce qui avait le focus à l'ouverture d'une fenêtre de confirmation : elle n'a pas
+  // de déclencheur à qui le rendre.
+  const opener = useRef<Element | null>(null);
   // Un groupe où rien ne vit se ferme d'un coup ; sinon, on dit ce qu'il porte avant.
-  const requestCloseGroup = (group: string) => {
-    if (!project) return;
+  // Vrai s'il est fermé tout de suite.
+  const requestCloseGroup = (group: string): boolean => {
+    if (!project) return false;
     const contents = contentsOf(project.root, group);
-    if (contents.claude + contents.commands + contents.dirty === 0) closeGroup(project.root, group);
-    else setClosingGroup(group);
+    if (contents.claude + contents.commands + contents.dirty === 0) {
+      closeGroup(project.root, group);
+      return true;
+    }
+    opener.current = document.activeElement;
+    setClosingGroup(group);
+    return false;
   };
   const renamingTab = useStore((state) => state.renamingTab);
   const claudeBusy = useStore((state) => state.claudeBusy);
@@ -438,9 +475,87 @@ export function TerminalArea() {
     });
   };
   const [closing, setClosing] = useState<string>();
-  // Un fichier modifié ne se ferme pas sans qu'on ait choisi quoi faire de ses changements.
-  const requestClose = (path: string) => {
-    if (!closeFile(path)) setClosing(path);
+  // Un fichier modifié ne se ferme pas sans qu'on ait choisi quoi faire de ses
+  // changements. Vrai s'il est fermé tout de suite.
+  const requestClose = (path: string): boolean => {
+    if (closeFile(path)) return true;
+    opener.current = document.activeElement;
+    setClosing(path);
+    return false;
+  };
+
+  // La barre est un tablist à activation manuelle : les flèches passent d'une
+  // entrée à l'autre sans rien montrer, Entrée montre. Seule l'entrée qui montre
+  // l'onglet affiché est dans l'ordre de tabulation, ou la première s'il n'est pas
+  // dans la barre.
+  const tabBar = useRef<HTMLDivElement>(null);
+  const tabNodes = useRef(new Map<string, HTMLDivElement>());
+  const panelId = useId();
+  const selected = holderOf(entries, shownId);
+  const stop = selected ?? entries[0]?.id;
+  const tabProps = (id: string, index: number): TabProps => {
+    const ref = (node: HTMLDivElement | null) => {
+      if (node) tabNodes.current.set(id, node);
+      else tabNodes.current.delete(id);
+    };
+    if (renamingTab === id) return { ref };
+    return {
+      ref,
+      role: "tab",
+      id: `${panelId}-${index}`,
+      tabIndex: id === stop ? 0 : -1,
+      "aria-selected": id === selected,
+      "aria-controls": panelId,
+      "aria-keyshortcuts": "Delete",
+    };
+  };
+  /** L'entrée de la barre dans l'ordre de tabulation, ou le `+` s'il n'y en a plus. */
+  const barStop = () => tabBar.current?.querySelector<HTMLElement>('[role="tab"][tabindex="0"], [data-new-tab]');
+
+  // Une fenêtre de confirmation rend le focus à ce qui l'avait ; parti avec ce
+  // qu'elle a fermé, il va à la barre.
+  const returnFocus = (event: Event) => {
+    event.preventDefault();
+    const back = opener.current;
+    opener.current = null;
+    requestAnimationFrame(() => (back instanceof HTMLElement && back.isConnected ? back : barStop())?.focus());
+  };
+
+  /**
+   * Suppr sur une entrée : la ferme comme sa croix ou son menu. Le focus passe à
+   * la voisine, ou à l'onglet montré après la fermeture si c'était celui-là, ou
+   * au `+` s'il ne reste rien. Une fenêtre de confirmation qui s'ouvre le rend
+   * elle-même en se fermant (`returnFocus`).
+   */
+  const closeEntry = (id: string) => {
+    const index = entries.findIndex((item) => item.id === id);
+    const entry = entries[index];
+    if (!entry) return;
+    // Une étiquette part avec les onglets de son groupe : la voisine se cherche au-delà.
+    const gone = (item: BarEntry) =>
+      item.id === id || (entry.kind === "label" && item.kind === "tab" && item.block?.group.id === entry.group.id);
+    const neighbour = (entries.slice(index + 1).find((item) => !gone(item)) ?? entries.slice(0, index).reverse().find((item) => !gone(item)))?.id;
+    const wasShown = id === selected;
+    let closed = true;
+    if (entry.kind === "label") closed = requestCloseGroup(entry.group.id);
+    else if (byId.has(id)) closeTerminal(id);
+    else closed = requestClose(id);
+    if (!closed) return;
+    // Après le rendu : la voisine peut être partie avec l'entrée, et l'arrêt a changé de place.
+    requestAnimationFrame(() => ((!wasShown && neighbour ? tabNodes.current.get(neighbour) : undefined) ?? barStop())?.focus());
+  };
+
+  const onBarKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+    // Le champ d'un renommage garde ses touches : seules celles d'une entrée comptent.
+    const focused = entries.find((entry) => tabNodes.current.get(entry.id) === event.target)?.id;
+    if (!focused) return;
+    const target = barMove(entries.map((entry) => entry.id), focused, event.key);
+    if (target) tabNodes.current.get(target)?.focus();
+    else if (event.key === "Enter" || event.key === " ") tabNodes.current.get(focused)?.click();
+    else if (event.key === "Delete") closeEntry(focused);
+    else return;
+    event.preventDefault();
   };
   // La session du terminal montré, pour son pied et sa barre flottante ; celle que
   // suit le bloc du bas, qui reste sur l'onglet Claude quitté pour l'onglet Scripts.
@@ -580,15 +695,16 @@ export function TerminalArea() {
   ];
 
   /** Un onglet de la barre, terminal ou fichier ; `className` porte sa teinte de groupe et son écart. */
-  const renderTab = (id: string, className: string) => {
+  const renderTab = (id: string, index: number, className: string) => {
     const info = byId.get(id);
     return (
       <ReorderItem key={id} list={list} id={id} fixed={renamingTab === id} className={className}>
         {!info ? (
-          <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
+          <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} tab={tabProps(id, index)} />
         ) : (
           <ContextArea items={() => [...tabItems(info, barIds), { kind: "separator" }, ...tabGroupItems(project?.root ?? null, info.id)]}>
             <div
+              {...tabProps(id, index)}
               onClick={(event) => {
                 // Le second clic d'un double-clic laisserait le terminal prendre le focus au champ du nom.
                 if (event.detail > 1) return;
@@ -602,6 +718,7 @@ export function TerminalArea() {
               title={info.kind === "claude" ? claudeStatus(Boolean(claudeBusy[info.id]), attention[info.id]) : undefined}
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 transition-colors",
+                TAB_FOCUS,
                 info.id === activeTerminalId && !activeFile
                   ? "border-border bg-muted text-foreground"
                   : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -646,6 +763,7 @@ export function TerminalArea() {
                 attention[info.id] && <span className="size-2 rounded-full bg-emerald-500" />
               )}
               <X
+                aria-hidden
                 className="size-3 opacity-50 hover:opacity-100"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -662,7 +780,7 @@ export function TerminalArea() {
   return (
     <div ref={center} className="flex min-h-0 min-w-0 flex-1 flex-col">
     <Island className="min-h-0 flex-1">
-      <div className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
+      <div ref={tabBar} className="flex shrink-0 items-center gap-1.5 px-2 py-1.5">
         {/* Épinglé hors du défilement des onglets : rien ne passe devant, il ne se range pas. */}
         {project && (
           <>
@@ -670,7 +788,17 @@ export function TerminalArea() {
             <span className="h-4 w-px shrink-0 bg-border" />
           </>
         )}
-        <nav {...list.zone} className="flex flex-1 overflow-x-auto [scrollbar-width:none]">
+        <nav
+          {...list.zone}
+          role="tablist"
+          aria-label={t("Onglets du projet")}
+          data-tab-bar
+          onKeyDown={onBarKeyDown}
+          // Le focus seul laisse à moitié cachée une entrée au bord de la barre qui défile.
+          onFocus={(event) => event.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
+          // Le défilement rognerait l'anneau du focus : la marge le contient sans rien décaler.
+          className="-m-[3px] flex flex-1 overflow-x-auto p-[3px] [scrollbar-width:none]"
+        >
           {entries.map((entry, index) => {
             // Le cadre teinté dit quels onglets vont ensemble : chaque élément du groupe
             // en porte sa part, l'écart compris, arrondie aux deux bouts du bloc.
@@ -678,7 +806,7 @@ export function TerminalArea() {
             const tint = group && GROUP_STYLE[group.color].tint;
             if (entry.kind === "tab") {
               const place = entry.block ? cn("pl-1", entry.block.last && "rounded-r-lg") : index > 0 && "ml-1";
-              return renderTab(entry.id, cn(tint, place));
+              return renderTab(entry.id, index, cn(tint, place));
             }
             return (
               <ReorderItem
@@ -695,6 +823,7 @@ export function TerminalArea() {
                   ids={entry.ids}
                   active={entry.group.folded && shownId !== null && entry.ids.includes(shownId)}
                   onClose={() => requestCloseGroup(entry.group.id)}
+                  tab={tabProps(entry.id, index)}
                 />
               </ReorderItem>
             );
@@ -703,11 +832,12 @@ export function TerminalArea() {
         <NewTabMenu disabled={!project} terminalId={status?.id} />
       </div>
 
-      <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} />
+      <CloseFileDialog path={closing} onDone={() => setClosing(undefined)} onCloseAutoFocus={returnFocus} />
       <CloseGroupDialog
         root={project?.root ?? null}
         group={groups?.groups.find((group) => group.id === closingGroup)}
         onDone={() => setClosingGroup(undefined)}
+        onCloseAutoFocus={returnFocus}
       />
 
       <div className="mx-2 flex min-h-0 flex-1">
@@ -728,7 +858,13 @@ export function TerminalArea() {
             />
           </>
         )}
-        <div ref={frame} className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]">
+        <div
+          ref={frame}
+          role="tabpanel"
+          id={panelId}
+          aria-labelledby={selected ? `${panelId}-${entries.findIndex((entry) => entry.id === selected)}` : undefined}
+          className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border bg-[var(--term-bg)]"
+        >
           {!status && !activeFile && <Welcome root={project?.root} />}
           {Object.values(terminals).map(({ info }) => (
             <TerminalHost
