@@ -270,11 +270,10 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     };
     const scrollback = "\u001b[32mAVANT\u001b[0m\r\n";
 
-    // Endormi : listé, mais sans processus, sans sortie, et sourd à la saisie.
+    // Endormi : listé, mais sans processus ni sortie.
     expect(manager.restore({ saved, scrollback })).toMatchObject({ id, title: "api", dormant: true });
     expect(manager.list().find((terminal) => terminal.id === id)?.dormant).toBe(true);
     expect([...manager.ownedPids().values()]).not.toContain(id);
-    expect(manager.write(id, "x")).toBe(false);
     expect(manager.backlog(id)).toBe("");
     expect(manager.snapshot(() => undefined).find((snapshot) => snapshot.saved.id === id)).toEqual({ saved, scrollback });
 
@@ -305,12 +304,27 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(id) === undefined, 15000);
   }, 30_000);
 
+  it("tape à son premier prompt la saisie reçue par un terminal rouvert avant qu'il ne l'ait rendu", async () => {
+    const id = randomUUID();
+    manager.restore({ saved: { id, openedAs: "shell", kind: "shell", projectRoot: scratch, cwd: scratch }, scrollback: "" });
+    // Le texte affiché n'est pas celui de la ligne tapée : il ne paraît que si elle a tourné.
+    expect(manager.write(id, "Write-Host ('TE' + 'NUE')\r")).toBe(true);
+
+    await manager.wake(id, { cols: 100, rows: 30 });
+    await waitFor(() => /TENUE\s*\r?\n/.test(manager.backlog(id).replace(/\u001b\[[0-9;?]*[A-Za-z]/g, "")), 15000);
+
+    manager.close(id);
+    await waitFor(() => manager.get(id) === undefined, 15000);
+  }, 30_000);
+
   it("réveille une session Claude par sa commande de reprise, sans rejeu ni commande retapée", async () => {
     const id = randomUUID();
     manager.restore({
       saved: { id, openedAs: "claude", kind: "claude", projectRoot: scratch, cwd: scratch, sessionId: "s1", command: "Write-Host RETAPEE" },
       scrollback: "écran de claude",
     });
+    // Destiné à Claude, il serait lancé dans le shell avant la reprise.
+    manager.write(id, "Write-Host ('PER' + 'DUE')\r");
     const output: string[] = [];
     manager.on("data", (terminalId, text) => terminalId === id && output.push(text));
 
@@ -319,6 +333,7 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
 
     expect(output.join("")).not.toContain("session restaurée");
     expect(output.join("")).not.toContain("RETAPEE");
+    expect(output.join("")).not.toContain("PER");
     expect(manager.snapshot((terminalId) => (terminalId === id ? "s1" : undefined)).find((s) => s.saved.id === id)?.saved).toMatchObject({
       id,
       sessionId: "s1",

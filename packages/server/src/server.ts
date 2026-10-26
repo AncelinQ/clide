@@ -491,7 +491,11 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         }
         case "wake": {
           const saved = manager.dormantOf(message.id);
-          if (!saved) break;
+          // Déjà réveillé, par une saisie qui l'a précédé : la taille vaut quand même.
+          if (!saved) {
+            manager.resize(message.id, message.cols, message.rows);
+            break;
+          }
           // Une session attachée est reprise, sous le nom de l'onglet ou celui
           // qu'elle a gardé ; un onglet Claude qui n'en avait pas encore relance
           // `claude`. Un shell rejoue sa sortie et retrouve sa commande.

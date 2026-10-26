@@ -104,6 +104,12 @@ interface Terminal {
   dormant?: LoadedTerminal;
   /** Commande à retaper, sans la lancer, au premier prompt. */
   retype?: string;
+  /**
+   * Saisie reçue par un terminal rouvert avant son premier prompt, tapée à ce
+   * prompt : relancer un script dans un onglet qui dort ne la perd pas. Absente
+   * une fois le prompt rendu.
+   */
+  held?: string;
 }
 
 export interface WakeOptions {
@@ -118,6 +124,9 @@ export interface WakeOptions {
  * d'historique après un rechargement de la page, pas pour tenir un long journal.
  */
 const BACKLOG_MAX = 256 * 1024;
+
+/** Saisie retenue au plus avant le premier prompt : des commandes, pas un collage. */
+const HELD_MAX = 64 * 1024;
 
 const DEFAULT_SHELL = "pwsh.exe";
 
@@ -207,6 +216,7 @@ export class PtyManager {
       urls: new DevUrlScanner(),
       backlog: "",
       dormant: loaded,
+      held: "",
       info: {
         id: saved.id,
         kind: saved.kind,
@@ -252,6 +262,9 @@ export class PtyManager {
       this.#emit("data", id, text);
     }
     if (!options.initialCommand && saved.command && typable(saved.command)) terminal.retype = saved.command;
+    // Une reprise de Claude tape sa commande dans le shell : ce qui était destiné
+    // à Claude y serait lancé comme une commande.
+    if (options.initialCommand) delete terminal.held;
 
     const profile = await this.prepare();
     // Fermé pendant ce temps : rien à lancer.
@@ -361,10 +374,13 @@ export class PtyManager {
           delete terminal.command;
           changed = true;
           // Le premier prompt d'un terminal réveillé : la commande d'avant est
-          // tapée, sans Entrée, et l'utilisateur décide de la relancer.
-          if (terminal.retype) {
-            terminal.pty?.write(terminal.retype);
+          // tapée, sans Entrée, et l'utilisateur décide de la relancer. La saisie
+          // reçue en attendant suit.
+          if (terminal.pty && (terminal.retype || terminal.held !== undefined)) {
+            const typed = (terminal.retype ?? "") + (terminal.held ?? "");
+            if (typed) terminal.pty.write(typed);
             delete terminal.retype;
+            delete terminal.held;
           }
           break;
         // Un `claude` tapé à la main fait de l'onglet un onglet Claude — plan,
@@ -414,11 +430,15 @@ export class PtyManager {
     return this.#terminals.get(id)?.command;
   }
 
-  /** Saisie pour le shell ; un terminal qui dort l'ignore. */
+  /** Saisie pour le shell ; un terminal rouvert la retient jusqu'à son premier prompt. */
   write(id: string, data: string): boolean {
-    const pty = this.#terminals.get(id)?.pty;
-    if (!pty) return false;
-    pty.write(data);
+    const terminal = this.#terminals.get(id);
+    if (terminal?.held !== undefined) {
+      terminal.held = (terminal.held + data).slice(0, HELD_MAX);
+      return true;
+    }
+    if (!terminal?.pty) return false;
+    terminal.pty.write(data);
     return true;
   }
 
