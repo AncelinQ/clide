@@ -224,7 +224,8 @@ export function TabRail({ current }: { current: string }) {
   const hidden = all.filter((tab) => !shown.includes(tab));
   return (
     // Défile quand la hauteur manque : les derniers onglets seraient sinon coupés, sans rien pour les atteindre.
-    <nav className="on-canvas flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto px-0.5 py-1 [scrollbar-width:none]">
+    // Collée au bord droit de la fenêtre : ses infobulles paraissent à sa gauche.
+    <nav data-tip-side="left" className="on-canvas flex shrink-0 flex-col items-center gap-0.5 overflow-y-auto px-0.5 py-1 [scrollbar-width:none]">
       {shown.map((tab) => (
         <TabButton key={tab.id} tab={tab} current={current} vertical />
       ))}

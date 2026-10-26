@@ -6,7 +6,7 @@
 /** Où paraît une infobulle par rapport à son élément. */
 export type TipSide = "below" | "left" | "right";
 
-/** Survol avant qu'une infobulle paraisse : celui des infobulles Radix (`TooltipProvider` d'`App.tsx`). */
+/** Survol avant qu'une infobulle paraisse ; le `TooltipProvider` d'`App.tsx` le donne aussi aux infobulles Radix. */
 export const TIP_DELAY_MS = 400;
 /** Passer d'une infobulle à une voisine dans ce délai l'affiche sans attendre, comme Radix. */
 export const TIP_SKIP_MS = 300;
@@ -26,6 +26,28 @@ export interface TipRect {
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(value, max));
+
+/** Au-delà, un élément ne sert plus de repère dans ce sens : c'est le pointeur qui le devient. */
+const ANCHOR_MAX = 64;
+/** Taille du repère pris autour du pointeur : assez pour que l'infobulle ne passe pas sous la flèche. */
+const POINTER_BOX = 32;
+
+/**
+ * Repère d'une infobulle : l'élément, sauf dans le sens où il est trop grand —
+ * une poignée de redimensionnement haute comme la fenêtre, une ligne large comme
+ * sa colonne —, où l'infobulle se pose près du pointeur, comme l'infobulle native.
+ */
+export function anchorOf(rect: TipRect, pointer?: { x: number; y: number }): TipRect {
+  if (!pointer) return rect;
+  const tall = rect.height > ANCHOR_MAX;
+  const wide = rect.width > ANCHOR_MAX;
+  return {
+    left: wide ? pointer.x - POINTER_BOX / 2 : rect.left,
+    width: wide ? POINTER_BOX : rect.width,
+    top: tall ? pointer.y - POINTER_BOX / 2 : rect.top,
+    height: tall ? POINTER_BOX : rect.height,
+  };
+}
 
 /**
  * Coin haut gauche d'une infobulle de `width` × `height` pour l'élément `rect`.

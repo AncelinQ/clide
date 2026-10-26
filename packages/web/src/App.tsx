@@ -7,6 +7,7 @@ import { GlobalColumn, ProjectColumn, projectActivities } from "@/components/col
 import { TabRail } from "@/components/GlobalTabs";
 import { TerminalArea } from "@/components/TerminalArea";
 import { TitleBar } from "@/components/TitleBar";
+import { Tooltips } from "@/components/Tooltips";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useLanguage } from "@/i18n";
 import { DEFAULT_WIDTHS, activeProject, getState, setState, updateProject, useStore } from "@/state/store";
@@ -14,6 +15,7 @@ import { badgeImage } from "@/state/notify";
 import { listenShortcuts } from "@/state/commands";
 import { applyMarkers, restoreOpenFiles } from "@/state/editor";
 import { api } from "@/lib/api";
+import { TIP_DELAY_MS, TIP_SKIP_MS } from "@/lib/tooltip";
 import type { DiagnosticsReport } from "@/lib/types";
 import { loadPrompts } from "@/state/prompts";
 import { PromptInputDialog } from "@/components/PromptsPanel";
@@ -96,7 +98,8 @@ export function App() {
   const room = (other: number) => window.innerWidth - CHROME - other - MIDDLE_MIN;
 
   return (
-    <TooltipProvider delayDuration={400}>
+    <TooltipProvider delayDuration={TIP_DELAY_MS} skipDelayDuration={TIP_SKIP_MS}>
+      <Tooltips />
       <CommandPalette />
       <PromptInputDialog />
       {/* Remonté à chaque changement de langue : chaque texte se relit. Les

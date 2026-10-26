@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { placeTip, type TipSide } from "../src/lib/tooltip";
+import { anchorOf, placeTip, type TipSide } from "../src/lib/tooltip";
 
 const viewport = { width: 1000, height: 600 };
 
@@ -38,5 +38,21 @@ describe("placeTip", () => {
   it("colle au bord gauche une infobulle plus large que la fenêtre", () => {
     const wide = placeTip({ rect: { left: 400, top: 100, width: 24, height: 24 }, width: 1200, height: 20, side: "below", viewport });
     expect(wide.left).toBe(4);
+  });
+});
+
+describe("anchorOf", () => {
+  const pointer = { x: 500, y: 300 };
+
+  it("garde l'élément comme repère quand il est petit, ou sans pointeur", () => {
+    const button = { left: 400, top: 100, width: 24, height: 24 };
+    expect(anchorOf(button, pointer)).toEqual(button);
+    const splitter = { left: 334, top: 41, width: 4, height: 600 };
+    expect(anchorOf(splitter)).toEqual(splitter);
+  });
+
+  it("prend le pointeur dans le sens où l'élément est trop grand", () => {
+    expect(anchorOf({ left: 334, top: 41, width: 4, height: 600 }, pointer)).toEqual({ left: 334, width: 4, top: 284, height: 32 });
+    expect(anchorOf({ left: 40, top: 280, width: 280, height: 40 }, pointer)).toEqual({ left: 484, width: 32, top: 280, height: 40 });
   });
 });
