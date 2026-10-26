@@ -192,7 +192,7 @@ export function NewTabMenu({ disabled, terminalId }: { disabled: boolean; termin
         hover
         items={items}
         trigger={
-          <Button variant="ghost" size="icon" className="size-7" disabled={disabled} title={t("Nouvel onglet")}>
+          <Button variant="ghost" size="icon" className="size-7" disabled={disabled} title={t("Nouvel onglet")} data-new-tab>
             <Plus />
           </Button>
         }

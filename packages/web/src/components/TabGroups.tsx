@@ -1,4 +1,5 @@
 import { CircleAlert, Group as GroupIcon, Palette, Pencil, Sparkles, Ungroup, X } from "lucide-react";
+import type { HTMLAttributes, RefCallback } from "react";
 
 import { NameInput } from "@/components/common";
 import type { MenuItem } from "@/lib/menu";
@@ -39,6 +40,20 @@ export const GROUP_STYLE: Record<GroupColor, { label: string; tint: string; chip
   cyan: { label: "Cyan", tint: "bg-cyan-500/15", chip: "bg-cyan-500/20 text-cyan-700 dark:text-cyan-200", dot: "bg-cyan-500" },
   orange: { label: "Orange", tint: "bg-orange-500/15", chip: "bg-orange-500/20 text-orange-700 dark:text-orange-200", dot: "bg-orange-500" },
 };
+
+/**
+ * Ce que la barre du centre donne à chacune de ses entrées pour en faire un onglet
+ * de son tablist : rôle, sélection, arrêt de tabulation, et la référence qui permet
+ * d'y poser le focus. Pendant un renommage, seule la référence : les enfants d'un
+ * `tab` ne sont pas annoncés, et le champ du nom doit l'être.
+ */
+export type TabProps = Pick<
+  HTMLAttributes<HTMLDivElement>,
+  "role" | "id" | "tabIndex" | "aria-selected" | "aria-controls" | "aria-keyshortcuts"
+> & { ref: RefCallback<HTMLDivElement> };
+
+/** L'anneau d'une entrée de la barre qui a le focus clavier. */
+export const TAB_FOCUS = "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 /** Nom d'un groupe dans un menu : le sien, ou sa couleur. */
 function groupName(group: TabGroup): string {
@@ -105,7 +120,18 @@ export function closeGroup(root: string | null, group: string): void {
 }
 
 /** Fermer un groupe où quelque chose vit : un onglet Claude, une commande, un fichier modifié. */
-export function CloseGroupDialog({ root, group, onDone }: { root: string | null; group: TabGroup | undefined; onDone: () => void }) {
+export function CloseGroupDialog({
+  root,
+  group,
+  onDone,
+  onCloseAutoFocus,
+}: {
+  root: string | null;
+  group: TabGroup | undefined;
+  onDone: () => void;
+  /** Ouverte sans déclencheur, la fenêtre ne saurait pas à qui rendre le focus. */
+  onCloseAutoFocus: (event: Event) => void;
+}) {
   const contents = group ? contentsOf(root, group.id) : undefined;
   const lines = contents
     ? [
@@ -117,7 +143,7 @@ export function CloseGroupDialog({ root, group, onDone }: { root: string | null;
     : [];
   return (
     <Dialog open={!!group} onOpenChange={(open) => !open && onDone()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t("Fermer le groupe « {name} » ?", { name: group ? groupName(group) : "" })}</DialogTitle>
           <DialogDescription>{t("Le groupe porte encore :")}</DialogDescription>
@@ -158,7 +184,8 @@ function endRename(): void {
 /**
  * L'étiquette d'un groupe : son nom ou sa puce de couleur. Repliée, elle dit le
  * nombre de ses onglets et les signes de ses onglets Claude, comme la pastille du
- * projet. Un clic replie ou déplie, un double-clic renomme.
+ * projet. Un clic replie ou déplie, un double-clic renomme. Dans le tablist, c'est
+ * un onglet qui dit s'il est déplié.
  */
 export function GroupLabel({
   root,
@@ -166,6 +193,7 @@ export function GroupLabel({
   ids,
   active,
   onClose,
+  tab,
 }: {
   root: string;
   group: TabGroup;
@@ -174,6 +202,7 @@ export function GroupLabel({
   /** Le groupe est replié sur l'onglet qu'on regarde. */
   active: boolean;
   onClose: () => void;
+  tab: TabProps;
 }) {
   const renaming = useStore((state) => state.renamingTab === groupTabId(group.id));
   const claudeBusy = useStore((state) => state.claudeBusy);
@@ -182,6 +211,10 @@ export function GroupLabel({
   const asking = ids.some((id) => attention[id] === "permission");
   const done = ids.some((id) => attention[id] && attention[id] !== "permission");
   const style = GROUP_STYLE[group.color];
+  // Sans nom, l'étiquette n'est qu'une puce : son nom accessible dit sa couleur.
+  const named = group.name ? t("Groupe {name}", { name: group.name }) : groupName(group);
+  const label =
+    ids.length === 1 ? t("{group}, 1 onglet", { group: named }) : t("{group}, {count} onglets", { group: named, count: ids.length });
 
   const items = (): MenuItem[] => [
     { kind: "item", label: t("Renommer"), icon: Pencil, run: () => setState({ renamingTab: groupTabId(group.id) }) },
@@ -205,6 +238,9 @@ export function GroupLabel({
   return (
     <ContextArea items={items}>
       <div
+        {...tab}
+        aria-label={renaming ? undefined : label}
+        aria-expanded={renaming ? undefined : !group.folded}
         onClick={(event) => {
           if (event.detail > 1) return;
           toggleGroup(root, group.id);
@@ -217,6 +253,7 @@ export function GroupLabel({
         title={group.folded ? t("Déplier le groupe ; double-clic pour le renommer") : t("Replier le groupe ; double-clic pour le renommer")}
         className={cn(
           "flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium",
+          TAB_FOCUS,
           style.chip,
           active && "ring-1 ring-current ring-inset",
         )}
