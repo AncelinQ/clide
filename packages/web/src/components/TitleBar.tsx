@@ -16,7 +16,7 @@ import {
 import { useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
-import { Reorderable } from "@/components/Reorderable";
+import { ReorderItem, useReorder } from "@/components/Reorderable";
 import { FolderInput } from "@/components/FolderInput";
 import { useAsync } from "@/components/common";
 import { GitChip, RepoMarks } from "@/components/GitChip";
@@ -65,6 +65,13 @@ export function TitleBar() {
       const order = dropTab(current.projects.map((project) => project.root), moved, target, side);
       return { projects: order.map((root) => current.projects.find((project) => project.root === root)).filter((project) => project !== undefined) };
     });
+  const reorder = useReorder("projects", dropProject);
+  // Pendant un glisser, les pastilles se rangent déjà comme le lâcher les rangera.
+  const roots = projects.map((project) => project.root);
+  const aim = reorder.drag?.aim;
+  const shownRoots = reorder.drag && aim ? dropTab(roots, reorder.drag.id, aim.target, aim.side) : roots;
+  const shownProjects = shownRoots.map((root) => projects.find((project) => project.root === root)).filter((project) => project !== undefined);
+  const list = reorder.bind(shownRoots);
   const [draft, setDraft] = useState("");
   const [branching, setBranching] = useState<string>();
   const pulling = usePullRunning();
@@ -114,8 +121,8 @@ export function TitleBar() {
       </div>
 
       <div className="flex min-w-0 items-center gap-1.5">
-        <nav className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
-          {projects.map((project) => {
+        <nav {...list.zone} className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
+          {shownProjects.map((project) => {
             // Les signes de ses onglets Claude, comptés : au travail (pas seulement
             // ouverts, le titre de leur terminal le dit), en attente d'une réponse,
             // ou finis sans qu'on les ait regardés.
@@ -125,7 +132,7 @@ export function TitleBar() {
             const done = own.filter((id) => attention[id] && attention[id] !== "permission").length;
             const active = project.root === activeRoot;
             return (
-              <Reorderable key={project.root} group="projects" id={project.root} onDrop={dropProject}>
+              <ReorderItem key={project.root} list={list} id={project.root}>
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
                     <div
@@ -202,7 +209,7 @@ export function TitleBar() {
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
-              </Reorderable>
+              </ReorderItem>
             );
           })}
         </nav>
