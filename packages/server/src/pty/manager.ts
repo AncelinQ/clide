@@ -12,6 +12,7 @@ import {
   savedTerminalOf,
   typable,
   type LoadedTerminal,
+  type SavedTerminal,
   type TerminalSnapshot,
 } from "./saved-terminals.js";
 import { installShellProfile, type ShellProfile } from "./shell-profile.js";
@@ -401,6 +402,11 @@ export class PtyManager {
   /** Nom donné à un onglet, s'il en a un : ni `claude` ni son nom d'ouverture. */
   nameOf(id: string): string | undefined {
     return this.#terminals.get(id)?.name;
+  }
+
+  /** Ce qu'a laissé un terminal qui dort, tant qu'il n'est pas réveillé. */
+  dormantOf(id: string): SavedTerminal | undefined {
+    return this.#terminals.get(id)?.dormant?.saved;
   }
 
   /** Commande qui tourne dans un onglet, telle que tapée, quand le profil l'a donnée. */

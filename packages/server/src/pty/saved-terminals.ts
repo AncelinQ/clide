@@ -2,6 +2,8 @@ import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { normalizePath } from "@clide/core";
+
 import type { TerminalInfo, TerminalKind } from "./manager.js";
 
 /** Terminal tel qu'il rouvre au lancement suivant, avec le même identifiant. */
@@ -98,11 +100,12 @@ export function replayOf(scrollback: string): string {
 }
 
 /**
- * Les identifiants deviennent des noms de fichiers : seul un UUID est accepté,
- * pour qu'un `terminals.json` modifié à la main n'écrive ni ne lise hors du
- * dossier.
+ * Identifiant de terminal ou de session Claude. Le premier devient un nom de
+ * fichier, le second entre dans une ligne de commande : seul un UUID est
+ * accepté, pour qu'un `terminals.json` modifié à la main n'écrive ni ne lise hors
+ * du dossier, et ne fasse rien lancer d'autre que la reprise.
  */
-export function isTerminalId(value: unknown): value is string {
+export function isUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
@@ -112,7 +115,7 @@ const OPTIONAL_FIELDS = ["owner", "label", "name", "script", "sessionId", "comma
 function parseSaved(value: unknown): SavedTerminal | undefined {
   if (!value || typeof value !== "object") return undefined;
   const entry = value as Record<string, unknown>;
-  if (!isTerminalId(entry.id)) return undefined;
+  if (!isUuid(entry.id)) return undefined;
   if (!KINDS.includes(entry.openedAs) || !KINDS.includes(entry.kind)) return undefined;
   if (typeof entry.projectRoot !== "string" || !entry.projectRoot) return undefined;
   const saved: SavedTerminal = {
@@ -126,7 +129,37 @@ function parseSaved(value: unknown): SavedTerminal | undefined {
     const text = entry[field];
     if (typeof text === "string" && text) saved[field] = text;
   }
+  if (saved.sessionId !== undefined && !isUuid(saved.sessionId)) delete saved.sessionId;
+  if (saved.command !== undefined && !typable(saved.command)) delete saved.command;
   return saved;
+}
+
+/**
+ * Réglage « rouvrir les onglets au lancement », lu dans l'état sauvegardé de
+ * l'interface. Activé tant qu'il n'est pas explicitement coupé.
+ */
+export function restoreTabsOf(uiState: unknown): boolean {
+  const prefs = (uiState as { prefs?: unknown } | null | undefined)?.prefs;
+  return (prefs as { restoreTabs?: unknown } | null | undefined)?.restoreTabs !== false;
+}
+
+/**
+ * Terminaux à rouvrir : ceux d'un projet encore ouvert dans l'interface, dont
+ * le dossier existe. Un dossier courant disparu cède la place à celui du projet.
+ *
+ * @param roots projets ouverts à la dernière sauvegarde de l'interface
+ */
+export function restorable(
+  loaded: readonly LoadedTerminal[],
+  roots: readonly string[],
+  exists: (path: string) => boolean,
+): LoadedTerminal[] {
+  const open = new Set(roots.map(normalizePath));
+  return loaded.flatMap((terminal) => {
+    const { saved } = terminal;
+    if (!open.has(normalizePath(saved.owner ?? saved.projectRoot)) || !exists(saved.projectRoot)) return [];
+    return exists(saved.cwd) ? [terminal] : [{ ...terminal, saved: { ...saved, cwd: saved.projectRoot } }];
+  });
 }
 
 const VERSION = 1;
@@ -319,7 +352,7 @@ export class TerminalSnapshots {
   #changedScrollbacks(snapshots: readonly TerminalSnapshot[]): TerminalSnapshot[] {
     return snapshots.filter(
       ({ saved, scrollback }) =>
-        replays(saved) && isTerminalId(saved.id) && scrollback !== "" && this.#written.get(saved.id) !== scrollback,
+        replays(saved) && isUuid(saved.id) && scrollback !== "" && this.#written.get(saved.id) !== scrollback,
     );
   }
 
@@ -346,7 +379,7 @@ function keeps(snapshots: readonly TerminalSnapshot[], name: string): boolean {
 }
 
 function listOf(snapshots: readonly TerminalSnapshot[]): string {
-  const terminals = snapshots.map(({ saved }) => saved).filter((saved) => isTerminalId(saved.id));
+  const terminals = snapshots.map(({ saved }) => saved).filter((saved) => isUuid(saved.id));
   return JSON.stringify({ version: VERSION, terminals }, null, 2);
 }
 

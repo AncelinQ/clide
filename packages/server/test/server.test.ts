@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 
 import { parseClientMessage } from "../src/protocol.js";
@@ -93,6 +95,11 @@ describe("parseClientMessage", () => {
       cols: 80,
       rows: 24,
     });
+  });
+
+  it("accepte le réveil d'un terminal à une taille donnée", () => {
+    expect(parseClientMessage('{"t":"wake","id":"a","cols":80,"rows":24}')).toEqual({ t: "wake", id: "a", cols: 80, rows: 24 });
+    expect(parseClientMessage('{"t":"wake","id":"a"}')).toBeUndefined();
   });
 });
 
@@ -355,6 +362,115 @@ describe("serveur local", () => {
     client.send('{"t":"exec","cmd":"calc.exe"}');
     expect(await client.next()).toEqual({ t: "error", message: "message rejeté" });
     client.close();
+  });
+});
+
+describe("terminaux rouverts au lancement", () => {
+  let scratch: string;
+  let dataDir: string;
+  let project: string;
+  const listFile = (): string => join(dataDir, "terminals.json");
+
+  async function prepare(restoreTabs: boolean, terminals: unknown[], scrollback: Record<string, string> = {}): Promise<RunningServer> {
+    await writeFile(
+      join(dataDir, "ui-state.json"),
+      JSON.stringify({ version: 2, projects: [{ root: project }], prefs: { restoreTabs } }),
+    );
+    await writeFile(listFile(), JSON.stringify({ version: 1, terminals }));
+    await mkdir(join(dataDir, "scrollback"));
+    for (const [id, text] of Object.entries(scrollback)) await writeFile(join(dataDir, "scrollback", `${id}.txt`), text);
+    return startServer({ webRoot: WEB_ROOT, token: "jeton-de-test", settingsPath: join(scratch, "settings.json"), dataDir });
+  }
+
+  async function hello(server: RunningServer): Promise<{ client: TestClient; terminals: Record<string, unknown>[] }> {
+    const client = await TestClient.open(`ws://127.0.0.1:${server.port}/pty?token=${server.token}`);
+    const message = await client.next();
+    return { client, terminals: message["terminals"] as Record<string, unknown>[] };
+  }
+
+  beforeEach(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "clide-restore-"));
+    dataDir = join(scratch, "data");
+    project = join(scratch, "projet");
+    await mkdir(dataDir);
+    await mkdir(project);
+  });
+
+  afterEach(async () => {
+    // Le shell réveillé vient d'être tué : Windows garde son dossier un instant.
+    await rm(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  });
+
+  it("rouvre endormis les terminaux des projets ouverts, et les réécrit à l'arrêt", async () => {
+    const id = randomUUID();
+    const server = await prepare(true, [
+      { id, openedAs: "shell", kind: "shell", projectRoot: project, cwd: join(project, "disparu"), name: "api", command: "pnpm dev" },
+      { id: randomUUID(), openedAs: "shell", kind: "shell", projectRoot: join(scratch, "fermé"), cwd: join(scratch, "fermé") },
+    ]);
+    try {
+      const { client, terminals } = await hello(server);
+      expect(terminals).toEqual([expect.objectContaining({ id, dormant: true, title: "api", cwd: project })]);
+      client.close();
+    } finally {
+      await server.close();
+    }
+
+    const saved = JSON.parse(await readFile(listFile(), "utf8")) as { terminals: unknown[] };
+    expect(saved.terminals).toEqual([expect.objectContaining({ id, name: "api", command: "pnpm dev", cwd: project })]);
+  });
+
+  it("réveille un shell à la demande du client, en rejouant sa sortie", async () => {
+    const id = randomUUID();
+    const server = await prepare(true, [{ id, openedAs: "shell", kind: "shell", projectRoot: project, cwd: project }], {
+      [id]: "AVANT\r\n",
+    });
+    try {
+      const { client } = await hello(server);
+      client.send(JSON.stringify({ t: "wake", id, cols: 80, rows: 24 }));
+      let replayed = false;
+      let woken = false;
+      while (!replayed || !woken) {
+        const message = await client.next(15_000);
+        if (message["t"] === "data" && String(message["data"]).includes("── session restaurée ──")) replayed = true;
+        const terminal = message["terminal"] as Record<string, unknown> | undefined;
+        if (message["t"] === "state" && terminal?.["id"] === id && terminal["dormant"] === undefined) woken = true;
+      }
+      client.close();
+    } finally {
+      await server.close();
+    }
+  }, 30_000);
+
+  it("ne rouvre rien quand le réglage est décoché, et efface ce qui était gardé", async () => {
+    const id = randomUUID();
+    const server = await prepare(false, [{ id, openedAs: "shell", kind: "shell", projectRoot: project, cwd: project }], {
+      [id]: "sortie",
+    });
+    try {
+      const { client, terminals } = await hello(server);
+      expect(terminals).toEqual([]);
+      client.close();
+    } finally {
+      await server.close();
+    }
+    expect(existsSync(listFile())).toBe(false);
+    expect(existsSync(join(dataDir, "scrollback"))).toBe(false);
+  });
+
+  it("efface ce qui était gardé dès que l'interface décoche le réglage", async () => {
+    const id = randomUUID();
+    const server = await prepare(true, [{ id, openedAs: "shell", kind: "shell", projectRoot: project, cwd: project }]);
+    try {
+      const response = await fetch(`http://127.0.0.1:${server.port}/api/ui-state/save?token=${server.token}`, {
+        method: "POST",
+        body: JSON.stringify({ state: { version: 2, projects: [{ root: project }], prefs: { restoreTabs: false } } }),
+      });
+      expect(response.status).toBe(200);
+      await vi.waitFor(() => expect(existsSync(listFile())).toBe(false));
+    } finally {
+      await server.close();
+    }
+    expect(existsSync(listFile())).toBe(false);
   });
 });
 

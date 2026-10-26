@@ -5,12 +5,21 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TerminalInfo } from "../src/pty/manager.js";
-import { replayOf, savedTerminalOf, TerminalSnapshots, type TerminalSnapshot } from "../src/pty/saved-terminals.js";
+import {
+  replayOf,
+  restorable,
+  restoreTabsOf,
+  savedTerminalOf,
+  TerminalSnapshots,
+  type LoadedTerminal,
+  type TerminalSnapshot,
+} from "../src/pty/saved-terminals.js";
 
 const ESC = "\u001b";
 const SHELL = "11111111-1111-4111-8111-111111111111";
 const CLAUDE = "22222222-2222-4222-8222-222222222222";
 const GONE = "33333333-3333-4333-8333-333333333333";
+const SESSION = "44444444-4444-4444-8444-444444444444";
 
 function info(overrides: Partial<TerminalInfo> = {}): TerminalInfo {
   return {
@@ -85,12 +94,42 @@ describe("replayOf", () => {
   });
 });
 
+describe("restorable", () => {
+  const loaded = (overrides: Partial<LoadedTerminal["saved"]>): LoadedTerminal => ({
+    saved: { ...savedTerminalOf(info()), ...overrides },
+    scrollback: "",
+  });
+
+  it("ne rouvre que les terminaux d'un projet ouvert dont le dossier existe", () => {
+    const kept = loaded({ id: SHELL, owner: "C:/Projets/app/" });
+    const worktree = loaded({ id: CLAUDE, owner: "C:\\Projets\\app", projectRoot: "C:\\Projets\\app.worktrees\\gone" });
+    const closed = loaded({ id: GONE, projectRoot: "C:\\Projets\\autre", cwd: "C:\\Projets\\autre" });
+    const exists = (path: string): boolean => path.startsWith("C:\\Projets\\app\\") || path === "C:\\Projets\\app";
+
+    expect(restorable([kept, worktree, closed], ["C:\\Projets\\app"], exists).map(({ saved }) => saved.id)).toEqual([SHELL]);
+  });
+
+  it("rouvre dans le dossier du projet un terminal dont le dossier courant a disparu", () => {
+    const [terminal] = restorable([loaded({ cwd: "C:\\Projets\\app\\disparu" })], ["C:\\Projets\\app"], (path) => path === "C:\\Projets\\app");
+    expect(terminal?.saved.cwd).toBe("C:\\Projets\\app");
+  });
+});
+
+describe("restoreTabsOf", () => {
+  it("rouvre les onglets tant que le réglage n'est pas explicitement coupé", () => {
+    expect(restoreTabsOf(undefined)).toBe(true);
+    expect(restoreTabsOf({ version: 2, prefs: {} })).toBe(true);
+    expect(restoreTabsOf({ version: 2, prefs: { restoreTabs: true } })).toBe(true);
+    expect(restoreTabsOf({ version: 2, prefs: { restoreTabs: false } })).toBe(false);
+  });
+});
+
 describe("TerminalSnapshots", () => {
   it("retrouve au lancement suivant les terminaux, et la sortie des seuls shells", async () => {
     const snapshots: TerminalSnapshot[] = [
       { saved: savedTerminalOf(info(), { command: "ping -t localhost" }), scrollback: "PS C:\\Projets\\app> ping -t localhost\r\n" },
       {
-        saved: savedTerminalOf(info({ id: CLAUDE, kind: "claude", openedAs: "claude" }), { sessionId: "s1" }),
+        saved: savedTerminalOf(info({ id: CLAUDE, kind: "claude", openedAs: "claude" }), { sessionId: SESSION }),
         scrollback: "écran de claude",
       },
     ];
@@ -168,6 +207,26 @@ describe("TerminalSnapshots", () => {
     new TerminalSnapshots(dataDir, () => [{ saved: { ...savedTerminalOf(info()), id: "../y" }, scrollback: "z" }]).flushSync();
     expect(existsSync(join(dataDir, "y.txt"))).toBe(false);
     expect(await savedList()).toEqual([]);
+  });
+
+  it("ne lit ni une session qui n'est pas un UUID ni une commande qui se lancerait", async () => {
+    const entry = { openedAs: "shell", kind: "shell", projectRoot: "C:\\x", cwd: "C:\\x" };
+    await writeFile(
+      listFile(),
+      JSON.stringify({
+        version: 1,
+        terminals: [
+          { ...entry, id: SHELL, sessionId: "x; calc.exe", command: "Get-Date\r" },
+          { ...entry, id: CLAUDE, kind: "claude", sessionId: SESSION },
+        ],
+      }),
+    );
+
+    const loaded = await new TerminalSnapshots(dataDir, () => []).load();
+    expect(loaded.map(({ saved }) => [saved.sessionId, saved.command])).toEqual([
+      [undefined, undefined],
+      [SESSION, undefined],
+    ]);
   });
 
   it("ne lit rien d'une liste absente ou illisible", async () => {
