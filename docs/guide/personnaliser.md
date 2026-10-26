@@ -174,8 +174,9 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 - **Raccourcis** : le jeu de raccourcis et chaque combinaison ;
 - **Historique et coûts** : afficher ou non ce que coûtent les sessions ;
 - **Modules** : couper une fonction qu'on n'utilise pas — Scripts (colonne du
-  projet), Consommation (panneau global) ; elle disparaît des barres, de la palette
-  et des menus, sans rien effacer ;
+  projet), Mémo (colonne du projet et panneau global), Consommation (panneau
+  global) ; elle disparaît des barres, de la palette et des menus, sans rien
+  effacer ;
 - **Claude Code** : le `settings.json` de Claude Code en formulaire — modèle par
   défaut, effort, interface, permissions, hooks —, qui vaut pour toutes ses
   sessions.

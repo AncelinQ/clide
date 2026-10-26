@@ -1,6 +1,6 @@
 # Le panneau global
 
-À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, l'usage et les coûts, les processus. Les réglages de Claude Code sont dans la fenêtre Réglages.
+À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, les mémos de tous les projets, l'usage et les coûts, les processus. Les réglages de Claude Code sont dans la fenêtre Réglages.
 
 ## Onglets du panneau global
 
@@ -117,6 +117,14 @@ vient des transcripts, sans accès à Linear ni à GitLab :
 
 Beaucoup de tickets ne sont que consultés — lus en préparant d'autres chantiers : la
 liste montre d'abord ceux qui ont une branche ou une MR.
+
+## Mémo
+
+L'onglet Mémo réunit les mémos de tous les projets qui en ont un, ouverts ou non :
+un groupe par projet, filtré par le champ du panneau. On n'y modifie rien — c'est le
+rôle du mode Mémo de chaque projet (voir [la colonne du projet](projet.md#memo)) —,
+mais liens et notes s'ouvrent d'ici. Un fichier épinglé d'un projet fermé est grisé :
+il ne s'ouvre que dans un projet ouvert.
 
 ## Ce que coûtent les sessions
 
