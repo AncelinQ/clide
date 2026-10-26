@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -255,6 +256,87 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     manager.close(terminal.id);
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
+
+  it("rouvre un terminal endormi sous son identifiant, rejoue sa sortie en gris et retape la commande sans la lancer", async () => {
+    const id = randomUUID();
+    const saved = {
+      id,
+      openedAs: "shell" as const,
+      kind: "shell" as const,
+      projectRoot: scratch,
+      cwd: scratch,
+      name: "api",
+      command: "Write-Host RETAPEE",
+    };
+    const scrollback = "\u001b[32mAVANT\u001b[0m\r\n";
+
+    // Endormi : listé, mais sans processus, sans sortie, et sourd à la saisie.
+    expect(manager.restore({ saved, scrollback })).toMatchObject({ id, title: "api", dormant: true });
+    expect(manager.list().find((terminal) => terminal.id === id)?.dormant).toBe(true);
+    expect([...manager.ownedPids().values()]).not.toContain(id);
+    expect(manager.write(id, "x")).toBe(false);
+    expect(manager.backlog(id)).toBe("");
+    expect(manager.snapshot(() => undefined).find((snapshot) => snapshot.saved.id === id)).toEqual({ saved, scrollback });
+
+    const output: string[] = [];
+    const states: string[] = [];
+    manager.on("data", (terminalId, text) => terminalId === id && output.push(text));
+    manager.on("state", (info) => info.id === id && states.push(info.state));
+
+    const woken = await manager.wake(id, { cols: 100, rows: 30 });
+    expect(woken).toMatchObject({ id, title: "api" });
+    expect(woken?.dormant).toBeUndefined();
+    expect(await manager.wake(id, { cols: 100, rows: 30 })).toBeUndefined();
+    expect([...manager.ownedPids().values()]).toContain(id);
+
+    // La sortie d'avant passe la première, en gris.
+    expect(output[0]).toContain("\u001b[90mAVANT");
+    expect(output[0]).toContain("── session restaurée ──");
+
+    // La commande revient au prompt, tapée mais pas lancée.
+    await waitFor(() => output.slice(1).join("").includes("RETAPEE"), 15000);
+    await new Promise((done) => setTimeout(done, 1500));
+    expect(states).not.toContain("running");
+    expect(manager.get(id)?.state).toBe("idle");
+
+    // Ctrl+C efface la ligne sans la mettre dans l'historique du shell.
+    manager.write(id, "\u0003");
+    manager.close(id);
+    await waitFor(() => manager.get(id) === undefined, 15000);
+  }, 30_000);
+
+  it("réveille une session Claude par sa commande de reprise, sans rejeu ni commande retapée", async () => {
+    const id = randomUUID();
+    manager.restore({
+      saved: { id, openedAs: "claude", kind: "claude", projectRoot: scratch, cwd: scratch, sessionId: "s1", command: "Write-Host RETAPEE" },
+      scrollback: "écran de claude",
+    });
+    const output: string[] = [];
+    manager.on("data", (terminalId, text) => terminalId === id && output.push(text));
+
+    await manager.wake(id, { cols: 100, rows: 30, initialCommand: "Write-Host REPRISE" });
+    await waitFor(() => manager.backlog(id).includes("REPRISE"), 15000);
+
+    expect(output.join("")).not.toContain("session restaurée");
+    expect(output.join("")).not.toContain("RETAPEE");
+    expect(manager.snapshot((terminalId) => (terminalId === id ? "s1" : undefined)).find((s) => s.saved.id === id)?.saved).toMatchObject({
+      id,
+      sessionId: "s1",
+    });
+    manager.close(id);
+    await waitFor(() => manager.get(id) === undefined, 15000);
+  }, 30_000);
+
+  it("ferme un terminal endormi sans avoir à lancer son shell", () => {
+    const id = randomUUID();
+    const exits: string[] = [];
+    manager.on("exit", (terminalId) => exits.push(terminalId));
+    manager.restore({ saved: { id, openedAs: "shell", kind: "shell", projectRoot: scratch, cwd: scratch }, scrollback: "" });
+
+    expect(manager.close(id)).toBe(true);
+    expect(manager.get(id)).toBeUndefined();
+    expect(exits).toEqual([id]);
+  });
 
   it("ne fait rien sur un identifiant inconnu", () => {
     expect(manager.write("inconnu", "x")).toBe(false);

@@ -61,6 +61,11 @@ describe("savedTerminalOf", () => {
     expect(claude.command).toBeUndefined();
     expect(claude.sessionId).toBe("s1");
   });
+
+  it("ne garde pas une commande qu'on ne peut retaper sans la lancer", () => {
+    expect(savedTerminalOf(info(), { command: "Get-Date\nGet-Location" }).command).toBeUndefined();
+    expect(savedTerminalOf(info(), { command: "echo a\u001b[2J" }).command).toBeUndefined();
+  });
 });
 
 describe("replayOf", () => {

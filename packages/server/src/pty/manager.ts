@@ -1,10 +1,19 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 
 import { normalizePath } from "@clide/core";
 import { spawn, type IPty } from "node-pty";
 
 import { DevUrlScanner } from "./dev-url.js";
 import { OscScanner, type ShellEvent } from "./osc.js";
+import {
+  replayOf,
+  replays,
+  savedTerminalOf,
+  typable,
+  type LoadedTerminal,
+  type TerminalSnapshot,
+} from "./saved-terminals.js";
 import { installShellProfile, type ShellProfile } from "./shell-profile.js";
 
 export type TerminalKind = "shell" | "claude";
@@ -46,6 +55,11 @@ export interface TerminalInfo {
    * reprend le même onglet au lieu d'en ouvrir un autre.
    */
   script?: string;
+  /**
+   * Rouvert au lancement et pas encore montré : aucun processus ne tourne. Le
+   * client le réveille (`wake`) à son premier affichage.
+   */
+  dormant?: true;
 }
 
 export interface SpawnOptions {
@@ -77,13 +91,25 @@ interface Terminal {
   /** Nom donné à la main : il l'emporte sur `claude` comme sur le nom d'ouverture. */
   name?: string;
   info: TerminalInfo;
-  pty: IPty;
+  /** Absent tant que le terminal dort, et le temps de son lancement. */
+  pty?: IPty;
   scanner: OscScanner;
   urls: DevUrlScanner;
   /** Fin de la sortie, rejouée dans un terminal qui se rattache après un rechargement. */
   backlog: string;
   /** Ligne de la commande qui tourne, telle que tapée ; absente quand le shell attend. */
   command?: string;
+  /** Ce qu'a laissé un terminal rouvert au lancement, jusqu'à son réveil. */
+  dormant?: LoadedTerminal;
+  /** Commande à retaper, sans la lancer, au premier prompt. */
+  retype?: string;
+}
+
+export interface WakeOptions {
+  cols: number;
+  rows: number;
+  /** Commande lancée au réveil, la reprise de la session Claude. */
+  initialCommand?: string;
 }
 
 /**
@@ -136,17 +162,7 @@ export class PtyManager {
     const kind = options.kind ?? "shell";
     const id = randomUUID();
 
-    const pty = spawn(DEFAULT_SHELL, profile.args, {
-      name: TERMINAL_TYPE,
-      cols: options.cols ?? 100,
-      rows: options.rows ?? 30,
-      cwd: options.projectRoot,
-      env: terminalEnvironment(id, process.env),
-      useConpty: true,
-    });
-
     const terminal: Terminal = {
-      pty,
       ...(options.label ? { label: options.label } : {}),
       ...(options.name ? { name: options.name } : {}),
       scanner: new OscScanner(),
@@ -166,6 +182,107 @@ export class PtyManager {
       },
     };
     this.#terminals.set(id, terminal);
+    this.#spawn(terminal, profile, {
+      cols: options.cols ?? 100,
+      rows: options.rows ?? 30,
+      cwd: options.projectRoot,
+      ...(options.initialCommand ? { initialCommand: options.initialCommand } : {}),
+    });
+    return { ...terminal.info };
+  }
+
+  /**
+   * Inscrit un terminal gardé au dernier arrêt, avec son identifiant, sans
+   * lancer de shell : il dort jusqu'à ce que `wake` le lance.
+   */
+  restore(loaded: LoadedTerminal): TerminalInfo {
+    const { saved } = loaded;
+    const existing = this.#terminals.get(saved.id);
+    if (existing) return { ...existing.info };
+    const terminal: Terminal = {
+      ...(saved.label ? { label: saved.label } : {}),
+      ...(saved.name ? { name: saved.name } : {}),
+      scanner: new OscScanner(),
+      urls: new DevUrlScanner(),
+      backlog: "",
+      dormant: loaded,
+      info: {
+        id: saved.id,
+        kind: saved.kind,
+        openedAs: saved.openedAs,
+        projectRoot: saved.projectRoot,
+        cwd: saved.cwd,
+        state: "idle",
+        title: "",
+        exited: false,
+        dormant: true,
+        ...(saved.owner ? { owner: saved.owner } : {}),
+        ...(saved.script ? { script: saved.script } : {}),
+      },
+    };
+    terminal.info.title = titleOf(terminal);
+    this.#terminals.set(saved.id, terminal);
+    return { ...terminal.info };
+  }
+
+  /**
+   * Lance le shell d'un terminal qui dort, avec le même identifiant.
+   *
+   * Un shell rejoue d'abord sa sortie d'avant, puis retrouve au premier prompt
+   * la commande qui tournait, tapée mais pas lancée. Rend `undefined` pour un
+   * terminal inconnu ou déjà réveillé.
+   */
+  async wake(id: string, options: WakeOptions): Promise<TerminalInfo | undefined> {
+    const terminal = this.#terminals.get(id);
+    if (!terminal?.dormant) return undefined;
+    // Le réveil est noté avant d'attendre quoi que ce soit : un deuxième appel
+    // pendant le lancement ne lancerait pas un deuxième shell.
+    const { saved, scrollback } = terminal.dormant;
+    delete terminal.dormant;
+    delete terminal.info.dormant;
+
+    const replay = replays(saved) ? replayOf(scrollback) : "";
+    if (replay) {
+      // ConPTY efface l'écran en démarrant puis dessine comme sur un écran vide :
+      // la sortie rejouée doit être passée dans l'historique, sinon le shell
+      // écrirait par-dessus.
+      const text = replay + "\n".repeat(Math.max(options.rows, 1));
+      terminal.backlog = text.slice(-BACKLOG_MAX);
+      this.#emit("data", id, text);
+    }
+    if (!options.initialCommand && saved.command && typable(saved.command)) terminal.retype = saved.command;
+
+    const profile = await this.prepare();
+    // Fermé pendant ce temps : rien à lancer.
+    if (this.#terminals.get(id) !== terminal) return undefined;
+    const { info } = terminal;
+    try {
+      this.#spawn(terminal, profile, {
+        cols: options.cols,
+        rows: options.rows,
+        cwd: existsSync(info.cwd) ? info.cwd : info.projectRoot,
+        ...(options.initialCommand ? { initialCommand: options.initialCommand } : {}),
+      });
+    } catch {
+      // Dossier du projet disparu : l'onglet se ferme comme un shell qui sort.
+      this.#drop(terminal, 1);
+      return undefined;
+    }
+    this.#emit("state", { ...info });
+    return { ...info };
+  }
+
+  #spawn(terminal: Terminal, profile: ShellProfile, options: WakeOptions & { cwd: string }): void {
+    const { id } = terminal.info;
+    const pty = spawn(DEFAULT_SHELL, profile.args, {
+      name: TERMINAL_TYPE,
+      cols: options.cols,
+      rows: options.rows,
+      cwd: options.cwd,
+      env: terminalEnvironment(id, process.env),
+      useConpty: true,
+    });
+    terminal.pty = pty;
 
     pty.onData((chunk) => {
       const { text, events } = terminal.scanner.push(chunk);
@@ -177,12 +294,7 @@ export class PtyManager {
       if (text.length > 0) this.#watchDevUrl(terminal, text);
     });
 
-    pty.onExit(({ exitCode }) => {
-      terminal.info.exited = true;
-      this.#emit("state", { ...terminal.info });
-      this.#emit("exit", id, exitCode);
-      this.#terminals.delete(id);
-    });
+    pty.onExit(({ exitCode }) => this.#drop(terminal, exitCode));
 
     if (options.initialCommand) {
       // Le shell doit avoir rendu son premier prompt avant d'accepter une saisie.
@@ -190,8 +302,16 @@ export class PtyManager {
         if (!terminal.info.exited) pty.write(`${options.initialCommand}\r`);
       }, 1200);
     }
+  }
 
-    return { ...terminal.info };
+  /** Retire un terminal, comme quand son shell sort. */
+  #drop(terminal: Terminal, exitCode: number): void {
+    const { id } = terminal.info;
+    if (this.#terminals.get(id) !== terminal) return;
+    terminal.info.exited = true;
+    this.#emit("state", { ...terminal.info });
+    this.#emit("exit", id, exitCode);
+    this.#terminals.delete(id);
   }
 
   /**
@@ -239,6 +359,12 @@ export class PtyManager {
           terminal.info.lastExitCode = event.exitCode;
           delete terminal.command;
           changed = true;
+          // Le premier prompt d'un terminal réveillé : la commande d'avant est
+          // tapée, sans Entrée, et l'utilisateur décide de la relancer.
+          if (terminal.retype) {
+            terminal.pty?.write(terminal.retype);
+            delete terminal.retype;
+          }
           break;
         // Un `claude` tapé à la main fait de l'onglet un onglet Claude — plan,
         // activité, fichiers — le temps de la session, puis il redevient un shell.
@@ -282,18 +408,19 @@ export class PtyManager {
     return this.#terminals.get(id)?.command;
   }
 
+  /** Saisie pour le shell ; un terminal qui dort l'ignore. */
   write(id: string, data: string): boolean {
-    const terminal = this.#terminals.get(id);
-    if (!terminal) return false;
-    terminal.pty.write(data);
+    const pty = this.#terminals.get(id)?.pty;
+    if (!pty) return false;
+    pty.write(data);
     return true;
   }
 
   resize(id: string, cols: number, rows: number): boolean {
-    const terminal = this.#terminals.get(id);
-    if (!terminal) return false;
+    const pty = this.#terminals.get(id)?.pty;
+    if (!pty) return false;
     try {
-      terminal.pty.resize(Math.max(cols, 2), Math.max(rows, 2));
+      pty.resize(Math.max(cols, 2), Math.max(rows, 2));
       return true;
     } catch {
       return false;
@@ -303,6 +430,11 @@ export class PtyManager {
   close(id: string): boolean {
     const terminal = this.#terminals.get(id);
     if (!terminal) return false;
+    // Sans processus — il dort ou se lance —, rien n'appellera onExit.
+    if (!terminal.pty) {
+      this.#drop(terminal, 0);
+      return true;
+    }
     try {
       terminal.pty.kill();
     } catch {
@@ -314,6 +446,37 @@ export class PtyManager {
   /** Fin de la sortie d'un terminal, telle qu'elle est partie vers le client. */
   backlog(id: string): string {
     return this.#terminals.get(id)?.backlog ?? "";
+  }
+
+  /**
+   * De quoi rouvrir les terminaux au lancement suivant. Un terminal qui dort
+   * rend ce qu'il avait reçu, sous le nom qu'il porte maintenant.
+   *
+   * @param sessionOf session Claude attachée à un terminal, que l'onglet reprendra
+   */
+  snapshot(sessionOf: (id: string) => string | undefined): TerminalSnapshot[] {
+    return [...this.#terminals.values()].map((terminal) => {
+      if (terminal.dormant) {
+        const { name: _name, ...saved } = terminal.dormant.saved;
+        return {
+          saved: { ...saved, ...(terminal.name ? { name: terminal.name } : {}) },
+          scrollback: terminal.dormant.scrollback,
+        };
+      }
+      const sessionId = sessionOf(terminal.info.id);
+      // Une commande pas encore retapée, le shell n'ayant pas rendu son prompt,
+      // reste celle qui tournait.
+      const command = terminal.command ?? terminal.retype;
+      return {
+        saved: savedTerminalOf(terminal.info, {
+          ...(terminal.label ? { label: terminal.label } : {}),
+          ...(terminal.name ? { name: terminal.name } : {}),
+          ...(command ? { command } : {}),
+          ...(sessionId ? { sessionId } : {}),
+        }),
+        scrollback: terminal.backlog,
+      };
+    });
   }
 
   get(id: string): TerminalInfo | undefined {
@@ -334,7 +497,9 @@ export class PtyManager {
    */
   ownedPids(): Map<number, string> {
     const out = new Map<number, string>();
-    for (const terminal of this.#terminals.values()) out.set(terminal.pty.pid, terminal.info.id);
+    for (const terminal of this.#terminals.values()) {
+      if (terminal.pty) out.set(terminal.pty.pid, terminal.info.id);
+    }
     return out;
   }
 
@@ -343,12 +508,14 @@ export class PtyManager {
    *
    * Sert à rattacher un événement de hook à un onglet : Claude Code annonce le
    * dossier de la session, pas le terminal qui l'héberge. Le dossier courant
-   * prime sur le dossier d'ouverture — un `cd` a pu déplacer le shell.
+   * prime sur le dossier d'ouverture — un `cd` a pu déplacer le shell. Un
+   * terminal qui dort ne fait tourner aucune session : il n'est pas candidat.
    */
   findByCwd(path: string): TerminalInfo | undefined {
     const wanted = normalizePath(path);
     let fallback: TerminalInfo | undefined;
-    for (const { info } of this.#terminals.values()) {
+    for (const { info, dormant } of this.#terminals.values()) {
+      if (dormant) continue;
       if (normalizePath(info.cwd) === wanted) return { ...info };
       if (!fallback && normalizePath(info.projectRoot) === wanted) fallback = { ...info };
     }

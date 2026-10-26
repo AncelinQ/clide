@@ -35,10 +35,19 @@ export interface LoadedTerminal {
 }
 
 /**
+ * Une commande se retape sans être lancée : aucun caractère de contrôle. Un
+ * retour à la ligne, celui d'une commande sur plusieurs lignes, vaudrait Entrée.
+ */
+export function typable(command: string): boolean {
+  return command !== "" && !/[\u0000-\u001f\u007f]/.test(command);
+}
+
+/**
  * Ce qu'un terminal ouvert laisse au lancement suivant.
  *
- * La commande en cours n'est gardée que pour un shell : un onglet de script se
- * relance par son bouton, et `claude` est repris par sa session.
+ * La commande en cours n'est gardée que pour un shell, et si elle se retape : un
+ * onglet de script se relance par son bouton, et `claude` est repris par sa
+ * session.
  */
 export function savedTerminalOf(
   info: TerminalInfo,
@@ -56,7 +65,7 @@ export function savedTerminalOf(
     ...(extra.name ? { name: extra.name } : {}),
     ...(info.script ? { script: info.script } : {}),
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
-    ...(keepCommand && extra.command ? { command: extra.command } : {}),
+    ...(keepCommand && extra.command && typable(extra.command) ? { command: extra.command } : {}),
   };
 }
 
