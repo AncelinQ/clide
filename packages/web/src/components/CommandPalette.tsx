@@ -275,7 +275,6 @@ export function CommandPalette() {
   const close = () => {
     setState({ paletteOpen: false });
     setCursor(0);
-    requestAnimationFrame(resizeActive);
   };
   const run = (entry: Entry | undefined) => {
     if (!entry) return;
@@ -295,7 +294,8 @@ export function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <DialogContent className="top-[20%] translate-y-0 gap-0 p-0 sm:max-w-lg" showCloseButton={false}>
+      {/* Fermée, la palette rend le focus là où on l'a ouverte ; ouverte sans focus nulle part, au terminal montré. */}
+      <DialogContent className="top-[20%] translate-y-0 gap-0 p-0 sm:max-w-lg" showCloseButton={false} fallbackFocus={resizeActive}>
         <DialogTitle className="sr-only">{t("Palette de commandes")}</DialogTitle>
         <DialogDescription className="sr-only">{t("Chercher une action et la lancer.")}</DialogDescription>
         <input
