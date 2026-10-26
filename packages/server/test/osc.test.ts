@@ -43,6 +43,14 @@ describe("OscScanner", () => {
     expect(new OscScanner().push(start()).events).toEqual([{ kind: "command-start" }]);
   });
 
+  it("décode la ligne tapée, `;` et accents compris, et ignore ce qui n'est pas du base64", () => {
+    const line = Buffer.from("npm run dev; echo é", "utf8").toString("base64");
+    expect(new OscScanner().push(osc(`${OSC_CODE};START;${line}`)).events).toEqual([
+      { kind: "command-start", command: "npm run dev; echo é" },
+    ]);
+    expect(new OscScanner().push(osc(`${OSC_CODE};START;pas du base64 !`)).events).toEqual([{ kind: "command-start" }]);
+  });
+
   it("lit le lancement de claude avec sa ligne de commande entière", () => {
     const { text, events } = new OscScanner().push(osc("7771;CLAUDE_START;claude -r abc; --verbose"));
     expect(text).toBe("");

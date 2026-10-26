@@ -82,6 +82,8 @@ interface Terminal {
   urls: DevUrlScanner;
   /** Fin de la sortie, rejouée dans un terminal qui se rattache après un rechargement. */
   backlog: string;
+  /** Ligne de la commande qui tourne, telle que tapée ; absente quand le shell attend. */
+  command?: string;
 }
 
 /**
@@ -228,11 +230,14 @@ export class PtyManager {
           break;
         case "command-start":
           terminal.info.state = "running";
+          if (event.command?.trim()) terminal.command = event.command.trim();
+          else delete terminal.command;
           changed = true;
           break;
         case "command-end":
           terminal.info.state = event.exitCode === 0 ? "idle" : "failed";
           terminal.info.lastExitCode = event.exitCode;
+          delete terminal.command;
           changed = true;
           break;
         // Un `claude` tapé à la main fait de l'onglet un onglet Claude — plan,
@@ -270,6 +275,11 @@ export class PtyManager {
   /** Nom donné à un onglet, s'il en a un : ni `claude` ni son nom d'ouverture. */
   nameOf(id: string): string | undefined {
     return this.#terminals.get(id)?.name;
+  }
+
+  /** Commande qui tourne dans un onglet, telle que tapée, quand le profil l'a donnée. */
+  commandOf(id: string): string | undefined {
+    return this.#terminals.get(id)?.command;
   }
 
   write(id: string, data: string): boolean {

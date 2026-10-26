@@ -74,6 +74,12 @@ describe("shellProfileScript", () => {
     expect(script.indexOf("finally")).toBeLessThan(script.indexOf("'CLAUDE_END'"));
   });
 
+  it("envoie la ligne tapée avec le début de commande, en base64", () => {
+    const script = shellProfileScript();
+    expect(script).toContain("GetBufferState");
+    expect(script).toContain("'START;' + [Convert]::ToBase64String");
+  });
+
   it("résout l'exécutable avant de poser la fonction du même nom", () => {
     // Sans cette résolution, la fonction s'appellerait elle-même à l'infini.
     const script = shellProfileScript();
@@ -214,6 +220,22 @@ describe.skipIf(process.platform !== "win32")("PtyManager sous ConPTY", () => {
     await waitFor(() => manager.get(terminal.id)?.state === "idle", 15000);
 
     expect(manager.get(terminal.id)?.devUrl).toBeUndefined();
+    manager.close(terminal.id);
+    await waitFor(() => manager.get(terminal.id) === undefined, 15000);
+  }, 30_000);
+
+  it("sait quelle commande tourne, telle que tapée, et l'oublie quand elle finit", async () => {
+    const terminal = await manager.open({ projectRoot: scratch });
+    const states: string[] = [];
+    manager.on("state", (info) => info.id === terminal.id && states.push(info.state));
+    await waitFor(() => states.length > 0, 15000);
+
+    manager.write(terminal.id, "Start-Sleep 2 # été; x\r");
+    await waitFor(() => manager.get(terminal.id)?.state === "running", 15000);
+    expect(manager.commandOf(terminal.id)).toBe("Start-Sleep 2 # été; x");
+
+    await waitFor(() => manager.get(terminal.id)?.state === "idle", 15000);
+    expect(manager.commandOf(terminal.id)).toBeUndefined();
     manager.close(terminal.id);
     await waitFor(() => manager.get(terminal.id) === undefined, 15000);
   }, 30_000);
