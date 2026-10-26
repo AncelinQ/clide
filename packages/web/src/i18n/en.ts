@@ -1047,4 +1047,8 @@ export const EN: Record<string, string> = {
   "Nom de note invalide": "Invalid note name",
   "Une note porte déjà ce nom": "A note already has this name",
   "Note introuvable": "Note not found",
+  "Aucun mémo pour l'instant : chaque projet a le sien, dans son mode Mémo.": "No memo yet: each project has its own, in its Memo mode.",
+  "Ouvrir dans l'éditeur": "Open in the editor",
+  "Projet fermé : ouvre-le pour ouvrir ce fichier": "Project closed: open it to open this file",
+  "Épingler dans le mémo": "Pin to the memo",
 };

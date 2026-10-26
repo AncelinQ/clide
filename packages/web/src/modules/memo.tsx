@@ -1,5 +1,6 @@
 import { NotebookPen } from "lucide-react";
 
+import { MemoAllPanel } from "@/components/MemoAllPanel";
 import { MemoPanel } from "@/components/MemoPanel";
 import type { WebModule } from "@/modules/types";
 
@@ -18,4 +19,5 @@ export const memoModule: WebModule = {
       render: (root) => <MemoPanel root={root} />,
     },
   ],
+  globalViews: [{ id: "memo", icon: NotebookPen, label: "Mémo", searchable: true, render: ({ filter }) => <MemoAllPanel filter={filter} /> }],
 };
