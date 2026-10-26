@@ -68,37 +68,48 @@ interface PushPlan {
   remoteHead?: string;
 }
 
+/** Quelque chose attend dans le dépôt : `GitMarks` a des signes à montrer. */
+export function hasMarks(status: GitStatus): boolean {
+  return status.changed + status.untracked + status.conflicted > 0 || status.ahead > 0 || status.behind > 0 || Boolean(status.upstreamGone);
+}
+
 /**
  * Ce qui attend dans un dépôt, en signes compacts : fichiers à committer,
- * commits à pousser ou en retard, divergence. Rien quand tout est à jour.
+ * commits à pousser ou en retard, divergence. Rien quand tout est à jour. Les
+ * signes ne se lisent pas : un lecteur d'écran lit le résumé de leur infobulle.
  */
 export function GitMarks({ status, className }: { status: GitStatus; className?: string }) {
   const touched = status.changed + status.untracked + status.conflicted;
   const diverged = status.ahead > 0 && status.behind > 0;
-  if (touched === 0 && status.ahead === 0 && status.behind === 0 && !status.upstreamGone) return null;
+  if (!hasMarks(status)) return null;
+  const summary = pendingSummary(status);
   return (
-    <span
-      className={cn("flex items-center gap-1 text-[10.5px] tabular-nums", className)}
-      title={pendingSummary(status)}
-    >
+    <span className={cn("flex items-center gap-1 text-[10.5px] tabular-nums", className)} title={summary}>
+      <span className="sr-only">{summary}</span>
       {touched > 0 && (
-        <span className={status.conflicted > 0 ? "text-destructive" : "text-muted-foreground"}>●{touched}</span>
+        <span aria-hidden className={status.conflicted > 0 ? "text-destructive" : "text-muted-foreground"}>
+          ●{touched}
+        </span>
       )}
-      {status.upstreamGone && <span className="text-amber-600">{t("distante supprimée")}</span>}
+      {status.upstreamGone && (
+        <span aria-hidden className="text-amber-600">
+          {t("distante supprimée")}
+        </span>
+      )}
       {diverged ? (
-        <span className="flex items-center text-destructive">
+        <span aria-hidden className="flex items-center text-destructive">
           <ArrowDownUp className="size-3" />
         </span>
       ) : (
         <>
           {status.ahead > 0 && (
-            <span className="flex items-center text-primary">
+            <span aria-hidden className="flex items-center text-primary">
               <ArrowUp className="size-3" />
               {status.ahead}
             </span>
           )}
           {status.behind > 0 && (
-            <span className="flex items-center text-amber-600">
+            <span aria-hidden className="flex items-center text-amber-600">
               <ArrowDown className="size-3" />
               {status.behind}
             </span>
@@ -107,12 +118,6 @@ export function GitMarks({ status, className }: { status: GitStatus; className?:
       )}
     </span>
   );
-}
-
-/** Indicateurs git d'un dossier, relevés comme ceux de la puce de branche. */
-export function RepoMarks({ root, className }: { root: string; className?: string }) {
-  const [status] = useGitStatus(root);
-  return status ? <GitMarks status={status} {...(className ? { className } : {})} /> : null;
 }
 
 /** Branches qu'un push forcé ne devrait presque jamais viser. */

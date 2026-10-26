@@ -13,13 +13,13 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
 import { ReorderItem, useReorder } from "@/components/Reorderable";
 import { FolderInput } from "@/components/FolderInput";
 import { useAsync } from "@/components/common";
-import { GitChip, RepoMarks } from "@/components/GitChip";
+import { GitChip, GitMarks, hasMarks, pendingSummary, useGitStatus } from "@/components/GitChip";
 import { PullReportDialog, pullRepositories, usePullRunning } from "@/components/GitSync";
 import { SettingsDialog } from "@/components/Preferences";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,55 @@ import { closeTerminal } from "@/state/terminals";
 
 const THEME_ICON = { auto: Contrast, light: Sun, dark: Moon };
 const THEME_LABEL = { auto: "Thème : système", light: "Thème : clair", dark: "Thème : sombre" };
+
+const COUNTER = "flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400";
+
+/**
+ * Ce que compte la pastille d'un projet : ce qui attend dans son dépôt, et ses
+ * onglets Claude au travail, en attente d'une réponse, ou finis sans qu'on les ait
+ * regardés. Les signes se voient ; un lecteur d'écran lit leur résumé en
+ * description du bouton de la pastille (`id`), dont le nom reste celui du projet.
+ */
+function PillStatus({ id, root, busy, asking, done }: { id: string; root: string; busy: number; asking: number; done: number }) {
+  const [status] = useGitStatus(root);
+  const working = busy > 0 ? t("{count} Claude en cours", { count: busy }) : undefined;
+  const waiting = asking > 0 ? t("En attente de ta réponse : {count}", { count: asking }) : undefined;
+  const finished = done > 0 ? t("Fini, à regarder : {count}", { count: done }) : undefined;
+  const parts = [status && hasMarks(status) ? pendingSummary(status) : undefined, working, waiting, finished].filter(
+    (part) => part !== undefined,
+  );
+  return (
+    <>
+      {status && <GitMarks status={status} />}
+      {working && (
+        <span aria-hidden className={COUNTER} title={working}>
+          <Sparkles className="size-3 animate-pulse" />
+          {busy}
+        </span>
+      )}
+      {waiting && (
+        <span aria-hidden className={COUNTER} title={waiting}>
+          <CircleAlert className="size-3" />
+          {asking}
+        </span>
+      )}
+      {finished && (
+        <Badge
+          aria-hidden
+          className="h-4 min-w-4 justify-center rounded-full bg-emerald-500 px-1 text-[10px] text-white tabular-nums"
+          title={finished}
+        >
+          {done}
+        </Badge>
+      )}
+      {parts.length > 0 && (
+        <span id={id} className="sr-only">
+          {parts.join(", ")}
+        </span>
+      )}
+    </>
+  );
+}
 
 export function TitleBar() {
   const { projects, activeRoot, connected, theme, showLeft, showRight, terminals, attention, claudeBusy } = useStore(
@@ -98,6 +147,8 @@ export function TitleBar() {
   // projet » s'il n'en reste aucun.
   const pills = useRef(new Map<string, HTMLButtonElement>());
   const addButton = useRef<HTMLButtonElement>(null);
+  // Le nom et l'état de chaque pastille, que son bouton désigne par leur id.
+  const pillIds = useId();
   const closeFromPill = (root: string) => {
     const index = projects.findIndex((project) => project.root === root);
     const neighbour = projects[index + 1] ?? projects[index - 1];
@@ -149,7 +200,7 @@ export function TitleBar() {
 
       <div className="flex min-w-0 items-center gap-1.5">
         <nav {...list.zone} aria-label={t("Projets ouverts")} className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
-          {shownProjects.map((project) => {
+          {shownProjects.map((project, index) => {
             // Les signes de ses onglets Claude, comptés : au travail (pas seulement
             // ouverts, le titre de leur terminal le dit), en attente d'une réponse,
             // ou finis sans qu'on les ait regardés.
@@ -158,6 +209,7 @@ export function TitleBar() {
             const asking = own.filter((id) => attention[id] === "permission").length;
             const done = own.filter((id) => attention[id] && attention[id] !== "permission").length;
             const active = project.root === activeRoot;
+            const pillId = `${pillIds}-${index}`;
             return (
               <ReorderItem key={project.root} list={list} id={project.root}>
                 <ContextMenu>
@@ -181,37 +233,15 @@ export function TitleBar() {
                         }}
                         title={project.root}
                         aria-current={active || undefined}
+                        aria-labelledby={`${pillId}-nom`}
+                        aria-describedby={`${pillId}-etat`}
                         onClick={() => activateProject(project.root)}
                         className="flex min-w-0 cursor-pointer items-center gap-2 rounded-full py-1 pr-2 pl-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                       >
-                        <span className="truncate">{project.name}</span>
-                        <RepoMarks root={project.root} />
-                        {busy > 0 && (
-                          <span
-                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
-                            title={t("{count} Claude en cours", { count: busy })}
-                          >
-                            <Sparkles className="size-3 animate-pulse" />
-                            {busy}
-                          </span>
-                        )}
-                        {asking > 0 && (
-                          <span
-                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
-                            title={t("En attente de ta réponse : {count}", { count: asking })}
-                          >
-                            <CircleAlert className="size-3" />
-                            {asking}
-                          </span>
-                        )}
-                        {done > 0 && (
-                          <Badge
-                            className="h-4 min-w-4 justify-center rounded-full bg-emerald-500 px-1 text-[10px] text-white tabular-nums"
-                            title={t("Fini, à regarder : {count}", { count: done })}
-                          >
-                            {done}
-                          </Badge>
-                        )}
+                        <span id={`${pillId}-nom`} className="truncate">
+                          {project.name}
+                        </span>
+                        <PillStatus id={`${pillId}-etat`} root={project.root} busy={busy} asking={asking} done={done} />
                       </button>
                       <button
                         type="button"
