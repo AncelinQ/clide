@@ -48,8 +48,18 @@ cela écarte le geste involontaire sans bloquer la page.
 
 Ce que l'application garde pour elle — index des sessions et de la recherche,
 schémas, rédactions, sauvegardes des fichiers restaurés, profil PowerShell,
-événements des hooks — vit dans `%LOCALAPPDATA%\clide`. Rien n'y est nécessaire
-à Claude Code : le dossier peut être supprimé, il se reconstruit.
+événements des hooks, terminaux à rouvrir — vit dans `%LOCALAPPDATA%\clide`. Rien
+n'y est nécessaire à Claude Code : le dossier peut être supprimé, il se reconstruit.
+
+Pour [rouvrir les onglets au lancement](terminaux.md#rouvrir-les-onglets-au-lancement),
+Clide y écrit `terminals.json`, la liste des terminaux ouverts — dossier, nom,
+session Claude, commande en cours —, et `scrollback\`, la fin de la sortie de
+chaque shell (256 Kio au plus). Ce qu'un shell a affiché se retrouve donc sur le
+disque, un jeton ou un mot de passe affiché compris. Décocher Réglages › Terminal ›
+« Rouvrir les onglets de terminal » efface les deux, et plus rien n'y est écrit. À
+la lecture, une session qui n'est pas un identifiant de session et une commande qui
+porte un retour à la ligne sont écartées : un fichier modifié à la main ne fait
+rien lancer d'autre que la reprise.
 
 Une installation antérieure au nom Clide, qui s'appelait claude-ide, est reprise
 au premier lancement, sans rien écraser :

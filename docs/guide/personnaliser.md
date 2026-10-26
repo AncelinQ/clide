@@ -161,6 +161,8 @@ panneau global, ou `Ctrl+,`. Ses sections, à gauche :
 - **Apparence** : les couleurs de l'interface, et les onglets du panneau global en
   colonne ou en ligne ;
 - **Terminal** : la police et sa taille, appliquées aussitôt aux terminaux ouverts ;
+  « Rouvrir les onglets de terminal » au lancement, coché par défaut (voir
+  [Rouvrir les onglets au lancement](terminaux.md#rouvrir-les-onglets-au-lancement)) ;
   ce que fait un script lancé au premier plan, « Montrer le script » dans l'onglet
   Scripts (par défaut) ou « Rester où l'on est », le script lancé devenant celui
   que l'onglet montrera ; où va l'onglet Claude ou le shell qu'on ouvre quand un
