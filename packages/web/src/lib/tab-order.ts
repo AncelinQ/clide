@@ -32,6 +32,25 @@ export function shiftTab(order: readonly string[], id: string, step: -1 | 1): st
   return next;
 }
 
+/**
+ * Côté où poser l'élément tiré quand le pointeur survole `target` pendant un
+ * glisser, d'après l'ordre affiché et le sens du pointeur : `-1` vers le début,
+ * `1` vers la fin, `0` immobile.
+ *
+ * Une cible plus loin, atteinte en avançant, est dépassée ; une cible plus tôt,
+ * atteinte en reculant, aussi. Rien sinon : après un échange, un élément plus large
+ * que l'élément tiré vient sous un pointeur qui n'a pas bougé, et ne doit pas
+ * l'échanger en retour.
+ */
+export function aimFor(shown: readonly string[], dragged: string, target: string, dir: -1 | 0 | 1): "before" | "after" | undefined {
+  const from = shown.indexOf(dragged);
+  const to = shown.indexOf(target);
+  if (from === -1 || to === -1 || from === to) return undefined;
+  if (to > from && dir > 0) return "after";
+  if (to < from && dir < 0) return "before";
+  return undefined;
+}
+
 /** Place `id` lâché sur `target`, du côté où il est tombé. */
 export function dropTab(order: readonly string[], id: string, target: string, side: "before" | "after"): string[] {
   if (id === target) return [...order];

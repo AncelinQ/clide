@@ -85,7 +85,10 @@ colonne du projet et le bloc session ne s'affichent pas tant qu'il n'y en a aucu
 ils n'auraient rien à montrer, et l'accueil propose déjà d'en ouvrir un.
 
 Les pastilles de projet et les onglets du centre — terminaux et fichiers mêlés —
-se rangent au glisser-déposer : un trait montre la place d'arrivée, Échap annule.
+se rangent au glisser-déposer, en direct : pendant qu'on en tire un, les autres
+s'écartent pour lui faire place et glissent vers leur nouvelle place. Rien n'est
+enregistré avant le lâcher ; Échap, ou un lâcher hors de la barre, remet tout en
+place.
 Au clavier, `Alt+Maj+Page préc./suiv.` décale l'onglet montré d'un cran. Un onglet
 ne quitte pas son projet, et l'ordre revient au lancement suivant.
 

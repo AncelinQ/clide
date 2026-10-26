@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addToGroup,
+  barEntries,
   barItems,
   createGroup,
   dropInBar,
@@ -47,6 +48,28 @@ describe("gather et barItems", () => {
 
   it("ne montre pas un groupe dont aucun onglet n'est dans la barre", () => {
     expect(bar(["a"], groupsOf({ g: ["rangé-dans-scripts"] }))).toBe("a");
+  });
+});
+
+describe("barEntries", () => {
+  /** La barre à plat en une ligne : `a G( b g) d`, où `(` ouvre et `)` ferme le bloc teinté. */
+  const flat = (order: readonly string[], state: TabGroups): string =>
+    barEntries(barItems(gather(order, state.members), state))
+      .map((entry) =>
+        entry.kind === "label"
+          ? `${entry.id}${entry.alone ? "" : "("}`
+          : entry.block
+            ? `${entry.id}${entry.block.last ? ")" : ""}`
+            : entry.id,
+      )
+      .join(" ");
+
+  it("met étiquettes et onglets à la suite, le bloc d'un groupe ouvert sur son étiquette et fermé sur son dernier onglet", () => {
+    expect(flat(["a", "b", "c", "d"], groupsOf({ g: ["b", "c"] }))).toBe(`a ${groupTabId("g")}( b c) d`);
+  });
+
+  it("ne garde que l'étiquette d'un groupe replié, seule", () => {
+    expect(flat(["a", "b", "c"], groupsOf({ g: ["b", "c"] }, { g: { folded: true } }))).toBe(`a ${groupTabId("g")}`);
   });
 });
 

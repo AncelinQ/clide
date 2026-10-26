@@ -27,9 +27,9 @@ import { ClaudeToolbar, NewTabMenu, ScriptToolbar, tabItems } from "@/components
 import { TerminalFind } from "@/components/TerminalFind";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { baseName } from "@/lib/fs";
-import { barItems, gather, groupTabId } from "@/lib/tab-groups";
+import { NO_GROUPS, barEntries, barItems, dropInBar, gather } from "@/lib/tab-groups";
 import { orderTabs } from "@/lib/tab-order";
-import { Reorderable } from "@/components/Reorderable";
+import { ReorderItem, useReorder } from "@/components/Reorderable";
 import { CloseGroupDialog, GROUP_STYLE, GroupLabel, contentsOf, closeGroup, tabGroupItems } from "@/components/TabGroups";
 import { renameSession } from "@/state/claude-picker";
 import { dropOnBar } from "@/state/groups";
@@ -403,12 +403,23 @@ export function TerminalArea() {
   // Terminaux et fichiers mêlés, dans l'ordre où on les a rangés, chaque groupe rassemblé.
   const groups = project?.tabGroups;
   const tabIds = gather(orderTabs(project?.tabOrder ?? [], [...barIds, ...openFiles]), groups?.members ?? {});
-  const items = groups ? barItems(tabIds, groups) : tabIds.map((id) => ({ kind: "tab" as const, id }));
   const shownId = activeFile ?? activeTerminalId;
   const byId = new Map(own.map((entry) => [entry.info.id, entry.info]));
   const dropOn = (moved: string, target: string, side: "before" | "after") => {
     if (project) dropOnBar(project.root, moved, target, side);
   };
+  // Pendant un glisser, la barre se range déjà comme le lâcher la rangera.
+  const reorder = useReorder("center", dropOn);
+  const aim = reorder.drag?.aim;
+  const arranged = groups && reorder.drag && aim ? dropInBar(groups, tabIds, reorder.drag.id, aim.target, aim.side) : undefined;
+  const items = barItems(arranged?.order ?? tabIds, arranged?.groups ?? groups ?? NO_GROUPS);
+  const entries = barEntries(items);
+  // Une étiquette tirée emmène les onglets de son groupe.
+  const dragged = entries.find((entry) => entry.kind === "label" && entry.id === reorder.drag?.id);
+  const list = reorder.bind(
+    entries.map((entry) => entry.id),
+    dragged?.kind === "label" ? dragged.ids : [],
+  );
   const [closingGroup, setClosingGroup] = useState<string>();
   // Un groupe où rien ne vit se ferme d'un coup ; sinon, on dit ce qu'il porte avant.
   const requestCloseGroup = (group: string) => {
@@ -568,11 +579,11 @@ export function TerminalArea() {
       : []),
   ];
 
-  /** Un onglet de la barre, terminal ou fichier. */
-  const renderTab = (id: string) => {
+  /** Un onglet de la barre, terminal ou fichier ; `className` porte sa teinte de groupe et son écart. */
+  const renderTab = (id: string, className: string) => {
     const info = byId.get(id);
     return (
-      <Reorderable key={id} group="center" id={id} onDrop={dropOn} fixed={renamingTab === id}>
+      <ReorderItem key={id} list={list} id={id} fixed={renamingTab === id} className={className}>
         {!info ? (
           <FileTab path={id} active={id === activeFile} onClose={() => requestClose(id)} />
         ) : (
@@ -644,7 +655,7 @@ export function TerminalArea() {
             </div>
           </ContextArea>
         )}
-      </Reorderable>
+      </ReorderItem>
     );
   };
 
@@ -659,25 +670,33 @@ export function TerminalArea() {
             <span className="h-4 w-px shrink-0 bg-border" />
           </>
         )}
-        <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none]">
-          {items.map((item) => {
-            if (item.kind === "tab") return renderTab(item.id);
-            const { group, ids } = item;
-            const label = groupTabId(group.id);
+        <nav {...list.zone} className="flex flex-1 overflow-x-auto [scrollbar-width:none]">
+          {entries.map((entry, index) => {
+            // Le cadre teinté dit quels onglets vont ensemble : chaque élément du groupe
+            // en porte sa part, l'écart compris, arrondie aux deux bouts du bloc.
+            const group = entry.kind === "label" ? entry.group : entry.block?.group;
+            const tint = group && GROUP_STYLE[group.color].tint;
+            if (entry.kind === "tab") {
+              const place = entry.block ? cn("pl-1", entry.block.last && "rounded-r-lg") : index > 0 && "ml-1";
+              return renderTab(entry.id, cn(tint, place));
+            }
             return (
-              // Le cadre teinté dit quels onglets vont ensemble ; replié, il ne garde que l'étiquette.
-              <div key={label} className={cn("flex shrink-0 items-center gap-1 rounded-lg", GROUP_STYLE[group.color].tint)} data-group-block={group.id}>
-                <Reorderable group="center" id={label} onDrop={dropOn} fixed={renamingTab === label} holds>
-                  <GroupLabel
-                    root={project?.root ?? ""}
-                    group={group}
-                    ids={ids}
-                    active={group.folded && shownId !== null && ids.includes(shownId)}
-                    onClose={() => requestCloseGroup(group.id)}
-                  />
-                </Reorderable>
-                {!group.folded && ids.map(renderTab)}
-              </div>
+              <ReorderItem
+                key={entry.id}
+                list={list}
+                id={entry.id}
+                holds
+                fixed={renamingTab === entry.id}
+                className={cn("flex items-center", tint, entry.alone ? "rounded-lg" : "rounded-l-lg", index > 0 && "ml-1")}
+              >
+                <GroupLabel
+                  root={project?.root ?? ""}
+                  group={entry.group}
+                  ids={entry.ids}
+                  active={entry.group.folded && shownId !== null && entry.ids.includes(shownId)}
+                  onClose={() => requestCloseGroup(entry.group.id)}
+                />
+              </ReorderItem>
             );
           })}
         </nav>

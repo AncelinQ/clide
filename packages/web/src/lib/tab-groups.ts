@@ -87,6 +87,31 @@ export function barItems(order: readonly string[], state: TabGroups): BarItem[] 
   return items;
 }
 
+/**
+ * Une entrée de la barre à plat. Un onglet d'un groupe dit s'il ferme son bloc ;
+ * une étiquette dit si elle est seule, groupe replié.
+ */
+export type BarEntry =
+  | { kind: "tab"; id: string; block?: { group: TabGroup; last: boolean } }
+  | { kind: "label"; id: string; group: TabGroup; ids: string[]; alone: boolean };
+
+/**
+ * La barre à plat : chaque étiquette et chaque onglet visible à la suite, sans
+ * contenant par groupe. Un onglet qui entre dans un groupe pendant un glisser ne
+ * change pas de parent dans le DOM : démontée, la source du glisser ne recevrait
+ * plus `dragend`. Les onglets d'un groupe replié n'y sont pas.
+ */
+export function barEntries(items: readonly BarItem[]): BarEntry[] {
+  return items.flatMap((item): BarEntry[] => {
+    if (item.kind === "tab") return [{ kind: "tab", id: item.id }];
+    const shown = item.group.folded ? [] : item.ids;
+    return [
+      { kind: "label", id: groupTabId(item.group.id), group: item.group, ids: item.ids, alone: shown.length === 0 },
+      ...shown.map((id, index): BarEntry => ({ kind: "tab", id, block: { group: item.group, last: index === shown.length - 1 } })),
+    ];
+  });
+}
+
 /** Le groupe de l'onglet `id`, s'il en a un. */
 export function groupOf(state: TabGroups, id: string): TabGroup | undefined {
   const group = state.members[id];
