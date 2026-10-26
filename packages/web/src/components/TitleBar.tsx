@@ -13,7 +13,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { BranchDialog } from "@/components/BranchDialog";
 import { ReorderItem, useReorder } from "@/components/Reorderable";
@@ -46,7 +46,7 @@ import { api, openDoc } from "@/lib/api";
 import { dropTab } from "@/lib/tab-order";
 import { recentProjects } from "@/lib/recents";
 import type { SessionSummary } from "@/lib/types";
-import { activateProject, closeProject, openProject, setState, useStore } from "@/state/store";
+import { activateProject, closeProject, getState, openProject, setState, useStore } from "@/state/store";
 import { cycleTheme } from "@/state/theme";
 import { closeTerminal } from "@/state/terminals";
 
@@ -93,6 +93,19 @@ export function TitleBar() {
     closeProject(root);
   };
 
+  // Le bouton qui ferme un projet disparaît avec lui. Le focus passe à la pastille
+  // voisine ; au projet qui s'affiche quand c'était le projet actif ; à « Ouvrir un
+  // projet » s'il n'en reste aucun.
+  const pills = useRef(new Map<string, HTMLButtonElement>());
+  const addButton = useRef<HTMLButtonElement>(null);
+  const closeFromPill = (root: string) => {
+    const index = projects.findIndex((project) => project.root === root);
+    const neighbour = projects[index + 1] ?? projects[index - 1];
+    close(root);
+    const target = root === activeRoot ? getState().activeRoot : neighbour?.root;
+    (target ? pills.current.get(target) : addButton.current)?.focus();
+  };
+
   const confirm = (path = draft) => {
     if (path.trim()) openProject(path.trim());
     setDraft("");
@@ -135,7 +148,7 @@ export function TitleBar() {
       </div>
 
       <div className="flex min-w-0 items-center gap-1.5">
-        <nav {...list.zone} className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
+        <nav {...list.zone} aria-label={t("Projets ouverts")} className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none]">
           {shownProjects.map((project) => {
             // Les signes de ses onglets Claude, comptés : au travail (pas seulement
             // ouverts, le titre de leur terminal le dit), en attente d'une réponse,
@@ -150,50 +163,65 @@ export function TitleBar() {
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
                     <div
-                      title={project.root}
-                      onClick={() => activateProject(project.root)}
                       className={cn(
-                        "group flex max-w-64 cursor-pointer items-center gap-2 rounded-full border px-3 py-1 transition-colors",
+                        "flex max-w-64 items-center rounded-full border transition-colors",
                         active
                           ? "border-border bg-card text-foreground shadow-sm"
                           : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
                       )}
                     >
-                      <span className="truncate">{project.name}</span>
-                      <RepoMarks root={project.root} />
-                      {busy > 0 && (
-                        <span
-                          className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
-                          title={t("{count} Claude en cours", { count: busy })}
-                        >
-                          <Sparkles className="size-3 animate-pulse" />
-                          {busy}
-                        </span>
-                      )}
-                      {asking > 0 && (
-                        <span
-                          className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
-                          title={t("En attente de ta réponse : {count}", { count: asking })}
-                        >
-                          <CircleAlert className="size-3" />
-                          {asking}
-                        </span>
-                      )}
-                      {done > 0 && (
-                        <Badge
-                          className="h-4 min-w-4 justify-center rounded-full bg-emerald-500 px-1 text-[10px] text-white tabular-nums"
-                          title={t("Fini, à regarder : {count}", { count: done })}
-                        >
-                          {done}
-                        </Badge>
-                      )}
-                      <X
-                        className="size-3.5 shrink-0 rounded-full opacity-50 hover:bg-accent hover:opacity-100"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          close(project.root);
+                      <button
+                        type="button"
+                        ref={(node) => {
+                          if (!node) return;
+                          pills.current.set(project.root, node);
+                          return () => {
+                            pills.current.delete(project.root);
+                          };
                         }}
-                      />
+                        title={project.root}
+                        aria-current={active || undefined}
+                        onClick={() => activateProject(project.root)}
+                        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-full py-1 pr-2 pl-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        <span className="truncate">{project.name}</span>
+                        <RepoMarks root={project.root} />
+                        {busy > 0 && (
+                          <span
+                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
+                            title={t("{count} Claude en cours", { count: busy })}
+                          >
+                            <Sparkles className="size-3 animate-pulse" />
+                            {busy}
+                          </span>
+                        )}
+                        {asking > 0 && (
+                          <span
+                            className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-600 tabular-nums dark:text-amber-400"
+                            title={t("En attente de ta réponse : {count}", { count: asking })}
+                          >
+                            <CircleAlert className="size-3" />
+                            {asking}
+                          </span>
+                        )}
+                        {done > 0 && (
+                          <Badge
+                            className="h-4 min-w-4 justify-center rounded-full bg-emerald-500 px-1 text-[10px] text-white tabular-nums"
+                            title={t("Fini, à regarder : {count}", { count: done })}
+                          >
+                            {done}
+                          </Badge>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        title={t("Fermer le projet")}
+                        aria-label={t("Fermer {name}", { name: project.name })}
+                        onClick={() => closeFromPill(project.root)}
+                        className="mr-3 shrink-0 cursor-pointer rounded-full opacity-50 outline-none hover:bg-accent hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        <X className="size-3.5" aria-hidden />
+                      </button>
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
@@ -230,7 +258,7 @@ export function TitleBar() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7" aria-label={labels.add} onClick={() => setAdding(true)}>
+            <Button ref={addButton} variant="ghost" size="icon" className="size-7" aria-label={labels.add} onClick={() => setAdding(true)}>
               <Plus />
             </Button>
           </TooltipTrigger>

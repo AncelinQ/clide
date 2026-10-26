@@ -176,6 +176,8 @@ export const EN: Record<string, string> = {
   "Changer de thème": "Change theme",
   "Ouvrir un projet": "Open a project",
   "Fermer le projet": "Close project",
+  "Fermer {name}": "Close {name}",
+  "Projets ouverts": "Open projects",
   "Projet suivant": "Next project",
   "Projet précédent": "Previous project",
   "Nouveau shell": "New shell",
