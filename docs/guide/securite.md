@@ -44,6 +44,35 @@ tous couverts par des tests :
 Les suppressions demandent un second clic plutôt qu'une fenêtre de confirmation :
 cela écarte le geste involontaire sans bloquer la page.
 
+## Ce que Clide demande à Internet
+
+Le serveur n'écoute que sur la machine. Ce que Clide demande au dehors se limite
+à ceci :
+
+- **L'API d'usage d'Anthropic**, au clic sur « Actualiser » des limites de
+  l'abonnement seulement, avec le jeton de connexion de Claude Code, qui n'est
+  jamais renouvelé ici (voir [l'usage de l'abonnement](panneau-global.md#usage-de-l-abonnement)).
+- **status.claude.com et le registre npm**, pour
+  [la version de Claude Code et l'état des services](panneau-global.md#claude-code-et-services-anthropic) :
+  deux adresses publiques, demandées sans identifiant, à l'ouverture de l'onglet
+  Consommation, et gardées de 5 minutes à une heure. « Mettre à jour Claude Code »
+  ne télécharge rien lui-même : il lance `claude update` dans un onglet, à la vue.
+- **Claude, par `claude -p`**, au clic seulement, pour
+  [le schéma d'une session](session.md#schema-de-la-session) et
+  [ses rédactions](session.md#message-de-commit-et-description-de-mr) : un résumé
+  de la session — ses demandes, et les diffs de ses fichiers — part chez
+  Anthropic par Claude Code et son compte, comme dans une session.
+- **Le dépôt distant et sa forge**, par les outils de la machine et leurs propres
+  connexions — l'application ne voit aucun jeton : les gestes git qu'on lance
+  (fetch, pull, push, mise à jour de plusieurs dépôts), et l'état de la MR de la
+  branche par `gh pr view` ou `glab mr view` (voir [Git](git.md)).
+- **Les versions publiées de Clide sur GitHub**, pour l'application de bureau, au
+  démarrage puis toutes les 6 heures quand Réglages › Mises à jour ›
+  « Automatiques » est coché.
+
+Le sondage des serveurs de développement ne vise que la machine : une adresse
+qui n'est pas `localhost`, `127.0.0.1` ou `[::1]` est refusée.
+
 ## Dossier de données, et reprise d'une installation antérieure
 
 Ce que l'application garde pour elle — index des sessions et de la recherche,
