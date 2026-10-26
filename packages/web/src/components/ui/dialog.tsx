@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { t } from "@/i18n"
 
 function Dialog({
   ...props
@@ -48,14 +49,29 @@ function DialogOverlay({
 }
 
 /**
- * Retient ce qui a le focus au premier rendu d'une fenêtre ouverte. `onOpenAutoFocus`
- * viendrait trop tard : un champ `autoFocus` de la fenêtre a déjà pris le focus.
+ * Le dernier élément focalisé hors d'un menu ou d'une fenêtre : celui d'où l'on a
+ * ouvert le menu, ou la fenêtre partie depuis.
  */
-function RememberOpener({ into }: { into: React.RefObject<Element | null> }) {
+let lastOutside: Element | null = null
+document.addEventListener("focusin", (event) => {
+  if (event.target instanceof Element && !event.target.closest('[role="menu"], [role="dialog"]')) lastOutside = event.target
+})
+
+/**
+ * Retient, au premier rendu d'une fenêtre ouverte, à qui rendre le focus. C'est
+ * l'élément qui l'a ; ouverte depuis un menu, dont l'entrée va disparaître, c'est
+ * l'élément d'où l'on a ouvert le menu. Le dernier élément hors des menus et des
+ * fenêtres sert de repli : une fenêtre ouverte depuis la palette n'a plus son
+ * élément d'origine en se fermant. `onOpenAutoFocus` viendrait trop tard : un
+ * champ `autoFocus` de la fenêtre a déjà pris le focus.
+ */
+function RememberOpener({ into }: { into: React.RefObject<Element[]> }) {
   const done = React.useRef(false)
   if (!done.current) {
     done.current = true
-    into.current = document.activeElement
+    const active = document.activeElement
+    const candidates = !active || active === document.body ? [] : active.closest('[role="menu"]') ? [lastOutside] : [active, lastOutside]
+    into.current = candidates.filter((element) => element !== null)
   }
   return null
 }
@@ -77,7 +93,7 @@ function DialogContent({
   // qui l'avait à l'ouverture, sauf si quelque chose l'a pris entre-temps (une
   // commande qui montre un terminal, une autre fenêtre). Une fenêtre qui le rend
   // elle-même appelle `preventDefault` dans son `onCloseAutoFocus`.
-  const opener = React.useRef<Element | null>(null)
+  const opener = React.useRef<Element[]>([])
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -87,10 +103,10 @@ function DialogContent({
           onCloseAutoFocus?.(event)
           if (event.defaultPrevented) return
           event.preventDefault()
-          const back = opener.current
-          opener.current = null
+          const back = opener.current.find((element) => element instanceof HTMLElement && element.isConnected)
+          opener.current = []
           if (document.activeElement && document.activeElement !== document.body) return
-          if (back instanceof HTMLElement && back !== document.body && back.isConnected) back.focus()
+          if (back instanceof HTMLElement) back.focus()
           else fallbackFocus?.()
         }}
         className={cn(
@@ -107,7 +123,7 @@ function DialogContent({
             className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("Fermer")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -145,7 +161,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">{t("Fermer")}</Button>
         </DialogPrimitive.Close>
       )}
     </div>
