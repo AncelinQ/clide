@@ -89,6 +89,7 @@ export function ScriptsTab({ shelf, shown }: { shelf: TerminalInfo[]; shown: boo
       type="button"
       data-scripts-tab
       disabled={empty}
+      aria-pressed={shown}
       onClick={toggleScripts}
       title={
         empty

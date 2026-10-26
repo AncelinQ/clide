@@ -7,6 +7,14 @@ modèle choisi, un shell — ou lance la capture d'écran vers le prompt ; chaqu
 affiche son raccourci. Un clic droit sur un onglet le renomme, le ferme, ferme les
 autres, copie son dossier ou le range dans un groupe.
 
+La barre se parcourt aussi au clavier. `Tab` y entre sur l'onglet montré. `←` et
+`→` passent d'un onglet à l'autre, étiquettes de groupe comprises, sans rien
+montrer, et `Début` et `Fin` vont aux deux bouts. `Entrée` montre l'onglet et lui
+donne le clavier ; sur une étiquette, `Entrée` ou `Espace` replie ou déplie le
+groupe. `Suppr` ferme l'onglet ou le groupe comme sa croix, et le focus reste dans
+la barre, sur l'onglet voisin. `Maj+F10` ouvre le menu du clic droit. Un lecteur
+d'écran annonce l'onglet montré, l'état de chaque groupe et les fichiers modifiés.
+
 Pour distinguer deux onglets Claude, on les nomme : double-clic sur l'onglet, ou
 clic droit › Renommer, puis Entrée (Échap annule). Le nom tient tant que l'onglet
 vit, au fil des sessions `claude` qu'il accueille et des rechargements de la page ;
