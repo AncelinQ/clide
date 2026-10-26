@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 
@@ -11,6 +11,7 @@ import {
   appDataDir,
   claudeHome,
   legacyAppDataDir,
+  memoNotesRoot,
   migrateAppData,
   resumedSessionId,
   withSessionName,
@@ -242,6 +243,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const live = new LiveSessions();
   const names = new SessionNames(join(options.dataDir ?? appDataDir(), "session-names.json"));
   const tabNames = new TabNames(names);
+  // Le dossier des notes existe avant que ses chemins réels ne soient calculés :
+  // un dossier absent se compare sous sa forme écrite, et un chemin court de
+  // Windows (`ADM-A~1`) ne reconnaîtrait plus ensuite les notes qu'on y crée.
+  await mkdir(memoNotesRoot(options.dataDir ?? appDataDir()), { recursive: true }).catch(() => undefined);
   const context: ApiContext = {
     index: new SessionIndex(),
     search: new SearchIndex(),
@@ -252,7 +257,13 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     names,
     settingsPath: options.settingsPath ?? settingsFile(),
     dataDir: options.dataDir ?? appDataDir(),
-    workspace: new WorkspaceRoots(undefined, [join(claudeHome(), "skills"), join(claudeHome(), "commands")]),
+    // Hors des projets mais ouverts dans l'éditeur : les skills et commandes de
+    // l'utilisateur, et les notes du Mémo.
+    workspace: new WorkspaceRoots(undefined, [
+      join(claudeHome(), "skills"),
+      join(claudeHome(), "commands"),
+      memoNotesRoot(options.dataDir ?? appDataDir()),
+    ]),
     bus: new ServerBus(),
   };
   for (const module of SERVER_MODULES) module.start?.(context);

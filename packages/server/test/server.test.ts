@@ -365,6 +365,51 @@ describe("serveur local", () => {
   });
 });
 
+describe("notes du Mémo dans l'éditeur", () => {
+  let server: RunningServer;
+  let scratch: string;
+  let project: string;
+  const base = (): string => `http://127.0.0.1:${server.port}`;
+
+  beforeAll(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "clide-memo-"));
+    project = join(scratch, "projet");
+    await mkdir(project);
+    // Le dossier de données est à côté du projet, pas dessous : seules ses notes doivent s'ouvrir.
+    server = await startServer({ webRoot: WEB_ROOT, token: "jeton-de-test", settingsPath: join(scratch, "settings.json"), dataDir: join(scratch, "data") });
+    await fetch(`${base()}/api/workspace/roots?token=jeton-de-test`, { method: "POST", body: JSON.stringify({ projects: [project] }) });
+  });
+
+  afterAll(async () => {
+    await server.close();
+    await rm(scratch, { recursive: true, force: true });
+  });
+
+  it("ouvre et enregistre une note, et rien d'autre du dossier de données", async () => {
+    const created = await fetch(`${base()}/api/memo/notes/create?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ root: project, name: "Plan" }),
+    });
+    const { path } = (await created.json()) as { path: string };
+    expect(path.startsWith(join(scratch, "data", "memo"))).toBe(true);
+    const read = (await (await fetch(`${base()}/api/fs/read?path=${encodeURIComponent(path)}&token=${server.token}`)).json()) as {
+      text: string;
+      mtimeMs: number;
+    };
+    expect(read.text).toBe("# Plan\n\n");
+    const saved = await fetch(`${base()}/api/fs/write?token=${server.token}`, {
+      method: "POST",
+      body: JSON.stringify({ path, text: "# Plan\n\nla suite\n", expectedMtimeMs: read.mtimeMs, eol: "\n", bom: false }),
+    });
+    expect(saved.status).toBe(200);
+    expect(await readFile(path, "utf8")).toBe("# Plan\n\nla suite\n");
+
+    await writeFile(join(scratch, "data", "autre.txt"), "privé");
+    const other = await fetch(`${base()}/api/fs/read?path=${encodeURIComponent(join(scratch, "data", "autre.txt"))}&token=${server.token}`);
+    expect(other.status).toBe(403);
+  });
+});
+
 describe("terminaux rouverts au lancement", () => {
   let scratch: string;
   let dataDir: string;
