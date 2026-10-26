@@ -343,3 +343,18 @@ export interface TestSuite {
   reportPath: string;
   results: TestResult[];
 }
+
+/** Un lien du Mémo : un nom, et une adresse http, https ou mailto. */
+export interface MemoLink {
+  name: string;
+  url: string;
+}
+
+/** Le Mémo d'un projet : ses liens, ses notes (dans le dossier de données) et ses fichiers épinglés. */
+export interface ProjectMemo {
+  root: string;
+  links: MemoLink[];
+  notes: { name: string; path: string }[];
+  /** `exists` faux une fois le fichier déplacé ou supprimé. */
+  pins: { path: string; exists: boolean }[];
+}
