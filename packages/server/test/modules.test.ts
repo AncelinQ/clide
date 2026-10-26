@@ -29,7 +29,9 @@ describe("mountModules", () => {
 
   it("monte les modules livrés sans collision, et chacun sous son chemin", () => {
     const table = mountModules({ routes, mutations }, SERVER_MODULES);
-    for (const path of ["/api/scripts", "/api/usage", "/api/costs"]) expect(table.routes[path]).toBeTypeOf("function");
+    for (const path of ["/api/scripts", "/api/usage", "/api/costs", "/api/claude-info"]) {
+      expect(table.routes[path]).toBeTypeOf("function");
+    }
     expect(table.mutations["/api/usage/refresh"]).toBeTypeOf("function");
     expect(routes["/api/usage"]).toBeUndefined();
   });

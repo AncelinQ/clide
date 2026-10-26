@@ -1,6 +1,6 @@
 # Le panneau global
 
-À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, les mémos de tous les projets, l'usage et les coûts, les processus. Les réglages de Claude Code sont dans la fenêtre Réglages.
+À droite, ce qui ne dépend d'aucun projet : les sessions de toute la machine, la recherche, les chantiers, les mémos de tous les projets, l'usage et les coûts, la version de Claude Code et l'état des services, les processus. Les réglages de Claude Code sont dans la fenêtre Réglages.
 
 ## Onglets du panneau global
 
@@ -49,8 +49,9 @@ qu'un résultat caché ne passe pas pour absent. La recherche porte sur le nom, 
 
 ## Usage de l'abonnement
 
-L'onglet Consommation a deux sections, **Usage** puis **Coûts**, repliables comme
-leurs sous-sections. L'usage montre d'abord les limites de l'abonnement comme
+L'onglet Consommation a quatre sections, **Usage**, **Coûts**, puis
+[**Claude Code** et **Services Anthropic**](#claude-code-et-services-anthropic),
+repliables comme leurs sous-sections. L'usage montre d'abord les limites de l'abonnement comme
 `/usage` les montre — session de 5 heures, semaine tous modèles, semaine d'un
 modèle, crédit supplémentaire —, avec le temps qui reste avant chaque
 réinitialisation, puis la ligne de statut, et ce que chaque session récente a
@@ -160,6 +161,30 @@ s'ajoutent aux siens. Une réponse s'écrit en plusieurs events au même `messag
 elle n'est comptée qu'une fois. La section Coûts range chaque session au jour de
 sa dernière activité — ses réponses ne sont pas datées une à une dans l'index. Ses
 sous-sections — total, par jour, par projet, par modèle, tarifs — se replient.
+
+## Claude Code et services Anthropic
+
+Les deux dernières sections de l'onglet Consommation.
+
+**Claude Code** donne la version installée, telle que `claude --version` la
+rapporte, et la compare à la dernière publiée sur npm : « à jour », ou
+« 2.1.320 disponible ». Une version plus récente fait paraître **Mettre à jour
+Claude Code**, qui lance `claude update` dans un nouvel onglet shell du projet
+ouvert : on y voit la mise à jour se faire, ou échouer. Sans projet ouvert, le
+bouton attend qu'on en ouvre un. « Version introuvable » veut dire que `claude`
+n'est pas dans le `PATH` de Clide.
+
+**Services Anthropic** reprend [status.claude.com](https://status.claude.com) :
+l'état d'ensemble, avec un point vert, ambre ou rouge toujours suivi de son texte,
+puis les composants dégradés et les incidents en cours, chacun avec son état ; un
+incident s'ouvre sur sa page. Quand la page ne répond pas, la section dit
+pourquoi : délai dépassé, réseau injoignable, ou réponse illisible.
+
+Les trois sources sont lues à l'ouverture de l'onglet, puis gardées un moment :
+10 minutes pour la version installée, que Claude Code peut changer seul, une heure
+pour npm, 5 minutes pour la page de statut. Chacune peut manquer sans gêner les
+autres : hors ligne, la version installée reste affichée. « Actualiser » relit les
+trois sans attendre.
 
 ## Retirer une session
 

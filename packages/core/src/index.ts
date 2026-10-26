@@ -185,6 +185,8 @@ export {
 } from "./mcp/store.js";
 
 export { parseMcpStatus, type McpHealth, type McpStatus } from "./mcp/status.js";
+export { parseStatusPage, type ServiceIncident, type ServiceStatus } from "./claude-info/status.js";
+export { compareVersions, newerVersion, parseClaudeVersion } from "./claude-info/version.js";
 
 export {
   ScriptStore,
